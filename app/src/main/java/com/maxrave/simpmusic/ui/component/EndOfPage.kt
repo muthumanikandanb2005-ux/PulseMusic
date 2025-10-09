@@ -17,7 +17,6 @@ import com.maxrave.simpmusic.AppResString
 import com.maxrave.simpmusic.R
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.utils.VersionManager
-import kotlin.time.Clock
 
 @Composable
 fun EndOfPage(withoutCredit: Boolean = false) {
@@ -30,7 +29,7 @@ fun EndOfPage(withoutCredit: Boolean = false) {
     ) {
         if (!withoutCredit) {
             Text(
-                "@${now()} " + stringResource(AppResString.app_name) + " " +
+                "@${now().year} " + stringResource(AppResString.app_name) + " " +
                     stringResource(
                         R.string.version_format,
                         VersionManager.getVersionName(),
