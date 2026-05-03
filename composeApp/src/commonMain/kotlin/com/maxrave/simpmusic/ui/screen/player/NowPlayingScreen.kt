@@ -3,12 +3,10 @@
 package com.maxrave.simpmusic.ui.screen.player
 
 import androidx.compose.animation.Animatable
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -18,15 +16,12 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -66,13 +61,11 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.SubtitlesOff
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Replay5
-import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.ThumbsUpDown
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -118,7 +111,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -137,7 +129,6 @@ import coil3.request.crossfade
 import coil3.toBitmap
 import com.kmpalette.rememberPaletteState
 import com.maxrave.common.Config.MAIN_PLAYER
-import com.maxrave.domain.data.model.browse.album.Track
 import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
 import com.maxrave.domain.mediaservice.handler.RepeatState
 import com.maxrave.logger.Logger
@@ -151,7 +142,6 @@ import com.maxrave.simpmusic.extension.KeepScreenOn
 import com.maxrave.simpmusic.extension.formatDuration
 import com.maxrave.simpmusic.extension.getColorFromPalette
 import com.maxrave.simpmusic.extension.getScreenSizeInfo
-import com.maxrave.simpmusic.extension.getStringBlocking
 import com.maxrave.simpmusic.extension.hsvToColor
 import com.maxrave.simpmusic.extension.isElementVisible
 import com.maxrave.simpmusic.extension.parseTimestampToMilliseconds
@@ -202,7 +192,6 @@ import simpmusic.composeapp.generated.resources.baseline_more_vert_24
 import simpmusic.composeapp.generated.resources.baseline_playlist_add_24
 import simpmusic.composeapp.generated.resources.crossfading
 import simpmusic.composeapp.generated.resources.description
-import simpmusic.composeapp.generated.resources.downvote
 import simpmusic.composeapp.generated.resources.holder
 import simpmusic.composeapp.generated.resources.holder_video
 import simpmusic.composeapp.generated.resources.like_and_dislike
@@ -216,16 +205,11 @@ import simpmusic.composeapp.generated.resources.now_playing_upper
 import simpmusic.composeapp.generated.resources.offline_mode
 import simpmusic.composeapp.generated.resources.published_at
 import simpmusic.composeapp.generated.resources.rate_lyrics
-import simpmusic.composeapp.generated.resources.rate_translated_lyrics
 import simpmusic.composeapp.generated.resources.rich_synced
 import simpmusic.composeapp.generated.resources.show
 import simpmusic.composeapp.generated.resources.spotify_lyrics_provider
 import simpmusic.composeapp.generated.resources.unsynced
-import simpmusic.composeapp.generated.resources.upvote
 import simpmusic.composeapp.generated.resources.view_count
-import simpmusic.composeapp.generated.resources.vote_error
-import simpmusic.composeapp.generated.resources.vote_submitted
-import kotlin.math.abs
 import kotlin.math.roundToLong
 
 private const val TAG = "NowPlayingScreen"
@@ -371,11 +355,21 @@ fun NowPlayingScreenContent(
 
                 runCatching {
                     when (val action = computeSeekAction(settled, currentOrderIndex)) {
-                        ArtworkSeekAction.Next -> sharedViewModel.onUIEvent(UIEvent.Next)
-                        ArtworkSeekAction.Previous -> sharedViewModel.onUIEvent(UIEvent.Previous)
-                        is ArtworkSeekAction.Skip ->
+                        ArtworkSeekAction.Next -> {
+                            sharedViewModel.onUIEvent(UIEvent.Next)
+                        }
+                        // Use SkipToPrevious so a swipe always goes to the previous track —
+                        // UIEvent.Previous would seek to 0 of the current track once the
+                        // playhead has passed the 3-second mark.
+                        ArtworkSeekAction.Previous -> {
+                            sharedViewModel.onUIEvent(UIEvent.SkipToPrevious)
+                        }
+                        is ArtworkSeekAction.Skip -> {
                             mediaPlayerHandler.playMediaItemInMediaSource(action.index)
-                        ArtworkSeekAction.NoOp -> Unit
+                        }
+                        ArtworkSeekAction.NoOp -> {
+                            Unit
+                        }
                     }
                 }.onFailure { error ->
                     Logger.w(TAG, "ArtworkPager seek failed: ${error.message}")
@@ -843,6 +837,25 @@ fun NowPlayingScreenContent(
                     val isCurrentArtworkPage = page == currentOrderIndex
                     val pageHasCanvas = isCurrentArtworkPage && screenDataState.canvasData != null
 
+                    // Per-page palette state for the !blurBg gradient backdrop.
+                    // The bitmap is fed in by Layer 2's adjacent-thumbnail AsyncImage
+                    // (onSuccess), so we use the SAME bitmap that's painted on screen —
+                    // matches the outer Column's palette extraction characteristics.
+                    val pagePaletteState = rememberPaletteState()
+                    val pageStartColor =
+                        remember(pageTrack?.videoId) {
+                            Animatable(md_theme_dark_background)
+                        }
+                    LaunchedEffect(pagePaletteState, pageTrack?.videoId) {
+                        snapshotFlow { pagePaletteState.palette }
+                            .distinctUntilChanged()
+                            .collectLatest { palette ->
+                                pageStartColor.animateTo(
+                                    palette.getColorFromPalette(),
+                                )
+                            }
+                    }
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier =
@@ -870,35 +883,60 @@ fun NowPlayingScreenContent(
                                 ),
                     ) {
                         // ── Layer 0: per-page backdrop (adjacent pages only) ──
-                        // Adjacent pages render their track's thumbnail as a dim full-screen
-                        // backdrop so the swipe transition feels continuous (no black void).
+                        // Mirrors the outer Column's bg branching so the backdrop logic stays
+                        // consistent during a swipe:
+                        //   - blurBg=true  → dim track thumbnail (matches the haze look)
+                        //   - blurBg=false → palette gradient (startColor → endColor) so the
+                        //                    adjacent page never falls back to a flat dark void
+                        //                    when the user disables blur.
                         // The CURRENT page deliberately skips this layer so the existing
-                        // hazeEffect blur on the Column (and the canvas in canvas mode) stays
-                        // visible exactly like before the pager refactor.
+                        // hazeEffect blur / gradient / canvas on the Column stays visible.
                         if (!isCurrentArtworkPage && pageTrack != null) {
-                            val backdropUrl =
-                                pageTrack.thumbnails
-                                    ?.maxByOrNull { it.width * it.height }
-                                    ?.url
-                            AsyncImage(
-                                model =
-                                    ImageRequest
-                                        .Builder(LocalPlatformContext.current)
-                                        .data(backdropUrl)
-                                        .diskCachePolicy(CachePolicy.ENABLED)
-                                        .diskCacheKey(backdropUrl)
-                                        .crossfade(300)
-                                        .build(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                placeholder = painterResource(Res.drawable.holder),
-                                error = painterResource(Res.drawable.holder),
-                                modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        // Dim slightly so the centered thumbnail above stands out.
-                                        .alpha(0.35f),
-                            )
+                            if (blurBg) {
+                                val backdropUrl =
+                                    pageTrack.thumbnails
+                                        ?.maxByOrNull { it.width * it.height }
+                                        ?.url
+                                AsyncImage(
+                                    model =
+                                        ImageRequest
+                                            .Builder(LocalPlatformContext.current)
+                                            .data(backdropUrl)
+                                            .diskCachePolicy(CachePolicy.ENABLED)
+                                            .diskCacheKey(backdropUrl)
+                                            .crossfade(300)
+                                            .build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(Res.drawable.holder),
+                                    error = painterResource(Res.drawable.holder),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            // Dim slightly so the centered thumbnail above stands out.
+                                            .alpha(0.35f),
+                                )
+                            } else {
+                                // Palette is fed by Layer 2's adjacent-thumbnail AsyncImage
+                                // (see below) so the gradient color stays consistent with
+                                // the bitmap actually painted for that page.
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.linearGradient(
+                                                    colors =
+                                                        listOf(
+                                                            pageStartColor.value,
+                                                            md_theme_dark_background,
+                                                        ),
+                                                    start = gradientOffset.start,
+                                                    end = gradientOffset.end,
+                                                ),
+                                            ),
+                                )
+                            }
                         }
 
                         // ── Layer 1: fullscreen canvas backdrop (current track + canvas data) ──
@@ -1199,6 +1237,7 @@ fun NowPlayingScreenContent(
                                         pageTrack.thumbnails
                                             ?.maxByOrNull { it.width * it.height }
                                             ?.url
+                                    val palettePageScope = rememberCoroutineScope()
                                     Box(
                                         contentAlignment = Alignment.Center,
                                         modifier =
@@ -1225,6 +1264,18 @@ fun NowPlayingScreenContent(
                                             contentScale = ContentScale.Crop,
                                             placeholder = painterResource(Res.drawable.holder),
                                             error = painterResource(Res.drawable.holder),
+                                            // Feed the per-page palette using the SAME bitmap
+                                            // we just rendered so the Layer 0 gradient backdrop
+                                            // matches what the user sees on screen.
+                                            onSuccess = { state ->
+                                                palettePageScope.launch {
+                                                    pagePaletteState.generate(
+                                                        state.result.image
+                                                            .toBitmap()
+                                                            .asImageBitmap(),
+                                                    )
+                                                }
+                                            },
                                             modifier =
                                                 Modifier
                                                     .align(Alignment.Center)

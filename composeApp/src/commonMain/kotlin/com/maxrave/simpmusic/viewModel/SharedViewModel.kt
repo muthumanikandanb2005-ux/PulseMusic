@@ -792,6 +792,12 @@ class SharedViewModel(
                     )
                 }
 
+                UIEvent.SkipToPrevious -> {
+                    mediaPlayerHandler.onPlayerEvent(
+                        PlayerEvent.SkipToPrevious,
+                    )
+                }
+
                 UIEvent.Stop -> {
                     mediaPlayerHandler.onPlayerEvent(PlayerEvent.Stop)
                 }
@@ -1902,6 +1908,13 @@ sealed class UIEvent {
     data object Next : UIEvent()
 
     data object Previous : UIEvent()
+
+    /**
+     * Always advances to the previous track — bypasses the 3-second
+     * "seek to start of current track" rule used by [Previous]. Used by the
+     * NowPlaying artwork pager swipe.
+     */
+    data object SkipToPrevious : UIEvent()
 
     data object Stop : UIEvent()
 
