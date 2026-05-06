@@ -139,7 +139,7 @@ fun SpotifyLoginScreen(
                             onDismiss = {
                                 devLoginSheet = false
                             },
-                            onDone = { spdc, _ ->
+                            onDone = { spdc ->
                                 devLoginSheet = false
                                 val spdcText = "sp_dc=$spdc"
                                 viewModel.saveSpotifySpdc(spdcText)
@@ -172,7 +172,9 @@ fun SpotifyLoginScreen(
                         }
                     viewModel.setFullSpotifyCookies(cookies)
                 }
-                if (Regex("^https://accounts\\.spotify\\.com/[a-z]{2}(-[a-zA-Z]{2})?/status$").matches(url)) {
+                val statusWithLocale = Regex("^https://accounts\\.spotify\\.com/[a-z]{2}(-[a-zA-Z]{2})?/status$")
+                val statusWithoutLocale = Regex("^https://accounts\\.spotify\\.com/status$")
+                if (statusWithLocale.matches(url) || statusWithoutLocale.matches(url)) {
                     cookie
                         .takeIf {
                             it.isNotEmpty()
