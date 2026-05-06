@@ -273,3 +273,7 @@
 
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
 -keep class androidx.datastore.preferences.** { *; }
+
+# cache2k references kotlin.annotations.jvm.* (compile-only) at annotation level
+-dontwarn kotlin.annotations.jvm.**
+-dontwarn org.cache2k.**
