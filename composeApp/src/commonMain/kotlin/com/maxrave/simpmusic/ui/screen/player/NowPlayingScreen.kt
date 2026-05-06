@@ -771,6 +771,8 @@ fun NowPlayingScreenContent(
                         .build(),
                 contentDescription = "",
                 contentScale = ContentScale.FillHeight,
+                placeholder = painterResource(Res.drawable.holder),
+                error = painterResource(Res.drawable.holder),
                 modifier =
                     Modifier
                         .align(Alignment.Center)
@@ -1061,6 +1063,7 @@ fun NowPlayingScreenContent(
                                             },
                                             contentScale = ContentScale.Crop,
                                             placeholder = painterResource(Res.drawable.holder),
+                                            error = painterResource(Res.drawable.holder),
                                             modifier =
                                                 Modifier
                                                     .align(Alignment.Center)
