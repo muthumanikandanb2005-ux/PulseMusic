@@ -310,10 +310,10 @@ class SettingsViewModel(
     private fun getDownloadQuality() {
         viewModelScope.launch {
             dataStoreManager.downloadQuality.collect { quality ->
-                when (quality) {
-                    QUALITY.items[0].toString() -> _downloadQuality.emit(QUALITY.items[0].toString())
-                    QUALITY.items[1].toString() -> _downloadQuality.emit(QUALITY.items[1].toString())
-                    else -> _downloadQuality.emit(QUALITY.items[0].toString())
+                if (QUALITY.items.any { it.toString() == quality }) {
+                    _downloadQuality.emit(quality)
+                } else {
+                    _downloadQuality.emit(QUALITY.items[0].toString())
                 }
             }
         }
@@ -1018,10 +1018,10 @@ class SettingsViewModel(
     fun getQuality() {
         viewModelScope.launch {
             dataStoreManager.quality.collect { quality ->
-                when (quality) {
-                    QUALITY.items[0].toString() -> _quality.emit(QUALITY.items[0].toString())
-                    QUALITY.items[1].toString() -> _quality.emit(QUALITY.items[1].toString())
-                    else -> _quality.emit(QUALITY.items[0].toString())
+                if (QUALITY.items.any { it.toString() == quality }) {
+                    _quality.emit(quality)
+                } else {
+                    _quality.emit(QUALITY.items[0].toString())
                 }
             }
         }
