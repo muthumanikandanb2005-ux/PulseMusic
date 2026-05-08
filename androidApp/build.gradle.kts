@@ -10,7 +10,6 @@ val isFullBuild: Boolean =
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.sentry.gradle)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
 }
 
@@ -18,7 +17,7 @@ android {
     val abis = arrayOf("armeabi-v7a", "arm64-v8a", "x86_64")
 
     namespace = "com.maxrave.simpmusic"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.maxrave.simpmusic"
@@ -253,7 +252,7 @@ if (!isFullBuild) {
             val cleanSentryMetaTaskName = "cleanSentryMetaForRelease"
             val cleanSentryMetaTask =
                 tasks.register<CleanSentryMetaTask>(cleanSentryMetaTaskName) {
-                    assetDirectories.from(android.sourceSets.flatMap { it.assets.srcDirs })
+                    assetDirectories.from(android.sourceSets.flatMap { it.assets.directories })
                     buildDirectory.set(layout.buildDirectory)
                 }
             tasks.named(name).configure {

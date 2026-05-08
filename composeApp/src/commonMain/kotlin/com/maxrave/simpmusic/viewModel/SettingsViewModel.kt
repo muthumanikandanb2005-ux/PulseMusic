@@ -140,10 +140,6 @@ class SettingsViewModel(
     val crossfadeDuration: StateFlow<Int> = _crossfadeDuration
     private val _crossfadeDjMode = MutableStateFlow<Boolean>(true)
     val crossfadeDjMode: StateFlow<Boolean> = _crossfadeDjMode
-    private val _prefer320kbpsStream = MutableStateFlow<Boolean>(false)
-    val prefer320kbpsStream: StateFlow<Boolean> = _prefer320kbpsStream
-    private val _your320kbpsUrl: MutableStateFlow<String> = MutableStateFlow("")
-    val your320kbpsUrl: StateFlow<String> = _your320kbpsUrl
     private val _youtubeSubtitleLanguage = MutableStateFlow<String>("")
     val youtubeSubtitleLanguage: StateFlow<String> = _youtubeSubtitleLanguage
 
@@ -270,8 +266,6 @@ class SettingsViewModel(
         getCrossfadeEnabled()
         getCrossfadeDuration()
         getCrossfadeDjMode()
-        getPrefer320kbpsStream()
-        getYour320kbpsUrl()
         getContributorNameAndEmail()
         getBackupDownloaded()
         getUpdateChannel()
@@ -316,10 +310,10 @@ class SettingsViewModel(
     private fun getDownloadQuality() {
         viewModelScope.launch {
             dataStoreManager.downloadQuality.collect { quality ->
-                when (quality) {
-                    QUALITY.items[0].toString() -> _downloadQuality.emit(QUALITY.items[0].toString())
-                    QUALITY.items[1].toString() -> _downloadQuality.emit(QUALITY.items[1].toString())
-                    else -> _downloadQuality.emit(QUALITY.items[0].toString())
+                if (QUALITY.items.any { it.toString() == quality }) {
+                    _downloadQuality.emit(quality)
+                } else {
+                    _downloadQuality.emit(QUALITY.items[0].toString())
                 }
             }
         }
@@ -440,40 +434,6 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setCrossfadeDjMode(enabled)
             getCrossfadeDjMode()
-        }
-    }
-
-    private fun getPrefer320kbpsStream() {
-        viewModelScope.launch {
-            dataStoreManager.prefer320kbpsStream.collect { enabled ->
-                _prefer320kbpsStream.value = enabled == DataStoreManager.TRUE
-            }
-        }
-    }
-
-    fun setPrefer320kbpsStream(enabled: Boolean) {
-        viewModelScope.launch {
-            dataStoreManager.setPrefer320kbpsStream(enabled)
-            if (!enabled) {
-                dataStoreManager.setCrossfadeDjMode(false)
-                getCrossfadeDjMode()
-            }
-            getPrefer320kbpsStream()
-        }
-    }
-
-    private fun getYour320kbpsUrl() {
-        viewModelScope.launch {
-            dataStoreManager.your320kbpsUrl.collect { url ->
-                _your320kbpsUrl.value = url
-            }
-        }
-    }
-
-    fun setYour320kbpsUrl(url: String) {
-        viewModelScope.launch {
-            dataStoreManager.setYour320kbpsUrl(url.removeSuffix("/"))
-            getYour320kbpsUrl()
         }
     }
 
@@ -1058,10 +1018,10 @@ class SettingsViewModel(
     fun getQuality() {
         viewModelScope.launch {
             dataStoreManager.quality.collect { quality ->
-                when (quality) {
-                    QUALITY.items[0].toString() -> _quality.emit(QUALITY.items[0].toString())
-                    QUALITY.items[1].toString() -> _quality.emit(QUALITY.items[1].toString())
-                    else -> _quality.emit(QUALITY.items[0].toString())
+                if (QUALITY.items.any { it.toString() == quality }) {
+                    _quality.emit(quality)
+                } else {
+                    _quality.emit(QUALITY.items[0].toString())
                 }
             }
         }

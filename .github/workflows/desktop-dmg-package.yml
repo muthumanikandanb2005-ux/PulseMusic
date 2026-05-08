@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: 21
-          distribution: "zulu"
+          distribution: "microsoft"
           cache: 'gradle'
 
       - name: Update build product flavor
@@ -77,7 +77,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: 21
-          distribution: "zulu"
+          distribution: "microsoft"
           cache: 'gradle'
 
       - name: Update build product flavor

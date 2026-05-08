@@ -123,6 +123,11 @@
     <string name="github">Github</string>
     <string name="maxrave_dev">maxrave-dev</string>
     <string name="buy_me_a_coffee">Buy me a coffee</string>
+    <string name="developer_blog">Developer Blog</string>
+    <string name="developer_blog_tagline">Read dev notes, tutorials &amp; behind-the-scenes</string>
+    <string name="blog_promo_title">Something new from the dev</string>
+    <string name="blog_promo_message">I just launched my personal blog at maxrave.dev — sharing the story behind SimpMusic, music-tech deep dives, and engineering notes. Give it a read if you're curious ✨</string>
+    <string name="visit_blog">Visit blog</string>
     <string name="paypal">PayPal</string>
     <string name="title">Title</string>
     <string name="custom_order">Custom order</string>
@@ -545,6 +550,7 @@
     <string name="simpmusic_charts">SimpMusic Charts</string>
     <string name="crossfading">Crossfading</string>
     <string name="your_320kbps_url">Your 320kbps URL</string>
+    <string name="your_320kbps_url_description">Leave empty to auto-choose a working URL from the uptime checker.</string>
     <string name="search_for">Search for</string>
     <string name="synced_playlist_cannot_change_order">Synced playlist cannot change order</string>
     <string name="bpm">BPM</string>
