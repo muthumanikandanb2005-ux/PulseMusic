@@ -271,6 +271,14 @@
 -dontwarn android.os.Parcelable$Creator
 -dontwarn android.os.Parcel
 
+# Wire/nanojson descriptor classes referenced by Brave extractor's generated proto adapters and
+# YoutubeStreamExtractor helpers. Keep so proguard can resolve method signatures.
+-keep class com.squareup.wire.** { *; }
+-keep interface com.squareup.wire.** { *; }
+-dontwarn com.squareup.wire.**
+-keep class com.grack.nanojson.** { *; }
+-dontwarn com.grack.nanojson.**
+
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
 -keep class androidx.datastore.preferences.** { *; }
 
