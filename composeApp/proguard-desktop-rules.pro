@@ -49,6 +49,7 @@
 -keep class com.maxrave.domain.data.model.** { *; }
 -keep class com.mohamedrejeb.ksoup.html.** { *; }
 -keep class org.schabi.newpipe.extractor.downloader.** { *; }
+-keep class dev.maxrave.pipepipe.extractor.downloader.** { *; }
 
 # Koin
 -keep class org.koin.core.** { *; }
@@ -109,6 +110,7 @@
 #}
 ## Rules for NewPipeExtractor
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
+-keep class dev.maxrave.pipepipe.extractor.timeago.patterns.** { *; }
 -keep class org.mozilla.javascript.** { *; }
 -dontwarn org.mozilla.javascript.tools.**
 # Please add these rules to your existing keep rules in order to suppress warning
@@ -224,6 +226,8 @@
 ## Rules for NewPipeExtractor
 -keep class org.schabi.newpipe.extractor.** { *; }
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
+-keep class dev.maxrave.pipepipe.extractor.** { *; }
+-keep class dev.maxrave.pipepipe.extractor.timeago.patterns.** { *; }
 -keep class org.mozilla.javascript.** { *; }
 -keep class org.mozilla.classfile.ClassFileWriter
 -dontwarn org.mozilla.javascript.tools.**
@@ -278,6 +282,18 @@
 -dontwarn com.squareup.wire.**
 -keep class com.grack.nanojson.** { *; }
 -dontwarn com.grack.nanojson.**
+
+# Brave bundles BitChute / json2java4nanojson model classes referenced by extractor constructors
+# kept via `-keep class org.schabi.newpipe.extractor.** { *; }`. Without explicit keeps, proguard
+# can't resolve the descriptor types and aborts with "unresolved reference" warnings.
+-keep class com.github.bravenewpipe.** { *; }
+-dontwarn com.github.bravenewpipe.**
+
+# PipePipe was compiled against Rhino 1.7.13 (which had org.mozilla.javascript.ObjToIntMap), but
+# Brave brings Rhino 1.8.1 where that class was removed. Gradle picks the higher version, leaving
+# PipePipe's TokenStream with a stale reference. The code path is unused for our YouTube usage,
+# so suppress the warning instead of pinning Rhino back.
+-dontwarn org.mozilla.javascript.ObjToIntMap
 
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
 -keep class androidx.datastore.preferences.** { *; }
