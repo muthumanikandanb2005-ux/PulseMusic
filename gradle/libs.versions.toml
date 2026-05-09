@@ -1,7 +1,7 @@
 [versions]
 # App version
-version-name = "1.2.0"
-version-code = "49"
+version-name = "1.2.1"
+version-code = "50"
 
 android = "9.1.1"
 kotlin = "2.3.21"
@@ -51,7 +51,7 @@ sentry-gradle-android = "6.6.0"
 sentry-jvm = "8.40.0"
 newpipe = "v0.26.1"
 brave-newpipe = "v0.26.2"
-pipepipe = "c7852ee1a3"
+pipepipe = "30ec94d6d3"
 webkit = "1.16.0"
 kermit = "2.1.0"
 paging-common = "3.5.0"
