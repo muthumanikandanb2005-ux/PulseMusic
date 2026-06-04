@@ -86,6 +86,7 @@ import com.maxrave.simpmusic.getPlatform
 import com.maxrave.simpmusic.ui.navigation.destination.list.AlbumDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.PlaylistDestination
+import com.maxrave.simpmusic.ui.navigation.destination.list.PodcastDestination
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.HomeViewModel
 import org.jetbrains.compose.resources.painterResource
@@ -216,6 +217,14 @@ fun HomeItem(
                                 navController.navigate(
                                     ArtistDestination(
                                         channelId = browseId,
+                                    ),
+                                )
+                            }, data = temp)
+                        } else if (browseId.startsWith("MPSP")) {
+                            HomeItemContentPlaylist(onClick = {
+                                navController.navigate(
+                                    PodcastDestination(
+                                        podcastId = browseId,
                                     ),
                                 )
                             }, data = temp)
