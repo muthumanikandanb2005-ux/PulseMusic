@@ -87,7 +87,6 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.rememberGraphicsLayer
 import com.maxrave.simpmusic.expect.ui.toImageBitmap
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
@@ -116,7 +115,6 @@ import com.maxrave.domain.utils.FilterState
 import com.maxrave.domain.utils.toTrack
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.Platform
-import com.maxrave.simpmusic.expect.ui.drawBackdropCustomShape
 import com.maxrave.simpmusic.expect.ui.layerBackdrop
 import com.maxrave.simpmusic.expect.ui.rememberBackdrop
 import com.maxrave.simpmusic.extension.angledGradientBackground
@@ -130,7 +128,9 @@ import com.maxrave.simpmusic.ui.component.EndOfPage
 import com.maxrave.simpmusic.ui.component.LoadingDialog
 import com.maxrave.simpmusic.ui.component.LocalPlaylistBottomSheet
 import com.maxrave.simpmusic.ui.component.NowPlayingBottomSheet
+import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.RippleIconButton
+import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.component.SongFullWidthItems
 import com.maxrave.simpmusic.ui.component.SortPlaylistBottomSheet
 import com.maxrave.simpmusic.ui.component.SuggestItems
@@ -560,8 +560,6 @@ fun LocalPlaylistScreen(
                             // Glass buttons MUST be siblings of the backdrop source (not children)
                             // to avoid render feedback loop / RuntimeShader crash.
                             val artworkBackdrop = rememberBackdrop()
-                            val backBtnLayer = rememberGraphicsLayer()
-                            val rightGroupLayer = rememberGraphicsLayer()
                             Box(
                                 modifier =
                                     Modifier
@@ -668,35 +666,21 @@ fun LocalPlaylistScreen(
                                             .windowInsetsPadding(WindowInsets.statusBars),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Box(
+                                    LiquidGlassIconButton(
+                                        backdrop = artworkBackdrop,
+                                        resId = Res.drawable.baseline_arrow_back_ios_new_24,
                                         modifier =
                                             Modifier
-                                                .size(48.dp)
-                                                .drawBackdropCustomShape(
-                                                    artworkBackdrop,
-                                                    backBtnLayer,
-                                                    0.5f,
-                                                    CircleShape,
-                                                ),
-                                        contentAlignment = Alignment.Center,
+                                            .size(48.dp),
                                     ) {
-                                        RippleIconButton(
-                                            resId = Res.drawable.baseline_arrow_back_ios_new_24,
-                                        ) {
-                                            navController.navigateUp()
-                                        }
+                                        navController.navigateUp()
                                     }
                                     Spacer(Modifier.weight(1f))
                                     Row(
                                         modifier =
                                             Modifier
                                                 .height(48.dp)
-                                                .drawBackdropCustomShape(
-                                                    artworkBackdrop,
-                                                    rightGroupLayer,
-                                                    0.5f,
-                                                    RoundedCornerShape(24.dp),
-                                                ),
+                                                .liquidGlass(artworkBackdrop, RoundedCornerShape(24.dp)),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         // AI Suggest — only when synced with YouTube
