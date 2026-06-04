@@ -103,6 +103,7 @@ fun LiquidGlassTabBar(
     val tabWidthPx = with(density) { TabWidth.toPx() }
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val animationScope = rememberCoroutineScope()
+    val barInteraction = rememberGlassInteraction()
 
     var currentIndex by remember { mutableIntStateOf(selectedTab.coerceAtLeast(0)) }
     // [0] = a real drag happened (vs a pure tap) — keeps the blob from snapping back
@@ -153,12 +154,22 @@ fun LiquidGlassTabBar(
     }
 
     Box(
-        modifier = modifier.height(BarHeight).width(TabWidth * tabsCount),
+        modifier =
+            modifier
+                .height(BarHeight)
+                .width(TabWidth * tabsCount)
+                // Press detection for the whole capsule lives on the outer Box — it's the common
+                // ancestor of the glass, blob and tab Row, so it sees the touch on the Initial pass
+                // before the children. The capsule glass sits underneath the Row and would never get
+                // the event on its own; it only reads barInteraction to draw the scale + glow.
+                .pointerInput(barInteraction) { barInteraction.detectPress(this) },
         contentAlignment = Alignment.CenterStart,
     ) {
         // 1) Dark frosted glass capsule — the exact same glass the MiniPlayer uses, so the bottom
         // bar and the mini player read as one material (drawInteractiveGlass, no white veil).
-        Box(Modifier.matchParentSize().drawInteractiveGlass(backdrop, layer, luminance, CapsuleShape, null))
+        // barInteraction makes the whole capsule respond to a press (scale + touch glow) like iOS;
+        // it's observe-only, so tab taps and the blob drag keep working.
+        Box(Modifier.matchParentSize().drawInteractiveGlass(backdrop, layer, luminance, CapsuleShape, barInteraction))
 
         // 2) Frosted blob selection indicator — slides behind the icons.
         Box(
@@ -229,7 +240,15 @@ fun LiquidGlassTabBar(
                 LiquidGlassTab(
                     screen = screen,
                     selected = currentIndex == position,
-                ) { currentIndex = position }
+                ) {
+                    if (position == currentIndex) {
+                        // Re-tapping the active tab: snapshotFlow won't fire (state unchanged),
+                        // so call onTabSelected directly to keep the reload / scroll-to-top behaviour.
+                        onTabSelected(position)
+                    } else {
+                        currentIndex = position
+                    }
+                }
             }
         }
     }

@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.dp
 import com.maxrave.simpmusic.expect.ui.PlatformBackdrop
 import org.jetbrains.compose.resources.DrawableResource
@@ -36,6 +37,23 @@ import org.jetbrains.compose.resources.DrawableResource
 @Composable
 expect fun Modifier.liquidGlass(
     backdrop: PlatformBackdrop,
+    shape: Shape = CircleShape,
+    interactive: Boolean = true,
+): Modifier
+
+/**
+ * Overload of [liquidGlass] for surfaces that sample their own background luminance
+ * (e.g. the MiniPlayer and the bottom bar capsule): the caller owns the [layer] the
+ * glass records into and drives [luminanceAnimation], so the glass keeps adapting to
+ * the content behind it — unlike the [liquidGlass] above, which uses a fixed
+ * mid-luminance. On Android it adds the same press/hold interaction; on desktop it
+ * degrades to a plain clip.
+ */
+@Composable
+expect fun Modifier.liquidGlass(
+    backdrop: PlatformBackdrop,
+    layer: GraphicsLayer,
+    luminanceAnimation: Float,
     shape: Shape = CircleShape,
     interactive: Boolean = true,
 ): Modifier

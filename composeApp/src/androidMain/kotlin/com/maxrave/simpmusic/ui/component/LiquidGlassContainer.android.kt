@@ -57,6 +57,24 @@ actual fun Modifier.liquidGlass(
     )
 }
 
+@Composable
+actual fun Modifier.liquidGlass(
+    backdrop: PlatformBackdrop,
+    layer: GraphicsLayer,
+    luminanceAnimation: Float,
+    shape: Shape,
+    interactive: Boolean,
+): Modifier {
+    val interaction = rememberGlassInteraction()
+    return this.drawInteractiveGlass(
+        backdrop = backdrop,
+        layer = layer,
+        luminanceAnimation = luminanceAnimation,
+        shape = shape,
+        interaction = if (interactive) interaction else null,
+    )
+}
+
 /**
  * Press/hold state holder for a single liquid-glass surface.
  *
@@ -176,7 +194,7 @@ fun Modifier.drawInteractiveGlass(
             layerBlock =
                 if (interaction != null) {
                     {
-                        val scale = lerp(1f, 1.03f, interaction.pressProgress)
+                        val scale = lerp(1f, 1.08f, interaction.pressProgress)
                         scaleX = scale
                         scaleY = scale
                     }
