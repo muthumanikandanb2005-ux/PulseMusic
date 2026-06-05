@@ -72,6 +72,9 @@ actual fun Modifier.liquidGlass(
         luminanceAnimation = luminanceAnimation,
         shape = shape,
         interaction = if (interactive) interaction else null,
+        // MiniPlayer (the only caller of this layer + luminance overload) is a wide surface, so the
+        // shared 1.12 press scale bulges too hard; use a gentler scale here.
+        pressedScale = 1.04f,
     )
 }
 
@@ -134,6 +137,7 @@ fun Modifier.drawInteractiveGlass(
     luminanceAnimation: Float,
     shape: Shape,
     interaction: GlassInteraction?,
+    pressedScale: Float = 1.12f,
 ): Modifier =
     this
         .drawBackdrop(
@@ -194,7 +198,7 @@ fun Modifier.drawInteractiveGlass(
             layerBlock =
                 if (interaction != null) {
                     {
-                        val scale = lerp(1f, 1.08f, interaction.pressProgress)
+                        val scale = lerp(1f, pressedScale, interaction.pressProgress)
                         scaleX = scale
                         scaleY = scale
                     }

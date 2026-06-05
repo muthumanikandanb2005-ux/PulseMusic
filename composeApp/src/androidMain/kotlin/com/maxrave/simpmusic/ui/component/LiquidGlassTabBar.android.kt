@@ -118,7 +118,9 @@ fun LiquidGlassTabBar(
                 valueRange = 0f..(tabsCount - 1).toFloat(),
                 visibilityThreshold = 0.001f,
                 initialScale = 1f,
-                pressedScale = 60f / 56f,
+                // On press the blob inflates from 56dp up to ~76dp — past the 64dp bar height — so it
+                // visibly bulges out of the capsule row (Apple Music style), then springs back on release.
+                pressedScale = 76f / 56f,
                 onDragStarted = { draggedFlag[0] = false },
                 onDragStopped = {
                     if (draggedFlag[0]) {
@@ -199,7 +201,7 @@ fun LiquidGlassTabBar(
                             // Stronger than the bar's blur so the active pill reads as a clearly
                             // frosted surface (the previous amount was too weak / too close to the bar).
                             (if (l > 0f) lerp(8f.dp.toPx(), 16f.dp.toPx(), l) else lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)) +
-                                12f.dp.toPx(),
+                                20f.dp.toPx(),
                         )
                         lens(10f.dp.toPx() * progress, 14f.dp.toPx() * progress, chromaticAberration = true)
                     },
