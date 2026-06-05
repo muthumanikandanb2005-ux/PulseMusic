@@ -361,7 +361,7 @@ fun HomeItemContentPlaylist(
 
                         is ChartItem -> {
                             painterPlaylistThumbnail(
-                                "Top 50 Weekly - ${data.country.name}",
+                                data.name,
                                 style = typo().bodySmall,
                                 thumbSize * 0.9f to thumbSize * 0.9f,
                             )
@@ -383,7 +383,7 @@ fun HomeItemContentPlaylist(
 
                         is ChartItem -> {
                             painterPlaylistThumbnail(
-                                "Top 50 Weekly - ${data.country.name}",
+                                data.name,
                                 style = typo().bodySmall,
                                 thumbSize * 0.9f to thumbSize * 0.9f,
                             )
@@ -410,7 +410,7 @@ fun HomeItemContentPlaylist(
                         is com.maxrave.domain.data.model.mood.genre.Content -> data.title.title
                         is com.maxrave.domain.data.model.mood.moodmoments.Content -> data.title
                         is LocalPlaylistEntity -> data.title
-                        is ChartItem -> "Top 50 Weekly - ${data.country.name}"
+                        is ChartItem -> data.name
                         is PlaylistsResult -> data.title
                         is AlbumEntity -> data.title
                         is PlaylistEntity -> data.title
