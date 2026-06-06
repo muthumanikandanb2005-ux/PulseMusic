@@ -51,6 +51,9 @@ sentry-gradle-android = "6.10.0"
 sentry-jvm = "8.43.1"
 newpipe = "v0.26.1"
 brave-newpipe = "v0.26.3"
+# org.json ships with the Android SDK but is absent on JVM desktop; PipePipeExtractor references it.
+# Match the version PipePipe was compiled against (its POM declared org.json:json:20231013).
+org-json = "20231013"
 pipepipe = "a80ec7a9de"
 webkit = "1.16.0"
 kermit = "2.1.0"
@@ -173,6 +176,7 @@ gemini-kotlin = { module = "org.simpmusic.gemini-kotlin:openai-client", version.
 logging = { module = "org.slf4j:slf4j-android", version.ref = "slf4j" }
 newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version.ref = "newpipe" }
 brave-extractor = { module = "com.github.maxrave-dev:BravePipeExtractor", version.ref = "brave-newpipe" }
+org-json = { module = "org.json:json", version.ref = "org-json" }
 pipepipe-extractor = { module = "com.github.maxrave-dev:PipePipeExtractor", version.ref = "pipepipe" }
 #leak-canary = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 kermit-logging = { module = "co.touchlab:kermit", version.ref = "kermit" }

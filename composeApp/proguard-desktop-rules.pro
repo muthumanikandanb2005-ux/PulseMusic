@@ -308,6 +308,10 @@
 -keep class com.grack.nanojson.** { *; }
 -dontwarn com.grack.nanojson.**
 
+# org.json (JSON-Java) ships with the Android SDK but is added as an explicit JVM-desktop dependency
+# because PipePipeExtractor references org.json.* (comment/stream extractors). Keep it.
+-keep class org.json.** { *; }
+
 # Brave bundles BitChute / json2java4nanojson model classes referenced by extractor constructors
 # kept via `-keep class org.schabi.newpipe.extractor.** { *; }`. Without explicit keeps, proguard
 # can't resolve the descriptor types and aborts with "unresolved reference" warnings.
@@ -332,4 +336,4 @@
 # signatures (no newer versions available yet). Suppress so ProGuard does not
 # abort. Runtime risk: NoSuchMethodError if affected code paths are hit.
 -dontwarn dev.chrisbanes.haze.**
--dontwarn io.github.alexzhirkevich.compottie.**
+-keep class io.github.alexzhirkevich.compottie.**  { *; }
