@@ -93,7 +93,7 @@ kotlin {
                 // Commons-IO drives the custom AppImage packaging task below.
                 implementation(libs.commons.io)
                 // org.json is bundled in the Android SDK but missing on JVM desktop; PipePipeExtractor
-                // references org.json.* so it must be provided explicitly here (matches PipePipe's version).
+                // references org.json.* so it must be provided explicitly here.
                 implementation(libs.org.json)
             }
         }

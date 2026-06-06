@@ -52,9 +52,8 @@ sentry-jvm = "8.43.1"
 newpipe = "v0.26.1"
 brave-newpipe = "v0.26.3"
 # org.json ships with the Android SDK but is absent on JVM desktop; PipePipeExtractor references it.
-# Match the version PipePipe was compiled against (its POM declared org.json:json:20231013).
 org-json = "20231013"
-pipepipe = "a80ec7a9de"
+pipepipe = "c3139c584d"
 webkit = "1.16.0"
 kermit = "2.1.0"
 paging-common = "3.5.0"
