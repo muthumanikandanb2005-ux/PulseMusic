@@ -1,18 +1,18 @@
 [versions]
 # App version
-version-name = "1.3.0"
-version-code = "51"
+version-name = "1.4.0"
+version-code = "52"
 
 android = "9.2.1"
-kotlin = "2.3.21"
-serialization = "2.3.21"
+kotlin = "2.4.0"
+serialization = "2.4.0"
 ksp = "2.3.9"
 compose-bom = "2026.05.01"
-material3-expressive = "1.5.0-alpha20"
+material3-expressive = "1.5.0-alpha21"
 constraintlayout-compose = "1.1.1"
 activity-compose = "1.13.0"
 lifecycle = "2.11.0-beta01"
-core-ktx = "1.18.0"
+core-ktx = "1.19.0"
 appcompat = "1.7.1"
 work = "2.11.2"
 startup-runtime = "1.2.0"
@@ -46,12 +46,12 @@ common = "1.22.0"
 json = "1.11.0"
 gemini-kotlin = "4.0.2"
 slf4j = "1.7.36"
-sentry-android = "8.43.0"
-sentry-gradle-android = "6.9.0"
-sentry-jvm = "8.43.0"
+sentry-android = "8.43.1"
+sentry-gradle-android = "6.10.0"
+sentry-jvm = "8.43.1"
 newpipe = "v0.26.1"
-brave-newpipe = "v0.26.2"
-pipepipe = "30ec94d6d3"
+brave-newpipe = "v0.26.3"
+pipepipe = "a80ec7a9de"
 webkit = "1.16.0"
 kermit = "2.1.0"
 paging-common = "3.5.0"
@@ -69,13 +69,13 @@ vlc = "3.0.23"
 material3-multiplatform = "1.12.0-alpha01"
 adaptive = "1.2.0"
 material-icons-multiplatform = "1.7.3"
-componentsResources = "1.11.0"
-compottie = "2.1.0" # 2.2.0 buggy
+componentsResources = "1.11.1"
+compottie = "2.2.1" # 2.2.0 buggy
 cmptoast = "1.0.71"
 uri = "0.0.21"
 buildkonfig = "0.21.2"
-jna = "5.18.1"
-jnaPlatform = "5.18.1"
+jna = "5.19.0"
+jnaPlatform = "5.19.0"
 calf = "0.12.0"
 material = "1.14.0"
 osdetector = "1.7.3"
@@ -83,7 +83,6 @@ tray = "1.3.0"
 commonsIo = "2.5"
 packagedeps = "0.2.5"
 conveyor = "2.0"
-vaqua = "13"
 
 [libraries]
 desugaring = { group = "com.android.tools", name = "desugar_jdk_libs_nio", version.ref = "desugaring"}
@@ -229,7 +228,6 @@ androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "w
 
 androidx-paging-common = { group = "androidx.paging", name = "paging-common", version.ref = "paging-common" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-vaqua = { module = "org.violetlib:vaqua", version.ref = "vaqua" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "android" }

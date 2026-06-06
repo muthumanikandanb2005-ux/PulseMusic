@@ -1,0 +1,9 @@
+- Sửa lỗi nhạc tự tạm dừng hoặc dừng hẳn giữa các bài (lỗi treo phát nền tồn tại từ bản 1.0.4)
+- Thanh điều hướng dưới kiểu liquid glass giống Apple Music trên Android, có hiệu ứng phồng khi nhấn
+- Khám phá các chương trình podcast ngay trên Home và mở trong màn hình podcast riêng
+- Thiết kế lại màn hình Playlist ngoại tuyến theo phong cách Apple Music
+- Auto crossfade mượt hơn với logic tính thời lượng được tinh chỉnh
+- Sửa lỗi Home và tìm kiếm trống, cũng như lỗi phát nhạc, sau khi YouTube đổi API
+- Desktop: hỗ trợ auto crossfade, sửa đường dẫn VLC đi kèm và tăng âm lượng
+- Desktop: sửa lỗi treo khi khởi động và cài đè bản cập nhật Windows mà không cần gỡ
+- Desktop: đóng gói DMG macOS ổn định hơn

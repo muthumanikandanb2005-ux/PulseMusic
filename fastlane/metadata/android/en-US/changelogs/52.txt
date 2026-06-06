@@ -1,0 +1,9 @@
+- Fix music pausing or stopping on its own between tracks (the background-playback freeze present since 1.0.4)
+- New Apple Music-style liquid glass bottom navigation on Android, with a press-to-bulge interaction
+- Discover podcast shows on Home and open them in a dedicated podcast screen
+- Apple Music-inspired redesign for the Local Playlist screen
+- Smoother auto crossfade with refined duration logic
+- Fix empty Home and search shelves, and broken playback, after YouTube API changes
+- Desktop: auto crossfade support, bundled VLC path fix and a volume boost
+- Desktop: fix a startup crash and reinstall Windows updates in place without uninstalling
+- Desktop: more reliable macOS DMG packaging
