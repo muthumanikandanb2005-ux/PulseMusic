@@ -514,6 +514,22 @@ fun Color.rgbFactor(factor: Float): Color {
     return Color(r, g, b, alpha)
 }
 
+/**
+ * Parse a hex color string ("ad1e5d", "#ad1e5d", or 8-digit "aarrggbb") into a Compose [Color].
+ * Returns null on malformed input.
+ */
+fun String.hexToColorOrNull(): Color? =
+    runCatching {
+        val clean = removePrefix("#")
+        val argb =
+            when (clean.length) {
+                6 -> 0xFF000000L or clean.toLong(16)
+                8 -> clean.toLong(16)
+                else -> return null
+            }
+        Color(argb)
+    }.getOrNull()
+
 fun TextStyle.greyScale(): TextStyle =
     this.copy(
         color = Color.Gray,

@@ -14,19 +14,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
@@ -65,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
@@ -99,6 +101,7 @@ import com.maxrave.simpmusic.expect.ui.toImageBitmap
 import com.maxrave.simpmusic.extension.getColorFromPalette
 import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.getStringBlocking
+import com.maxrave.simpmusic.extension.hexToColorOrNull
 import com.maxrave.simpmusic.extension.rgbFactor
 import com.maxrave.simpmusic.extension.toImmersiveBackground
 import com.maxrave.simpmusic.extension.toSquareThumbnailUrl
@@ -123,6 +126,7 @@ import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.ArtistScreenState
 import com.maxrave.simpmusic.viewModel.ArtistViewModel
 import com.maxrave.simpmusic.viewModel.SharedViewModel
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -164,6 +168,7 @@ fun ArtistScreen(
     val artistScreenState by viewModel.artistScreenState.collectAsStateWithLifecycle()
     val isFollowed by viewModel.followed.collectAsStateWithLifecycle()
     val canvasUrl by viewModel.canvasUrl.collectAsStateWithLifecycle()
+    val artistLogo by viewModel.artistLogo.collectAsStateWithLifecycle()
 
     val playingTrack by remember {
         sharedViewModel.nowPlayingState.map { it?.track?.videoId }
@@ -207,6 +212,10 @@ fun ArtistScreen(
     // Tint for the description card, matching the non-portrait CollapsingToolbar color.
     val sectionTint = paletteState.palette.getColorFromPalette()
 
+    // Accent color for the action buttons, sourced from the artist name-logo image's dominant
+    // color (hidden catalog). Falls back to white until the logo loads (or if none exists).
+    val artistAccent = artistLogo?.bgColorHex?.hexToColorOrNull() ?: Color.White
+
     val hazeState = rememberHazeState(blurEnabled = true)
     val lazyState = rememberLazyListState()
     val firstItemVisible by remember {
@@ -241,11 +250,18 @@ fun ArtistScreen(
                             state = lazyState,
                         ) {
                             item(contentType = "header") {
-                                Column {
+                                Column(
+                                    // Negative spacing pulls the action row up into the header AND
+                                    // shrinks the layout, so there's no leftover gap before "Popular"
+                                    // (unlike Modifier.offset, which only moves pixels, not layout).
+                                    verticalArrangement = Arrangement.spacedBy((-36).dp),
+                                ) {
                                     // Edge-to-edge artwork (canvas plays on top of it when available).
                                     // Glass back button MUST be a sibling of the backdrop source
                                     // (not a child) to avoid render feedback loop / RuntimeShader crash.
                                     val artworkBackdrop = rememberBackdrop()
+                                    // Haze state for the bottom progressive-blur fade (source = media layer).
+                                    val headerHaze = rememberHazeState(blurEnabled = true)
                                     // Clamp the artist thumbnail URL to a square size (logic from
                                     // commit 5e596c5b) so it fills the square frame with FillWidth.
                                     val headerImageUrl = state.data.imageUrl?.toSquareThumbnailUrl()
@@ -257,50 +273,68 @@ fun ArtistScreen(
                                     ) {
                                         // Inner Box — backdrop SOURCE (artwork + canvas + overlays, NO glass)
                                         Box(modifier = Modifier.fillMaxSize().clipToBounds().layerBackdrop(artworkBackdrop)) {
-                                            AsyncImage(
-                                                model =
-                                                    ImageRequest
-                                                        .Builder(LocalPlatformContext.current)
-                                                        .data(headerImageUrl)
-                                                        .diskCachePolicy(CachePolicy.ENABLED)
-                                                        .memoryCachePolicy(CachePolicy.ENABLED)
-                                                        .diskCacheKey(headerImageUrl)
-                                                        .memoryCacheKey(headerImageUrl)
-                                                        .crossfade(false)
-                                                        .build(),
-                                                placeholder = org.jetbrains.compose.resources.painterResource(Res.drawable.holder),
-                                                error = org.jetbrains.compose.resources.painterResource(Res.drawable.holder),
-                                                contentDescription = null,
-                                                contentScale = ContentScale.FillWidth,
-                                                onSuccess = {
-                                                    bitmap = it.result.image.toImageBitmap()
-                                                },
-                                                modifier = Modifier.fillMaxSize(),
-                                            )
-                                            // Canvas (Spotify) plays AS the background when present;
-                                            // otherwise the static artwork above is the fallback.
-                                            canvasUrl?.let { canvas ->
-                                                // Canvas is a tall/portrait video. Give it the full screen
-                                                // height so SurfaceView keeps the video aspect ratio (no
-                                                // stretch), then let the square frame clip the overflow →
-                                                // center-crop fill-width. Change .align to bias crop up/down.
-                                                MediaPlayerView(
-                                                    url = canvas.first,
+                                            // Media layer (artwork + canvas) — Haze SOURCE for the bottom blur.
+                                            Box(modifier = Modifier.fillMaxSize().hazeSource(headerHaze)) {
+                                                AsyncImage(
+                                                    model =
+                                                        ImageRequest
+                                                            .Builder(LocalPlatformContext.current)
+                                                            .data(headerImageUrl)
+                                                            .diskCachePolicy(CachePolicy.ENABLED)
+                                                            .memoryCachePolicy(CachePolicy.ENABLED)
+                                                            .diskCacheKey(headerImageUrl)
+                                                            .memoryCacheKey(headerImageUrl)
+                                                            .crossfade(false)
+                                                            .build(),
+                                                    placeholder =
+                                                        org.jetbrains.compose.resources
+                                                            .painterResource(Res.drawable.holder),
+                                                    error =
+                                                        org.jetbrains.compose.resources
+                                                            .painterResource(Res.drawable.holder),
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.FillWidth,
+                                                    // Always decoded so the page background color can be extracted
+                                                    // from the artwork palette, even when a canvas is playing.
+                                                    onSuccess = {
+                                                        bitmap = it.result.image.toImageBitmap()
+                                                    },
+                                                    // Hidden (but still decoded above) while a canvas is present —
+                                                    // the canvas is shown instead. No canvas -> artwork is shown.
                                                     modifier =
                                                         Modifier
-                                                            .fillMaxWidth()
-                                                            .height(screenInfo.hDP.dp)
-                                                            .align(Alignment.Center),
+                                                            .fillMaxSize()
+                                                            .alpha(if (canvasUrl != null) 0f else 1f),
                                                 )
-                                            }
-                                            // Bottom gradient — blends artwork edge into the muted page bg.
+                                                // Canvas (Spotify) plays AS the background when present;
+                                                // otherwise the static artwork above is the fallback.
+                                                canvasUrl?.let { canvas ->
+                                                    // Canvas is a tall/portrait video. cropToBounds center
+                                                    // scale-to-covers it into the square frame (ContentScale.Crop):
+                                                    // true video aspect ratio, no stretch, overflow clipped.
+                                                    MediaPlayerView(
+                                                        url = canvas.first,
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        cropToBounds = true,
+                                                    )
+                                                }
+                                            } // end media layer (Haze source)
+                                            // Bottom fade — progressive blur (Haze) over the media layer plus a
+                                            // color gradient, so the canvas/artwork edge melts into the page bg.
                                             Box(
                                                 modifier =
                                                     Modifier
                                                         .fillMaxWidth()
                                                         .height(200.dp)
                                                         .align(Alignment.BottomCenter)
-                                                        .background(
+                                                        .hazeEffect(headerHaze) {
+                                                            blurRadius = 32.dp
+                                                            progressive =
+                                                                HazeProgressive.verticalGradient(
+                                                                    startIntensity = 0f,
+                                                                    endIntensity = 1f,
+                                                                )
+                                                        }.background(
                                                             Brush.verticalGradient(
                                                                 listOf(
                                                                     Color.Transparent,
@@ -316,18 +350,35 @@ fun ArtistScreen(
                                                 modifier =
                                                     Modifier
                                                         .align(Alignment.BottomCenter)
+                                                        // Lift the name + subtitle together with the action row.
+                                                        .offset(y = (-36).dp)
                                                         .fillMaxWidth()
                                                         .padding(horizontal = 20.dp)
                                                         .padding(bottom = 16.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally,
                                             ) {
-                                                Text(
-                                                    text = state.data.title ?: stringResource(Res.string.unknown),
-                                                    style = typo().titleLarge,
-                                                    color = Color.White,
-                                                    maxLines = 2,
-                                                    textAlign = TextAlign.Center,
-                                                )
+                                                val logo = artistLogo
+                                                if (logo != null) {
+                                                    // Artist name rendered as a logo image (hidden catalog),
+                                                    // in place of the plain-text title.
+                                                    AsyncImage(
+                                                        model = logo.logoUrl,
+                                                        contentDescription = state.data.title,
+                                                        contentScale = ContentScale.Fit,
+                                                        modifier =
+                                                            Modifier
+                                                                .fillMaxWidth(0.7f)
+                                                                .heightIn(max = 84.dp),
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = state.data.title ?: stringResource(Res.string.unknown),
+                                                        style = typo().titleLarge,
+                                                        color = Color.White,
+                                                        maxLines = 2,
+                                                        textAlign = TextAlign.Center,
+                                                    )
+                                                }
                                                 val meta =
                                                     listOfNotNull(
                                                         state.data.subscribers?.takeIf { it.isNotBlank() },
@@ -370,13 +421,13 @@ fun ArtistScreen(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        // Radio
+                                        // Radio — side button: faint accent fill, accent-tinted icon.
                                         Box(
                                             modifier =
                                                 Modifier
                                                     .size(48.dp)
                                                     .clip(CircleShape)
-                                                    .background(Color.White.copy(alpha = 0.12f))
+                                                    .background(artistAccent.copy(alpha = 0.2f))
                                                     .clickable {
                                                         val param = state.data.radioParam
                                                         if (param != null) {
@@ -390,18 +441,19 @@ fun ArtistScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Sensors,
                                                 contentDescription = "Radio",
-                                                tint = Color.White,
+                                                tint = mutedPaletteBg,
                                                 modifier = Modifier.size(22.dp),
                                             )
                                         }
-                                        // Shuffle — the primary "play" for an artist
+                                        // Shuffle — primary "play" for an artist. Circular icon button filled
+                                        // with the artist accent (white fallback); icon uses the dark page
+                                        // background color so it stays legible on a bright accent.
                                         Box(
                                             modifier =
                                                 Modifier
-                                                    .height(48.dp)
-                                                    .widthIn(min = 130.dp)
+                                                    .size(64.dp)
                                                     .clip(CircleShape)
-                                                    .background(Color.White)
+                                                    .background(artistAccent)
                                                     .clickable {
                                                         val param = state.data.shuffleParam
                                                         if (param != null) {
@@ -409,31 +461,23 @@ fun ArtistScreen(
                                                         } else {
                                                             viewModel.makeToast(runBlocking { getString(Res.string.error) })
                                                         }
-                                                    }.padding(horizontal = 20.dp),
+                                                    },
                                             contentAlignment = Alignment.Center,
                                         ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.Shuffle,
-                                                    contentDescription = null,
-                                                    tint = Color.Black,
-                                                    modifier = Modifier.size(22.dp),
-                                                )
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(
-                                                    text = "Shuffle",
-                                                    color = Color.Black,
-                                                    style = typo().labelLarge,
-                                                )
-                                            }
+                                            Icon(
+                                                imageVector = Icons.Rounded.Shuffle,
+                                                contentDescription = "Shuffle",
+                                                tint = mutedPaletteBg,
+                                                modifier = Modifier.size(28.dp),
+                                            )
                                         }
-                                        // Follow
+                                        // Follow — side button: faint accent fill, accent-tinted icon.
                                         Box(
                                             modifier =
                                                 Modifier
                                                     .size(48.dp)
                                                     .clip(CircleShape)
-                                                    .background(Color.White.copy(alpha = 0.12f))
+                                                    .background(artistAccent.copy(alpha = 0.2f))
                                                     .clickable {
                                                         viewModel.updateFollowed(
                                                             if (isFollowed) 0 else 1,
@@ -445,7 +489,7 @@ fun ArtistScreen(
                                             Icon(
                                                 imageVector = if (isFollowed) Icons.Rounded.Check else Icons.Rounded.PersonAddAlt1,
                                                 contentDescription = if (isFollowed) "Followed" else "Follow",
-                                                tint = Color.White,
+                                                tint = mutedPaletteBg,
                                                 modifier = Modifier.size(22.dp),
                                             )
                                         }
@@ -494,7 +538,10 @@ fun ArtistScreen(
                                     Box(Modifier.padding(horizontal = 5.dp)) {
                                         IconButton(onClick = { navController.navigateUp() }) {
                                             Icon(
-                                                painter = org.jetbrains.compose.resources.painterResource(Res.drawable.baseline_arrow_back_ios_new_24),
+                                                painter =
+                                                    org.jetbrains.compose.resources.painterResource(
+                                                        Res.drawable.baseline_arrow_back_ios_new_24,
+                                                    ),
                                                 contentDescription = "Back",
                                                 tint = Color.White,
                                                 modifier = Modifier.size(20.dp),

@@ -92,6 +92,7 @@ val viewModelModule =
             ArtistViewModel(
                 get(),
                 get(),
+                get(),
             )
         }
         viewModel {
