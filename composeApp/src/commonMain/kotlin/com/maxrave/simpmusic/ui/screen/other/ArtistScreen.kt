@@ -63,7 +63,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -72,7 +71,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
@@ -121,7 +119,6 @@ import com.maxrave.simpmusic.ui.navigation.destination.list.AlbumDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.MoreAlbumsDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.PlaylistDestination
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.ArtistScreenState
 import com.maxrave.simpmusic.viewModel.ArtistViewModel
@@ -131,8 +128,6 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.getString
@@ -421,13 +416,14 @@ fun ArtistScreen(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        // Radio — side button: faint accent fill, accent-tinted icon.
+                                        // Radio — side button: outlined accent (yellow) circle with an
+                                        // accent-tinted icon over a transparent fill, matching the reference.
                                         Box(
                                             modifier =
                                                 Modifier
                                                     .size(48.dp)
                                                     .clip(CircleShape)
-                                                    .background(artistAccent.copy(alpha = 0.2f))
+                                                    .border(1.5.dp, artistAccent, CircleShape)
                                                     .clickable {
                                                         val param = state.data.radioParam
                                                         if (param != null) {
@@ -441,7 +437,7 @@ fun ArtistScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Sensors,
                                                 contentDescription = "Radio",
-                                                tint = mutedPaletteBg,
+                                                tint = artistAccent,
                                                 modifier = Modifier.size(22.dp),
                                             )
                                         }
@@ -471,13 +467,16 @@ fun ArtistScreen(
                                                 modifier = Modifier.size(28.dp),
                                             )
                                         }
-                                        // Follow — side button: faint accent fill, accent-tinted icon.
+                                        // Follow — side button matching Radio: outlined accent (yellow)
+                                        // circle when not following; fills with the accent (icon flips to
+                                        // the dark page bg) once followed, so the state reads at a glance.
                                         Box(
                                             modifier =
                                                 Modifier
                                                     .size(48.dp)
                                                     .clip(CircleShape)
-                                                    .background(artistAccent.copy(alpha = 0.2f))
+                                                    .background(if (isFollowed) artistAccent else Color.Transparent)
+                                                    .border(1.5.dp, artistAccent, CircleShape)
                                                     .clickable {
                                                         viewModel.updateFollowed(
                                                             if (isFollowed) 0 else 1,
@@ -489,7 +488,7 @@ fun ArtistScreen(
                                             Icon(
                                                 imageVector = if (isFollowed) Icons.Rounded.Check else Icons.Rounded.PersonAddAlt1,
                                                 contentDescription = if (isFollowed) "Followed" else "Follow",
-                                                tint = mutedPaletteBg,
+                                                tint = if (isFollowed) mutedPaletteBg else artistAccent,
                                                 modifier = Modifier.size(22.dp),
                                             )
                                         }
