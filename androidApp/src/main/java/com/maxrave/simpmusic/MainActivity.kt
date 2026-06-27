@@ -35,6 +35,7 @@ import com.maxrave.domain.mediaservice.handler.ToastType
 import com.maxrave.logger.Logger
 import com.maxrave.media3.di.setServiceActivitySession
 import com.maxrave.simpmusic.di.viewModelModule
+import com.maxrave.simpmusic.service.rss.RssFeedNotifyWork
 import com.maxrave.simpmusic.service.test.notification.NotifyWork
 import com.maxrave.simpmusic.utils.ComposeResUtils
 import com.maxrave.simpmusic.utils.VersionManager
@@ -198,6 +199,22 @@ class MainActivity : AppCompatActivity() {
             "Artist Worker",
             ExistingPeriodicWorkPolicy.KEEP,
             request,
+        )
+        val rssRequest =
+            PeriodicWorkRequestBuilder<RssFeedNotifyWork>(
+                24L,
+                TimeUnit.HOURS,
+            ).addTag("Blog RSS Worker")
+                .setConstraints(
+                    Constraints
+                        .Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build(),
+                ).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "Blog RSS Worker",
+            ExistingPeriodicWorkPolicy.KEEP,
+            rssRequest,
         )
 
         if (!EasyPermissions.hasPermissions(this, Manifest.permission.POST_NOTIFICATIONS)) {
