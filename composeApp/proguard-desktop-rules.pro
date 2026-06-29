@@ -28,6 +28,16 @@
 -dontnote org.slf4j.**
 -dontnote kotlinx.serialization.**
 
+# Skiko / Skia + Compose AWT interop. ProGuard obfuscation renames these classes, which
+# breaks compose.interop.blending on the transparent desktop window — Canvas/video then
+# render see-through (you can see the desktop behind them). Keep them un-obfuscated.
+-keep class org.jetbrains.skiko.** { *; }
+-keep class org.jetbrains.skia.** { *; }
+-keep class androidx.compose.ui.awt.** { *; }
+-keep class androidx.compose.ui.interop.** { *; }
+-dontwarn org.jetbrains.skiko.**
+-dontwarn org.jetbrains.skia.**
+
 # Okhttp3
 -keep class okhttp3.** { *; }
 -keep class okio.** { *; }
