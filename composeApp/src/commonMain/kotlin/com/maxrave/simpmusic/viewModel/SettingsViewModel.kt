@@ -181,6 +181,9 @@ class SettingsViewModel(
     private val _localTrackingEnabled = MutableStateFlow<Boolean>(false)
     val localTrackingEnabled: StateFlow<Boolean> = _localTrackingEnabled
 
+    private val _blogNotificationEnabled = MutableStateFlow(true)
+    val blogNotificationEnabled: StateFlow<Boolean> = _blogNotificationEnabled
+
     // Auto Backup
     private val _autoBackupEnabled = MutableStateFlow<Boolean>(false)
     val autoBackupEnabled: StateFlow<Boolean> = _autoBackupEnabled
@@ -279,6 +282,7 @@ class SettingsViewModel(
         getDownloadQuality()
         getVideoDownloadQuality()
         getLocalTrackingEnabled()
+        getBlogNotificationEnabled()
         getAutoBackupEnabled()
         getAutoBackupFrequency()
         getAutoBackupMaxFiles()
@@ -304,6 +308,21 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setLocalTrackingEnabled(enabled)
             getLocalTrackingEnabled()
+        }
+    }
+
+    private fun getBlogNotificationEnabled() {
+        viewModelScope.launch {
+            dataStoreManager.blogNotificationEnabled.collect { enabled ->
+                _blogNotificationEnabled.value = enabled == DataStoreManager.TRUE
+            }
+        }
+    }
+
+    fun setBlogNotificationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.setBlogNotificationEnabled(enabled)
+            getBlogNotificationEnabled()
         }
     }
 

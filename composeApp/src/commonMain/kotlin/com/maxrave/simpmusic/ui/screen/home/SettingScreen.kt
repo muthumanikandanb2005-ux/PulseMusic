@@ -181,6 +181,8 @@ import simpmusic.composeapp.generated.resources.baseline_close_24
 import simpmusic.composeapp.generated.resources.baseline_people_alt_24
 import simpmusic.composeapp.generated.resources.baseline_playlist_add_24
 import simpmusic.composeapp.generated.resources.better_lyrics
+import simpmusic.composeapp.generated.resources.blog_notification_description
+import simpmusic.composeapp.generated.resources.blog_notification_title
 import simpmusic.composeapp.generated.resources.blur_fullscreen_lyrics
 import simpmusic.composeapp.generated.resources.blur_fullscreen_lyrics_description
 import simpmusic.composeapp.generated.resources.blur_player_background
@@ -406,6 +408,7 @@ fun SettingScreen(
     val videoDownloadQuality by viewModel.videoDownloadQuality.collectAsStateWithLifecycle()
     val keepYoutubePlaylistOffline by viewModel.keepYouTubePlaylistOffline.collectAsStateWithLifecycle()
     val localTrackingEnabled by viewModel.localTrackingEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val blogNotificationEnabled by viewModel.blogNotificationEnabled.collectAsStateWithLifecycle()
     val combineLocalAndYouTubeLiked by viewModel.combineLocalAndYouTubeLiked.collectAsStateWithLifecycle()
     val playVideo by remember { viewModel.playVideoInsteadOfAudio.map { it == TRUE } }.collectAsStateWithLifecycle(initialValue = false)
     val videoQuality by viewModel.videoQuality.collectAsStateWithLifecycle()
@@ -2103,6 +2106,13 @@ fun SettingScreen(
                         uriHandler.openUri("https://maxrave.dev")
                     },
                 )
+                if (getPlatform() == Platform.Android) {
+                    SettingItem(
+                        title = stringResource(Res.string.blog_notification_title),
+                        subtitle = stringResource(Res.string.blog_notification_description),
+                        switch = (blogNotificationEnabled to { viewModel.setBlogNotificationEnabled(it) }),
+                    )
+                }
                 SettingItem(
                     title = stringResource(Res.string.buy_me_a_coffee),
                     subtitle = stringResource(Res.string.donation),
