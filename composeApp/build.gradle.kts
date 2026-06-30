@@ -36,19 +36,6 @@ compose.resources {
     generateResClass = always
 }
 
-// liquid-glass (io.github.kyant0:backdrop) pins skiko `strictly 0.148.2`, dragging the whole
-// desktop skiko tree up to 0.148.2. But Compose 1.11.1, compottie 2.2.4 and coil all compile
-// against skiko 0.144.6 — and 0.148.2 removed Matrix33.makeTranslate(float, float), crashing
-// compottie with NoSuchMethodError. Desktop never renders liquid glass (backdrop classes are
-// never hit on JVM), so pin skiko back to the version Compose 1.11.1 actually ships with.
-configurations.configureEach {
-    resolutionStrategy.eachDependency {
-        if (requested.group == "org.jetbrains.skiko") {
-            useVersion("0.144.6")
-        }
-    }
-}
-
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xwhen-guards")

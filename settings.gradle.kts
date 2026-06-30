@@ -20,6 +20,9 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
         }
+        // compottie's Compose-1.12 snapshot builds (skiko 0.148.2) are published to the new
+        // Maven Central Portal snapshot repo, not the legacy OSSRH one above.
+        maven("https://central.sonatype.com/repository/maven-snapshots/")
         maven("https://jogamp.org/deployment/maven")
         maven(url = "https://raw.githubusercontent.com/bravepipeproject/maven-repo/master/repository")
     }

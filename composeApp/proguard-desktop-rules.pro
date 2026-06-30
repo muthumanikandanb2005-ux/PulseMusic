@@ -38,6 +38,12 @@
 -dontwarn org.jetbrains.skiko.**
 -dontwarn org.jetbrains.skia.**
 
+# compottie (Lottie renderer) draws via skiko (PlatformShader.skiko, SkikoPathBuilder).
+# On release, proguard obfuscation mangles its internal classes so the renderer runs but
+# paints nothing — the animation stays blank with no crash. Keep them un-obfuscated.
+-keep class io.github.alexzhirkevich.compottie.** { *; }
+-dontwarn io.github.alexzhirkevich.compottie.**
+
 # Okhttp3
 -keep class okhttp3.** { *; }
 -keep class okio.** { *; }
