@@ -1,6 +1,7 @@
 package com.maxrave.simpmusic.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -60,6 +61,33 @@ fun parseThemeColorHex(hex: String): Color? {
     return argb.toLongOrNull(16)?.let { Color(it) }
 }
 
+/**
+ * Neutral surfaces for the light theme. Mirrors the dark theme's pure-black AMOLED base: dark pins
+ * background/surface to #000000, so light pins them to #FFFFFF, with a pure neutral-grey ramp
+ * (R=G=B, no seed tint) for the container tiers. Primary/secondary/tertiary stay seed-derived.
+ */
+private fun ColorScheme.withNeutralLightSurfaces(): ColorScheme =
+    copy(
+        background = Color(0xFFFFFFFF),
+        onBackground = Color(0xFF1B1B1B),
+        surface = Color(0xFFFFFFFF),
+        onSurface = Color(0xFF1B1B1B),
+        surfaceVariant = Color(0xFFE2E2E2),
+        onSurfaceVariant = Color(0xFF474747),
+        surfaceTint = primary,
+        surfaceBright = Color(0xFFFFFFFF),
+        surfaceDim = Color(0xFFDADADA),
+        surfaceContainerLowest = Color(0xFFFFFFFF),
+        surfaceContainerLow = Color(0xFFF7F7F7),
+        surfaceContainer = Color(0xFFF1F1F1),
+        surfaceContainerHigh = Color(0xFFECECEC),
+        surfaceContainerHighest = Color(0xFFE6E6E6),
+        outline = Color(0xFF777777),
+        outlineVariant = Color(0xFFC7C7C7),
+        inverseSurface = Color(0xFF303030),
+        inverseOnSurface = Color(0xFFF1F1F1),
+    )
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppTheme(
@@ -88,7 +116,8 @@ fun AppTheme(
         } else {
             seed
         }
-    // isAmoled pins background/surface to pure black to keep the OLED look (dark only).
+    // Symmetric base: dark pins background/surface to pure black via isAmoled; light pins them to
+    // pure white with a neutral-grey ramp (the seed otherwise tints the light neutrals warm/cream).
     val colorScheme =
         wallpaperScheme
             ?: rememberDynamicColorScheme(
@@ -96,6 +125,7 @@ fun AppTheme(
                 isDark = isDark,
                 isAmoled = isDark,
                 style = PaletteStyle.TonalSpot,
+                modifyColorScheme = { cs -> if (isDark) cs else cs.withNeutralLightSurfaces() },
             )
     SystemBarAppearanceEffect(isDark)
     MaterialExpressiveTheme(
