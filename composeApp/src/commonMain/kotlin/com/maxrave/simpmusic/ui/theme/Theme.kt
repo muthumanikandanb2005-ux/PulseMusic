@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
 import com.maxrave.domain.manager.DataStoreManager
+import com.maxrave.simpmusic.expect.ui.SystemBarAppearanceEffect
 import com.maxrave.simpmusic.expect.ui.platformDynamicColorScheme
 
 /**
@@ -96,6 +97,7 @@ fun AppTheme(
                 isAmoled = isDark,
                 style = PaletteStyle.TonalSpot,
             )
+    SystemBarAppearanceEffect(isDark)
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
         content = {

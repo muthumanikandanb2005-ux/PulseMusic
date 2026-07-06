@@ -7,3 +7,8 @@ import androidx.compose.runtime.Composable
 actual fun platformDynamicColorScheme(isDark: Boolean): ColorScheme? = null
 
 actual fun isWallpaperDynamicColorSupported(): Boolean = false
+
+@Composable
+actual fun SystemBarAppearanceEffect(isDark: Boolean) {
+    // No system bars to adapt on desktop.
+}
