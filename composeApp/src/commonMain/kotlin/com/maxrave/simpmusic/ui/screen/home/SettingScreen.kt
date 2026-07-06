@@ -534,7 +534,7 @@ fun SettingScreen(
         item(key = "user_interface") {
             Column {
                 Spacer(Modifier.height(16.dp))
-                Text(text = stringResource(Res.string.user_interface), style = typo().labelMedium, color = Color.White)
+                Text(text = stringResource(Res.string.user_interface), style = typo().labelMedium, color = MaterialTheme.colorScheme.onBackground)
                 val themeModeLabels =
                     listOf(
                         DataStoreManager.THEME_MODE_SYSTEM to stringResource(Res.string.theme_mode_system),
@@ -640,7 +640,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.content),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1020,7 +1020,7 @@ fun SettingScreen(
                     Text(
                         text = stringResource(Res.string.audio),
                         style = typo().labelMedium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
                     SettingItem(
@@ -1050,7 +1050,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.playback),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1164,7 +1164,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.lyrics),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1327,7 +1327,7 @@ fun SettingScreen(
         }
         item(key = "AI") {
             Column {
-                Text(text = stringResource(Res.string.ai), style = typo().labelMedium, color = Color.White, modifier = Modifier.padding(vertical = 8.dp))
+                Text(text = stringResource(Res.string.ai), style = typo().labelMedium, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(vertical = 8.dp))
                 SettingItem(
                     title = stringResource(Res.string.ai_provider),
                     subtitle =
@@ -1506,7 +1506,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.spotify),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1554,7 +1554,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.discord_integration),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1591,7 +1591,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.sponsorBlock),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1669,7 +1669,7 @@ fun SettingScreen(
                     Text(
                         text = stringResource(Res.string.storage),
                         style = typo().labelMedium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
                     SettingItem(
@@ -1980,7 +1980,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.backup),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -2120,7 +2120,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.about_us),
                     style = typo().labelMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -2282,7 +2282,7 @@ fun SettingScreen(
                                             .background(color)
                                             .border(
                                                 width = if (isSelected) 3.dp else 0.dp,
-                                                color = if (isSelected) Color.White else Color.Transparent,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                                 shape = CircleShape,
                                             ).clickable { pendingHex = hex.takeLast(6) },
                                 )
@@ -2329,7 +2329,7 @@ fun SettingScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
-                color = Color(0xFF242424),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = AlertDialogDefaults.TonalElevation,
                 shadowElevation = 1.dp,
             ) {
@@ -2358,14 +2358,14 @@ fun SettingScreen(
                                 onClick = { showYouTubeAccountDialog = false },
                                 colors =
                                     IconButtonDefaults.iconButtonColors().copy(
-                                        contentColor = Color.White,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
                                     ),
                                 modifier =
                                     Modifier
                                         .align(Alignment.CenterStart)
                                         .fillMaxHeight(),
                             ) {
-                                Icon(Icons.Outlined.Close, null, tint = Color.White)
+                                Icon(Icons.Outlined.Close, null, tint = MaterialTheme.colorScheme.onSurface)
                             }
                             Text(
                                 stringResource(Res.string.youtube_account),
@@ -2421,7 +2421,7 @@ fun SettingScreen(
                                     )
                                     Spacer(Modifier.width(12.dp))
                                     Column(Modifier.weight(1f)) {
-                                        Text(it.name, style = typo().labelMedium, color = Color.White)
+                                        Text(it.name, style = typo().labelMedium, color = MaterialTheme.colorScheme.onBackground)
                                         Text(it.email, style = typo().bodySmall)
                                     }
                                     Spacer(Modifier.width(12.dp))
@@ -2698,13 +2698,16 @@ fun SettingScreen(
             onDismissRequest = {
                 showThirdPartyLibraries = false
             },
-            containerColor = Color.Black,
+            containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = {},
             scrimColor = Color.Black,
             sheetState = sheetState,
             contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
             shape = RectangleShape,
         ) {
+            // Capture theme colors here: the ChipColors getters below run outside composition.
+            val surfaceContainerHighestColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            val onSurfaceColor = MaterialTheme.colorScheme.onSurface
             LibrariesContainer(
                 libraries?.copy(
                     libraries =
@@ -2722,9 +2725,9 @@ fun SettingScreen(
                         licenseChipColors =
                             object : ChipColors {
                                 override val containerColor: Color
-                                    get() = Color.DarkGray
+                                    get() = surfaceContainerHighestColor
                                 override val contentColor: Color
-                                    get() = Color.White
+                                    get() = onSurfaceColor
                             },
                     ),
                 header = {
