@@ -80,7 +80,6 @@ import com.maxrave.simpmusic.ui.component.NowPlayingBottomSheet
 import com.maxrave.simpmusic.ui.component.PodcastEpisodeFullWidthItem
 import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.PodcastUIEvent
 import com.maxrave.simpmusic.viewModel.PodcastUIState
@@ -128,7 +127,7 @@ fun PodcastScreen(
     }
 
     // Theo dõi gradient cho background
-    var gradientColors by remember { mutableStateOf(listOf(md_theme_dark_background, md_theme_dark_background)) }
+    var gradientColors by remember { mutableStateOf(listOf(Color.Black, Color.Black)) }
 
     val paletteState = rememberPaletteState()
     var bitmap by remember { mutableStateOf<ImageBitmap?>(null) }
@@ -144,7 +143,7 @@ fun PodcastScreen(
         snapshotFlow { paletteState.palette }
             .distinctUntilChanged()
             .collectLatest {
-                gradientColors = listOf(it.getColorFromPalette(), md_theme_dark_background)
+                gradientColors = listOf(it.getColorFromPalette(), Color.Black)
             }
     }
 

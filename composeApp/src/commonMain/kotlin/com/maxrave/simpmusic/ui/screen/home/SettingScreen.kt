@@ -121,7 +121,6 @@ import com.maxrave.simpmusic.ui.navigation.destination.login.LoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.SpotifyLoginDestination
 import com.maxrave.simpmusic.ui.theme.md_theme_dark_primary
 import com.maxrave.simpmusic.ui.theme.typo
-import com.maxrave.simpmusic.ui.theme.white
 import com.maxrave.simpmusic.utils.VersionManager
 import com.maxrave.simpmusic.viewModel.SettingAlertState
 import com.maxrave.simpmusic.viewModel.SettingBasicAlertState
@@ -519,7 +518,7 @@ fun SettingScreen(
         item(key = "user_interface") {
             Column {
                 Spacer(Modifier.height(16.dp))
-                Text(text = stringResource(Res.string.user_interface), style = typo().labelMedium, color = white)
+                Text(text = stringResource(Res.string.user_interface), style = typo().labelMedium, color = Color.White)
                 SettingItem(
                     title = stringResource(Res.string.translucent_bottom_navigation_bar),
                     subtitle = stringResource(Res.string.you_can_see_the_content_below_the_bottom_bar),
@@ -554,7 +553,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.content),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -934,7 +933,7 @@ fun SettingScreen(
                     Text(
                         text = stringResource(Res.string.audio),
                         style = typo().labelMedium,
-                        color = white,
+                        color = Color.White,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
                     SettingItem(
@@ -964,7 +963,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.playback),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1078,7 +1077,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.lyrics),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1241,7 +1240,7 @@ fun SettingScreen(
         }
         item(key = "AI") {
             Column {
-                Text(text = stringResource(Res.string.ai), style = typo().labelMedium, color = white, modifier = Modifier.padding(vertical = 8.dp))
+                Text(text = stringResource(Res.string.ai), style = typo().labelMedium, color = Color.White, modifier = Modifier.padding(vertical = 8.dp))
                 SettingItem(
                     title = stringResource(Res.string.ai_provider),
                     subtitle =
@@ -1420,7 +1419,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.spotify),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1468,7 +1467,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.discord_integration),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1505,7 +1504,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.sponsorBlock),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -1565,7 +1564,7 @@ fun SettingScreen(
                         withLink(
                             LinkAnnotation.Url(
                                 "https://sponsor.ajay.app/",
-                                TextLinkStyles(style = SpanStyle(color = md_theme_dark_primary)),
+                                TextLinkStyles(style = SpanStyle(color = MaterialTheme.colorScheme.primary)),
                             ),
                         ) {
                             append("https://sponsor.ajay.app/")
@@ -1583,7 +1582,7 @@ fun SettingScreen(
                     Text(
                         text = stringResource(Res.string.storage),
                         style = typo().labelMedium,
-                        color = white,
+                        color = Color.White,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
                     SettingItem(
@@ -1894,7 +1893,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.backup),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -2034,7 +2033,7 @@ fun SettingScreen(
                 Text(
                     text = stringResource(Res.string.about_us),
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
@@ -2269,7 +2268,7 @@ fun SettingScreen(
                                     )
                                     Spacer(Modifier.width(12.dp))
                                     Column(Modifier.weight(1f)) {
-                                        Text(it.name, style = typo().labelMedium, color = white)
+                                        Text(it.name, style = typo().labelMedium, color = Color.White)
                                         Text(it.email, style = typo().bodySmall)
                                     }
                                     Spacer(Modifier.width(12.dp))

@@ -58,7 +58,6 @@ import com.maxrave.simpmusic.ui.navigation.destination.list.PlaylistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.PodcastDestination
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
-import com.maxrave.simpmusic.ui.theme.white
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import simpmusic.composeapp.generated.resources.Res
@@ -142,7 +141,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                                                 colors =
                                                     listOf(
                                                         seed,
-                                                        white.copy(alpha = 0.8f),
+                                                        Color.White.copy(alpha = 0.8f),
                                                     ),
                                                 degrees = 45f,
                                             ),
@@ -151,7 +150,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                                         Icon(
                                             modifier = Modifier.size(84.dp),
                                             imageVector = Icons.Rounded.Add,
-                                            tint = white,
+                                            tint = Color.White,
                                             contentDescription = null,
                                         )
                                     }

@@ -74,7 +74,6 @@ import com.maxrave.simpmusic.ui.component.LibraryItemState
 import com.maxrave.simpmusic.ui.component.LibraryItemType
 import com.maxrave.simpmusic.ui.component.LibraryTilingBox
 import com.maxrave.simpmusic.ui.navigation.destination.home.AnalyticsDestination
-import com.maxrave.simpmusic.ui.theme.transparent
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.LibraryViewModel
 import dev.chrisbanes.haze.hazeEffect
@@ -425,7 +424,7 @@ fun LibraryScreen(
     }
     Column(
         Modifier
-            .background(transparent)
+            .background(Color.Transparent)
             .hazeEffect(hazeState, style = HazeMaterials.ultraThin()) {
                 blurEnabled = true
             }.onGloballyPositioned { coordinates ->

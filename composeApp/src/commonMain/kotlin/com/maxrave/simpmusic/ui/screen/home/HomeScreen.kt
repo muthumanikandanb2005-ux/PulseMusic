@@ -122,9 +122,7 @@ import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.screen.library.LibraryDynamicPlaylistType
 import com.maxrave.simpmusic.ui.navigation.destination.list.PlaylistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.LoginDestination
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.typo
-import com.maxrave.simpmusic.ui.theme.white
 import com.maxrave.simpmusic.viewModel.HomeViewModel
 import com.maxrave.simpmusic.viewModel.HomeViewModel.Companion.HOME_PARAMS_COMMUTE
 import com.maxrave.simpmusic.viewModel.HomeViewModel.Companion.HOME_PARAMS_ENERGIZE
@@ -244,15 +242,15 @@ fun HomeScreen(
     val shareLyricsPermissions by sharedViewModel.shareSavedLyrics.collectAsStateWithLifecycle()
 
     var topHeaderColor by remember {
-        mutableStateOf(md_theme_dark_background)
+        mutableStateOf(Color.Black)
     }
     val animatedColor by animateColorAsState(topHeaderColor, tween(500))
     val mainHomeThumbnail by viewModel.mainHomeThumbnail.collectAsStateWithLifecycle()
     val networkLoader = rememberNetworkLoader(HttpClient(CIO))
     val dominantColorState =
         rememberDominantColorState(
-            defaultColor = md_theme_dark_background,
-            defaultOnColor = md_theme_dark_background,
+            defaultColor = Color.Black,
+            defaultOnColor = Color.Black,
             loader = networkLoader,
         )
 
@@ -530,7 +528,7 @@ fun HomeScreen(
                                             Modifier
                                                 .fillMaxWidth()
                                                 .height(300.dp)
-                                                .angledGradientBackground(listOf(animatedColor, md_theme_dark_background), 25f),
+                                                .angledGradientBackground(listOf(animatedColor, Color.Black), 25f),
                                     ) {
                                         Box(
                                             modifier =
@@ -1035,7 +1033,7 @@ fun MoodMomentAndGenre(
         Text(
             text = stringResource(Res.string.moods_amp_moment),
             style = typo().headlineMedium,
-            color = white,
+            color = Color.White,
             maxLines = 1,
             modifier =
                 Modifier
@@ -1062,7 +1060,7 @@ fun MoodMomentAndGenre(
             text = stringResource(Res.string.genre),
             style = typo().headlineMedium,
             maxLines = 1,
-            color = white,
+            color = Color.White,
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -1097,7 +1095,7 @@ fun ChartTitle() {
         Text(
             text = stringResource(Res.string.chart),
             style = typo().headlineMedium,
-            color = white,
+            color = Color.White,
             maxLines = 1,
             modifier =
                 Modifier
@@ -1131,7 +1129,7 @@ fun ChartData(
             Text(
                 text = item.title,
                 style = typo().headlineMedium,
-                color = white,
+                color = Color.White,
                 maxLines = 1,
                 modifier =
                     Modifier
@@ -1162,7 +1160,7 @@ fun ChartData(
         Text(
             text = stringResource(Res.string.top_artists),
             style = typo().headlineMedium,
-            color = white,
+            color = Color.White,
             maxLines = 1,
             modifier =
                 Modifier

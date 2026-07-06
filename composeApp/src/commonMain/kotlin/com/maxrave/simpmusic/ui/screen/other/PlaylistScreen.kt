@@ -118,7 +118,6 @@ import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.component.SongFullWidthItems
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.ListState
@@ -329,7 +328,7 @@ fun PlaylistScreen(
         snapshotFlow { paletteState.palette }
             .distinctUntilChanged()
             .collectLatest {
-                viewModel.setBrush(listOf(it.getColorFromPalette(), md_theme_dark_background))
+                viewModel.setBrush(listOf(it.getColorFromPalette(), Color.Black))
             }
     }
 
@@ -337,7 +336,7 @@ fun PlaylistScreen(
     // foldable open state, landscape orientation, and Desktop keep the existing layout.
     val screenInfo = getScreenSizeInfo()
     val isMobilePortrait = getPlatform() == Platform.Android && screenInfo.wDP < screenInfo.hDP
-    val dominantColor = listColors.firstOrNull() ?: md_theme_dark_background
+    val dominantColor = listColors.firstOrNull() ?: Color.Black
     // Apple Music-style page background from the artwork's dominant tone (see UIExt.toImmersiveBackground).
     val mutedPaletteBg = paletteState.palette.toImmersiveBackground()
     val artworkSizeDp =

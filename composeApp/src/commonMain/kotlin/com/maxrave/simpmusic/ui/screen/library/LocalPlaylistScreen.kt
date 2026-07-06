@@ -138,7 +138,6 @@ import com.maxrave.simpmusic.ui.component.SuggestItems
 import com.maxrave.simpmusic.ui.component.painterPlaylistThumbnail
 import com.maxrave.simpmusic.ui.component.playlistTitleGradient
 import com.maxrave.simpmusic.ui.component.rememberDragDropState
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.LocalPlaylistUIEvent
@@ -379,7 +378,7 @@ fun LocalPlaylistScreen(
         snapshotFlow { paletteState.palette }
             .distinctUntilChanged()
             .collectLatest {
-                viewModel.setBrush(listOf(it.getColorFromPalette(), md_theme_dark_background))
+                viewModel.setBrush(listOf(it.getColorFromPalette(), Color.Black))
             }
     }
 
@@ -403,9 +402,9 @@ fun LocalPlaylistScreen(
                     if (titleColors.size >= 2) {
                         lerp(titleColors[0], titleColors[1], 0.5f)
                     } else {
-                        titleColors.firstOrNull() ?: md_theme_dark_background
+                        titleColors.firstOrNull() ?: Color.Black
                     }
-                lerp(base, md_theme_dark_background, 0.3f)
+                lerp(base, Color.Black, 0.3f)
             }
         }
 

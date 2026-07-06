@@ -167,7 +167,6 @@ import com.maxrave.simpmusic.ui.component.VoteLyricsDialog
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.player.FullscreenDestination
 import com.maxrave.simpmusic.ui.theme.blackMoreOverlay
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.overlay
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.LyricsProvider
@@ -432,11 +431,11 @@ fun NowPlayingScreenContent(
 
     val startColor =
         remember {
-            Animatable(md_theme_dark_background)
+            Animatable(Color.Black)
         }
     val endColor =
         remember {
-            Animatable(md_theme_dark_background)
+            Animatable(Color.Black)
         }
     val gradientOffset by remember {
         mutableStateOf(GradientOffset(GradientAngle.CW135))
@@ -464,7 +463,7 @@ fun NowPlayingScreenContent(
             .collectLatest {
                 spotShadowColor = it.getColorFromPalette()
                 startColor.animateTo(it.getColorFromPalette())
-                endColor.animateTo(md_theme_dark_background)
+                endColor.animateTo(Color.Black)
             }
     }
 
@@ -816,7 +815,7 @@ fun NowPlayingScreenContent(
                                 )
                         }
                     } else {
-                        Modifier.background(md_theme_dark_background)
+                        Modifier.background(Color.Black)
                     },
                 ),
         ) {
@@ -850,7 +849,7 @@ fun NowPlayingScreenContent(
                     val pagePaletteState = rememberPaletteState()
                     val pageStartColor =
                         remember(pageTrack?.videoId) {
-                            Animatable(md_theme_dark_background)
+                            Animatable(Color.Black)
                         }
                     LaunchedEffect(pagePaletteState, pageTrack?.videoId) {
                         snapshotFlow { pagePaletteState.palette }
@@ -935,7 +934,7 @@ fun NowPlayingScreenContent(
                                                     colors =
                                                         listOf(
                                                             pageStartColor.value,
-                                                            md_theme_dark_background,
+                                                            Color.Black,
                                                         ),
                                                     start = gradientOffset.start,
                                                     end = gradientOffset.end,
@@ -1128,7 +1127,7 @@ fun NowPlayingScreenContent(
                                                     .fillMaxWidth()
                                                     .aspectRatio(16f / 9)
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(md_theme_dark_background),
+                                                    .background(Color.Black),
                                         ) {
                                             Box(Modifier.fillMaxSize()) {
                                                 MediaPlayerViewWithSubtitle(

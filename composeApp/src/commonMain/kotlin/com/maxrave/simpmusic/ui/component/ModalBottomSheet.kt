@@ -145,7 +145,6 @@ import com.maxrave.simpmusic.ui.navigation.destination.list.AlbumDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
-import com.maxrave.simpmusic.ui.theme.white
 import com.maxrave.simpmusic.viewModel.NowPlayingBottomSheetUIEvent
 import com.maxrave.simpmusic.viewModel.NowPlayingBottomSheetViewModel
 import com.maxrave.simpmusic.viewModel.SharedViewModel
@@ -522,7 +521,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = screenDataState.nowPlayingTitle,
@@ -548,7 +547,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = screenDataState.artistName,
@@ -573,7 +572,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = songEntity?.albumName ?: stringResource(Res.string.unknown),
@@ -598,7 +597,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = format?.itag?.toString() ?: stringResource(Res.string.unknown),
@@ -623,7 +622,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = format?.mimeType ?: stringResource(Res.string.unknown),
@@ -648,7 +647,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = format?.codecs ?: stringResource(Res.string.unknown),
@@ -673,7 +672,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = format?.bitrate?.toString() ?: stringResource(Res.string.unknown),
@@ -698,7 +697,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = format?.bpm?.toString() ?: stringResource(Res.string.unknown),
@@ -723,7 +722,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = format?.musicKey ?: stringResource(Res.string.unknown),
@@ -748,7 +747,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = format?.keyScale ?: stringResource(Res.string.unknown),
@@ -774,7 +773,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = screenDataState.songInfoData?.viewCount?.toString() ?: stringResource(Res.string.unknown),
@@ -799,7 +798,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text =
@@ -828,7 +827,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text = screenDataState.songInfoData?.description ?: stringResource(Res.string.no_description),
@@ -848,7 +847,7 @@ fun InfoPlayerBottomSheet(
                             .padding(vertical = 10.dp),
                     textAlign = TextAlign.Center,
                     style = typo().labelMedium,
-                    color = white,
+                    color = Color.White,
                 )
                 Text(
                     text =

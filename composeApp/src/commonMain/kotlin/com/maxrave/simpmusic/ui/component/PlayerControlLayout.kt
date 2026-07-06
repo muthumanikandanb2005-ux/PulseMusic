@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import com.maxrave.domain.mediaservice.handler.ControlState
 import com.maxrave.domain.mediaservice.handler.RepeatState
 import com.maxrave.simpmusic.ui.theme.seed
-import com.maxrave.simpmusic.ui.theme.transparent
 import com.maxrave.simpmusic.viewModel.UIEvent
 
 @Composable
@@ -56,7 +55,7 @@ fun PlayerControlLayout(
             Box(
                 modifier =
                     Modifier
-                        .background(transparent)
+                        .background(Color.Transparent)
                         .size(smallIcon.second)
                         .aspectRatio(1f)
                         .clip(
@@ -90,7 +89,7 @@ fun PlayerControlLayout(
             Box(
                 modifier =
                     Modifier
-                        .background(transparent)
+                        .background(Color.Transparent)
                         .size(mediumIcon.second)
                         .aspectRatio(1f)
                         .clip(
@@ -115,7 +114,7 @@ fun PlayerControlLayout(
             Box(
                 modifier =
                     Modifier
-                        .background(transparent)
+                        .background(Color.Transparent)
                         .size(bigIcon.second)
                         .aspectRatio(1f)
                         .clip(
@@ -149,7 +148,7 @@ fun PlayerControlLayout(
             Box(
                 modifier =
                     Modifier
-                        .background(transparent)
+                        .background(Color.Transparent)
                         .size(mediumIcon.second)
                         .aspectRatio(1f)
                         .clip(
