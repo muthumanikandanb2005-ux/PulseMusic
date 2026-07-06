@@ -61,6 +61,6 @@ fun AppTheme(
                 content = content,
             )
         },
-        typography = typo(),
+        typography = typo(colorScheme),
     )
 }
