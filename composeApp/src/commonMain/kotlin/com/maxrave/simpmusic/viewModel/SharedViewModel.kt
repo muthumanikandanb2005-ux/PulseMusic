@@ -1702,6 +1702,30 @@ class SharedViewModel(
 
     fun getEnableLiquidGlass() = dataStoreManager.enableLiquidGlass
 
+    fun getThemeMode() = dataStoreManager.themeMode
+
+    fun getThemeColorSource() = dataStoreManager.themeColorSource
+
+    fun getCustomThemeColor() = dataStoreManager.customThemeColor
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            dataStoreManager.setThemeMode(mode)
+        }
+    }
+
+    fun setThemeColorSource(source: String) {
+        viewModelScope.launch {
+            dataStoreManager.setThemeColorSource(source)
+        }
+    }
+
+    fun setCustomThemeColor(argbHex: String) {
+        viewModelScope.launch {
+            dataStoreManager.setCustomThemeColor(argbHex)
+        }
+    }
+
     private val _reloadDestination: MutableStateFlow<KClass<*>?> = MutableStateFlow(null)
     val reloadDestination: StateFlow<KClass<*>?> = _reloadDestination.asStateFlow()
 

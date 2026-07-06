@@ -21,6 +21,10 @@ val lyricActiveColor = Color(0xFFFFFF00)
 val shimmerBackground = Color(0x7E383737)
 val shimmerLine = Color(0xFF4D4848)
 
+// Light-theme counterparts of the shimmer tokens.
+val shimmerBackgroundLight = Color(0x7EDCD8D8)
+val shimmerLineLight = Color(0xFFCFC8C8)
+
 val overlay = Color(0x32242424)
 val blackMoreOverlay = Color(0x8f242424)
 
