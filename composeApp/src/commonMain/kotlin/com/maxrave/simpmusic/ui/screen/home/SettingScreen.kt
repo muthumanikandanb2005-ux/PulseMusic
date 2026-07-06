@@ -211,6 +211,7 @@ import simpmusic.composeapp.generated.resources.crossfade_description
 import simpmusic.composeapp.generated.resources.crossfade_dj_mode
 import simpmusic.composeapp.generated.resources.crossfade_dj_mode_description
 import simpmusic.composeapp.generated.resources.crossfade_duration
+import simpmusic.composeapp.generated.resources.custom_color
 import simpmusic.composeapp.generated.resources.custom_ai_model_id
 import simpmusic.composeapp.generated.resources.custom_model_id_messages
 import simpmusic.composeapp.generated.resources.daily
@@ -316,6 +317,14 @@ import simpmusic.composeapp.generated.resources.spotify_canvas_cache
 import simpmusic.composeapp.generated.resources.spotify_lyrícs_info
 import simpmusic.composeapp.generated.resources.storage
 import simpmusic.composeapp.generated.resources.such_as_music_video_lyrics_video_podcasts_and_more
+import simpmusic.composeapp.generated.resources.theme
+import simpmusic.composeapp.generated.resources.theme_color
+import simpmusic.composeapp.generated.resources.theme_color_custom
+import simpmusic.composeapp.generated.resources.theme_color_default
+import simpmusic.composeapp.generated.resources.theme_color_wallpaper
+import simpmusic.composeapp.generated.resources.theme_mode_dark
+import simpmusic.composeapp.generated.resources.theme_mode_light
+import simpmusic.composeapp.generated.resources.theme_mode_system
 import simpmusic.composeapp.generated.resources.third_party_libraries
 import simpmusic.composeapp.generated.resources.thumbnail_cache
 import simpmusic.composeapp.generated.resources.translation_language
