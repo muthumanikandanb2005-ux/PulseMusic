@@ -29,6 +29,7 @@ navigation = "2.9.2"
 gson = "2.14.0"
 coil3 = "3.5.0"
 kmpalette = "3.1.0"
+materialkolor = "4.1.1"
 easypermissions = "3.0.0"
 datastore-preferences = "1.2.1"
 paging = "3.5.0"
@@ -148,6 +149,7 @@ coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref 
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil3" }
 kmpalette-core = { module = "com.kmpalette:kmpalette-core", version.ref = "kmpalette" }
 kmpalette-network = { module = "com.kmpalette:extensions-network", version.ref = "kmpalette" }
+materialkolor = { module = "com.materialkolor:material-kolor", version.ref = "materialkolor" }
 okhttp3-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp3" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }

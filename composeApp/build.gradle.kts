@@ -126,6 +126,7 @@ kotlin {
             api(libs.coil.network.okhttp)
             api(libs.kmpalette.core)
             api(libs.kmpalette.network)
+            implementation(libs.materialkolor)
             implementation(libs.ktor.client.cio)
 
             // DataStore

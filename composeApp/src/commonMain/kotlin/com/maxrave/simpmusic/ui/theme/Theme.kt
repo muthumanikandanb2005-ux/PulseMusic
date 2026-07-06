@@ -3,42 +3,39 @@ package com.maxrave.simpmusic.ui.theme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+import com.materialkolor.PaletteStyle
+import com.materialkolor.rememberDynamicColorScheme
 
-val DarkColors =
-    darkColorScheme(
-        primary = md_theme_dark_primary,
-        onPrimary = md_theme_dark_onPrimary,
-        primaryContainer = md_theme_dark_primaryContainer,
-        onPrimaryContainer = md_theme_dark_onPrimaryContainer,
-        secondary = md_theme_dark_secondary,
-        onSecondary = md_theme_dark_onSecondary,
-        secondaryContainer = md_theme_dark_secondaryContainer,
-        onSecondaryContainer = md_theme_dark_onSecondaryContainer,
-        tertiary = md_theme_dark_tertiary,
-        onTertiary = md_theme_dark_onTertiary,
-        tertiaryContainer = md_theme_dark_tertiaryContainer,
-        onTertiaryContainer = md_theme_dark_onTertiaryContainer,
-        error = md_theme_dark_error,
-        errorContainer = md_theme_dark_errorContainer,
-        onError = md_theme_dark_onError,
-        onErrorContainer = md_theme_dark_onErrorContainer,
-        background = md_theme_dark_background,
-        onBackground = md_theme_dark_onBackground,
-        surface = md_theme_dark_surface,
-        onSurface = md_theme_dark_onSurface,
-        surfaceVariant = md_theme_dark_surfaceVariant,
-        onSurfaceVariant = md_theme_dark_onSurfaceVariant,
-        outline = md_theme_dark_outline,
-        inverseOnSurface = md_theme_dark_inverseOnSurface,
-        inverseSurface = md_theme_dark_inverseSurface,
-        inversePrimary = md_theme_dark_inversePrimary,
-        surfaceTint = md_theme_dark_surfaceTint,
-        outlineVariant = md_theme_dark_outlineVariant,
-        scrim = md_theme_dark_scrim,
+/**
+ * Semantic colors that sit outside the Material 3 ColorScheme.
+ * Read them via [LocalAppColors] inside composables.
+ */
+@Immutable
+data class AppColors(
+    val favorite: Color,
+    val lyricActive: Color,
+    val shimmerBackground: Color,
+    val shimmerLine: Color,
+    val overlay: Color,
+    val overlayHeavy: Color,
+)
+
+private val DefaultAppColors =
+    AppColors(
+        favorite = favoriteColor,
+        lyricActive = lyricActiveColor,
+        shimmerBackground = shimmerBackground,
+        shimmerLine = shimmerLine,
+        overlay = overlay,
+        overlayHeavy = blackMoreOverlay,
     )
+
+val LocalAppColors = staticCompositionLocalOf { DefaultAppColors }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -47,12 +44,21 @@ fun AppTheme(
         @Composable()
         () -> Unit,
 ) {
+    // isAmoled pins background/surface to pure black to keep the OLED look.
+    val colorScheme =
+        rememberDynamicColorScheme(
+            seedColor = seed,
+            isDark = true,
+            isAmoled = true,
+            style = PaletteStyle.TonalSpot,
+        )
     MaterialExpressiveTheme(
-        colorScheme = DarkColors,
+        colorScheme = colorScheme,
         content = {
             CompositionLocalProvider(
-                LocalContentColor provides DarkColors.onSurfaceVariant, // replace this with needed color from your pallete
-                content,
+                LocalContentColor provides colorScheme.onSurfaceVariant,
+                LocalAppColors provides DefaultAppColors,
+                content = content,
             )
         },
         typography = typo(),

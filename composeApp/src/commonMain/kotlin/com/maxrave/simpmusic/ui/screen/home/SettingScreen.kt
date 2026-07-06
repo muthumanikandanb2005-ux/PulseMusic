@@ -119,7 +119,6 @@ import com.maxrave.simpmusic.ui.navigation.destination.home.CreditDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.DiscordLoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.LoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.SpotifyLoginDestination
-import com.maxrave.simpmusic.ui.theme.DarkColors
 import com.maxrave.simpmusic.ui.theme.md_theme_dark_primary
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.ui.theme.white
@@ -2375,7 +2374,7 @@ fun SettingScreen(
                                         Text(
                                             modifier = Modifier.fillMaxWidth(),
                                             text = verify.second ?: "",
-                                            color = DarkColors.error,
+                                            color = MaterialTheme.colorScheme.error,
                                         )
                                     }
                                 },
