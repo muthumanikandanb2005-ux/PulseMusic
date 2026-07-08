@@ -60,8 +60,7 @@ import com.kmpalette.palette.graphics.Palette
 import com.maxrave.domain.data.model.ui.ScreenSizeInfo
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.getPlatform
-import com.maxrave.simpmusic.ui.theme.shimmerBackground
-import com.maxrave.simpmusic.ui.theme.shimmerLine
+import com.maxrave.simpmusic.ui.theme.LocalAppColors
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
@@ -84,6 +83,7 @@ fun generateRandomColor(): Color {
 
 fun Modifier.shimmer(): Modifier =
     composed {
+        val appColors = LocalAppColors.current
         var size by remember {
             mutableStateOf(IntSize.Zero)
         }
@@ -103,9 +103,9 @@ fun Modifier.shimmer(): Modifier =
                 Brush.linearGradient(
                     colors =
                         listOf(
-                            shimmerBackground,
-                            shimmerLine,
-                            shimmerBackground,
+                            appColors.shimmerBackground,
+                            appColors.shimmerLine,
+                            appColors.shimmerBackground,
                         ),
                     start = Offset(startOffsetX, 0f),
                     end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat()),

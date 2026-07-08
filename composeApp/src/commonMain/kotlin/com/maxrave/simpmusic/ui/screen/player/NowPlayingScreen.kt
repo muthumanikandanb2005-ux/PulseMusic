@@ -135,6 +135,7 @@ import com.maxrave.common.Config.MAIN_PLAYER
 import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
 import com.maxrave.domain.mediaservice.handler.RepeatState
 import com.maxrave.logger.Logger
+import com.maxrave.simpmusic.ui.component.rememberHolderPainter
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.toggleMiniPlayer
 import com.maxrave.simpmusic.expect.ui.MediaPlayerView
@@ -174,6 +175,7 @@ import com.maxrave.simpmusic.viewModel.NowPlayingBottomSheetUIEvent
 import com.maxrave.simpmusic.viewModel.NowPlayingBottomSheetViewModel
 import com.maxrave.simpmusic.viewModel.SharedViewModel
 import com.maxrave.simpmusic.viewModel.UIEvent
+import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.CupertinoMaterials
@@ -195,8 +197,6 @@ import simpmusic.composeapp.generated.resources.baseline_more_vert_24
 import simpmusic.composeapp.generated.resources.baseline_playlist_add_24
 import simpmusic.composeapp.generated.resources.crossfading
 import simpmusic.composeapp.generated.resources.description
-import simpmusic.composeapp.generated.resources.holder
-import simpmusic.composeapp.generated.resources.holder_video
 import simpmusic.composeapp.generated.resources.like_and_dislike
 import simpmusic.composeapp.generated.resources.line_synced
 import simpmusic.composeapp.generated.resources.lyrics
@@ -774,8 +774,8 @@ fun NowPlayingScreenContent(
                         .build(),
                 contentDescription = "",
                 contentScale = ContentScale.FillHeight,
-                placeholder = painterResource(Res.drawable.holder),
-                error = painterResource(Res.drawable.holder),
+                placeholder = rememberHolderPainter(),
+                error = rememberHolderPainter(),
                 modifier =
                     Modifier
                         .align(Alignment.Center)
@@ -799,6 +799,11 @@ fun NowPlayingScreenContent(
                                 .background(Color.Transparent)
                                 .hazeEffect(hazeState, style = CupertinoMaterials.thin()) {
                                     blurEnabled = true
+                                    // The player must stay dark in every app theme. Haze samples the app
+                                    // content behind the sheet (white in light theme), so pin a black
+                                    // backdrop + tint — otherwise the blurred background washes out to white.
+                                    backgroundColor = Color.Black
+                                    tints = listOf(HazeTint(Color.Black.copy(alpha = 0.7f)))
                                 }
                         } else {
                             Modifier
@@ -913,8 +918,8 @@ fun NowPlayingScreenContent(
                                             .build(),
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
-                                    placeholder = painterResource(Res.drawable.holder),
-                                    error = painterResource(Res.drawable.holder),
+                                    placeholder = rememberHolderPainter(),
+                                    error = rememberHolderPainter(),
                                     modifier =
                                         Modifier
                                             .fillMaxSize()
@@ -1095,8 +1100,8 @@ fun NowPlayingScreenContent(
                                                 )
                                             },
                                             contentScale = ContentScale.Crop,
-                                            placeholder = painterResource(Res.drawable.holder),
-                                            error = painterResource(Res.drawable.holder),
+                                            placeholder = rememberHolderPainter(),
+                                            error = rememberHolderPainter(),
                                             modifier =
                                                 Modifier
                                                     .align(Alignment.Center)
@@ -1298,8 +1303,8 @@ fun NowPlayingScreenContent(
                                                     .build(),
                                             contentDescription = pageTrack.title,
                                             contentScale = ContentScale.Crop,
-                                            placeholder = painterResource(Res.drawable.holder),
-                                            error = painterResource(Res.drawable.holder),
+                                            placeholder = rememberHolderPainter(),
+                                            error = rememberHolderPainter(),
                                             // Feed the per-page palette using the SAME bitmap
                                             // we just rendered so the Layer 0 gradient backdrop
                                             // matches what the user sees on screen.
@@ -1490,8 +1495,8 @@ fun NowPlayingScreenContent(
                                                         .diskCacheKey(screenDataState.thumbnailURL + "BIGGER")
                                                         .crossfade(true)
                                                         .build(),
-                                                placeholder = painterResource(Res.drawable.holder),
-                                                error = painterResource(Res.drawable.holder),
+                                                placeholder = rememberHolderPainter(),
+                                                error = rememberHolderPainter(),
                                                 contentDescription = null,
                                                 contentScale = ContentScale.FillWidth,
                                                 modifier =
@@ -1982,8 +1987,8 @@ fun NowPlayingScreenContent(
                                                                 .diskCacheKey(screenDataState.thumbnailURL + "BIGGER")
                                                                 .crossfade(true)
                                                                 .build(),
-                                                        placeholder = painterResource(Res.drawable.holder),
-                                                        error = painterResource(Res.drawable.holder),
+                                                        placeholder = rememberHolderPainter(),
+                                                        error = rememberHolderPainter(),
                                                         contentDescription = null,
                                                         contentScale = ContentScale.FillWidth,
                                                         modifier =
@@ -2187,7 +2192,7 @@ fun NowPlayingScreenContent(
                                                         .height(20.dp)
                                                         .wrapContentWidth(),
                                             ) {
-                                                Text(text = stringResource(Res.string.show))
+                                                Text(text = stringResource(Res.string.show), color = Color.White)
                                             }
                                         }
                                     }
@@ -2305,8 +2310,8 @@ fun NowPlayingScreenContent(
                                                 .diskCacheKey(thumb)
                                                 .crossfade(550)
                                                 .build(),
-                                        placeholder = painterResource(Res.drawable.holder_video),
-                                        error = painterResource(Res.drawable.holder_video),
+                                        placeholder = rememberHolderPainter(isVideo = true),
+                                        error = rememberHolderPainter(isVideo = true),
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
                                         modifier =

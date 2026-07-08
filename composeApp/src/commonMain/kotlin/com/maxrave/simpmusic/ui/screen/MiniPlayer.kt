@@ -97,6 +97,7 @@ import com.maxrave.domain.data.entities.SongEntity
 import com.maxrave.domain.manager.DataStoreManager
 import com.maxrave.domain.utils.connectArtists
 import com.maxrave.logger.Logger
+import com.maxrave.simpmusic.ui.component.rememberHolderPainter
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.toggleMiniPlayer
 import com.maxrave.simpmusic.expect.ui.PlatformBackdrop
@@ -110,6 +111,7 @@ import com.maxrave.simpmusic.ui.component.HeartCheckBox
 import com.maxrave.simpmusic.ui.component.PlayPauseButton
 import com.maxrave.simpmusic.ui.component.PlayerControlLayout
 import com.maxrave.simpmusic.ui.component.liquidGlass
+import com.maxrave.simpmusic.ui.theme.LocalIsDarkTheme
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.SharedViewModel
 import com.maxrave.simpmusic.viewModel.UIEvent
@@ -123,7 +125,6 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import simpmusic.composeapp.generated.resources.Res
-import simpmusic.composeapp.generated.resources.holder
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
@@ -146,11 +147,25 @@ fun MiniPlayer(
     val layer = rememberGraphicsLayer()
     val luminanceAnimation = remember { Animatable(0f) }
 
+    val isDarkTheme = LocalIsDarkTheme.current
     val textColor by animateColorAsState(
-        targetValue = if (luminanceAnimation.value > 0.6f) Color.Black else Color.White,
+        // With liquid glass the surface follows the theme (light = frosted white → black text);
+        // without it, the surface is the artwork colour, so follow the backdrop luminance.
+        targetValue =
+            if (isLiquidGlassEnabled == DataStoreManager.TRUE) {
+                if (isDarkTheme) Color.White else Color.Black
+            } else if (luminanceAnimation.value > 0.6f) {
+                Color.Black
+            } else {
+                Color.White
+            },
         label = "MiniPlayerTextColor",
         animationSpec = tween(500),
     )
+
+    LaunchedEffect(luminanceAnimation.value) {
+        Logger.w("GlassDbg", "luminanceAnimation: ${luminanceAnimation.value}")
+    }
 
     LaunchedEffect(layer, isLiquidGlassEnabled) {
         val buffer = IntArray(25)
@@ -389,8 +404,8 @@ fun MiniPlayer(
                                         .data(songEntity?.thumbnails)
                                         .crossfade(550)
                                         .build(),
-                                placeholder = painterResource(Res.drawable.holder),
-                                error = painterResource(Res.drawable.holder),
+                                placeholder = rememberHolderPainter(),
+                                error = rememberHolderPainter(),
                                 contentDescription = null,
                                 contentScale = ContentScale.FillWidth,
                                 onSuccess = {
@@ -492,7 +507,7 @@ fun MiniPlayer(
                         }
                     }
                     Spacer(modifier = Modifier.width(15.dp))
-                    HeartCheckBox(checked = liked, size = 30) {
+                    HeartCheckBox(checked = liked, size = 30, tint = textColor) {
                         sharedViewModel.onUIEvent(UIEvent.ToggleLike)
                     }
                     Spacer(modifier = Modifier.width(15.dp))
@@ -501,12 +516,12 @@ fun MiniPlayer(
                             Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(18.dp),
-                                    color = Color.LightGray,
+                                    color = textColor,
                                     strokeWidth = 3.dp,
                                 )
                             }
                         } else {
-                            PlayPauseButton(isPlaying = isPlaying, modifier = Modifier.size(48.dp)) {
+                            PlayPauseButton(isPlaying = isPlaying, modifier = Modifier.size(48.dp), tint = textColor) {
                                 sharedViewModel.onUIEvent(UIEvent.PlayPause)
                             }
                         }
@@ -532,7 +547,7 @@ fun MiniPlayer(
                                     color = Color.Transparent,
                                     shape = RoundedCornerShape(4.dp),
                                 ),
-                        color = Color.White,
+                        color = textColor,
                         trackColor = Color.Transparent,
                         strokeCap = StrokeCap.Round,
                         drawStopIndicator = {},
@@ -583,8 +598,8 @@ fun MiniPlayer(
                                     .data(songEntity?.thumbnails)
                                     .crossfade(550)
                                     .build(),
-                            placeholder = painterResource(Res.drawable.holder),
-                            error = painterResource(Res.drawable.holder),
+                            placeholder = rememberHolderPainter(),
+                            error = rememberHolderPainter(),
                             contentDescription = null,
                             contentScale = ContentScale.FillWidth,
                             onSuccess = {
@@ -700,8 +715,8 @@ fun MiniPlayer(
                                                             ).clip(
                                                                 RoundedCornerShape(8.dp),
                                                             ),
-                                                    color = Color.Gray,
-                                                    trackColor = Color.DarkGray,
+                                                    color = textColor,
+                                                    trackColor = textColor.copy(alpha = 0.3f),
                                                     strokeCap = StrokeCap.Round,
                                                 )
                                             }
@@ -718,10 +733,10 @@ fun MiniPlayer(
                                                             ).clip(
                                                                 RoundedCornerShape(8.dp),
                                                             ),
-                                                    color = Color.Gray,
+                                                    color = textColor,
                                                     trackColor =
-                                                        Color.Gray.copy(
-                                                            alpha = 0.6f,
+                                                        textColor.copy(
+                                                            alpha = 0.4f,
                                                         ),
                                                     strokeCap = StrokeCap.Round,
                                                     drawStopIndicator = {},
@@ -760,8 +775,8 @@ fun MiniPlayer(
                                                 sliderState = sliderState,
                                                 colors =
                                                     SliderDefaults.colors().copy(
-                                                        thumbColor = Color.White,
-                                                        activeTrackColor = Color.White,
+                                                        thumbColor = textColor,
+                                                        activeTrackColor = textColor,
                                                         inactiveTrackColor = Color.Transparent,
                                                     ),
                                                 thumbTrackGapSize = 0.dp,
@@ -785,8 +800,8 @@ fun MiniPlayer(
                                                     },
                                                 colors =
                                                     SliderDefaults.colors().copy(
-                                                        thumbColor = Color.White,
-                                                        activeTrackColor = Color.White,
+                                                        thumbColor = textColor,
+                                                        activeTrackColor = textColor,
                                                         inactiveTrackColor = Color.Transparent,
                                                     ),
                                                 enabled = true,
@@ -877,9 +892,9 @@ fun MiniPlayer(
                                         sliderState = sliderState,
                                         colors =
                                             SliderDefaults.colors().copy(
-                                                thumbColor = Color.White,
-                                                activeTrackColor = Color.White,
-                                                inactiveTrackColor = Color.Gray,
+                                                thumbColor = textColor,
+                                                activeTrackColor = textColor,
+                                                inactiveTrackColor = textColor.copy(alpha = 0.3f),
                                             ),
                                         thumbTrackGapSize = 0.dp,
                                         drawTick = { _, _ -> },
@@ -902,9 +917,9 @@ fun MiniPlayer(
                                             },
                                         colors =
                                             SliderDefaults.colors().copy(
-                                                thumbColor = Color.White,
-                                                activeTrackColor = Color.White,
-                                                inactiveTrackColor = Color.DarkGray,
+                                                thumbColor = textColor,
+                                                activeTrackColor = textColor,
+                                                inactiveTrackColor = textColor.copy(alpha = 0.3f),
                                             ),
                                         enabled = true,
                                     )

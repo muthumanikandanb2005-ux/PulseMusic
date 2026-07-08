@@ -9,6 +9,7 @@ import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -39,11 +40,11 @@ fun Chip(
                 shape = CircleShape,
                 colors =
                     FilterChipDefaults.elevatedFilterChipColors(
-                        containerColor = Color.Transparent,
-                        iconColor = Color.White,
-                        selectedContainerColor = Color.DarkGray.copy(alpha = 0.8f),
-                        labelColor = Color.LightGray,
-                        selectedLabelColor = Color.LightGray,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        iconColor = MaterialTheme.colorScheme.onSurface,
+                        selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSurface,
                     ),
                 onClick = { onClick.invoke() },
                 label = {
@@ -54,7 +55,7 @@ fun Chip(
                         enabled = true,
                         selected = isSelected,
                         selectedBorderColor = Color.Transparent,
-                        borderColor = Color.Gray.copy(alpha = 0.8f),
+                        borderColor = MaterialTheme.colorScheme.outline,
                     ),
                 selected = isSelected,
                 leadingIcon = {

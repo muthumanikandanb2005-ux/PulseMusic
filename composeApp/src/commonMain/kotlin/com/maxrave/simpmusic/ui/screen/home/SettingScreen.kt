@@ -2750,6 +2750,7 @@ fun SettingScreen(
                                         Modifier
                                             .size(32.dp),
                                         true,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                     ) {
                                         coroutineScope.launch {
                                             sheetState.hide()
@@ -2782,6 +2783,7 @@ fun SettingScreen(
                     Modifier
                         .size(32.dp),
                     true,
+                    tint = MaterialTheme.colorScheme.onSurface,
                 ) {
                     navController.navigateUp()
                 }

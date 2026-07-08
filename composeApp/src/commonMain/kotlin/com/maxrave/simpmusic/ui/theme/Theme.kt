@@ -49,6 +49,9 @@ private val LightAppColors =
 
 val LocalAppColors = staticCompositionLocalOf { DarkAppColors }
 
+/** True in dark theme. Provided by [AppTheme] so platform glass (blur/tint) can adapt reliably. */
+val LocalIsDarkTheme = staticCompositionLocalOf { true }
+
 /** Parses "RRGGBB" or "AARRGGBB" (optionally "#"-prefixed) into a [Color]; null if malformed. */
 fun parseThemeColorHex(hex: String): Color? {
     val clean = hex.trim().removePrefix("#")
@@ -134,6 +137,7 @@ fun AppTheme(
             CompositionLocalProvider(
                 LocalContentColor provides colorScheme.onSurfaceVariant,
                 LocalAppColors provides if (isDark) DarkAppColors else LightAppColors,
+                LocalIsDarkTheme provides isDark,
                 content = content,
             )
         },

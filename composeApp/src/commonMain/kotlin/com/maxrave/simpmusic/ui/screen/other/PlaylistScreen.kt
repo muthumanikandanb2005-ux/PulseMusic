@@ -71,14 +71,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -96,6 +96,7 @@ import com.maxrave.domain.data.entities.DownloadState
 import com.maxrave.domain.data.model.browse.album.Track
 import com.maxrave.domain.utils.toSongEntity
 import com.maxrave.logger.Logger
+import com.maxrave.simpmusic.ui.component.rememberHolderPainter
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.layerBackdrop
 import com.maxrave.simpmusic.expect.ui.rememberBackdrop
@@ -110,14 +111,15 @@ import com.maxrave.simpmusic.ui.component.CenterLoadingBox
 import com.maxrave.simpmusic.ui.component.DescriptionView
 import com.maxrave.simpmusic.ui.component.EndOfPage
 import com.maxrave.simpmusic.ui.component.HeartCheckBox
+import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.LoadingDialog
 import com.maxrave.simpmusic.ui.component.NowPlayingBottomSheet
 import com.maxrave.simpmusic.ui.component.PlaylistBottomSheet
-import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.RippleIconButton
-import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.component.SongFullWidthItems
+import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
+import com.maxrave.simpmusic.ui.theme.LocalIsDarkTheme
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.ListState
@@ -158,7 +160,6 @@ import simpmusic.composeapp.generated.resources.download_button
 import simpmusic.composeapp.generated.resources.downloaded
 import simpmusic.composeapp.generated.resources.downloading
 import simpmusic.composeapp.generated.resources.error
-import simpmusic.composeapp.generated.resources.holder
 import simpmusic.composeapp.generated.resources.no_description
 import simpmusic.composeapp.generated.resources.playlist
 import simpmusic.composeapp.generated.resources.radio
@@ -454,7 +455,7 @@ fun PlaylistScreen(
                                             // Apple Music-style: edge-to-edge artwork + liquid glass buttons.
                                             // Glass buttons MUST be siblings of the backdrop source (not children)
                                             // to avoid render feedback loop / RuntimeShader crash.
-                                            val artworkBackdrop = rememberBackdrop()
+                                            val artworkBackdrop = rememberBackdrop(Color.Black)
                                             Box(
                                                 modifier =
                                                     Modifier
@@ -474,8 +475,8 @@ fun PlaylistScreen(
                                                                 .memoryCacheKey(data.thumbnail)
                                                                 .crossfade(false)
                                                                 .build(),
-                                                        placeholder = painterResource(Res.drawable.holder),
-                                                        error = painterResource(Res.drawable.holder),
+                                                        placeholder = rememberHolderPainter(),
+                                                        error = rememberHolderPainter(),
                                                         contentDescription = null,
                                                         contentScale = ContentScale.Crop,
                                                         onSuccess = {
@@ -574,7 +575,7 @@ fun PlaylistScreen(
                                                         resId = Res.drawable.baseline_arrow_back_ios_new_24,
                                                         modifier =
                                                             Modifier
-                                                            .size(48.dp),
+                                                                .size(48.dp),
                                                     ) {
                                                         navController.navigateUp()
                                                     }
@@ -629,8 +630,8 @@ fun PlaylistScreen(
                                                         .diskCacheKey(data.thumbnail)
                                                         .crossfade(true)
                                                         .build(),
-                                                placeholder = painterResource(Res.drawable.holder),
-                                                error = painterResource(Res.drawable.holder),
+                                                placeholder = rememberHolderPainter(),
+                                                error = rememberHolderPainter(),
                                                 contentDescription = null,
                                                 contentScale = ContentScale.FillHeight,
                                                 onSuccess = {
@@ -1036,6 +1037,7 @@ fun PlaylistScreen(
                             Column(modifier = Modifier.animateItem()) {
                                 if (playingTrack?.videoId == item.videoId && isPlaying) {
                                     SongFullWidthItems(
+                                        forceDark = true,
                                         isPlaying = true,
                                         track = item,
                                         onMoreClickListener = { onItemMoreClick(it) },
@@ -1052,6 +1054,7 @@ fun PlaylistScreen(
                                     )
                                 } else {
                                     SongFullWidthItems(
+                                        forceDark = true,
                                         isPlaying = false,
                                         track = item,
                                         onMoreClickListener = { onItemMoreClick(it) },

@@ -4,6 +4,8 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -19,14 +21,24 @@ fun fontFamily(): FontFamily =
         Font(Res.font.poppins_medium, FontWeight.Normal, FontStyle.Normal),
     )
 
+/**
+ * When true, [typo] keeps the original always-light text colors (pure white titles, #A8A8A8 body)
+ * regardless of theme. Immersive screens drawn over dark artwork provide `true` so their text stays
+ * readable at light theme. Everything else leaves it false and gets theme-aware colors.
+ */
+val LocalForceDarkText = staticCompositionLocalOf { false }
+
 @Composable
-fun typo(colorScheme: ColorScheme = MaterialTheme.colorScheme): Typography {
+fun typo(
+    colorScheme: ColorScheme = MaterialTheme.colorScheme,
+    forceDark: Boolean = LocalForceDarkText.current,
+): Typography {
     val fontFamily = fontFamily()
 
-    // Keeps the roles of the old hardcoded palette: titles were pure white,
-    // everything else was muted gray (#A8A8A8) — now both come from the scheme.
-    val titleColor = colorScheme.onBackground
-    val bodyColor = colorScheme.onSurfaceVariant
+    // Titles were pure white, everything else muted gray (#A8A8A8) in the old dark-only palette.
+    // forceDark keeps that; otherwise both come from the scheme (theme-aware light/dark).
+    val titleColor = if (forceDark) Color.White else colorScheme.onBackground
+    val bodyColor = if (forceDark) Color(0xFFA8A8A8) else colorScheme.onSurfaceVariant
 
     val typo =
         Typography(

@@ -32,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -372,7 +373,7 @@ fun LibraryScreen(
                         .fillMaxWidth()
                         .wrapContentHeight(),
                 shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
-                colors = CardDefaults.cardColors().copy(containerColor = Color(0xFF242424)),
+                colors = CardDefaults.cardColors().copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -385,7 +386,7 @@ fun LibraryScreen(
                                 .height(4.dp),
                         colors =
                             CardDefaults.cardColors().copy(
-                                containerColor = Color(0xFF474545),
+                                containerColor = MaterialTheme.colorScheme.outline,
                             ),
                         shape = RoundedCornerShape(50),
                     ) {}
@@ -436,7 +437,7 @@ fun LibraryScreen(
                 Text(
                     text = stringResource(Res.string.library),
                     style = typo().titleMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
             },
             colors =
@@ -450,7 +451,7 @@ fun LibraryScreen(
                     },
                 ) {
                     Box {
-                        Icon(Icons.Rounded.AutoGraph, "Analytics", tint = Color.White)
+                        Icon(Icons.Rounded.AutoGraph, "Analytics", tint = MaterialTheme.colorScheme.onBackground)
                         Text(
                             "NEW",
                             Modifier.align(Alignment.BottomEnd),

@@ -77,7 +77,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.jetbrains.compose.resources.painterResource
 import simpmusic.composeapp.generated.resources.Res
-import simpmusic.composeapp.generated.resources.holder_video
 
 private val paddingMedium = 0.dp
 
@@ -254,8 +253,8 @@ private fun Header(
                     it.result.image.toImageBitmap(),
                 )
             },
-            placeholder = painterResource(Res.drawable.holder_video),
-            error = painterResource(Res.drawable.holder_video),
+            placeholder = rememberHolderPainter(isVideo = true),
+            error = rememberHolderPainter(isVideo = true),
             contentDescription = null,
             contentScale = ContentScale.FillWidth,
             modifier =
