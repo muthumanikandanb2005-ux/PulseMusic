@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -229,6 +230,7 @@ fun RecentlySongsScreen(
                         Res.drawable.baseline_arrow_back_ios_new_24,
                         Modifier.size(32.dp),
                         true,
+                        tint = MaterialTheme.colorScheme.onSurface,
                     ) {
                         navController.navigateUp()
                     }

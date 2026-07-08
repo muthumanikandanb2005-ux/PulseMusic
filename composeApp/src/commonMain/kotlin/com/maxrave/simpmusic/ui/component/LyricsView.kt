@@ -103,6 +103,7 @@ import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.NowPlayingScreenData
 import com.maxrave.simpmusic.viewModel.SharedViewModel
 import com.maxrave.simpmusic.viewModel.UIEvent
+import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.CupertinoMaterials
@@ -826,6 +827,9 @@ fun FullscreenLyricsSheet(
                                     style = CupertinoMaterials.regular(),
                                 ) {
                                     blurEnabled = true
+                                    // Force-dark: the poster artwork can be bright, so pin a dark tint over
+                                    // the blur so the white lyrics stay readable in every app theme.
+                                    tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
                                 }
                             } else {
                                 Modifier

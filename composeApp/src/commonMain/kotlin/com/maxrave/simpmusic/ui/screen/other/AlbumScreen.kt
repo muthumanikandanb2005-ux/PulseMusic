@@ -80,6 +80,7 @@ import com.kmpalette.rememberPaletteState
 import com.maxrave.domain.data.entities.DownloadState
 import com.maxrave.domain.data.model.browse.album.Track
 import com.maxrave.domain.utils.toSongEntity
+import com.maxrave.simpmusic.ui.component.rememberHolderPainter
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.layerBackdrop
 import com.maxrave.simpmusic.expect.ui.rememberBackdrop
@@ -94,15 +95,14 @@ import com.maxrave.simpmusic.ui.component.DescriptionView
 import com.maxrave.simpmusic.ui.component.EndOfPage
 import com.maxrave.simpmusic.ui.component.HeartCheckBox
 import com.maxrave.simpmusic.ui.component.HomeItemContentPlaylist
+import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.NowPlayingBottomSheet
 import com.maxrave.simpmusic.ui.component.PlaylistBottomSheet
-import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.RippleIconButton
-import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.component.SongFullWidthItems
+import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.navigation.destination.list.AlbumDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.AlbumViewModel
@@ -137,7 +137,6 @@ import simpmusic.composeapp.generated.resources.baseline_shuffle_24
 import simpmusic.composeapp.generated.resources.download_button
 import simpmusic.composeapp.generated.resources.downloaded
 import simpmusic.composeapp.generated.resources.downloading
-import simpmusic.composeapp.generated.resources.holder
 import simpmusic.composeapp.generated.resources.no_description
 import simpmusic.composeapp.generated.resources.other_version
 import simpmusic.composeapp.generated.resources.year_and_category
@@ -214,7 +213,7 @@ fun AlbumScreen(
         snapshotFlow { paletteState.palette }
             .distinctUntilChanged()
             .collectLatest {
-                viewModel.setBrush(listOf(it.getColorFromPalette(), md_theme_dark_background))
+                viewModel.setBrush(listOf(it.getColorFromPalette(), Color.Black))
             }
     }
 
@@ -222,7 +221,7 @@ fun AlbumScreen(
     // foldable open state, landscape orientation, and Desktop keep the existing layout.
     val screenInfo = getScreenSizeInfo()
     val isMobilePortrait = getPlatform() == Platform.Android && screenInfo.wDP < screenInfo.hDP
-    val dominantColor = uiState.colors.firstOrNull() ?: md_theme_dark_background
+    val dominantColor = uiState.colors.firstOrNull() ?: Color.Black
     // Apple Music-style page background from the artwork's dominant tone (see UIExt.toImmersiveBackground).
     val mutedPaletteBg = paletteState.palette.toImmersiveBackground()
     val artworkSizeDp =
@@ -312,7 +311,7 @@ fun AlbumScreen(
                                         // ~half screen height) with title overlay + liquid glass buttons.
                                         // Glass buttons MUST be siblings of the backdrop source (not children)
                                         // to avoid render feedback loop / RuntimeShader crash.
-                                        val artworkBackdrop = rememberBackdrop()
+                                        val artworkBackdrop = rememberBackdrop(Color.Black)
                                         Box(
                                             modifier =
                                                 Modifier
@@ -332,8 +331,8 @@ fun AlbumScreen(
                                                             .memoryCacheKey(uiState.thumbnail)
                                                             .crossfade(false)
                                                             .build(),
-                                                    placeholder = painterResource(Res.drawable.holder),
-                                                    error = painterResource(Res.drawable.holder),
+                                                    placeholder = rememberHolderPainter(),
+                                                    error = rememberHolderPainter(),
                                                     contentDescription = null,
                                                     contentScale = ContentScale.Crop,
                                                     onSuccess = {
@@ -415,10 +414,10 @@ fun AlbumScreen(
                                                 resId = Res.drawable.baseline_arrow_back_ios_new_24,
                                                 modifier =
                                                     Modifier
-                                                    .align(Alignment.TopStart)
-                                                    .padding(12.dp)
-                                                    .windowInsetsPadding(WindowInsets.statusBars)
-                                                    .size(48.dp),
+                                                        .align(Alignment.TopStart)
+                                                        .padding(12.dp)
+                                                        .windowInsetsPadding(WindowInsets.statusBars)
+                                                        .size(48.dp),
                                             ) {
                                                 navController.navigateUp()
                                             }
@@ -466,8 +465,8 @@ fun AlbumScreen(
                                                     .diskCacheKey(uiState.thumbnail)
                                                     .crossfade(true)
                                                     .build(),
-                                            placeholder = painterResource(Res.drawable.holder),
-                                            error = painterResource(Res.drawable.holder),
+                                            placeholder = rememberHolderPainter(),
+                                            error = rememberHolderPainter(),
                                             contentDescription = null,
                                             contentScale = ContentScale.FillHeight,
                                             onSuccess = {
@@ -829,6 +828,7 @@ fun AlbumScreen(
                         if (item != null) {
                             Column(modifier = Modifier.animateItem()) {
                                 SongFullWidthItems(
+                                    forceDark = true,
                                     isPlaying = item.videoId == playingVideoId,
                                     index = index,
                                     track = item,
@@ -875,6 +875,7 @@ fun AlbumScreen(
                                 ) {
                                     items(uiState.otherVersion) { album ->
                                         HomeItemContentPlaylist(
+                                            forceDark = true,
                                             onClick = {
                                                 navController.navigate(
                                                     AlbumDestination(

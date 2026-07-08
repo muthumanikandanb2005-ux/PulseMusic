@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -76,6 +77,7 @@ import com.maxrave.domain.data.type.PlaylistType
 import com.maxrave.domain.repository.SongRepository
 import com.maxrave.domain.utils.connectArtists
 import com.maxrave.domain.utils.toListName
+import com.maxrave.simpmusic.ui.theme.LocalForceDarkText
 import com.maxrave.simpmusic.ui.theme.typo
 import io.github.alexzhirkevich.compottie.Compottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
@@ -93,7 +95,6 @@ import simpmusic.composeapp.generated.resources.artists
 import simpmusic.composeapp.generated.resources.baseline_add_24
 import simpmusic.composeapp.generated.resources.baseline_more_vert_24
 import simpmusic.composeapp.generated.resources.download_for_offline_white
-import simpmusic.composeapp.generated.resources.holder
 import simpmusic.composeapp.generated.resources.playlist
 import simpmusic.composeapp.generated.resources.podcasts
 import simpmusic.composeapp.generated.resources.radio
@@ -115,7 +116,10 @@ fun SongFullWidthItems(
     onAddToQueue: ((videoId: String) -> Unit)? = null,
     modifier: Modifier,
     rightView: @Composable (() -> Unit)? = null,
+    forceDark: Boolean = LocalForceDarkText.current,
 ) {
+    val contentColor = if (forceDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (forceDark) Color(0xC4FFFFFF) else MaterialTheme.colorScheme.onSurfaceVariant
     val maxOffset = 360f
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -150,7 +154,7 @@ fun SongFullWidthItems(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        tint = Color.White,
+                        tint = contentColor,
                         imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                         contentDescription = stringResource(Res.string.add_to_queue),
                     )
@@ -227,8 +231,8 @@ fun SongFullWidthItems(
                                         .diskCacheKey(thumb)
                                         .crossfade(true)
                                         .build(),
-                                placeholder = painterResource(Res.drawable.holder),
-                                error = painterResource(Res.drawable.holder),
+                                placeholder = rememberHolderPainter(),
+                                error = rememberHolderPainter(),
                                 contentDescription = null,
                                 contentScale = ContentScale.FillWidth,
                                 modifier =
@@ -239,7 +243,7 @@ fun SongFullWidthItems(
                         } else {
                             Text(
                                 text = (index + 1).toString(),
-                                color = Color.White,
+                                color = contentColor,
                                 style = typo().titleMedium,
                                 modifier = Modifier.align(Alignment.Center),
                             )
@@ -257,7 +261,7 @@ fun SongFullWidthItems(
                         text = track?.title ?: songEntity?.title ?: "",
                         style = typo().titleSmall,
                         maxLines = 1,
-                        color = Color.White,
+                        color = contentColor,
                         modifier =
                             Modifier
                                 .fillMaxWidth()
@@ -279,7 +283,7 @@ fun SongFullWidthItems(
                             Row {
                                 Icon(
                                     painter = painterResource(Res.drawable.download_for_offline_white),
-                                    tint = Color.White,
+                                    tint = contentColor,
                                     contentDescription = "",
                                     modifier = Modifier.size(16.dp).padding(2.dp),
                                 )
@@ -306,7 +310,7 @@ fun SongFullWidthItems(
                                 ) ?: "",
                             style = typo().bodySmall,
                             maxLines = 1,
-                            color = Color(0xC4FFFFFF),
+                            color = subtitleColor,
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -322,7 +326,7 @@ fun SongFullWidthItems(
                     rightView()
                 }
                 if (onMoreClickListener != null) {
-                    RippleIconButton(resId = Res.drawable.baseline_more_vert_24, fillMaxSize = false) {
+                    RippleIconButton(resId = Res.drawable.baseline_more_vert_24, fillMaxSize = false, tint = contentColor) {
                         val videoId = track?.videoId ?: songEntity?.videoId
                         videoId?.let { onMoreClickListener.invoke(it) }
                     }
@@ -335,7 +339,7 @@ fun SongFullWidthItems(
                     Icon(
                         Icons.Rounded.DragHandle,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = contentColor,
                         modifier = Modifier.padding(horizontal = 8.dp),
                     )
                 }
@@ -350,7 +354,10 @@ fun SuggestItems(
     isPlaying: Boolean,
     onClickListener: (() -> Unit)? = null,
     onAddClickListener: (() -> Unit)? = null,
+    forceDark: Boolean = LocalForceDarkText.current,
 ) {
+    val contentColor = if (forceDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (forceDark) Color(0xC4FFFFFF) else MaterialTheme.colorScheme.onSurfaceVariant
     val composition by rememberLottieComposition {
         LottieCompositionSpec.JsonString(
             Res.readBytes("files/audio_playing_animation.json").decodeToString(),
@@ -393,8 +400,8 @@ fun SuggestItems(
                                     .diskCacheKey(thumb)
                                     .crossfade(true)
                                     .build(),
-                            placeholder = painterResource(Res.drawable.holder),
-                            error = painterResource(Res.drawable.holder),
+                            placeholder = rememberHolderPainter(),
+                            error = rememberHolderPainter(),
                             contentDescription = null,
                             contentScale = ContentScale.FillWidth,
                             modifier =
@@ -416,7 +423,7 @@ fun SuggestItems(
                     text = track.title,
                     style = typo().titleSmall,
                     maxLines = 1,
-                    color = Color.White,
+                    color = contentColor,
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -433,7 +440,7 @@ fun SuggestItems(
                         ) ?: "",
                     style = typo().bodySmall,
                     maxLines = 1,
-                    color = Color(0xC4FFFFFF),
+                    color = subtitleColor,
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -461,7 +468,10 @@ fun PlaylistFullWidthItems(
     onClickListener: (() -> Unit)? = null,
     rightView: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    forceDark: Boolean = LocalForceDarkText.current,
 ) {
+    val contentColor = if (forceDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (forceDark) Color(0xC4FFFFFF) else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier =
             modifier
@@ -545,8 +555,8 @@ fun PlaylistFullWidthItems(
                             .diskCacheKey(thumb)
                             .crossfade(true)
                             .build(),
-                    placeholder = painterResource(Res.drawable.holder),
-                    error = painterResource(Res.drawable.holder),
+                    placeholder = rememberHolderPainter(),
+                    error = rememberHolderPainter(),
                     contentDescription = null,
                     contentScale = ContentScale.FillWidth,
                     modifier =
@@ -565,7 +575,7 @@ fun PlaylistFullWidthItems(
                     text = title,
                     style = typo().titleSmall,
                     maxLines = 1,
-                    color = Color.White,
+                    color = contentColor,
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -581,7 +591,7 @@ fun PlaylistFullWidthItems(
                         Image(
                             imageVector = Icons.Default.PushPin,
                             contentDescription = null,
-                            colorFilter = ColorFilter.tint(Color.Cyan),
+                            colorFilter = ColorFilter.tint(if (forceDark) Color.Cyan else MaterialTheme.colorScheme.primary),
                             modifier =
                                 Modifier
                                     .rotate(30f)
@@ -592,7 +602,7 @@ fun PlaylistFullWidthItems(
                         text = "$firstSubtitle ${if (secondSubtitle.isNotEmpty()) " • $secondSubtitle" else ""}",
                         style = typo().bodySmall,
                         maxLines = 1,
-                        color = Color(0xC4FFFFFF),
+                        color = subtitleColor,
                         modifier =
                             Modifier
                                 .fillMaxWidth()
@@ -609,7 +619,7 @@ fun PlaylistFullWidthItems(
                         text = thirdRowSubtitle,
                         style = typo().bodySmall,
                         maxLines = 1,
-                        color = Color(0xC4FFFFFF),
+                        color = subtitleColor,
                         modifier =
                             Modifier
                                 .fillMaxWidth()
@@ -634,7 +644,10 @@ fun ArtistFullWidthItems(
     onClickListener: (() -> Unit)? = null,
     rightView: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    forceDark: Boolean = LocalForceDarkText.current,
 ) {
+    val contentColor = if (forceDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (forceDark) Color(0xC4FFFFFF) else MaterialTheme.colorScheme.onSurfaceVariant
     val (name: String, thumbnails: String?) =
         when (data) {
             is ArtistEntity -> Pair(data.name, data.thumbnails)
@@ -664,8 +677,8 @@ fun ArtistFullWidthItems(
                             .diskCacheKey(thumbnails)
                             .crossfade(true)
                             .build(),
-                    placeholder = painterResource(Res.drawable.holder),
-                    error = painterResource(Res.drawable.holder),
+                    placeholder = rememberHolderPainter(),
+                    error = rememberHolderPainter(),
                     contentDescription = null,
                     contentScale = ContentScale.FillHeight,
                     modifier =
@@ -684,7 +697,7 @@ fun ArtistFullWidthItems(
                     text = name,
                     style = typo().titleSmall,
                     maxLines = 1,
-                    color = Color.White,
+                    color = contentColor,
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -699,7 +712,7 @@ fun ArtistFullWidthItems(
                     text = stringResource(Res.string.artists),
                     style = typo().bodySmall,
                     maxLines = 1,
-                    color = Color(0xC4FFFFFF),
+                    color = subtitleColor,
                     modifier =
                         Modifier
                             .fillMaxWidth()

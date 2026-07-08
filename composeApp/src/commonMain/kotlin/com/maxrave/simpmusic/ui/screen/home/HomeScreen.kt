@@ -47,6 +47,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -70,6 +71,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -94,6 +97,7 @@ import com.maxrave.domain.mediaservice.handler.PlaylistType
 import com.maxrave.domain.mediaservice.handler.QueueData
 import com.maxrave.domain.utils.toTrack
 import com.maxrave.logger.Logger
+import com.maxrave.simpmusic.ui.component.rememberHolderPainter
 import com.maxrave.simpmusic.extension.angledGradientBackground
 import com.maxrave.simpmusic.extension.isScrollingUp
 import com.maxrave.simpmusic.extension.rgbFactor
@@ -122,9 +126,7 @@ import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.screen.library.LibraryDynamicPlaylistType
 import com.maxrave.simpmusic.ui.navigation.destination.list.PlaylistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.LoginDestination
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import com.maxrave.simpmusic.ui.theme.typo
-import com.maxrave.simpmusic.ui.theme.white
 import com.maxrave.simpmusic.viewModel.HomeViewModel
 import com.maxrave.simpmusic.viewModel.HomeViewModel.Companion.HOME_PARAMS_COMMUTE
 import com.maxrave.simpmusic.viewModel.HomeViewModel.Companion.HOME_PARAMS_ENERGIZE
@@ -169,7 +171,6 @@ import simpmusic.composeapp.generated.resources.good_afternoon
 import simpmusic.composeapp.generated.resources.good_evening
 import simpmusic.composeapp.generated.resources.good_morning
 import simpmusic.composeapp.generated.resources.good_night
-import simpmusic.composeapp.generated.resources.holder
 import simpmusic.composeapp.generated.resources.let_s_pick_a_playlist_for_you
 import simpmusic.composeapp.generated.resources.let_s_start_with_a_radio
 import simpmusic.composeapp.generated.resources.log_in_warning
@@ -243,16 +244,18 @@ fun HomeScreen(
     val openAppTime by sharedViewModel.openAppTime.collectAsStateWithLifecycle()
     val shareLyricsPermissions by sharedViewModel.shareSavedLyrics.collectAsStateWithLifecycle()
 
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val isLightTheme = backgroundColor.luminance() > 0.5f
     var topHeaderColor by remember {
-        mutableStateOf(md_theme_dark_background)
+        mutableStateOf(backgroundColor)
     }
     val animatedColor by animateColorAsState(topHeaderColor, tween(500))
     val mainHomeThumbnail by viewModel.mainHomeThumbnail.collectAsStateWithLifecycle()
     val networkLoader = rememberNetworkLoader(HttpClient(CIO))
     val dominantColorState =
         rememberDominantColorState(
-            defaultColor = md_theme_dark_background,
-            defaultOnColor = md_theme_dark_background,
+            defaultColor = backgroundColor,
+            defaultOnColor = backgroundColor,
             loader = networkLoader,
         )
 
@@ -262,9 +265,11 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(dominantColorState) {
+    LaunchedEffect(dominantColorState, isLightTheme) {
         snapshotFlow { dominantColorState.color }.collect {
-            topHeaderColor = it.rgbFactor(0.3f)
+            // Light theme: pull the artwork color toward white for a soft pastel header;
+            // dark theme keeps the original darkened tone.
+            topHeaderColor = if (isLightTheme) lerp(it, Color.White, 0.85f) else it.rgbFactor(0.3f)
         }
     }
 
@@ -530,7 +535,7 @@ fun HomeScreen(
                                             Modifier
                                                 .fillMaxWidth()
                                                 .height(300.dp)
-                                                .angledGradientBackground(listOf(animatedColor, md_theme_dark_background), 25f),
+                                                .angledGradientBackground(listOf(animatedColor, backgroundColor), 25f),
                                     ) {
                                         Box(
                                             modifier =
@@ -543,8 +548,8 @@ fun HomeScreen(
                                                             Brush.verticalGradient(
                                                                 listOf(
                                                                     Color.Transparent,
-                                                                    Color(0x75000000),
-                                                                    Color.Black,
+                                                                    backgroundColor.copy(alpha = 0.46f),
+                                                                    backgroundColor,
                                                                 ),
                                                             ),
                                                     ),
@@ -851,7 +856,7 @@ fun HomeTopAppBar(navController: NavController) {
                 Text(
                     text = stringResource(Res.string.app_name),
                     style = typo().titleMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
                 Text(
@@ -878,13 +883,13 @@ fun HomeTopAppBar(navController: NavController) {
             }
         },
         actions = {
-            RippleIconButton(resId = Res.drawable.outline_notifications_24) {
+            RippleIconButton(resId = Res.drawable.outline_notifications_24, tint = MaterialTheme.colorScheme.onBackground) {
                 navController.navigate(NotificationDestination)
             }
-            RippleIconButton(resId = Res.drawable.baseline_history_24) {
+            RippleIconButton(resId = Res.drawable.baseline_history_24, tint = MaterialTheme.colorScheme.onBackground) {
                 navController.navigate(RecentlySongsDestination)
             }
-            RippleIconButton(resId = Res.drawable.baseline_settings_24) {
+            RippleIconButton(resId = Res.drawable.baseline_settings_24, tint = MaterialTheme.colorScheme.onBackground) {
                 navController.navigate(SettingsDestination)
             }
         },
@@ -904,7 +909,7 @@ fun AccountLayout(
         Text(
             text = stringResource(Res.string.welcome_back),
             style = typo().bodyMedium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 3.dp),
         )
         Row(
@@ -920,8 +925,8 @@ fun AccountLayout(
                         .diskCacheKey(url)
                         .crossfade(true)
                         .build(),
-                placeholder = painterResource(Res.drawable.holder),
-                error = painterResource(Res.drawable.holder),
+                placeholder = rememberHolderPainter(),
+                error = rememberHolderPainter(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier =
@@ -934,7 +939,7 @@ fun AccountLayout(
             Text(
                 text = accountName,
                 style = typo().headlineMedium,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier =
                     Modifier
                         .padding(start = 8.dp),
@@ -971,7 +976,7 @@ fun QuickPicks(
         Text(
             text = stringResource(Res.string.quick_picks),
             style = typo().headlineMedium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             modifier =
                 Modifier
@@ -1035,7 +1040,7 @@ fun MoodMomentAndGenre(
         Text(
             text = stringResource(Res.string.moods_amp_moment),
             style = typo().headlineMedium,
-            color = white,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             modifier =
                 Modifier
@@ -1062,7 +1067,7 @@ fun MoodMomentAndGenre(
             text = stringResource(Res.string.genre),
             style = typo().headlineMedium,
             maxLines = 1,
-            color = white,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -1097,7 +1102,7 @@ fun ChartTitle() {
         Text(
             text = stringResource(Res.string.chart),
             style = typo().headlineMedium,
-            color = white,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             modifier =
                 Modifier
@@ -1131,7 +1136,7 @@ fun ChartData(
             Text(
                 text = item.title,
                 style = typo().headlineMedium,
-                color = white,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 modifier =
                     Modifier
@@ -1162,7 +1167,7 @@ fun ChartData(
         Text(
             text = stringResource(Res.string.top_artists),
             style = typo().headlineMedium,
-            color = white,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             modifier =
                 Modifier

@@ -64,9 +64,9 @@ fun AppBottomNavigationBar(
                             Brush.verticalGradient(
                                 listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.5f),
-                                    Color.Black.copy(alpha = 0.8f),
-                                    Color.Black,
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                    MaterialTheme.colorScheme.surface,
                                 ),
                             ),
                         )
@@ -81,7 +81,7 @@ fun AppBottomNavigationBar(
                 if (isTranslucentBackground) {
                     Color.Transparent
                 } else {
-                    Color.Black
+                    MaterialTheme.colorScheme.surface
                 },
         ) {
             bottomNavScreens.forEach { screen ->
@@ -122,6 +122,12 @@ fun AppBottomNavigationBar(
                         )
                     },
                     icon = screen.icon,
+                    colors =
+                        NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                     modifier =
                         Modifier.windowInsetsPadding(
                             NavigationBarDefaults.windowInsets,
@@ -162,7 +168,7 @@ fun AppNavigationRail(
                 Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color.DarkGray),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(

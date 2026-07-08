@@ -86,10 +86,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.lerp
-import com.maxrave.simpmusic.expect.ui.toImageBitmap
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
@@ -117,6 +116,7 @@ import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.layerBackdrop
 import com.maxrave.simpmusic.expect.ui.rememberBackdrop
+import com.maxrave.simpmusic.expect.ui.toImageBitmap
 import com.maxrave.simpmusic.extension.angledGradientBackground
 import com.maxrave.simpmusic.extension.displayNameRes
 import com.maxrave.simpmusic.extension.getColorFromPalette
@@ -124,21 +124,22 @@ import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.toImmersiveBackground
 import com.maxrave.simpmusic.getPlatform
 import com.maxrave.simpmusic.ui.component.CenterLoadingBox
+import com.maxrave.simpmusic.ui.component.rememberSurfaceDarkColors
 import com.maxrave.simpmusic.ui.component.DraggableItem
 import com.maxrave.simpmusic.ui.component.EndOfPage
+import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.LoadingDialog
 import com.maxrave.simpmusic.ui.component.LocalPlaylistBottomSheet
 import com.maxrave.simpmusic.ui.component.NowPlayingBottomSheet
-import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.RippleIconButton
-import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.component.SongFullWidthItems
 import com.maxrave.simpmusic.ui.component.SortPlaylistBottomSheet
 import com.maxrave.simpmusic.ui.component.SuggestItems
+import com.maxrave.simpmusic.ui.component.liquidGlass
 import com.maxrave.simpmusic.ui.component.painterPlaylistThumbnail
 import com.maxrave.simpmusic.ui.component.playlistTitleGradient
 import com.maxrave.simpmusic.ui.component.rememberDragDropState
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
+import com.maxrave.simpmusic.ui.theme.LocalIsDarkTheme
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.LocalPlaylistUIEvent
@@ -379,7 +380,7 @@ fun LocalPlaylistScreen(
         snapshotFlow { paletteState.palette }
             .distinctUntilChanged()
             .collectLatest {
-                viewModel.setBrush(listOf(it.getColorFromPalette(), md_theme_dark_background))
+                viewModel.setBrush(listOf(it.getColorFromPalette(), Color.Black))
             }
     }
 
@@ -403,9 +404,9 @@ fun LocalPlaylistScreen(
                     if (titleColors.size >= 2) {
                         lerp(titleColors[0], titleColors[1], 0.5f)
                     } else {
-                        titleColors.firstOrNull() ?: md_theme_dark_background
+                        titleColors.firstOrNull() ?: Color.Black
                     }
-                lerp(base, md_theme_dark_background, 0.3f)
+                lerp(base, Color.Black, 0.3f)
             }
         }
 
@@ -560,7 +561,7 @@ fun LocalPlaylistScreen(
                             // Apple Music-style: edge-to-edge artwork + liquid glass buttons.
                             // Glass buttons MUST be siblings of the backdrop source (not children)
                             // to avoid render feedback loop / RuntimeShader crash.
-                            val artworkBackdrop = rememberBackdrop()
+                            val artworkBackdrop = rememberBackdrop(Color.Black)
                             Box(
                                 modifier =
                                     Modifier
@@ -672,7 +673,7 @@ fun LocalPlaylistScreen(
                                         resId = Res.drawable.baseline_arrow_back_ios_new_24,
                                         modifier =
                                             Modifier
-                                            .size(48.dp),
+                                                .size(48.dp),
                                     ) {
                                         navController.navigateUp()
                                     }
@@ -1181,6 +1182,7 @@ fun LocalPlaylistScreen(
                                                 Column {
                                                     suggestedTracks.forEachIndexed { index, track ->
                                                         SuggestItems(
+                                                            forceDark = true,
                                                             track = track,
                                                             isPlaying = playingTrack?.videoId == track.videoId,
                                                             onAddClickListener = {
@@ -1306,6 +1308,7 @@ fun LocalPlaylistScreen(
                 val content = @Composable { mod: Modifier ->
                     if (playingTrack?.videoId == item.videoId && isPlaying) {
                         SongFullWidthItems(
+                            forceDark = true,
                             isPlaying = true,
                             shouldShowDragHandle = changingOrder,
                             songEntity = item,
@@ -1323,6 +1326,7 @@ fun LocalPlaylistScreen(
                         )
                     } else {
                         SongFullWidthItems(
+                            forceDark = true,
                             isPlaying = false,
                             shouldShowDragHandle = changingOrder,
                             songEntity = item,
@@ -1425,6 +1429,9 @@ fun LocalPlaylistScreen(
     }
     if (showSyncAlertDialog) {
         AlertDialog(
+            containerColor = rememberSurfaceDarkColors().container,
+            titleContentColor = rememberSurfaceDarkColors().content,
+            textContentColor = rememberSurfaceDarkColors().content,
             title = { Text(text = stringResource(Res.string.warning)) },
             text = { Text(text = stringResource(Res.string.sync_playlist_warning)) },
             onDismissRequest = { showSyncAlertDialog = false },
@@ -1447,6 +1454,9 @@ fun LocalPlaylistScreen(
     }
     if (showUnsyncAlertDialog) {
         AlertDialog(
+            containerColor = rememberSurfaceDarkColors().container,
+            titleContentColor = rememberSurfaceDarkColors().content,
+            textContentColor = rememberSurfaceDarkColors().content,
             title = { Text(text = stringResource(Res.string.warning)) },
             text = { Text(text = stringResource(Res.string.unsync_playlist_warning)) },
             onDismissRequest = { showUnsyncAlertDialog = false },

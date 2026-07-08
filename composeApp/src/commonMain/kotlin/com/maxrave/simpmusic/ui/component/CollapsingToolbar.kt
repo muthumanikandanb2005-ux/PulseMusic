@@ -73,12 +73,10 @@ import com.maxrave.simpmusic.extension.getColorFromPalette
 import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.rgbFactor
 import com.maxrave.simpmusic.extension.toSquareThumbnailUrl
-import com.maxrave.simpmusic.ui.theme.md_theme_dark_background
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.jetbrains.compose.resources.painterResource
 import simpmusic.composeapp.generated.resources.Res
-import simpmusic.composeapp.generated.resources.holder_video
 
 private val paddingMedium = 0.dp
 
@@ -126,7 +124,7 @@ fun CollapsingToolbarParallaxEffect(
     var bitmap by remember {
         mutableStateOf<ImageBitmap?>(null)
     }
-    var color by remember { mutableStateOf(md_theme_dark_background) }
+    var color by remember { mutableStateOf(Color.Black) }
     var showBackButton by rememberSaveable {
         mutableStateOf(true)
     }
@@ -255,8 +253,8 @@ private fun Header(
                     it.result.image.toImageBitmap(),
                 )
             },
-            placeholder = painterResource(Res.drawable.holder_video),
-            error = painterResource(Res.drawable.holder_video),
+            placeholder = rememberHolderPainter(isVideo = true),
+            error = rememberHolderPainter(isVideo = true),
             contentDescription = null,
             contentScale = ContentScale.FillWidth,
             modifier =
@@ -277,7 +275,7 @@ private fun Header(
                                     Color.Black.copy(alpha = 0.3f),
                                     Color.Black.copy(alpha = 0.6f),
                                     Color.Black.copy(alpha = 0.85f),
-                                    md_theme_dark_background,
+                                    Color.Black,
                                 ),
                             startY = headerHeightPx / 2, // Start fade at middle of header
                             endY = headerHeightPx, // Complete at bottom of header
@@ -305,7 +303,7 @@ private fun Body(
         Spacer(Modifier.height(headerHeight))
         Box(
             Modifier.background(
-                md_theme_dark_background,
+                Color.Black,
             ),
         ) {
             content()
@@ -320,7 +318,7 @@ private fun Toolbar(
     scroll: ScrollState,
     headerHeightPx: Float,
     toolbarHeightPx: Float,
-    backgroundColor: Color = md_theme_dark_background,
+    backgroundColor: Color = Color.Black,
     onShow: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {

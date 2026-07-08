@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -58,7 +59,6 @@ import com.maxrave.simpmusic.ui.navigation.destination.list.PlaylistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.PodcastDestination
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
-import com.maxrave.simpmusic.ui.theme.white
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import simpmusic.composeapp.generated.resources.Res
@@ -142,7 +142,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                                                 colors =
                                                     listOf(
                                                         seed,
-                                                        white.copy(alpha = 0.8f),
+                                                        Color.White.copy(alpha = 0.8f),
                                                     ),
                                                 degrees = 45f,
                                             ),
@@ -151,7 +151,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                                         Icon(
                                             modifier = Modifier.size(84.dp),
                                             imageVector = Icons.Rounded.Add,
-                                            tint = white,
+                                            tint = Color.White,
                                             contentDescription = null,
                                         )
                                     }
@@ -268,7 +268,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                     Text(
                         text = stringResource(emptyText),
                         style = typo().bodyMedium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
