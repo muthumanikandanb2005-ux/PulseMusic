@@ -117,6 +117,12 @@ Service modules:
 - **crashlytics/**: Full version with Sentry crash reporting
 - **crashlytics-empty/**: FOSS version without tracking
 
+#### 5. **cast/** & **cast-empty/**
+- **cast/**: Google Cast support for the Full build (`media3-cast` + `play-services-cast-framework`, `CastOptionsProvider`, `CastIconButton` Compose wrapper for `MediaRouteButton`)
+- **cast-empty/**: FOSS no-op stub with identical public API (package `org.simpmusic.cast`), keeping GMS out of F-Droid builds
+- Selected via the `isFullBuild` Gradle property (same pattern as crashlytics) in `core/media/media3/build.gradle.kts` and `composeApp/build.gradle.kts` androidMain
+- Playback handoff lives in `core/media/media3` (`cast/CastHandoffManager.kt` + `cast/CastStreamResolver.kt`): the session player is `CastPlayer.Builder().setLocalPlayer(forwardingPlayer).build()`; while remote, `CrossfadeExoPlayerAdapter` routes transport/getters to the receiver and pushes a resolved-URL queue window (googlevideo URLs resolved up-front via `StreamRepository`); crossfade/EQ/precache are force-disabled while casting
+
 ## 🛠️ Key Technologies
 
 ### Android/Mobile
@@ -472,6 +478,7 @@ if (getPlatform() == Platform.Android) {
 - **Desktop Crash dialog**: Error reporting UI for desktop
 - **Playback speed/pitch controls**: Redesigned UI with improved animations
 - **VM environment detection**: Disable transparency and custom titlebar in VMs
+- **Google Cast (2026-07, Full build only)**: `cast`/`cast-empty` module pair gated by `isFullBuild`; unified Media3 `CastPlayer` wraps the session `ForwardingPlayer`; `CastHandoffManager` pushes resolved-URL queue windows to the receiver with 403/expiry retry; Cast button in Now Playing top bar, "Playing on <device>" pill, crossfade/DJ/EQ settings gray out while casting; FOSS build stays GMS-free
 
 ## 🔄 CLAUDE.md Auto-Update Rule (MANDATORY)
 
@@ -497,6 +504,6 @@ After completing any of the following types of changes, the AI agent **MUST** up
 
 *This document helps AI Agents quickly understand the SimpMusic project. Update regularly when there are major changes to architecture or structure.*
 
-**Last updated**: 2026-03-14
+**Last updated**: 2026-07-10
 **Project version**: Check latest release on GitHub
 **Maintained by**: maxrave-dev and contributors

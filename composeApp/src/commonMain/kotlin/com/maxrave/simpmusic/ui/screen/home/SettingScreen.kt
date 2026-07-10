@@ -271,6 +271,7 @@ import simpmusic.composeapp.generated.resources.monthly
 import simpmusic.composeapp.generated.resources.never
 import simpmusic.composeapp.generated.resources.no_account
 import simpmusic.composeapp.generated.resources.normalize_volume
+import simpmusic.composeapp.generated.resources.not_available_while_casting
 import simpmusic.composeapp.generated.resources.open_system_equalizer
 import simpmusic.composeapp.generated.resources.openai
 import simpmusic.composeapp.generated.resources.openai_api_compatible
@@ -479,6 +480,7 @@ fun SettingScreen(
     val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsStateWithLifecycle()
     val crossfadeDuration by viewModel.crossfadeDuration.collectAsStateWithLifecycle()
     val crossfadeDjMode by viewModel.crossfadeDjMode.collectAsStateWithLifecycle()
+    val castState by viewModel.castState.collectAsStateWithLifecycle()
 
     val isCheckingUpdate by sharedViewModel.isCheckingUpdate.collectAsStateWithLifecycle()
 
@@ -1035,7 +1037,13 @@ fun SettingScreen(
                     )
                     SettingItem(
                         title = stringResource(Res.string.open_system_equalizer),
-                        subtitle = stringResource(Res.string.use_your_system_equalizer),
+                        subtitle =
+                            if (castState.isRemote) {
+                                stringResource(Res.string.not_available_while_casting)
+                            } else {
+                                stringResource(Res.string.use_your_system_equalizer)
+                            },
+                        isEnable = !castState.isRemote,
                         onClick = {
                             coroutineScope.launch {
                                 resultLauncher.launch()
@@ -1082,20 +1090,29 @@ fun SettingScreen(
             Column {
                 SettingItem(
                     title = stringResource(Res.string.crossfade),
-                    subtitle = stringResource(Res.string.crossfade_description),
+                    subtitle =
+                        if (castState.isRemote) {
+                            stringResource(Res.string.not_available_while_casting)
+                        } else {
+                            stringResource(Res.string.crossfade_description)
+                        },
                     smallSubtitle = true,
                     switch = (crossfadeEnabled to { viewModel.setCrossfadeEnabled(it) }),
+                    isEnable = !castState.isRemote,
                 )
                 AnimatedVisibility(visible = crossfadeEnabled) {
                     Column {
                         SettingItem(
                             title = stringResource(Res.string.crossfade_duration),
                             subtitle =
-                                if (crossfadeDuration == DataStoreManager.CROSSFADE_DURATION_AUTO) {
+                                if (castState.isRemote) {
+                                    stringResource(Res.string.not_available_while_casting)
+                                } else if (crossfadeDuration == DataStoreManager.CROSSFADE_DURATION_AUTO) {
                                     stringResource(Res.string.crossfade_auto)
                                 } else {
                                     "${crossfadeDuration / 1000}s"
                                 },
+                            isEnable = !castState.isRemote,
                             onClick = {
                                 viewModel.setAlertData(
                                     SettingAlertState(
@@ -1150,9 +1167,15 @@ fun SettingScreen(
                         if (getPlatform() == Platform.Android) {
                             SettingItem(
                                 title = stringResource(Res.string.crossfade_dj_mode),
-                                subtitle = stringResource(Res.string.crossfade_dj_mode_description),
+                                subtitle =
+                                    if (castState.isRemote) {
+                                        stringResource(Res.string.not_available_while_casting)
+                                    } else {
+                                        stringResource(Res.string.crossfade_dj_mode_description)
+                                    },
                                 smallSubtitle = true,
                                 switch = ((crossfadeDjMode) to { viewModel.setCrossfadeDjMode(it) }),
+                                isEnable = !castState.isRemote,
                             )
                         }
                     }

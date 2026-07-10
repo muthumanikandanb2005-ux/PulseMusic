@@ -91,6 +91,13 @@ kotlin {
 
             api(projects.media3)
             api(projects.media3Ui)
+
+            // Google Cast (gated: real SDK for full builds, no-op stub for FOSS builds)
+            if (isFullBuild) {
+                implementation(projects.cast)
+            } else {
+                implementation(projects.castEmpty)
+            }
         }
         commonMain.dependencies {
             implementation(libs.runtime)
