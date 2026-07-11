@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
 
     <uses-feature
         android:name="android.hardware.type.automotive"
@@ -23,6 +24,9 @@
         android:required="false" />
     <uses-feature
         android:name="android.hardware.screen.landscape"
+        android:required="false" />
+    <uses-feature
+        android:name="android.software.car.templates_host.media"
         android:required="false" />
 
     <queries>
@@ -71,6 +75,14 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.APP_MUSIC" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Car App Library: host asks to surface the media playback screen
+                 (minimized control panel tap, system media surfaces) -->
+            <intent-filter>
+                <action android:name="androidx.car.app.media.action.SHOW_MEDIA_PLAYBACK" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
@@ -228,6 +240,21 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="8" />
+
+        <service
+            android:name="com.maxrave.media3.carapp.SimpMusicCarAppService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <action android:name="androidx.car.app.media.action.SHOW_MEDIA_PLAYBACK" />
+                <category android:name="androidx.car.app.category.MEDIA" />
+            </intent-filter>
+        </service>
 
 
         <meta-data
