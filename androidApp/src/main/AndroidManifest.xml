@@ -78,6 +78,14 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
+            <!-- Car App Library: host asks to surface the media playback screen
+                 (minimized control panel tap, system media surfaces) -->
+            <intent-filter>
+                <action android:name="androidx.car.app.media.action.SHOW_MEDIA_PLAYBACK" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <!-- Youtube filter -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -243,6 +251,7 @@
             tools:ignore="ExportedService">
             <intent-filter>
                 <action android:name="androidx.car.app.CarAppService" />
+                <action android:name="androidx.car.app.media.action.SHOW_MEDIA_PLAYBACK" />
                 <category android:name="androidx.car.app.category.MEDIA" />
             </intent-filter>
         </service>
