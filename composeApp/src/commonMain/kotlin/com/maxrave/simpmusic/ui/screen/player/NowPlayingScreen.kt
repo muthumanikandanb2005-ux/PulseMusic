@@ -65,6 +65,7 @@ import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.SubtitlesOff
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.AddCircleOutline
+import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -140,6 +141,7 @@ import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.toggleMiniPlayer
 import com.maxrave.simpmusic.expect.ui.MediaPlayerView
 import com.maxrave.simpmusic.expect.ui.MediaPlayerViewWithSubtitle
+import com.maxrave.simpmusic.expect.ui.PlatformCastButton
 import com.maxrave.simpmusic.expect.ui.toImageBitmap
 import com.maxrave.simpmusic.extension.GradientAngle
 import com.maxrave.simpmusic.extension.GradientOffset
@@ -206,6 +208,7 @@ import simpmusic.composeapp.generated.resources.lyrics_provider_simpmusic
 import simpmusic.composeapp.generated.resources.lyrics_provider_youtube
 import simpmusic.composeapp.generated.resources.now_playing_upper
 import simpmusic.composeapp.generated.resources.offline_mode
+import simpmusic.composeapp.generated.resources.playing_on_device
 import simpmusic.composeapp.generated.resources.published_at
 import simpmusic.composeapp.generated.resources.rate_lyrics
 import simpmusic.composeapp.generated.resources.rich_synced
@@ -285,6 +288,7 @@ fun NowPlayingScreenContent(
     val screenDataState by sharedViewModel.nowPlayingScreenData.collectAsStateWithLifecycle()
     val timelineState by sharedViewModel.timeline.collectAsStateWithLifecycle()
     val likeStatus by sharedViewModel.likeStatus.collectAsStateWithLifecycle()
+    val castState by sharedViewModel.castState.collectAsStateWithLifecycle()
 
     val shouldShowVideo by sharedViewModel.getVideo.collectAsStateWithLifecycle()
     val translatedVoteState by sharedViewModel.translatedVoteState.collectAsStateWithLifecycle()
@@ -1402,6 +1406,7 @@ fun NowPlayingScreenContent(
                                 )
                             }
                         }
+                        PlatformCastButton()
                         IconButton(onClick = {
                             showSheet = true
                         }) {
@@ -1617,6 +1622,34 @@ fun NowPlayingScreenContent(
                                         Spacer(modifier = Modifier.size(12.dp))
                                         HeartCheckBox(checked = controllerState.isLiked, size = 32) {
                                             sharedViewModel.onUIEvent(UIEvent.ToggleLike)
+                                        }
+                                    }
+                                    AnimatedVisibility(visible = castState.isRemote) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier =
+                                                Modifier
+                                                    .padding(horizontal = 20.dp, vertical = 6.dp)
+                                                    .clip(RoundedCornerShape(50))
+                                                    .background(Color.White.copy(alpha = 0.15f))
+                                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.CastConnected,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text =
+                                                    stringResource(
+                                                        Res.string.playing_on_device,
+                                                        castState.deviceName ?: "Cast",
+                                                    ),
+                                                style = typo().bodySmall,
+                                                color = Color.White,
+                                            )
                                         }
                                     }
                                     if (getPlatform() == Platform.Android) {

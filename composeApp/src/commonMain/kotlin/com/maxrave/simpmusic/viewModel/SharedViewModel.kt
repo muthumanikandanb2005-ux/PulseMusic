@@ -27,6 +27,7 @@ import com.maxrave.domain.data.model.intent.GenericIntent
 import com.maxrave.domain.data.model.metadata.Lyrics
 import com.maxrave.domain.data.model.streams.TimeLine
 import com.maxrave.domain.data.model.update.UpdateData
+import com.maxrave.domain.data.player.GenericCastState
 import com.maxrave.domain.extension.decodeHtmlEntities
 import com.maxrave.domain.extension.isSong
 import com.maxrave.domain.extension.isVideo
@@ -159,6 +160,8 @@ class SharedViewModel(
     val nowPlayingState: StateFlow<NowPlayingTrackState?> = _nowPlayingState
 
     fun getQueueDataState() = mediaPlayerHandler.queueData
+
+    val castState: StateFlow<GenericCastState> get() = mediaPlayerHandler.castState
 
     val blurBg: StateFlow<Boolean> =
         dataStoreManager.blurPlayerBackground
