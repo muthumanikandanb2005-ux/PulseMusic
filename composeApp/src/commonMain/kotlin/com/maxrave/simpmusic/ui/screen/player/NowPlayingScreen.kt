@@ -65,7 +65,6 @@ import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.SubtitlesOff
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.AddCircleOutline
-import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -120,6 +119,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -1406,7 +1406,6 @@ fun NowPlayingScreenContent(
                                 )
                             }
                         }
-                        PlatformCastButton()
                         IconButton(onClick = {
                             showSheet = true
                         }) {
@@ -1624,34 +1623,6 @@ fun NowPlayingScreenContent(
                                             sharedViewModel.onUIEvent(UIEvent.ToggleLike)
                                         }
                                     }
-                                    AnimatedVisibility(visible = castState.isRemote) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier =
-                                                Modifier
-                                                    .padding(horizontal = 20.dp, vertical = 6.dp)
-                                                    .clip(RoundedCornerShape(50))
-                                                    .background(Color.White.copy(alpha = 0.15f))
-                                                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.CastConnected,
-                                                contentDescription = null,
-                                                tint = Color.White,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text =
-                                                    stringResource(
-                                                        Res.string.playing_on_device,
-                                                        castState.deviceName ?: "Cast",
-                                                    ),
-                                                style = typo().bodySmall,
-                                                color = Color.White,
-                                            )
-                                        }
-                                    }
                                     if (getPlatform() == Platform.Android) {
                                         // Real Slider
                                         Box(
@@ -1835,18 +1806,46 @@ fun NowPlayingScreenContent(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        // Info Button (Left)
-                                        IconButton(
-                                            modifier =
-                                                Modifier
-                                                    .size(24.dp)
-                                                    .aspectRatio(1f)
-                                                    .clip(CircleShape),
-                                            onClick = {
-                                                showInfoBottomSheet = true
-                                            },
+                                        // Info + Cast Buttons (Left)
+                                        // weight(fill = false) keeps a long device name from shoving the
+                                        // playlist/queue buttons off the end of this SpaceBetween row.
+                                        Row(
+                                            modifier = Modifier.weight(1f, fill = false),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            Icon(imageVector = Icons.Outlined.Info, tint = Color.White, contentDescription = "")
+                                            IconButton(
+                                                modifier =
+                                                    Modifier
+                                                        .size(24.dp)
+                                                        .aspectRatio(1f)
+                                                        .clip(CircleShape),
+                                                onClick = {
+                                                    showInfoBottomSheet = true
+                                                },
+                                            ) {
+                                                Icon(imageVector = Icons.Outlined.Info, tint = Color.White, contentDescription = "")
+                                            }
+                                            // Cyan rather than colorScheme.primary: this screen is force-dark whatever
+                                            // the app theme is, so a light-theme primary would sink into the black
+                                            // backdrop. Mirrors the `if (forceDark) Color.Cyan` rule in FullWidthItems.
+                                            PlatformCastButton(
+                                                modifier = Modifier.size(24.dp),
+                                                tint = if (castState.isRemote) Color.Cyan else Color.White,
+                                            )
+                                            AnimatedVisibility(visible = castState.isRemote) {
+                                                Text(
+                                                    text =
+                                                        stringResource(
+                                                            Res.string.playing_on_device,
+                                                            castState.deviceName ?: "Cast",
+                                                        ),
+                                                    style = typo().bodySmall,
+                                                    color = Color.Cyan,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
                                         }
 
                                         Row(

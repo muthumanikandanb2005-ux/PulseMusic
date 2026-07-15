@@ -3,6 +3,7 @@ package org.simpmusic.cast
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.media3.common.Player
 import com.maxrave.logger.Logger
 
@@ -24,6 +25,9 @@ fun wrapWithCastPlayer(
 fun currentCastDeviceName(): String? = null
 
 @Composable
-fun CastIconButton(modifier: Modifier = Modifier) {
+fun CastIconButton(
+    modifier: Modifier = Modifier,
+    tint: Color = Color.White,
+) {
     // No-op: Google Cast is not available in this build flavor.
 }
