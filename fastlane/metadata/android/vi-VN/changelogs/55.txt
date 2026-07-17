@@ -3,3 +3,4 @@
 - Trải nghiệm Android Auto hoàn toàn mới: duyệt thư viện, tìm kiếm và xem hàng đợi phát
 - Sửa lỗi kết nối Discord Rich Presence
 - Desktop: sửa lỗi crash khi khởi động ở bản release
+- Desktop: Thêm tương thích với trình điều khiển mặc định của Windows
