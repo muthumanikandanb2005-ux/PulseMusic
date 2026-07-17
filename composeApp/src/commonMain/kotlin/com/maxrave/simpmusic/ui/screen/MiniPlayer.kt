@@ -55,6 +55,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -556,6 +557,9 @@ fun MiniPlayer(
             }
         }
     } else {
+        // Desktop bottom bar surface follows the theme (haze over content), so text and controls
+        // use the theme foreground token instead of the artwork-luminance colour.
+        val textColor = MaterialTheme.colorScheme.onBackground
         var isSliding by rememberSaveable {
             mutableStateOf(false)
         }
@@ -669,6 +673,7 @@ fun MiniPlayer(
                             PlayerControlLayout(
                                 controllerState,
                                 isSmallSize = true,
+                                contentColor = textColor,
                             ) {
                                 sharedViewModel.onUIEvent(it)
                             }

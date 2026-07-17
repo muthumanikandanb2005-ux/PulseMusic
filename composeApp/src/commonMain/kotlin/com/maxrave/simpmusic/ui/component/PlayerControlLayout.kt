@@ -36,6 +36,7 @@ import com.maxrave.simpmusic.viewModel.UIEvent
 fun PlayerControlLayout(
     controllerState: ControlState,
     isSmallSize: Boolean = false,
+    contentColor: Color = Color.White,
     onUIEvent: (UIEvent) -> Unit,
 ) {
     val height = if (isSmallSize) 48.dp else 96.dp
@@ -70,7 +71,7 @@ fun PlayerControlLayout(
                     if (!isShuffle) {
                         Icon(
                             imageVector = Icons.Rounded.Shuffle,
-                            tint = Color.White,
+                            tint = contentColor,
                             contentDescription = "",
                             modifier = Modifier.size(smallIcon.first),
                         )
@@ -104,7 +105,7 @@ fun PlayerControlLayout(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.SkipPrevious,
-                    tint = if (controllerState.isPreviousAvailable) Color.White else Color.Gray,
+                    tint = if (controllerState.isPreviousAvailable) contentColor else contentColor.copy(alpha = 0.4f),
                     contentDescription = "",
                     modifier = Modifier.size(mediumIcon.first),
                 )
@@ -129,14 +130,14 @@ fun PlayerControlLayout(
                     if (!isPlaying) {
                         Icon(
                             imageVector = Icons.Rounded.PlayCircle,
-                            tint = Color.White,
+                            tint = contentColor,
                             contentDescription = "",
                             modifier = Modifier.size(bigIcon.first),
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.PauseCircle,
-                            tint = Color.White,
+                            tint = contentColor,
                             contentDescription = "",
                             modifier = Modifier.size(bigIcon.first),
                         )
@@ -163,7 +164,7 @@ fun PlayerControlLayout(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.SkipNext,
-                    tint = if (controllerState.isNextAvailable) Color.White else Color.Gray,
+                    tint = if (controllerState.isNextAvailable) contentColor else contentColor.copy(alpha = 0.4f),
                     contentDescription = "",
                     modifier = Modifier.size(mediumIcon.first),
                 )
@@ -188,7 +189,7 @@ fun PlayerControlLayout(
                         is RepeatState.None -> {
                             Icon(
                                 imageVector = Icons.Rounded.Repeat,
-                                tint = Color.White,
+                                tint = contentColor,
                                 contentDescription = "",
                                 modifier = Modifier.size(smallIcon.first),
                             )
