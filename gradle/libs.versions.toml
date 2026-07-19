@@ -1,6 +1,6 @@
 [versions]
 # App version
-version-name = "1.5.2"
+version-name = "1.6.0"
 version-code = "55"
 
 android = "9.2.1"
