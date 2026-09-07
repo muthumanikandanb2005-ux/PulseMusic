@@ -258,9 +258,14 @@ fun ArtistScreen(
                                 val artworkBackdrop = rememberBackdrop(Color.Black)
                                 // Haze state for the bottom progressive-blur fade (source = media layer).
                                 val headerHaze = rememberHazeState(blurEnabled = true)
-                                // Clamp the artist thumbnail URL to a square size (logic from
-                                // commit 5e596c5b) so it fills the square frame with FillWidth.
-                                val headerImageUrl = state.data.imageUrl?.toSquareThumbnailUrl()
+                                // Portrait fills a SQUARE frame, so the URL is clamped to a square
+                                // size there (logic from commit 5e596c5b). Landscape keeps YouTube's
+                                // own wide banner (e.g. w2880-h1200) instead: squaring the source
+                                // first would make the Crop below throw away most of its height.
+                                val headerImageUrl =
+                                    state.data.imageUrl?.let {
+                                        if (isPortrait) it.toSquareThumbnailUrl() else it
+                                    }
                                 Box(
                                     modifier =
                                         Modifier
@@ -297,9 +302,10 @@ fun ArtistScreen(
                                                 error = rememberHolderPainter(),
                                                 contentDescription = null,
                                                 // FillWidth fits the square source into the square portrait
-                                                // frame. In landscape the frame is no longer square, and
-                                                // FillWidth would scale the source to the frame's width and
-                                                // show only its top slice — so Crop takes over there.
+                                                // frame. Landscape covers with Crop, and it only trims a
+                                                // little because the source there is YouTube's own wide
+                                                // banner (~2.4:1) against a ~3.3:1 frame — a squared source
+                                                // would have lost far more of its height to the same crop.
                                                 contentScale =
                                                     if (isPortrait) ContentScale.FillWidth else ContentScale.Crop,
                                                 // Always decoded so the page background color can be extracted
