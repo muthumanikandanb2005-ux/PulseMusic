@@ -109,6 +109,7 @@ import com.maxrave.simpmusic.ui.component.CenterLoadingBox
 import com.maxrave.simpmusic.ui.component.Chip
 import com.maxrave.simpmusic.ui.component.DropdownButton
 import com.maxrave.simpmusic.ui.component.EndOfPage
+import com.maxrave.simpmusic.ui.component.FootgunsStarDialog
 import com.maxrave.simpmusic.ui.component.HomeItem
 import com.maxrave.simpmusic.ui.component.HomeItemContentPlaylist
 import com.maxrave.simpmusic.ui.component.HomeShimmer
@@ -140,6 +141,7 @@ import com.maxrave.simpmusic.ui.navigation.destination.login.LoginDestination
 import com.maxrave.simpmusic.ui.screen.library.LibraryDynamicPlaylistType
 import com.maxrave.simpmusic.ui.theme.desktopPanelDark
 import com.maxrave.simpmusic.ui.theme.typo
+import com.maxrave.simpmusic.viewModel.FOOTGUNS_STAR_KEY
 import com.maxrave.simpmusic.viewModel.HomeViewModel
 import com.maxrave.simpmusic.viewModel.HomeViewModel.Companion.HOME_PARAMS_COMMUTE
 import com.maxrave.simpmusic.viewModel.HomeViewModel.Companion.HOME_PARAMS_ENERGIZE
@@ -301,6 +303,9 @@ fun HomeScreen(
     var showBlogPromoDialog by rememberSaveable {
         mutableStateOf(false)
     }
+    var showFootgunsDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
 
     var topAppBarHeightPx by rememberSaveable {
         mutableIntStateOf(0)
@@ -362,8 +367,16 @@ fun HomeScreen(
             if (sharedViewModel.getString(BLOG_PROMO_KEY) != "true") {
                 showBlogPromoDialog = true
             }
+        } else if (openAppTime % 10 == 6 &&
+            openAppTime <= 46 &&
+            sharedViewModel.getString(FOOTGUNS_STAR_KEY) != "true"
+        ) {
+            // kotlin-footguns star prompt: 6, 16, 26, 36, 46 - one open after each review milestone,
+            // and clear of the share-lyrics (15, 45) and blog-promo (5) milestones
+            showFootgunsDialog = true
         } else {
             showReviewDialog = false
+            showFootgunsDialog = false
             showRequestShareLyricsPermissions = false
         }
     }
@@ -413,6 +426,20 @@ fun HomeScreen(
                     isDismissOnly = false,
                 )
                 showReviewDialog = false
+            },
+        )
+    }
+
+    if (showFootgunsDialog) {
+        FootgunsStarDialog(
+            onDismissRequest = {
+                // "Later" only closes the dialog: it must not touch OPEN_APP_TIME,
+                // so the next milestone stays exactly where it was.
+                showFootgunsDialog = false
+            },
+            onDoneStar = {
+                sharedViewModel.putString(FOOTGUNS_STAR_KEY, "true")
+                showFootgunsDialog = false
             },
         )
     }

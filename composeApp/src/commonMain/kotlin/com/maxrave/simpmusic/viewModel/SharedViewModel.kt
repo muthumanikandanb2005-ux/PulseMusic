@@ -110,6 +110,10 @@ import java.io.FileOutputStream
 import kotlin.math.abs
 import kotlin.reflect.KClass
 
+// DataStore key for the kotlin-footguns star prompt. Cleared on every version bump,
+// so the ask comes back after an update - same policy as OPEN_APP_TIME.
+const val FOOTGUNS_STAR_KEY = "footguns_starred"
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class SharedViewModel(
     private val dataStoreManager: DataStoreManager,
@@ -240,6 +244,7 @@ class SharedViewModel(
             log("SharedViewModel init")
             if (dataStoreManager.appVersion.first() != VersionManager.getVersionName()) {
                 dataStoreManager.resetOpenAppTime()
+                dataStoreManager.putString(FOOTGUNS_STAR_KEY, "false")
                 dataStoreManager.setAppVersion(
                     VersionManager.getVersionName(),
                 )
