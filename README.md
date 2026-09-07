@@ -17,11 +17,13 @@ A FOSS YouTube Music client for Android and Desktop with many features from<br>S
 </div>  
 
 > SimpMusic is available on Desktop now!
+>
+> [kotlin-footguns](https://github.com/maxrave-dev/kotlin-footguns) — the Kotlin, Compose Multiplatform and desktop JVM traps this project ran into the hard way. Star it if it saves you a night.
   
 ## Features ✨️    
 - Play music from YouTube Music or YouTube for free, without ads and in the background
 - Three Now Playing styles: Classic, Material 3 Expressive and Apple Music (NEW)
-- Ten-band equalizer with presets and AutoEq headphone profiles (NEW)
+- Ten-band equalizer with presets and AutoEq headphone profiles, plus Delay and Reverb effects (NEW)
 - SimpMusic Wrapped: your year in music, plus monthly recap playlists (NEW)
 - On-device listening analytics: charts, period history, listening clock (NEW)
 - Word-by-word Apple Music-style lyrics, romanization for 12 languages, share lyrics as an image (NEW)
@@ -29,7 +31,7 @@ A FOSS YouTube Music client for Android and Desktop with many features from<br>S
 - High quality up-to 256kbps stream (Opus or AAC) for YouTube Music Premium users
 - Browsing Home, Charts, Podcast, Moods & Genre with YouTube Music data at high speed    
 - Search everything on YouTube    
-- Spotify Canvas supported    
+- Spotify Canvas and Animated Album Art supported (NEW)
 - Power your experience with SimpMusic Chart (https://chart.simpmusic.org/)
 - Play 1080p video option with subtitle    
 - AI song suggestions    
@@ -201,11 +203,6 @@ src="https://raw.githubusercontent.com/liberapay/liberapay.com/master/www/assets
 
 ## SimpMusic is sponsored by:
 <br />
-<a href="https://vercel.com/oss">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
-</a>
-<br />
-<br />
 <a href="https://crowdin.com">
 <img src="https://support.crowdin.com/assets/logos/plate/png/crowdin-logo-with-plate.png" width="300"/>
 </a>
@@ -220,9 +217,17 @@ Crowdin and Sentry both have a free enterprise plan for Open-source projects. Fo
 - [Open Source License Request Form | Crowdin](https://crowdin.com/page/open-source-project-setup-request)
 - [Sentry for Open Source | Sentry](https://sentry.io/for/open-source/)
 
+## Past sponsored:
+<br />
+<a href="https://vercel.com/oss">
+  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
+</a>
+<br />
+<br />
+
 Check out the Vercel open-source program:
 - https://vercel.com/open-source-program
-  
+
 This project is tested with BrowserStack
 - Checkout BrowserStack now: https://www.browserstack.com/
 
