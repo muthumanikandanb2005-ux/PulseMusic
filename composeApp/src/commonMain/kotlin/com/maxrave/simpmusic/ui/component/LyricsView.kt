@@ -394,6 +394,14 @@ fun LyricsView(
         }
     }
 
+    // Read off the SAME list the blur fix built, not off syncType: it is the timestamps that decide
+    // whether a line can ever be "the sung one", and [timedLineIndexes] is already empty exactly
+    // when they cannot order anything. Every line then renders as the current line — white, fully
+    // opaque, unblurred — because a sheet with no sung line has no line to contrast one against.
+    // Distinct from a SYNCED sheet's pre-roll, where currentLineIndex is also -1 but a sung line is
+    // on its way and PRE_ROLL_LINE_ALPHA deliberately keeps the page dimmer than it.
+    val allLinesCurrent = timedLineIndexes.isEmpty()
+
     val syncedTranslatedWordsByLineIndex =
         remember(
             lyricsData.lyrics.lines,
@@ -527,7 +535,11 @@ fun LyricsView(
                                     AppleMusicLyricsLineItem(
                                         originalWords = words,
                                         translatedWords = translatedWords,
-                                        isCurrent = index == currentLineIndex,
+                                        // Same clause as the line-synced branch below, and it has to
+                                        // be here too: [allLinesCurrent] already lifts this line's
+                                        // opacity to full through appleMusicLyricFocus, so without it
+                                        // the line would come out fully opaque in grey ink.
+                                        isCurrent = index == currentLineIndex || allLinesCurrent,
                                         romanizedWords = romanizedWords,
                                     )
                                 } else {
@@ -554,12 +566,12 @@ fun LyricsView(
                                     translatedWords = translatedWords,
                                     romanizedWords = romanizedWords,
                                     // Strictly the sung line — NOT Classic's `|| syncType != LINE_SYNCED`.
-                                    // That clause exists so an unsynced lyric sheet renders every line
-                                    // bold instead of every line dimmed. Carried over here it makes
-                                    // EVERY line "current": white, glowing, unblurred — which is why
-                                    // two lines showed lit at once. An unsynced sheet has no sung line,
-                                    // and this style says so by leaving them all grey.
-                                    isCurrent = index == currentLineIndex,
+                                    // That clause keys off syncType, which lit every line of a
+                                    // LINE_SYNCED sheet too and put two lit lines on screen at once.
+                                    // [allLinesCurrent] is the narrow version: it fires only when the
+                                    // timestamps genuinely cannot order anything, i.e. an unsynced
+                                    // sheet, where every line being current is the wanted result.
+                                    isCurrent = index == currentLineIndex || allLinesCurrent,
                                 )
                             }
 
@@ -625,6 +637,7 @@ fun LyricsView(
                                             distanceFromCurrent,
                                             blurEnabled = !isDragging,
                                             hasActiveLine = currentLineIndex >= 0,
+                                            allLinesCurrent = allLinesCurrent,
                                         ),
                             ) {
                                 Box(modifier = Modifier.padding(horizontal = AppleMusicLyricPaddingX)) {

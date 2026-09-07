@@ -169,6 +169,11 @@ fun Modifier.appleMusicLyricFocus(
     distanceFromCurrent: Int,
     blurEnabled: Boolean,
     hasActiveLine: Boolean = true,
+    // An unsynced sheet has no sung line and never will have one, so every line IS the sung line:
+    // full opacity, no blur. Deliberately NOT folded into [hasActiveLine], which is false in two
+    // situations that want opposite treatments — this one, and the pre-roll of a SYNCED sheet,
+    // where a sung line is coming and PRE_ROLL_LINE_ALPHA is dimmer on purpose.
+    allLinesCurrent: Boolean = false,
 ): Modifier {
     // Signed: negative means this line has already been sung. AMLL adds one to that side so the
     // page behind the singer recedes faster than the page ahead of it.
@@ -179,16 +184,19 @@ fun Modifier.appleMusicLyricFocus(
         }
     val fontSizeDp = with(LocalDensity.current) { AppleMusicLyricFontSize.toDp() }
     val targetBlur: Dp =
-        if (!blurEnabled || !hasActiveLine || distanceFromCurrent == 0) {
+        if (!blurEnabled || allLinesCurrent || !hasActiveLine || distanceFromCurrent == 0) {
             0.dp
         } else {
             fontSizeDp * (distance * BLUR_PER_LINE_EM).coerceAtMost(BLUR_MAX_EM)
         }
     val targetAlpha =
         when {
-            // Checked FIRST: the caller passes distance 0 for every line while no line is active,
-            // and 0 otherwise means "this is the sung line". Read in the other order, the whole
-            // sheet would take the sung line's full opacity during an intro.
+            // Ahead of the [hasActiveLine] branch, because an unsynced sheet satisfies both and
+            // wants the opposite answer: every line is the sung line, so every line is fully lit.
+            allLinesCurrent -> ACTIVE_LINE_ALPHA
+            // Checked before the distance test: the caller passes distance 0 for every line while
+            // no line is active, and 0 otherwise means "this is the sung line". Read in the other
+            // order, the whole sheet would take the sung line's full opacity during an intro.
             !hasActiveLine -> PRE_ROLL_LINE_ALPHA
             distanceFromCurrent == 0 -> ACTIVE_LINE_ALPHA
             else -> (1f - distance * ALPHA_FALLOFF_PER_LINE).coerceAtLeast(MIN_LINE_ALPHA)
