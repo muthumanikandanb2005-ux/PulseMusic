@@ -303,8 +303,27 @@ fun InfoPlayerBottomSheet(
     val extractSource by sharedViewModel.extractSource.collectAsState()
     val downloadProgress by sharedViewModel.downloadFileProgress.collectAsStateWithLifecycle()
 
-    if (downloadProgress != DownloadProgress.INIT) {
-        Box(modifier = Modifier.fillMaxSize()) {
+    ModalBottomSheet(
+        onDismissRequest = {
+            onDismiss()
+        },
+        containerColor = rememberSurfaceDarkColors().container,
+        contentColor = Color.Transparent,
+        dragHandle = {},
+        scrimColor = Color.Black.copy(alpha = .5f),
+        sheetState = sheetState,
+        modifier = Modifier.fillMaxHeight(),
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+        shape = RectangleShape,
+    ) {
+        // This dialog MUST stay inside the sheet's content lambda. A Dialog is its own window
+        // (Android ComponentDialog) / scene layer (skiko), so nothing in the layout tree orders
+        // it — the layer attached LAST wins, and DisposableEffects attach in composition order.
+        // Written as a sibling BEFORE ModalBottomSheet it lost to the sheet whenever both entered
+        // composition in the same pass: reopening the sheet mid-download, or an Android config
+        // change (downloadProgress lives in the ViewModel, so it survives this composable leaving).
+        // Nested here, the sheet's layer necessarily exists first, so the dialog is always on top.
+        if (downloadProgress != DownloadProgress.INIT) {
             BasicAlertDialog(
                 onDismissRequest = { },
                 modifier = Modifier.wrapContentSize(),
@@ -422,21 +441,7 @@ fun InfoPlayerBottomSheet(
                 }
             }
         }
-    }
 
-    ModalBottomSheet(
-        onDismissRequest = {
-            onDismiss()
-        },
-        containerColor = rememberSurfaceDarkColors().container,
-        contentColor = Color.Transparent,
-        dragHandle = {},
-        scrimColor = Color.Black.copy(alpha = .5f),
-        sheetState = sheetState,
-        modifier = Modifier.fillMaxHeight(),
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-        shape = RectangleShape,
-    ) {
         Card(
             modifier =
                 Modifier
