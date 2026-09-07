@@ -532,4 +532,5 @@
     <string name="close_miniplayer">Zamknij mini odtwarzacz</string>
     <string name="open_miniplayer">Otwórz mini odtwarzacz</string>
     <string name="quit_app">Zamknij aplikację</string>
+    <!-- Listen Together -->
 </resources>

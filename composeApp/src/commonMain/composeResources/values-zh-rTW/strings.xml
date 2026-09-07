@@ -346,10 +346,10 @@
     <string name="repeat_off">關閉循環</string>
     <string name="youtube_transcript">YouTube 字幕</string>
     <string name="user_interface">使用者介面</string>
-    <string name="theme">主題</string>
+    <string name="theme">深色模式</string>
     <string name="theme_mode_system">跟隨系統</string>
-    <string name="theme_mode_dark">深色</string>
-    <string name="theme_mode_light">淺色</string>
+    <string name="theme_mode_dark">開啟</string>
+    <string name="theme_mode_light">關閉</string>
     <string name="theme_color">主題顏色</string>
     <string name="theme_color_default">預設</string>
     <string name="theme_color_wallpaper">跟隨桌布</string>
@@ -378,6 +378,7 @@
     <string name="log_in_warning">前端替代有時無法工作，現在只有您登入Youtube才能在SimpMusic播放音樂。</string>
     <string name="spotify_canvas_cache">Spotify Canvas快取</string>
     <string name="clear_canvas_cache">清理Spotify Canvas快取</string>
+    <string name="listening_history">聆聽紀錄</string>
     <string name="proxy">代理</string>
     <string name="proxy_description">通過代理越過地區内容限制</string>
     <string name="proxy_type">代理類型</string>
@@ -507,6 +508,22 @@
     <string name="intro_login_to_discord">登入以啟用 Discord 富媒體狀態</string>
     <string name="enable_rich_presence">啟用豐富的臨場感</string>
     <string name="rich_presence_info">在您的 Discord 個人資料中顯示媒體見面會訊息</string>
+    <string name="log_out_from_discord">登出 Discord</string>
+    <string name="lastfm_integration">Last.fm</string>
+    <string name="log_in_to_lastfm">登入 Last.fm</string>
+    <string name="log_out_from_lastfm">登出 Last.fm</string>
+    <string name="log_out_confirm_message">您需要重新登入才能使用此功能。</string>
+    <string name="intro_login_to_lastfm">登入以記錄您的收聽記錄</string>
+    <string name="enable_scrobbling">啟用 Scrobbling</string>
+    <string name="scrobbling_info">將您的播放記錄傳送至您的 Last.fm 個人檔案</string>
+    <string name="lastfm_login_step_1">開啟 Last.fm 頁面，並授予 SimpMusic 存取您帳戶的權限。</string>
+    <string name="lastfm_login_step_2">授予存取權限後，SimpMusic 將會自動重新開啟。</string>
+    <string name="lastfm_open_authorize_page">開啟 Last.fm</string>
+    <string name="lastfm_login_failed">無法登入 Last.fm。請再試一次。</string>
+    <string name="lastfm_paste_callback_title">沒有自動恢復嗎？</string>
+    <string name="lastfm_paste_callback_hint">貼上您的瀏覽器跳到的連接</string>
+    <string name="lastfm_paste_callback_confirm">透過此連結繼續</string>
+    <string name="logged_in_as">已登入為 %1$s</string>
     <string name="youtube_liked_music">YouTube 喜歡的音樂</string>
     <string name="keep_service_alive">保持服務正常運行</string>
     <string name="keep_service_alive_description">保持音樂播放器服務運行，避免被系統終止</string>
@@ -557,4 +574,13 @@
     <string name="home_offline_subtitle">請檢查您的網路連線並重試，或聆聽您已下載的音樂。</string>
     <string name="listen_to_downloaded">聆聽已下載的音樂</string>
     <string name="playing_on_device">在 %1$s 上播放</string>
+    <string name="not_available_while_casting">投影期間不可用</string>
+    <string name="import_data">匯入播放清單</string>
+    <string name="import_reading_file">正在讀取檔案…</string>
+    <string name="import_progress_songs">%1$d 首/%2$d 首</string>
+    <string name="import_result">創建了 %1$d 個播放列表，並匯入了 %2$d 首歌曲。</string>
+    <string name="import_result_skipped">有 %1$d 個條目被跳過，因為檔案中缺少對應的歌曲。</string>
+    <string name="import_failed">匯入失敗</string>
+    <string name="import_invalid_file">該文件不是有效的 SimpMusic 匯入文件。請先在 simpmusic.org 轉換您的媒體庫。</string>
+    <!-- Listen Together -->
 </resources>

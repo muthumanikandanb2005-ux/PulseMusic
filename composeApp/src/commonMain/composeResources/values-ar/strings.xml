@@ -60,6 +60,7 @@
     <string name="playlist_name_cannot_be_empty">لا يمكن أن يكون اسم قائمة التشغيل فارغًا</string>
     <string name="this_app_needs_to_access_your_notification">يحتاج هذا التطبيق إلى صلاحية الوصول إلى إشعاراتك</string>
     <string name="shared">تمت المشاركة</string>
+    <string name="rich_synced">كلمه بكلمه</string>
     <string name="line_synced">متزامنة الخط</string>
     <string name="unsynced">غير متزامنة</string>
     <string name="playlist_is_empty">قائمة التشغيل فارغة</string>
@@ -354,4 +355,6 @@
     <string name="go_to_log_in_page">الذهاب إلى صفحة تسجيل الدخول</string>
     <string name="proxy_host"></string>
     <string name="download_speed">سرعة التحميل %1$s </string>
+    <string name="import_invalid_file">هذا الملف ليس ملف استيراد SimpMusic صالح. حول مكتبتك علي simpmusic.org أولا.</string>
+    <!-- Listen Together -->
 </resources>

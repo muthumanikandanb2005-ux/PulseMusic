@@ -456,4 +456,5 @@
     <string name="simpmusic_lyrics">متن ترانه‌های SimpMusic</string>
     <string name="lyrics_provider_simpmusic">متن ترانه‌ها ارائه شده توسط سرویس متن ترانه‌های SimpMusic</string>
     <string name="backup_in_progress">پشتیبان گیری در حال انجام است</string>
+    <!-- Listen Together -->
 </resources>

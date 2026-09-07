@@ -60,6 +60,7 @@
     <string name="playlist_name_cannot_be_empty">再生リスト名は空にできません。</string>
     <string name="this_app_needs_to_access_your_notification">このアプリは、通知へのアクセスを必要とします</string>
     <string name="shared">共有</string>
+    <string name="rich_synced">単語ごと</string>
     <string name="line_synced">行を同期中</string>
     <string name="unsynced">同期なし</string>
     <string name="playlist_is_empty">再生リストに登録なし</string>
@@ -73,6 +74,7 @@
     <string name="change">変更</string>
     <string name="quality">音質</string>
     <string name="prefer_320kbps_stream">320kbpsのストリームを優先</string>
+    <string name="prefer_320kbps_stream_description">利用可能な場合は 320kbps の音声を自動で検索します。見つからない場合は標準の音質を使用します。</string>
     <string name="download_quality">ダウンロード品質</string>
     <string name="video_download_quality">動画ダウンロード品質</string>
     <string name="clear_downloaded_cache">ダウンロードしたキャッシュを消去</string>
@@ -121,8 +123,12 @@
     <string name="github">Github</string>
     <string name="maxrave_dev">maxrave-dev</string>
     <string name="buy_me_a_coffee">コーヒーを奢る</string>
+    <string name="developer_blog">開発者ブログ</string>
+    <string name="blog_promo_title">開発者からの新着情報</string>
+    <string name="visit_blog">ブログを見る</string>
     <string name="paypal">PayPal</string>
     <string name="title">題名</string>
+    <string name="custom_order">カスタム順</string>
     <string name="album">アルバム</string>
     <string name="youtube_url">YouTube URL</string>
     <string name="download_url">ダウンロードURL</string>
@@ -477,4 +483,5 @@
     <string name="local_tracking_description">再生履歴をローカルデータベースに記録しま す</string>
     <string name="simpmusic_charts">SimpMusic チャート</string>
     <string name="crossfading">クロスフェード</string>
+    <!-- Listen Together -->
 </resources>

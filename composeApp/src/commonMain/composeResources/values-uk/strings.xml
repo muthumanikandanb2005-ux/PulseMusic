@@ -559,4 +559,5 @@
     <string name="home_offline_title">Помилка підключення</string>
     <string name="home_offline_subtitle">Перевірте підключення до Інтернету і повторіть спробу, або слухайте вашу завантажену музику.</string>
     <string name="listen_to_downloaded">Слухати завантажену музику</string>
+    <!-- Listen Together -->
 </resources>

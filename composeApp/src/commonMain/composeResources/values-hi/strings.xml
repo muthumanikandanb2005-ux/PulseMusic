@@ -124,6 +124,7 @@
     <string name="maxrave_dev">मैक्सरेव-देव</string>
     <string name="buy_me_a_coffee">मुझे एक कॉफी खरीदें</string>
     <string name="developer_blog">डेवलपर ब्लॉग</string>
+    <string name="blog_promo_message">मैंने अभी-अभी अपना व्यक्तिगत ब्लॉग maxrave.dev शुरू किया है — इसमें मैं SimpMusic के पीछे की कहानी, संगीत-तकनीक से जुड़ी गहराई से की गई जानकारियाँ और अपने इंजीनियरिंग से जुड़े अनुभव व नोट्स साझा कर रहा हूँ। अगर आपको ऐसी चीज़ों के बारे में जानना पसंद है, तो एक बार ज़रूर पढ़िए ✨</string>
     <string name="paypal">पेयपाल</string>
     <string name="title">शीर्षक</string>
     <string name="album">एल्बम</string>
@@ -255,6 +256,7 @@
     <string name="translation_language_message">भाषा कोड टाइप करें (उदा: hi) (2 अक्षर)। यदि आप सिम्पम्यूजिक की भाषा के समान सेट करना चाहते हैं, कृपया एडिट बॉक्स खाली छोड़ दें।</string>
     <string name="invalid_language_code">अमान्य भाषा कोड</string>
     <string name="lyrics_provider_youtube">गीत यूट्यूब द्वारा प्रदान किए गए</string>
+    <string name="lyrics_provider_betterlyrics">Lyrics उपलब्ध कराने के लिए BetterLyrics का धन्यवाद</string>
     <string name="limit_player_cache">प्लेयर कैश सीमित करें</string>
     <string name="unlimited">असीमित</string>
     <string name="third_party_libraries">थर्ड पार्टी लाइब्रेरी</string>
@@ -454,4 +456,7 @@
     <string name="explicit_content_blocked">आपत्तिजनक कंटेंट स्किप किया गया</string>
     <string name="mix_for_you">आपके लिए मिक्स</string>
     <string name="no_mixes_found">कोई मिक्स नहीं मिला</string>
+    <string name="quit_app">ऐप बंद करें</string>
+    <string name="your_320kbps_url_description">अपटाइम जाँचकर्ता द्वारा किसी कार्यरत यूआरएल को अपने आप चुनने के लिए इसे खाली छोड़ें।</string>
+    <!-- Listen Together -->
 </resources>

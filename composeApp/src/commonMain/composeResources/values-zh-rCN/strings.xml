@@ -577,4 +577,5 @@
     <string name="import_result_skipped">已跳过 %1$d 条目，因为文件中缺少相应的歌曲。</string>
     <string name="import_failed">导入失败</string>
     <string name="import_invalid_file">此文件不是一个有效的 SimpMusic 导入文件。请先在simpmusic.org转换您的库。</string>
+    <!-- Listen Together -->
 </resources>

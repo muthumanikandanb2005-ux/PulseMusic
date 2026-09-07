@@ -546,4 +546,5 @@
     <string name="home_offline_title">No s'ha pogut connectar</string>
     <string name="home_offline_subtitle">Comprova la connexió a internet i torna-ho a provar, o escolta la música que tens baixada.</string>
     <string name="listen_to_downloaded">Escolta la música descarregada</string>
+    <!-- Listen Together -->
 </resources>

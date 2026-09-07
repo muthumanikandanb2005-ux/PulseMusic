@@ -488,4 +488,5 @@
     <string name="combine_local_and_youtube_liked_songs_description">Yalnızca YouTube'da beğenilen videoları kullanın (çevrimdışıyken şarkı beğenme özelliği desteklenmiyor)</string>
     <string name="local_tracking_title">Yerel izleme dinleme geçmişi</string>
     <string name="local_tracking_description">Dinleme geçmişinizi yerel veritabanına kaydedin</string>
+    <!-- Listen Together -->
 </resources>
