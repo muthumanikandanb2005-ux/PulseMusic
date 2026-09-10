@@ -79,10 +79,9 @@ datetime = "0.8.0"
 sqlite = "2.7.0"
 okio = "3.18.1"
 atomicfu = "0.33.0"
-material3-multiplatform = "1.12.0-alpha01" # alpha01 = skiko 0.148.1 (has Matrix33.makeTranslate) to match compottie 1.12 snapshot; alpha02 bumps skiko 0.148.2 which removed it → compottie crash
+material3-multiplatform = "1.12.0-alpha01" # = skiko 0.148.1, where Matrix33 is still a class. haze 1.7.2, kyant/backdrop 2.0.0 and composenativetray 1.3.3 are all compiled against that; 0.148.2 turns Matrix33 into a value class and breaks backdrop, and 0.150.x also breaks the tray
 adaptive = "1.2.0"
 componentsResources = "1.11.1"
-compottie = "2.2.2-compose-1.12-SNAPSHOT" # Compose 1.12 / skiko 0.148.2 snapshot — material3 1.12-alpha forces skiko 0.148.2, stable compottie needs 0.144.6 and crashes
 cmptoast = "1.0.71"
 uri = "0.0.21"
 buildkonfig = "0.22.0"
@@ -219,11 +218,6 @@ uri = { module = "com.eygraber:uri-kmp", version.ref = "uri" }
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "coroutines-android" }
-compottie = { module = "io.github.alexzhirkevich:compottie", version.ref = "compottie" }
-compottie-lite = { module = "io.github.alexzhirkevich:compottie-lite", version.ref = "compottie" }
-compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
-compottie-network = { module = "io.github.alexzhirkevich:compottie-network", version.ref = "compottie" }
-compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
 cmptoast = { module = "network.chaintech:cmptoast", version.ref = "cmptoast" }
 file-picker = { module = "com.mohamedrejeb.calf:calf-file-picker", version.ref = "calf" }
 native-tray = { module = "io.github.kdroidfilter:composenativetray", version.ref = "tray" }

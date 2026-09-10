@@ -68,6 +68,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.kmpalette.rememberPaletteState
 import com.kyant.backdrop.highlight.Highlight
+import com.maxrave.simpmusic.ui.component.DownloadingIndicator
 import com.maxrave.domain.data.entities.DownloadState
 import com.maxrave.domain.data.model.browse.album.Track
 import com.maxrave.domain.utils.toSongEntity
@@ -114,10 +115,6 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import io.github.alexzhirkevich.compottie.Compottie
-import io.github.alexzhirkevich.compottie.LottieCompositionSpec
-import io.github.alexzhirkevich.compottie.rememberLottieComposition
-import io.github.alexzhirkevich.compottie.rememberLottiePainter
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.runBlocking
@@ -166,11 +163,6 @@ fun AlbumScreen(
     var showSelectionSheet by rememberSaveable { mutableStateOf(false) }
     var showSelectionAddToPlaylist by rememberSaveable { mutableStateOf(false) }
 
-    val composition by rememberLottieComposition {
-        LottieCompositionSpec.JsonString(
-            Res.readBytes("files/downloading_animation.json").decodeToString(),
-        )
-    }
 
     LaunchedEffect(browseId) {
         viewModel.updateBrowseId(browseId)
@@ -596,13 +588,7 @@ fun AlbumScreen(
                                                                                         },
                                                                                 contentAlignment = Alignment.Center,
                                                                             ) {
-                                                                                Image(
-                                                                                    painter =
-                                                                                        rememberLottiePainter(
-                                                                                            composition = composition,
-                                                                                            iterations = Compottie.IterateForever,
-                                                                                        ),
-                                                                                    contentDescription = "Lottie animation",
+                                                                                DownloadingIndicator(
                                                                                     modifier = Modifier.size(28.dp),
                                                                                 )
                                                                             }
@@ -806,13 +792,7 @@ fun AlbumScreen(
                                                                                 },
                                                                         contentAlignment = Alignment.Center,
                                                                     ) {
-                                                                        Image(
-                                                                            painter =
-                                                                                rememberLottiePainter(
-                                                                                    composition = composition,
-                                                                                    iterations = Compottie.IterateForever,
-                                                                                ),
-                                                                            contentDescription = "Lottie animation",
+                                                                        DownloadingIndicator(
                                                                             modifier = Modifier.size(28.dp),
                                                                         )
                                                                     }
