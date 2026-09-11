@@ -171,6 +171,8 @@ class SettingsViewModel(
     val autoDownloadLikedSongs: StateFlow<Boolean> = _autoDownloadLikedSongs
     private val _youtubeSubtitleLanguage = MutableStateFlow<String>("")
     val youtubeSubtitleLanguage: StateFlow<String> = _youtubeSubtitleLanguage
+    private val _lyricsOffsetMs = MutableStateFlow<Int>(0)
+    val lyricsOffsetMs: StateFlow<Int> = _lyricsOffsetMs
 
     private var _helpBuildLyricsDatabase: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val helpBuildLyricsDatabase: StateFlow<Boolean> = _helpBuildLyricsDatabase
@@ -290,6 +292,7 @@ class SettingsViewModel(
         getTranslationLanguage()
         getYoutubeSubtitleLanguage()
         getLyricsProvider()
+        getLyricsOffsetMs()
         getUseTranslation()
         getPlayVideoInsteadOfAudio()
         getRadioAudioOnly()
@@ -1040,6 +1043,23 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setTranslationLanguage(language)
             getTranslationLanguage()
+        }
+    }
+
+    private fun getLyricsOffsetMs() {
+        viewModelScope.launch {
+            dataStoreManager.lyricsOffsetMs.collect { offsetMs ->
+                _lyricsOffsetMs.emit(offsetMs)
+            }
+        }
+    }
+
+    // Deliberately does NOT re-call its getter the way the settings around it do: that getter
+    // collects forever, so calling it again on every write leaves another collector running for the
+    // life of the ViewModel. The one started in init already publishes this value.
+    fun setLyricsOffsetMs(offsetMs: Int) {
+        viewModelScope.launch {
+            dataStoreManager.setLyricsOffsetMs(offsetMs)
         }
     }
 

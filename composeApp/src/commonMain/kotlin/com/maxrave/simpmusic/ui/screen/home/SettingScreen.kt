@@ -304,6 +304,10 @@ import simpmusic.composeapp.generated.resources.logged_in_as
 import simpmusic.composeapp.generated.resources.lrclib
 import simpmusic.composeapp.generated.resources.lyrics
 import simpmusic.composeapp.generated.resources.lyrics_style
+import simpmusic.composeapp.generated.resources.lyrics_offset
+import simpmusic.composeapp.generated.resources.lyrics_offset_invalid
+import simpmusic.composeapp.generated.resources.lyrics_offset_message
+import simpmusic.composeapp.generated.resources.lyrics_offset_value
 import simpmusic.composeapp.generated.resources.lyrics_romanization
 import simpmusic.composeapp.generated.resources.lyrics_romanization_description
 import simpmusic.composeapp.generated.resources.romanization_belarusian
@@ -513,6 +517,7 @@ fun SettingScreen(
     val saveLastPlayed by remember { viewModel.saveRecentSongAndQueue.map { it == TRUE } }.collectAsStateWithLifecycle(initialValue = false)
     val killServiceOnExit by remember { viewModel.killServiceOnExit.map { it == TRUE } }.collectAsStateWithLifecycle(initialValue = true)
     val mainLyricsProvider by viewModel.mainLyricsProvider.collectAsStateWithLifecycle()
+    val lyricsOffsetMs by viewModel.lyricsOffsetMs.collectAsStateWithLifecycle()
     val youtubeSubtitleLanguage by viewModel.youtubeSubtitleLanguage.collectAsStateWithLifecycle()
     val spotifyLoggedIn by viewModel.spotifyLogIn.collectAsStateWithLifecycle()
     val spotifyLyrics by viewModel.spotifyLyrics.collectAsStateWithLifecycle()
@@ -1577,6 +1582,46 @@ fun SettingScreen(
                                                 else -> DataStoreManager.SIMPMUSIC
                                             },
                                         )
+                                    },
+                                dismiss = runBlocking { getString(Res.string.cancel) },
+                            ),
+                        )
+                    },
+                )
+
+                SettingItem(
+                    title = stringResource(Res.string.lyrics_offset),
+                    subtitle =
+                        stringResource(
+                            Res.string.lyrics_offset_value,
+                            if (lyricsOffsetMs > 0) "+$lyricsOffsetMs" else lyricsOffsetMs.toString(),
+                        ),
+                    onClick = {
+                        viewModel.setAlertData(
+                            SettingAlertState(
+                                title = runBlocking { getString(Res.string.lyrics_offset) },
+                                // The dialog renders its text field INSIDE the `message != null`
+                                // branch, so a state carrying a textField and no message opens an
+                                // empty box with no error anywhere.
+                                message = runBlocking { getString(Res.string.lyrics_offset_message) },
+                                textField =
+                                    SettingAlertState.TextFieldData(
+                                        label = runBlocking { getString(Res.string.lyrics_offset) },
+                                        value = lyricsOffsetMs.toString(),
+                                        // Only that it is a whole number — no range. How far a
+                                        // listener's own audio path lags is theirs to say.
+                                        verifyCodeBlock = {
+                                            (it.trim().toIntOrNull() != null) to
+                                                runBlocking { getString(Res.string.lyrics_offset_invalid) }
+                                        },
+                                    ),
+                                confirm =
+                                    runBlocking { getString(Res.string.change) } to { state ->
+                                        state.textField
+                                            ?.value
+                                            ?.trim()
+                                            ?.toIntOrNull()
+                                            ?.let { viewModel.setLyricsOffsetMs(it) }
                                     },
                                 dismiss = runBlocking { getString(Res.string.cancel) },
                             ),

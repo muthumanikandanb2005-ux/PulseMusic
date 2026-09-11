@@ -457,9 +457,12 @@ class SharedViewModel(
                                 // When progress hasn't changed (same value polled again) or is negative,
                                 // don't modify loading state. The loading flag is already managed by
                                 // Buffering/Ready/Loading state events. Setting loading=true here would
-                                // cause rapid flickering because the progress poll interval (100ms) is
-                                // shorter than the adapter's position cache update interval (200ms),
-                                // resulting in duplicate position values that incorrectly triggered loading.
+                                // cause rapid flickering whenever the same value arrives twice,
+                                // which it can: the handler's ticker and the adapter's position
+                                // poll both run at 50ms and are not in step, so a poll is sometimes
+                                // read twice. A repeat is not evidence of a stall, and the loading
+                                // flag belongs to the Buffering/Ready events rather than to a
+                                // guess made here.
                             }
 
                             is SimpleMediaState.Loading -> {
@@ -1827,6 +1830,8 @@ class SharedViewModel(
     fun getNowPlayingStyle() = dataStoreManager.nowPlayingStyle
 
     fun getLyricsStyle() = dataStoreManager.lyricsStyle
+
+    fun getLyricsOffsetMs() = dataStoreManager.lyricsOffsetMs
 
     fun setThemeMode(mode: String) {
         viewModelScope.launch {

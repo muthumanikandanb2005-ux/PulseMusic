@@ -415,6 +415,10 @@
     <string name="lyrics_style_classic">Classic</string>
     <string name="lyrics_style_apple_music" translatable="false">Apple Music</string>
     <string name="requires_android_12" translatable="false">Android 12+</string>
+    <string name="lyrics_offset">Lyrics timing offset</string>
+    <string name="lyrics_offset_message">Shift every lyric line by this many milliseconds. Use a positive number when you hear the audio later than you see it, which is what Bluetooth headphones do, and a negative number to make the lyrics appear earlier.</string>
+    <string name="lyrics_offset_value">%1$s ms</string>
+    <string name="lyrics_offset_invalid">Enter a whole number of milliseconds</string>
     <string name="lyrics_romanization">Lyrics romanization</string>
     <string name="lyrics_romanization_description">Show lyrics in Latin script for the languages you pick</string>
     <string name="romanization_japanese" translatable="false">Japanese</string>

@@ -145,6 +145,10 @@ fun NowPlayingScreenContent(
     val controllerState by sharedViewModel.controllerState.collectAsStateWithLifecycle()
     val screenDataState by sharedViewModel.nowPlayingScreenData.collectAsStateWithLifecycle()
     val timelineState by sharedViewModel.timeline.collectAsStateWithLifecycle()
+    // Audio-delay correction, read here and applied ONLY to the lyric line below. The seek bar and
+    // the elapsed-time readout keep the raw position: they report where the player is, while a
+    // lyric reports what the ear is hearing, and those two are what the offset separates.
+    val lyricsOffsetMs by sharedViewModel.getLyricsOffsetMs().collectAsStateWithLifecycle(0)
     val likeStatus by sharedViewModel.likeStatus.collectAsStateWithLifecycle()
     val castState by sharedViewModel.castState.collectAsStateWithLifecycle()
     // Apple Music style's progress-bar codec badge — see NowPlayingContentState.toAudioCodecLabel.
@@ -505,7 +509,7 @@ fun NowPlayingScreenContent(
     }
 
     // Canvas subtitle sync
-    LaunchedEffect(timelineState, screenDataState.lyricsData?.lyrics) {
+    LaunchedEffect(timelineState, screenDataState.lyricsData?.lyrics, lyricsOffsetMs) {
         val lyrics = screenDataState.lyricsData?.lyrics
         if (lyrics == null || lyrics.syncType == "UNSYNCED" || lyrics.syncType == null) {
             currentLyricLineIndex = -1
@@ -517,7 +521,10 @@ fun NowPlayingScreenContent(
                 ?.translatedLyrics
                 ?.first
                 ?.lines
-        if (timelineState.current > 0L) {
+        // What the ear is hearing right now, which is what a lyric answers to. Keyed on the offset
+        // as well so dragging the setting while paused still moves the line.
+        val nowMs = timelineState.current - lyricsOffsetMs
+        if (nowMs > 0L) {
             lines.indices.forEach { i ->
                 val startTimeMs = lines[i].startTimeMs.toLongOrNull() ?: 0L
                 val endTimeMs =
@@ -526,12 +533,12 @@ fun NowPlayingScreenContent(
                     } else {
                         startTimeMs + 60000
                     }
-                if (timelineState.current in startTimeMs..endTimeMs) {
+                if (nowMs in startTimeMs..endTimeMs) {
                     currentLyricLineIndex = i
                 }
             }
             if (lines.isNotEmpty() &&
-                timelineState.current in 0..(lines.getOrNull(0)?.startTimeMs?.toLongOrNull() ?: 0L)
+                nowMs in 0..(lines.getOrNull(0)?.startTimeMs?.toLongOrNull() ?: 0L)
             ) {
                 currentLyricLineIndex = -1
             }
