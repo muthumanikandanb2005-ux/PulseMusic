@@ -686,7 +686,7 @@ fun SettingScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF0C140F))
                         .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                        .clickable { showProfileDialog = true }
+                        .clickable { navController.navigate(PulseMusicLoginDestination) }
                         .padding(16.dp),
                 ) {
                     Row(

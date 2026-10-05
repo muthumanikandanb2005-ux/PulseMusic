@@ -2,9 +2,13 @@ package com.maxrave.simpmusic.ui.screen.player.content
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -91,7 +95,7 @@ import com.maxrave.simpmusic.ui.icon.SkipPrevious
 import com.maxrave.simpmusic.ui.icon.Subtitles
 import com.maxrave.simpmusic.viewModel.UIEvent
 
-private val BitChordNeonAccent = Color(0xFF00E676)
+internal val BitChordNeonAccent = Color(0xFF00E676)
 private val BitChordOledBlack = Color(0xFF000000)
 private val BitChordSurface = Color(0xFF0D0D10)
 
@@ -260,14 +264,21 @@ private fun BitChordTopBar(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "PLAYING FROM PULSE",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    letterSpacing = 1.6.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-                color = accentColor,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                BitChordMiniVisualizer(isPlaying = state.controllerState.isPlaying, color = accentColor)
+                Text(
+                    text = "PLAYING FROM PULSE",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 1.6.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = accentColor,
+                )
+                BitChordMiniVisualizer(isPlaying = state.controllerState.isPlaying, color = accentColor)
+            }
             val queueTrack = state.artworkQueue.getOrNull(state.currentOrderIndex)
             Text(
                 text = queueTrack?.title ?: "Pulse Music",
@@ -367,7 +378,7 @@ private fun BitChordArtworkHero(
 
 /** Title, Artist, Codec Badge, and Heart/Like Button. */
 @Composable
-private fun BitChordTrackInfoRow(
+internal fun BitChordTrackInfoRow(
     title: String,
     artist: String,
     codec: String,
@@ -375,9 +386,10 @@ private fun BitChordTrackInfoRow(
     onArtistClick: () -> Unit,
     onLikeClick: () -> Unit,
     accentColor: Color,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -594,17 +606,18 @@ private fun BitChordThinSlider(
 
 /** Transport Row: Shuffle, SkipPrevious, Large Pulse Play/Pause, SkipNext, Repeat. */
 @Composable
-private fun BitChordTransportRow(
+internal fun BitChordTransportRow(
     state: NowPlayingContentState,
     actions: NowPlayingContentActions,
     isPlaying: Boolean,
     accentColor: Color,
+    modifier: Modifier = Modifier,
 ) {
     val isShuffle = state.controllerState.isShuffle
     val repeatState = state.controllerState.repeatState
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -634,26 +647,63 @@ private fun BitChordTransportRow(
             )
         }
 
-        // Large Circular Pulse Play/Pause Button
+        // Large Circular Pulse Play/Pause Button with Dynamic BitChord Breathing Halo
+        val infiniteTransition = rememberInfiniteTransition(label = "BitChordTransportPulse")
+        val pulseScale by infiniteTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = if (isPlaying) 1.24f else 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "PulseScale",
+        )
+        val pulseAlpha by infiniteTransition.animateFloat(
+            initialValue = 0.7f,
+            targetValue = if (isPlaying) 0.12f else 0.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "PulseAlpha",
+        )
+
         Box(
-            modifier = Modifier
-                .size(72.dp)
-                .shadow(
-                    elevation = 14.dp,
-                    shape = CircleShape,
-                    spotColor = accentColor.copy(alpha = 0.65f),
-                )
-                .clip(CircleShape)
-                .background(accentColor)
-                .clickable { actions.onUIEvent(UIEvent.PlayPause) },
+            modifier = Modifier.size(84.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = if (isPlaying) SimpIcons.Pause else SimpIcons.PlayArrow,
-                contentDescription = if (isPlaying) "Pause" else "Play",
-                tint = if (accentColor == BitChordNeonAccent) Color.Black else Color.White,
-                modifier = Modifier.size(38.dp),
-            )
+            if (isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .scale(pulseScale)
+                        .border(
+                            width = 2.dp,
+                            color = accentColor.copy(alpha = pulseAlpha),
+                            shape = CircleShape,
+                        ),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .shadow(
+                        elevation = 14.dp,
+                        shape = CircleShape,
+                        spotColor = accentColor.copy(alpha = 0.65f),
+                    )
+                    .clip(CircleShape)
+                    .background(accentColor)
+                    .clickable { actions.onUIEvent(UIEvent.PlayPause) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) SimpIcons.Pause else SimpIcons.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    tint = if (accentColor == BitChordNeonAccent) Color.Black else Color.White,
+                    modifier = Modifier.size(38.dp),
+                )
+            }
         }
 
         // Next
@@ -760,5 +810,70 @@ private fun BitChordActionDock(
                 modifier = Modifier.size(22.dp),
             )
         }
+    }
+}
+
+/** Animated mini visualizer with 3 jumping bars indicating active playback. */
+@Composable
+fun BitChordMiniVisualizer(
+    isPlaying: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "MiniVisualizer")
+    val h1 by transition.animateFloat(
+        initialValue = 4f,
+        targetValue = if (isPlaying) 14f else 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(450, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "Bar1",
+    )
+    val h2 by transition.animateFloat(
+        initialValue = 12f,
+        targetValue = if (isPlaying) 5f else 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(550, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "Bar2",
+    )
+    val h3 by transition.animateFloat(
+        initialValue = 6f,
+        targetValue = if (isPlaying) 15f else 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "Bar3",
+    )
+
+    Row(
+        modifier = modifier.height(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(h1.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(h2.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(h3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
     }
 }
