@@ -41,7 +41,7 @@ class AppUpdateWorker(
 
                 val rawEndpoint = dataStoreManager.customUpdateEndpoint.first().trim()
                 val endpoint = when {
-                    rawEndpoint.isBlank() -> "https://api.github.com/repos/manikandan-dev/PulseMusic/releases/latest"
+                    rawEndpoint.isBlank() -> "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest"
                     !rawEndpoint.startsWith("http://") && !rawEndpoint.startsWith("https://") && rawEndpoint.contains("/") ->
                         "https://api.github.com/repos/$rawEndpoint/releases/latest"
                     else -> rawEndpoint

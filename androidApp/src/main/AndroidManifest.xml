@@ -212,6 +212,12 @@
                 android:resource="@xml/provider_paths" />
         </provider>
 
+        <!-- Prevent Google Car App library conflicting provider with existing/other packages -->
+        <provider
+            android:name="androidx.car.app.connection.provider"
+            android:authorities="androidx.car.app.connection"
+            tools:node="remove" />
+
         <meta-data
             android:name="androidx.car.app.TintableAttributionIcon"
             android:resource="@drawable/monochrome" />
