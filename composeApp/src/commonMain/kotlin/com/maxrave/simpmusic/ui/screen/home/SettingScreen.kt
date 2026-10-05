@@ -600,6 +600,12 @@ fun SettingScreen(
     val ytAccountName by remember { dataStoreManager.getString("AccountName") }.collectAsStateWithLifecycle(initialValue = null)
     val ytCookie by remember { dataStoreManager.cookie }.collectAsStateWithLifecycle(initialValue = "")
 
+    val profileName by dataStoreManager.profileName.collectAsStateWithLifecycle(initialValue = "")
+    val profileAge by dataStoreManager.profileAge.collectAsStateWithLifecycle(initialValue = "")
+    val profileGender by dataStoreManager.profileGender.collectAsStateWithLifecycle(initialValue = "")
+    val profileLanguagePreference by dataStoreManager.profileLanguagePreference.collectAsStateWithLifecycle(initialValue = "")
+    var showProfileDialog by rememberSaveable { mutableStateOf(false) }
+
     val hazeState =
         rememberHazeState(
             blurEnabled = true,
@@ -664,43 +670,121 @@ fun SettingScreen(
                 .padding(horizontal = 16.dp)
                 .hazeSource(hazeState),
     ) {
-        item(key = "accounts_section") {
+        item(key = "profile_section") {
             Column {
                 Spacer(Modifier.height(64.dp))
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "User Profile",
+                    style = typo().labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF0C140F))
+                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                        .clickable { showProfileDialog = true }
+                        .padding(16.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF00E676).copy(alpha = 0.15f))
+                                .border(1.5.dp, Color(0xFF00E676), CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = if (profileName.isNotBlank()) profileName.take(1).uppercase() else "P",
+                                style = typo().titleMedium,
+                                color = Color(0xFF00E676),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (profileName.isNotBlank()) profileName else "Set Up Profile",
+                                style = typo().titleSmall,
+                                color = Color.White,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            val details = buildList {
+                                if (profileAge.isNotBlank()) add("Age: $profileAge")
+                                if (profileGender.isNotBlank()) add(profileGender)
+                                if (profileLanguagePreference.isNotBlank()) add(profileLanguagePreference)
+                            }.joinToString(" • ")
+                            Text(
+                                text = if (details.isNotBlank()) details else "Tap to set Name, Age, Gender & Language",
+                                style = typo().bodySmall,
+                                color = if (details.isNotBlank()) Color(0xFF00E676).copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            text = "Edit",
+                            style = typo().labelMedium,
+                            color = Color(0xFF00E676),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF04381C))
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+            }
+        }
+        item(key = "accounts_section") {
+            Column {
                 Spacer(Modifier.height(16.dp))
                 Text(
                     text = "Account & Cloud Sync",
                     style = typo().labelMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-                // Pulse Music Cloud Account
-                SettingItem(
-                    title = "Pulse Music Cloud Account",
-                    subtitle = if (!supabaseEmail.isNullOrBlank()) {
-                        "Signed in as $supabaseEmail • Real-time Sync Active"
-                    } else {
-                        "Sign in or register for cloud sync & data backup"
-                    },
-                    onClick = {
-                        if (!supabaseEmail.isNullOrBlank()) {
-                            viewModel.setBasicAlertData(
-                                SettingBasicAlertState(
-                                    title = "Pulse Music Cloud Account",
-                                    message = "Signed in as: $supabaseEmail\n\nYour liked songs, playlists, and listening history are synced in real time.",
-                                    confirm = "Sign Out" to {
-                                        coroutineScope.launch {
-                                            dataStoreManager.setSupabaseAuth(null, null, null, null)
-                                            sharedViewModel.makeToast("Signed out of Pulse Music Cloud")
-                                        }
-                                    },
-                                    dismiss = runBlocking { getString(Res.string.cancel) },
-                                ),
-                            )
+                Spacer(Modifier.height(8.dp))
+                // Pulse Music Cloud Account (BitChord Themed Card)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF0C140F))
+                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                        .padding(vertical = 4.dp),
+                ) {
+                    SettingItem(
+                        title = "Pulse Music Cloud Account",
+                        subtitle = if (!supabaseEmail.isNullOrBlank()) {
+                            "Signed in as $supabaseEmail • Real-time Sync Active"
                         } else {
-                            navController.navigate(PulseMusicLoginDestination)
-                        }
-                    },
-                )
+                            "Sign in or register for BitChord cloud sync & backup"
+                        },
+                        onClick = {
+                            if (!supabaseEmail.isNullOrBlank()) {
+                                viewModel.setBasicAlertData(
+                                    SettingBasicAlertState(
+                                        title = "Pulse Music Cloud Account",
+                                        message = "Signed in as: $supabaseEmail\n\nYour liked songs, playlists, and listening history are synced in real time.",
+                                        confirm = "Sign Out" to {
+                                            coroutineScope.launch {
+                                                dataStoreManager.setSupabaseAuth(null, null, null, null)
+                                                sharedViewModel.makeToast("Signed out of Pulse Music Cloud")
+                                            }
+                                        },
+                                        dismiss = runBlocking { getString(Res.string.cancel) },
+                                    ),
+                                )
+                            } else {
+                                navController.navigate(PulseMusicLoginDestination)
+                            }
+                        },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
                 // YouTube Music / Google Account
                 SettingItem(
                     title = stringResource(Res.string.youtube_account),
@@ -2566,49 +2650,61 @@ fun SettingScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
-                SettingItem(
-                    title = stringResource(Res.string.background_updates),
-                    subtitle = stringResource(Res.string.background_updates_description),
-                    switch = (autoCheckUpdate to { viewModel.setAutoCheckUpdate(it) }),
-                )
-                SettingItem(
-                    title = stringResource(Res.string.update_source_url),
-                    subtitle =
-                        if (customUpdateEndpoint.isBlank()) {
-                            "GitHub: muthumanikandanb2005-ux/PulseMusic (Default)"
-                        } else {
-                            customUpdateEndpoint
-                        },
-                    onClick = {
-                        viewModel.setAlertData(
-                            SettingAlertState(
-                                title = runBlocking { getString(Res.string.update_source_url) },
-                                message = runBlocking { getString(Res.string.enter_update_source_url) },
-                                textField =
-                                    SettingAlertState.TextFieldData(
-                                        label = "URL or owner/repo",
-                                        value = customUpdateEndpoint,
-                                    ),
-                                confirm =
-                                    runBlocking { getString(Res.string.change) } to { state ->
-                                        val newEndpoint = state.textField?.value?.trim() ?: ""
-                                        viewModel.setCustomUpdateEndpoint(newEndpoint)
-                                    },
-                                dismiss = runBlocking { getString(Res.string.cancel) },
-                            ),
+                // App Updates BitChord Themed Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF0C140F))
+                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                        .padding(vertical = 4.dp),
+                ) {
+                    Column {
+                        SettingItem(
+                            title = stringResource(Res.string.background_updates),
+                            subtitle = stringResource(Res.string.background_updates_description),
+                            switch = (autoCheckUpdate to { viewModel.setAutoCheckUpdate(it) }),
                         )
-                    },
-                )
-                SettingItem(
-                    title = stringResource(Res.string.check_for_updates_now),
-                    subtitle = checkForUpdateSubtitle,
-                    onClick = {
-                        coroutineScope.launch {
-                            sharedViewModel.makeToast(runBlocking { getString(Res.string.update_checking) })
-                            viewModel.getLastCheckForUpdate()
-                        }
-                    },
-                )
+                        SettingItem(
+                            title = stringResource(Res.string.update_source_url),
+                            subtitle =
+                                if (customUpdateEndpoint.isBlank()) {
+                                    "GitHub: muthumanikandanb2005-ux/PulseMusic (Default)"
+                                } else {
+                                    customUpdateEndpoint
+                                },
+                            onClick = {
+                                viewModel.setAlertData(
+                                    SettingAlertState(
+                                        title = runBlocking { getString(Res.string.update_source_url) },
+                                        message = runBlocking { getString(Res.string.enter_update_source_url) },
+                                        textField =
+                                            SettingAlertState.TextFieldData(
+                                                label = "URL or owner/repo",
+                                                value = customUpdateEndpoint,
+                                            ),
+                                        confirm =
+                                            runBlocking { getString(Res.string.change) } to { state ->
+                                                val newEndpoint = state.textField?.value?.trim() ?: ""
+                                                viewModel.setCustomUpdateEndpoint(newEndpoint)
+                                            },
+                                        dismiss = runBlocking { getString(Res.string.cancel) },
+                                    ),
+                                )
+                            },
+                        )
+                        SettingItem(
+                            title = stringResource(Res.string.check_for_updates_now),
+                            subtitle = checkForUpdateSubtitle,
+                            onClick = {
+                                coroutineScope.launch {
+                                    sharedViewModel.makeToast(runBlocking { getString(Res.string.update_checking) })
+                                    viewModel.getLastCheckForUpdate()
+                                }
+                            },
+                        )
+                    }
+                }
             }
         }
         item(key = "about_us") {
@@ -2620,7 +2716,7 @@ fun SettingScreen(
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
-                    title = "Owned & Developed by Pulse Music Studio",
+                    title = "Owned & Developed by Pulse Music Studio • Manikandan",
                     subtitle = stringResource(Res.string.version_format, VersionManager.getVersionName()),
                     onClick = {
                         navController.navigate(CreditDestination)
@@ -2628,14 +2724,34 @@ fun SettingScreen(
                 )
                 SettingItem(
                     title = stringResource(Res.string.author),
-                    subtitle = "Pulse Music Studio",
+                    subtitle = "Manikandan",
                     onClick = {},
                 )
-                SettingItem(
-                    title = "Security & Protection",
-                    subtitle = "🛡️ Secured by Pulse Music Studio • Anti-Decompilation & Integrity Protected",
-                    onClick = {},
-                )
+                // Private App Lock & Decompile Integrity
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF101317))
+                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                        .padding(vertical = 2.dp),
+                ) {
+                    SettingItem(
+                        title = "Private App Security & Decompile Integrity",
+                        subtitle = "🔒 ACCESS RESTRICTED: Private Proprietary Application • Decompilation & Reverse Engineering Locked",
+                        onClick = {
+                            viewModel.setBasicAlertData(
+                                SettingBasicAlertState(
+                                    title = "Private Proprietary Application",
+                                    message = "This is a private proprietary application created by Manikandan (Pulse Music Studio).\n\nCode access, decompilation, disassembly, and reverse engineering are strictly prohibited and locked by the application integrity engine.",
+                                    confirm = "Understood" to {},
+                                    dismiss = "Close",
+                                ),
+                            )
+                        },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
                 SettingItem(
                     title = stringResource(Res.string.third_party_libraries),
                     subtitle = stringResource(Res.string.description_and_licenses),
@@ -2776,6 +2892,81 @@ fun SettingScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showColorPickerDialog = false }) {
+                    Text(text = stringResource(Res.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (showProfileDialog) {
+        var editName by rememberSaveable { mutableStateOf(profileName) }
+        var editAge by rememberSaveable { mutableStateOf(profileAge) }
+        var editGender by rememberSaveable { mutableStateOf(profileGender) }
+        var editLanguage by rememberSaveable { mutableStateOf(profileLanguagePreference) }
+
+        AlertDialog(
+            onDismissRequest = { showProfileDialog = false },
+            title = {
+                Text(
+                    text = "Edit Profile",
+                    style = typo().titleMedium,
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    TextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    TextField(
+                        value = editAge,
+                        onValueChange = { editAge = it },
+                        label = { Text("Age") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    TextField(
+                        value = editGender,
+                        onValueChange = { editGender = it },
+                        label = { Text("Gender (e.g. Male, Female, Other)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    TextField(
+                        value = editLanguage,
+                        onValueChange = { editLanguage = it },
+                        label = { Text("Language Preference") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            dataStoreManager.setProfile(
+                                editName.trim(),
+                                editAge.trim(),
+                                editGender.trim(),
+                                editLanguage.trim(),
+                            )
+                            showProfileDialog = false
+                            sharedViewModel.makeToast("Profile saved successfully")
+                        }
+                    },
+                ) {
+                    Text(text = stringResource(Res.string.save), color = Color(0xFF00E676))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showProfileDialog = false }) {
                     Text(text = stringResource(Res.string.cancel))
                 }
             },
