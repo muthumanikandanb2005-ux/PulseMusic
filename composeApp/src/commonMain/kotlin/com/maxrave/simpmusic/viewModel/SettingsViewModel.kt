@@ -12,6 +12,8 @@ import com.maxrave.common.VIDEO_QUALITY
 import com.maxrave.domain.data.entities.DownloadState
 import com.maxrave.domain.data.entities.GoogleAccountEntity
 import com.maxrave.domain.data.model.lyrics.RomanizationDictionaryState
+import com.maxrave.domain.data.player.CinematicAudioEffect
+import com.maxrave.domain.data.player.DolbyAtmosProfile
 import com.maxrave.domain.data.player.GenericCastState
 import com.maxrave.domain.data.player.ReverbPreset
 import com.maxrave.domain.extension.toNetScapeString
@@ -143,6 +145,8 @@ class SettingsViewModel(
     val proxyPassword: StateFlow<String> = _proxyPassword
     private var _autoCheckUpdate = MutableStateFlow(false)
     val autoCheckUpdate: StateFlow<Boolean> = _autoCheckUpdate
+    private var _customUpdateEndpoint = MutableStateFlow("")
+    val customUpdateEndpoint: StateFlow<String> = _customUpdateEndpoint
     private var _updateChannel: MutableStateFlow<String> = MutableStateFlow(DataStoreManager.GITHUB)
     val updateChannel: StateFlow<String> = _updateChannel
     private val _aiProvider = MutableStateFlow<String>(DataStoreManager.AI_PROVIDER_OPENAI)
@@ -307,6 +311,7 @@ class SettingsViewModel(
         getCanvasCache()
         getTranslucentBottomBar()
         getAutoCheckUpdate()
+        getCustomUpdateEndpoint()
         getAIProvider()
         getAIApiKey()
         getAITranslation()
@@ -834,12 +839,7 @@ class SettingsViewModel(
     private fun getAIApiKey() {
         viewModelScope.launch {
             dataStoreManager.aiApiKey.collect { aiApiKey ->
-                if (aiApiKey.isNotEmpty()) {
-                    _isHasApiKey.value = true
-                    log("getAIApiKey: $aiApiKey")
-                } else {
-                    _isHasApiKey.value = false
-                }
+                _isHasApiKey.value = aiApiKey.isNotEmpty()
             }
         }
     }
@@ -868,6 +868,21 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setAutoCheckForUpdates(autoCheckUpdate)
             getAutoCheckUpdate()
+        }
+    }
+
+    private fun getCustomUpdateEndpoint() {
+        viewModelScope.launch {
+            dataStoreManager.customUpdateEndpoint.collect { endpoint ->
+                _customUpdateEndpoint.value = endpoint
+            }
+        }
+    }
+
+    fun setCustomUpdateEndpoint(endpoint: String) {
+        viewModelScope.launch {
+            dataStoreManager.setCustomUpdateEndpoint(endpoint)
+            getCustomUpdateEndpoint()
         }
     }
 
@@ -1860,6 +1875,21 @@ class SettingsViewModel(
     private var _reverbMix: MutableStateFlow<Float> = MutableStateFlow(DEFAULT_REVERB_MIX)
     val reverbMix: StateFlow<Float> = _reverbMix
 
+    private var _cinematicAudioEnabled: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val cinematicAudioEnabled: StateFlow<Boolean> = _cinematicAudioEnabled
+
+    private var _cinematicAudioSpeed: MutableStateFlow<Int> = MutableStateFlow(CinematicAudioEffect.DEFAULT_SPEED_SECONDS)
+    val cinematicAudioSpeed: StateFlow<Int> = _cinematicAudioSpeed
+
+    private var _cinematicAudioDepth: MutableStateFlow<Float> = MutableStateFlow(CinematicAudioEffect.DEFAULT_DEPTH)
+    val cinematicAudioDepth: StateFlow<Float> = _cinematicAudioDepth
+
+    private var _dolbyAtmosEnabled: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val dolbyAtmosEnabled: StateFlow<Boolean> = _dolbyAtmosEnabled
+
+    private var _dolbyAtmosProfile: MutableStateFlow<DolbyAtmosProfile> = MutableStateFlow(DolbyAtmosProfile.DYNAMIC)
+    val dolbyAtmosProfile: StateFlow<DolbyAtmosProfile> = _dolbyAtmosProfile
+
     /**
      * Guards the effect collectors the same way [equalizerCollectorsStarted] guards the curve's.
      *
@@ -1888,6 +1918,15 @@ class SettingsViewModel(
                 }
             }
             launch { dataStoreManager.reverbMix.collect { _reverbMix.emit(it) } }
+            launch { dataStoreManager.cinematicAudioEnabled.collect { _cinematicAudioEnabled.emit(it == DataStoreManager.TRUE) } }
+            launch { dataStoreManager.cinematicAudioSpeed.collect { _cinematicAudioSpeed.emit(it) } }
+            launch { dataStoreManager.cinematicAudioDepth.collect { _cinematicAudioDepth.emit(it) } }
+            launch { dataStoreManager.dolbyAtmosEnabled.collect { _dolbyAtmosEnabled.emit(it == DataStoreManager.TRUE) } }
+            launch {
+                dataStoreManager.dolbyAtmosProfile.collect { stored ->
+                    _dolbyAtmosProfile.emit(runCatching { DolbyAtmosProfile.valueOf(stored) }.getOrDefault(DolbyAtmosProfile.DYNAMIC))
+                }
+            }
         }
     }
 
@@ -1917,6 +1956,33 @@ class SettingsViewModel(
 
     fun setReverbMix(mix: Float) {
         viewModelScope.launch { dataStoreManager.setReverbMix(mix) }
+    }
+
+    fun setCinematicAudioEnabled(enabled: Boolean) {
+        viewModelScope.launch { dataStoreManager.setCinematicAudioEnabled(enabled) }
+    }
+
+    fun setCinematicAudioSpeed(speedSeconds: Int) {
+        viewModelScope.launch { dataStoreManager.setCinematicAudioSpeed(speedSeconds) }
+    }
+
+    fun setCinematicAudioDepth(depth: Float) {
+        viewModelScope.launch { dataStoreManager.setCinematicAudioDepth(depth) }
+    }
+
+    fun applyCinematicPreset(speedSeconds: Int, depth: Float) {
+        viewModelScope.launch {
+            dataStoreManager.setCinematicAudioSpeed(speedSeconds)
+            dataStoreManager.setCinematicAudioDepth(depth)
+        }
+    }
+
+    fun setDolbyAtmosEnabled(enabled: Boolean) {
+        viewModelScope.launch { dataStoreManager.setDolbyAtmosEnabled(enabled) }
+    }
+
+    fun setDolbyAtmosProfile(profile: DolbyAtmosProfile) {
+        viewModelScope.launch { dataStoreManager.setDolbyAtmosProfile(profile.name) }
     }
 
     /**

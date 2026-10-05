@@ -180,7 +180,7 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
     startKoin {
         loadAllModules(
             AppIdentity(
-                applicationId = "com.maxrave.simpmusic",
+                applicationId = "com.pulse.music",
                 versionName = BuildKonfig.versionName,
                 platform = "${System.getProperty("os.name")} ${System.getProperty("os.version")}",
             ),
@@ -203,7 +203,7 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
     if (BuildKonfig.sentryDsn.isNotEmpty()) {
         Sentry.init { options ->
             options.dsn = BuildKonfig.sentryDsn
-            options.release = "simpmusic-desktop@${VersionManager.getVersionName()}"
+            options.release = "pulsemusic-desktop@${VersionManager.getVersionName()}"
             options.setDiagnosticLevel(SentryLevel.ERROR)
         }
     }

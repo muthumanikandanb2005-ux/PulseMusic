@@ -147,8 +147,22 @@ fun AppTheme(
                 seedColor = seedColor,
                 isDark = isDark,
                 isAmoled = isDark,
-                style = PaletteStyle.TonalSpot,
-                modifyColorScheme = { cs -> if (isDark) cs else cs.withNeutralLightSurfaces() },
+                style = PaletteStyle.Vibrant,
+                modifyColorScheme = { cs ->
+                    if (isDark) {
+                        cs.copy(
+                            background = Color(0xFF000000),
+                            surface = Color(0xFF0D0D10),
+                            surfaceVariant = Color(0xFF1C1C22),
+                            surfaceContainer = Color(0xFF141418),
+                            surfaceContainerHigh = Color(0xFF1C1C22),
+                            surfaceContainerHighest = Color(0xFF26262E),
+                            outline = Color(0xFF2C2C32),
+                        )
+                    } else {
+                        cs.withNeutralLightSurfaces()
+                    }
+                },
             )
     // Immersive screens stay dark even at light theme (see [ForceDarkContent]). Resolve their scheme
     // once here instead of letting every such subtree build a palette of its own.
@@ -160,7 +174,18 @@ fun AppTheme(
                 seedColor = seedColor,
                 isDark = true,
                 isAmoled = true,
-                style = PaletteStyle.TonalSpot,
+                style = PaletteStyle.Vibrant,
+                modifyColorScheme = { cs ->
+                    cs.copy(
+                        background = Color(0xFF000000),
+                        surface = Color(0xFF0D0D10),
+                        surfaceVariant = Color(0xFF1C1C22),
+                        surfaceContainer = Color(0xFF141418),
+                        surfaceContainerHigh = Color(0xFF1C1C22),
+                        surfaceContainerHighest = Color(0xFF26262E),
+                        outline = Color(0xFF2C2C32),
+                    )
+                },
             )
         }
     SystemBarAppearanceEffect(isDark)

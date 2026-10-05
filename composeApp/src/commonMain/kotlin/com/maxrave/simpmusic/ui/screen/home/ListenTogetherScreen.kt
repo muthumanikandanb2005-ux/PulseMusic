@@ -34,8 +34,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import kotlinx.coroutines.delay
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -50,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -185,6 +190,12 @@ fun ListenTogetherScreen(
     val codeInput by viewModel.roomCodeInput.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     var managing by remember { mutableStateOf<RoomMember?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (!state.isConnected && state.connection !is RoomConnection.Connecting) {
+            viewModel.connect()
+        }
+    }
 
     // The back button refracts whatever the page has drawn, so the CONTENT is the backdrop source
     // and the button is its SIBLING — the same arrangement Album/Playlist/Analytics use. Nesting the
@@ -378,19 +389,21 @@ private fun ColumnScope.WorkArea(
         else -> {
             NameField(displayName, viewModel::onDisplayNameChange)
 
+            val isConnecting = state.connection is RoomConnection.Connecting
             PrimaryButton(
-                text = stringResource(Res.string.lt_create_room),
-                enabled = displayName.isNotBlank() && state.isConnected,
+                text = if (isConnecting) "Connecting..." else stringResource(Res.string.lt_create_room),
+                enabled = !isConnecting,
                 onClick = viewModel::createRoom,
             )
 
             DividerLabel(stringResource(Res.string.lt_or_join_with_code))
 
-            CodeInput(codeInput, viewModel::onRoomCodeChange)
+            CodeInput(codeInput, viewModel::onRoomCodeChange, onJoin = viewModel::joinRoom)
 
+            val canJoin = codeInput.length >= 4 && !isConnecting
             SecondaryButton(
-                text = stringResource(Res.string.lt_join_room),
-                enabled = displayName.isNotBlank() && codeInput.length == ROOM_CODE_LENGTH && state.isConnected,
+                text = if (isConnecting) "Connecting..." else stringResource(Res.string.lt_join_room),
+                enabled = canJoin,
                 onClick = viewModel::joinRoom,
             )
 
@@ -435,7 +448,7 @@ private fun CreditFooter() {
 }
 
 /** Prefix for the share button; the code alone means nothing to the recipient. */
-private const val SHARE_PREFIX = "Join my SimpMusic room with code "
+private const val SHARE_PREFIX = "Join my Pulse room with code "
 
 // ───────────────────────────────── structure ─────────────────────────────────
 
@@ -679,6 +692,15 @@ private fun WaitingForApproval(
     code: String,
     onCancel: () -> Unit,
 ) {
+    var elapsedSeconds by remember { mutableStateOf(0) }
+    LaunchedEffect(code) {
+        elapsedSeconds = 0
+        while (true) {
+            delay(1000L)
+            elapsedSeconds++
+        }
+    }
+
     Surface(tint = MaterialTheme.colorScheme.tertiary) {
         Column(
             Modifier.fillMaxWidth().padding(20.dp),
@@ -696,7 +718,11 @@ private fun WaitingForApproval(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                stringResource(Res.string.lt_waiting_approval_desc),
+                if (elapsedSeconds >= 10) {
+                    "Connecting to host... If host hasn't auto-accepted, ensure both devices are online."
+                } else {
+                    stringResource(Res.string.lt_waiting_approval_desc)
+                },
                 style = typo().bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -1267,50 +1293,104 @@ private fun NameField(
 private fun CodeInput(
     code: String,
     onCodeChange: (String) -> Unit,
+    onJoin: () -> Unit = {},
 ) {
     val focusRequester = remember { FocusRequester() }
-    // TextFieldValue, not String: a plain String re-places the caret at index 0 on every
-    // externally-driven recomposition, and backspace at index 0 deletes nothing — the field takes
-    // characters and then refuses to give them back.
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val clipboard = LocalClipboardManager.current
     val fieldValue = TextFieldValue(text = code, selection = TextRange(code.length))
 
-    BasicTextField(
-        value = fieldValue,
-        onValueChange = { onCodeChange(it.text) },
-        singleLine = true,
-        textStyle = LocalTextStyle.current.copy(color = Color.Transparent),
-        cursorBrush = SolidColor(Color.Transparent),
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
-        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-        decorationBox = { innerTextField ->
-            // Zero-sized but composed: without it nothing holds the cursor and the field takes no
-            // input at all.
-            Box(Modifier.size(0.dp)) { innerTextField() }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                repeat(ROOM_CODE_LENGTH) { index ->
-                    val filled = index < code.length
-                    // The caret is drawn by hand because the field that owns it is zero-sized.
-                    val isCaret = index == code.length
-                    Box(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .height(52.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f))
-                                .then(
-                                    if (isCaret) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp)) else Modifier,
-                                ).clickable { focusRequester.requestFocus() },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = if (filled) code[index].toString() else "",
-                            style = typo().titleSmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier.fillMaxWidth().clickable {
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            },
+        ) {
+            BasicTextField(
+                value = fieldValue,
+                onValueChange = { onCodeChange(it.text) },
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(color = Color.Transparent),
+                cursorBrush = SolidColor(Color.Transparent),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                    autoCorrectEnabled = false,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (code.length >= 4) {
+                            keyboardController?.hide()
+                            onJoin()
+                        }
+                    },
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                decorationBox = { innerTextField ->
+                    Box(Modifier.size(1.dp).alpha(0f)) { innerTextField() }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        repeat(ROOM_CODE_LENGTH) { index ->
+                            val filled = index < code.length
+                            val isCaret = index == code.length
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .height(52.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f))
+                                        .clickable {
+                                            focusRequester.requestFocus()
+                                            keyboardController?.show()
+                                        }
+                                        .then(
+                                            if (isCaret) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp)) else Modifier,
+                                        ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = if (filled) code[index].toString() else "",
+                                    style = typo().titleSmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                )
+                            }
+                        }
                     }
-                }
+                },
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (code.isNotEmpty()) {
+                Text(
+                    text = "Clear",
+                    style = typo().labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier =
+                        Modifier
+                            .clip(CircleShape)
+                            .clickable { onCodeChange("") }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+                Spacer(Modifier.width(8.dp))
             }
-        },
-    )
+            Text(
+                text = "Paste Code",
+                style = typo().labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier =
+                    Modifier
+                        .clip(CircleShape)
+                        .clickable {
+                            clipboard.getText()?.text?.let { onCodeChange(it) }
+                        }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+    }
 }

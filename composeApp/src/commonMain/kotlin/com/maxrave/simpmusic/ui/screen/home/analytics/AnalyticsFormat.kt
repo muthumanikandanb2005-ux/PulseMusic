@@ -40,6 +40,7 @@ import simpmusic.composeapp.generated.resources.month_short_nov
 import simpmusic.composeapp.generated.resources.month_short_oct
 import simpmusic.composeapp.generated.resources.month_short_sep
 import simpmusic.composeapp.generated.resources.this_year
+import simpmusic.composeapp.generated.resources.today
 
 /**
  * A listening total in units a person reads, rather than the raw second count.
@@ -161,6 +162,8 @@ fun formatPeriodSpan(
     end: LocalDate,
 ): String =
     when {
+        start == end ->
+            "${start.day} ${monthShortName(start.month)} ${start.year}"
         start.month == Month.JANUARY && start.day == 1 && end.month == Month.DECEMBER && end.day == 31 ->
             "${start.year}"
         start.month == end.month && start.year == end.year ->
@@ -177,6 +180,7 @@ fun formatPeriodSpan(
  */
 fun AnalyticsUiState.DayRange.labelRes(): StringResource =
     when (this) {
+        AnalyticsUiState.DayRange.TODAY -> Res.string.today
         AnalyticsUiState.DayRange.LAST_7_DAYS -> Res.string.last_7_days
         AnalyticsUiState.DayRange.LAST_30_DAYS -> Res.string.last_30_days
         AnalyticsUiState.DayRange.LAST_90_DAYS -> Res.string.last_90_days

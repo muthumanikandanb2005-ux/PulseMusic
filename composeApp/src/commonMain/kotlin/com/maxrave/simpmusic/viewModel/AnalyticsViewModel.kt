@@ -354,6 +354,17 @@ class AnalyticsViewModel(
             }
             val chartTypes =
                 when (dayRange) {
+                    AnalyticsUiState.DayRange.TODAY -> {
+                        listOf(
+                            AnalyticsUiState.ChartType.Hour(20, 24),
+                            AnalyticsUiState.ChartType.Hour(16, 20),
+                            AnalyticsUiState.ChartType.Hour(12, 16),
+                            AnalyticsUiState.ChartType.Hour(8, 12),
+                            AnalyticsUiState.ChartType.Hour(4, 8),
+                            AnalyticsUiState.ChartType.Hour(0, 4),
+                        )
+                    }
+
                     AnalyticsUiState.DayRange.LAST_7_DAYS -> {
                         (0 until 7).map {
                             AnalyticsUiState.ChartType.Day(
@@ -395,6 +406,23 @@ class AnalyticsViewModel(
             val data =
                 chartTypes.map {
                     when (it) {
+                        is AnalyticsUiState.ChartType.Hour -> {
+                            val startTimestamp = endDate.atTime(it.startHour, 0)
+                            val endTimestamp =
+                                if (it.endHour == 24) {
+                                    endDate.plus(DatePeriod(days = 1)).atTime(0, 0)
+                                } else {
+                                    endDate.atTime(it.endHour, 0)
+                                }
+                            val count =
+                                analyticsRepository
+                                    .getPlaybackEventCountInRange(
+                                        startTimestamp = startTimestamp,
+                                        endTimestamp = endTimestamp,
+                                    ).lastOrNull() ?: 0L
+                            Pair(it, count)
+                        }
+
                         is AnalyticsUiState.ChartType.Day -> {
                             val startTimestamp = it.day.atStartOfDayIn(currentTimeZone).toLocalDateTime(currentTimeZone)
                             val endTimestamp =
@@ -509,6 +537,7 @@ data class AnalyticsUiState(
     enum class DayRange(
         val lengthInDays: Int,
     ) {
+        TODAY(1),
         LAST_7_DAYS(7),
         LAST_30_DAYS(30),
         LAST_90_DAYS(90),
@@ -518,6 +547,11 @@ data class AnalyticsUiState(
     }
 
     sealed class ChartType {
+        data class Hour(
+            val startHour: Int,
+            val endHour: Int,
+        ) : ChartType()
+
         data class Day(
             val day: LocalDate,
         ) : ChartType()

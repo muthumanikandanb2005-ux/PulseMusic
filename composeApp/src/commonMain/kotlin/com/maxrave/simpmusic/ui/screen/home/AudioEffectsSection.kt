@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.maxrave.domain.data.player.DelayEffect
+import com.maxrave.domain.data.player.DolbyAtmosProfile
 import com.maxrave.domain.data.player.ReverbPreset
 import com.maxrave.simpmusic.ui.component.Chip
 import com.maxrave.simpmusic.ui.component.RippleIconButton
@@ -65,6 +66,18 @@ import simpmusic.composeapp.generated.resources.reverb_preset_cathedral
 import simpmusic.composeapp.generated.resources.reverb_preset_hall
 import simpmusic.composeapp.generated.resources.reverb_preset_plate
 import simpmusic.composeapp.generated.resources.reverb_preset_room
+import simpmusic.composeapp.generated.resources.cinematic_preset_classic
+import simpmusic.composeapp.generated.resources.cinematic_preset_slow
+import simpmusic.composeapp.generated.resources.cinematic_preset_dynamic
+import simpmusic.composeapp.generated.resources.cinematic_preset_cinema
+import simpmusic.composeapp.generated.resources.effect_rotation_speed
+import simpmusic.composeapp.generated.resources.effect_spatial_depth
+import simpmusic.composeapp.generated.resources.cinematic_rotation_stationary
+import simpmusic.composeapp.generated.resources.dolby_atmos_description
+import simpmusic.composeapp.generated.resources.dolby_profile_dynamic
+import simpmusic.composeapp.generated.resources.dolby_profile_music
+import simpmusic.composeapp.generated.resources.dolby_profile_cinema
+import simpmusic.composeapp.generated.resources.dolby_profile_voice
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -258,6 +271,109 @@ fun ReverbSection(viewModel: SettingsViewModel = koinViewModel()) {
 
     if (showHelp) {
         ReverbHelpDialog(onDismiss = { showHelp = false })
+    }
+}
+
+private data class CinematicPresetOption(
+    val label: StringResource,
+    val speedSeconds: Int,
+    val depth: Float,
+)
+
+private val CINEMATIC_PRESETS: List<CinematicPresetOption> =
+    listOf(
+        CinematicPresetOption(label = Res.string.cinematic_preset_classic, speedSeconds = 10, depth = 0.75f),
+        CinematicPresetOption(label = Res.string.cinematic_preset_slow, speedSeconds = 16, depth = 0.80f),
+        CinematicPresetOption(label = Res.string.cinematic_preset_dynamic, speedSeconds = 6, depth = 0.85f),
+        CinematicPresetOption(label = Res.string.cinematic_preset_cinema, speedSeconds = 0, depth = 0.65f),
+    )
+
+private fun cinematicPresetFor(
+    speedSeconds: Int,
+    depth: Float,
+): CinematicPresetOption? =
+    CINEMATIC_PRESETS.firstOrNull {
+        it.speedSeconds == speedSeconds &&
+            abs(it.depth - depth) < PRESET_MATCH_TOLERANCE
+    }
+
+/**
+ * The Cinematic & 8D audio control block.
+ */
+@Composable
+fun CinematicAudioSection(viewModel: SettingsViewModel = koinViewModel()) {
+    val speedSeconds by viewModel.cinematicAudioSpeed.collectAsStateWithLifecycle()
+    val depth by viewModel.cinematicAudioDepth.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { viewModel.getAudioEffects() }
+
+    val activePreset = remember(speedSeconds, depth) { cinematicPresetFor(speedSeconds, depth) }
+
+    EffectCard {
+        EffectPresetRow {
+            CINEMATIC_PRESETS.forEach { preset ->
+                Chip(
+                    isSelected = preset == activePreset,
+                    text = stringResource(preset.label),
+                    onClick = { viewModel.applyCinematicPreset(preset.speedSeconds, preset.depth) },
+                )
+            }
+        }
+        val stationaryText = stringResource(Res.string.cinematic_rotation_stationary)
+        EffectSlider(
+            label = stringResource(Res.string.effect_rotation_speed),
+            value = speedSeconds.toFloat(),
+            valueRange = 0f..25f,
+            snap = { it.roundToInt().toFloat() },
+            readout = {
+                val sec = it.roundToInt()
+                if (sec == 0) stationaryText else "$sec s"
+            },
+            onCommit = { viewModel.setCinematicAudioSpeed(it.roundToInt()) },
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        EffectSlider(
+            label = stringResource(Res.string.effect_spatial_depth),
+            value = depth,
+            valueRange = 0.1f..1f,
+            readout = { "${(it * 100).roundToInt()} %" },
+            onCommit = { viewModel.setCinematicAudioDepth(it) },
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}
+
+/**
+ * The Dolby Atmos spatial audio virtualization control block.
+ */
+@Composable
+fun DolbyAtmosSection(viewModel: SettingsViewModel = koinViewModel()) {
+    val currentProfile by viewModel.dolbyAtmosProfile.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { viewModel.getAudioEffects() }
+
+    EffectCard {
+        Text(
+            text = stringResource(Res.string.dolby_atmos_description),
+            style = typo().bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        EffectPresetRow {
+            DolbyAtmosProfile.entries.forEach { profile ->
+                val label = when (profile) {
+                    DolbyAtmosProfile.DYNAMIC -> Res.string.dolby_profile_dynamic
+                    DolbyAtmosProfile.MUSIC -> Res.string.dolby_profile_music
+                    DolbyAtmosProfile.CINEMA -> Res.string.dolby_profile_cinema
+                    DolbyAtmosProfile.VOICE -> Res.string.dolby_profile_voice
+                }
+                Chip(
+                    isSelected = profile == currentProfile,
+                    text = stringResource(label),
+                    onClick = { viewModel.setDolbyAtmosProfile(profile) },
+                )
+            }
+        }
     }
 }
 

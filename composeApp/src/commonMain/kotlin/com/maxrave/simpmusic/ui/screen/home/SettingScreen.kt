@@ -45,6 +45,9 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -82,6 +85,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -98,7 +102,6 @@ import com.maxrave.common.LIMIT_CACHE_SIZE
 import com.maxrave.common.QUALITY
 import com.maxrave.common.SUPPORTED_LANGUAGE
 import com.maxrave.common.SUPPORTED_LOCATION
-import com.maxrave.common.SponsorBlockType
 import com.maxrave.common.VIDEO_QUALITY
 import com.maxrave.domain.extension.now
 import com.maxrave.domain.data.model.lyrics.RomanizationDictionaryState
@@ -132,15 +135,19 @@ import com.maxrave.simpmusic.ui.icon.Error
 import com.maxrave.simpmusic.ui.icon.PeopleAlt
 import com.maxrave.simpmusic.ui.icon.PlaylistAdd
 import com.maxrave.simpmusic.ui.icon.SimpIcons
+import com.maxrave.simpmusic.ui.navigation.destination.home.AnalyticsDestination
 import com.maxrave.simpmusic.ui.navigation.destination.home.CreditDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.DiscordLoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.LastfmLoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.LoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.SpotifyLoginDestination
+import com.pulse.music.ui.navigation.destination.login.PulseMusicLoginDestination
 import com.maxrave.simpmusic.ui.theme.md_theme_dark_primary
 import com.maxrave.simpmusic.ui.theme.parseThemeColorHex
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.utils.VersionManager
+import com.maxrave.simpmusic.ui.component.ImportProgressDialog
+import com.maxrave.simpmusic.ui.component.ImportLinkDialog
 import com.maxrave.simpmusic.viewModel.ImportViewModel
 import com.maxrave.simpmusic.viewModel.SettingAlertState
 import com.maxrave.simpmusic.viewModel.SettingBasicAlertState
@@ -178,15 +185,29 @@ import simpmusic.composeapp.generated.resources.Res
 import simpmusic.composeapp.generated.resources.about_us
 import simpmusic.composeapp.generated.resources.add_an_account
 import simpmusic.composeapp.generated.resources.ai
-import simpmusic.composeapp.generated.resources.ai_api_key
 import simpmusic.composeapp.generated.resources.ai_provider
 import simpmusic.composeapp.generated.resources.anonymous
 import simpmusic.composeapp.generated.resources.app_name
+import simpmusic.composeapp.generated.resources.app_updates
+import simpmusic.composeapp.generated.resources.background_updates
+import simpmusic.composeapp.generated.resources.background_updates_description
+import simpmusic.composeapp.generated.resources.update_source_url
+import simpmusic.composeapp.generated.resources.update_source_url_description
+import simpmusic.composeapp.generated.resources.update_source_not_set
+import simpmusic.composeapp.generated.resources.enter_update_source_url
+import simpmusic.composeapp.generated.resources.check_for_updates_now
+import simpmusic.composeapp.generated.resources.update_checking
+import simpmusic.composeapp.generated.resources.update_not_configured
+import simpmusic.composeapp.generated.resources.app_up_to_date
 import simpmusic.composeapp.generated.resources.audio
 import simpmusic.composeapp.generated.resources.audio_delay
 import simpmusic.composeapp.generated.resources.audio_delay_description
 import simpmusic.composeapp.generated.resources.audio_reverb
 import simpmusic.composeapp.generated.resources.audio_reverb_description
+import simpmusic.composeapp.generated.resources.cinematic_audio
+import simpmusic.composeapp.generated.resources.cinematic_audio_description
+import simpmusic.composeapp.generated.resources.dolby_atmos
+import simpmusic.composeapp.generated.resources.dolby_atmos_description
 import simpmusic.composeapp.generated.resources.author
 import simpmusic.composeapp.generated.resources.auto_backup
 import simpmusic.composeapp.generated.resources.auto_backup_description
@@ -200,13 +221,9 @@ import simpmusic.composeapp.generated.resources.backup_downloaded_description
 import simpmusic.composeapp.generated.resources.backup_frequency
 import simpmusic.composeapp.generated.resources.balance_media_loudness
 import simpmusic.composeapp.generated.resources.better_lyrics
-import simpmusic.composeapp.generated.resources.blog_notification_description
-import simpmusic.composeapp.generated.resources.blog_notification_title
-import simpmusic.composeapp.generated.resources.buy_me_a_coffee
 import simpmusic.composeapp.generated.resources.cancel
 import simpmusic.composeapp.generated.resources.animated_artwork_info
 import simpmusic.composeapp.generated.resources.canvas_info
-import simpmusic.composeapp.generated.resources.categories_sponsor_block
 import simpmusic.composeapp.generated.resources.change
 import simpmusic.composeapp.generated.resources.change_language_warning
 import simpmusic.composeapp.generated.resources.check_for_update
@@ -221,8 +238,7 @@ import simpmusic.composeapp.generated.resources.clear_player_cache
 import simpmusic.composeapp.generated.resources.clear_thumbnail_cache
 import simpmusic.composeapp.generated.resources.content
 import simpmusic.composeapp.generated.resources.content_country
-import simpmusic.composeapp.generated.resources.contributor_email
-import simpmusic.composeapp.generated.resources.contributor_name
+
 import simpmusic.composeapp.generated.resources.crossfade
 import simpmusic.composeapp.generated.resources.crossfade_auto
 import simpmusic.composeapp.generated.resources.crossfade_description
@@ -238,10 +254,7 @@ import simpmusic.composeapp.generated.resources.daily
 import simpmusic.composeapp.generated.resources.database
 import simpmusic.composeapp.generated.resources.default_models
 import simpmusic.composeapp.generated.resources.description_and_licenses
-import simpmusic.composeapp.generated.resources.developer_blog
-import simpmusic.composeapp.generated.resources.developer_blog_tagline
 import simpmusic.composeapp.generated.resources.discord_integration
-import simpmusic.composeapp.generated.resources.donation
 import simpmusic.composeapp.generated.resources.download_quality
 import simpmusic.composeapp.generated.resources.downloaded_cache
 import simpmusic.composeapp.generated.resources.enable_animated_artwork
@@ -250,7 +263,6 @@ import simpmusic.composeapp.generated.resources.enable_liquid_glass_effect
 import simpmusic.composeapp.generated.resources.enable_liquid_glass_effect_description
 import simpmusic.composeapp.generated.resources.enable_rich_presence
 import simpmusic.composeapp.generated.resources.enable_scrobbling
-import simpmusic.composeapp.generated.resources.enable_sponsor_block
 import simpmusic.composeapp.generated.resources.enable_spotify_lyrics
 import simpmusic.composeapp.generated.resources.equalizer
 import simpmusic.composeapp.generated.resources.equalizer_description
@@ -266,6 +278,8 @@ import simpmusic.composeapp.generated.resources.http
 import simpmusic.composeapp.generated.resources.import_data
 import simpmusic.composeapp.generated.resources.import_data_intro
 import simpmusic.composeapp.generated.resources.import_failed
+import simpmusic.composeapp.generated.resources.import_playlist_from_link
+import simpmusic.composeapp.generated.resources.import_playlist_from_link_desc
 import simpmusic.composeapp.generated.resources.import_playlists_from_other_apps
 import simpmusic.composeapp.generated.resources.import_progress_songs
 import simpmusic.composeapp.generated.resources.import_reading_file
@@ -292,6 +306,9 @@ import simpmusic.composeapp.generated.resources.last_backup
 import simpmusic.composeapp.generated.resources.last_checked_at
 import simpmusic.composeapp.generated.resources.lastfm_integration
 import simpmusic.composeapp.generated.resources.limit_player_cache
+import simpmusic.composeapp.generated.resources.daily_analytics_description
+import simpmusic.composeapp.generated.resources.daily_analytics_title
+import simpmusic.composeapp.generated.resources.view_daily_analytics
 import simpmusic.composeapp.generated.resources.listening_history
 import simpmusic.composeapp.generated.resources.local_tracking_description
 import simpmusic.composeapp.generated.resources.local_tracking_title
@@ -332,7 +349,6 @@ import simpmusic.composeapp.generated.resources.lyrics_style_apple_music
 import simpmusic.composeapp.generated.resources.lyrics_style_classic
 import simpmusic.composeapp.generated.resources.main_lyrics_provider
 import simpmusic.composeapp.generated.resources.manage_your_youtube_accounts
-import simpmusic.composeapp.generated.resources.maxrave_dev
 import simpmusic.composeapp.generated.resources.monthly
 import simpmusic.composeapp.generated.resources.never
 import simpmusic.composeapp.generated.resources.no_account
@@ -382,10 +398,7 @@ import simpmusic.composeapp.generated.resources.signed_in
 import simpmusic.composeapp.generated.resources.simpmusic_lyrics
 import simpmusic.composeapp.generated.resources.skip_no_music_part
 import simpmusic.composeapp.generated.resources.skip_silent
-import simpmusic.composeapp.generated.resources.skip_sponsor_part_of_video
 import simpmusic.composeapp.generated.resources.socks
-import simpmusic.composeapp.generated.resources.sponsorBlock
-import simpmusic.composeapp.generated.resources.sponsor_block_intro
 import simpmusic.composeapp.generated.resources.spotify
 import simpmusic.composeapp.generated.resources.spotify_canvas_cache
 import simpmusic.composeapp.generated.resources.spotify_lyrícs_info
@@ -489,16 +502,8 @@ fun SettingScreen(
     // filter would hide it on some hosts.
     val importViewModel: ImportViewModel = koinViewModel()
     val importState by importViewModel.importState.collectAsStateWithLifecycle()
-    val importLauncher =
-        rememberFilePickerLauncher(
-            type =
-                FilePickerFileType.All,
-            selectionMode = FilePickerSelectionMode.Single,
-        ) { file ->
-            file.firstOrNull()?.let {
-                importViewModel.import(it, pl)
-            }
-        }
+    var showImportLinkDialog by remember { mutableStateOf(false) }
+
 
     // Open equalizer
     val resultLauncher = openEqResult(viewModel.getAudioSessionId())
@@ -529,8 +534,6 @@ fun SettingScreen(
     val spotifyLyrics by viewModel.spotifyLyrics.collectAsStateWithLifecycle()
     val spotifyCanvas by viewModel.spotifyCanvas.collectAsStateWithLifecycle()
     val amAnimatedArtwork by viewModel.amAnimatedArtwork.collectAsStateWithLifecycle()
-    val enableSponsorBlock by remember { viewModel.sponsorBlockEnabled.map { it == TRUE } }.collectAsStateWithLifecycle(initialValue = false)
-    val skipSegments by viewModel.sponsorBlockCategories.collectAsStateWithLifecycle()
     val playerCache by viewModel.cacheSize.collectAsStateWithLifecycle()
     val downloadedCache by viewModel.downloadedCacheSize.collectAsStateWithLifecycle()
     val thumbnailCache by viewModel.thumbCacheSize.collectAsStateWithLifecycle()
@@ -546,6 +549,7 @@ fun SettingScreen(
     val proxyUsername by viewModel.proxyUsername.collectAsStateWithLifecycle()
     val proxyPassword by viewModel.proxyPassword.collectAsStateWithLifecycle()
     val autoCheckUpdate by viewModel.autoCheckUpdate.collectAsStateWithLifecycle()
+    val customUpdateEndpoint by viewModel.customUpdateEndpoint.collectAsStateWithLifecycle()
     val aiProvider by viewModel.aiProvider.collectAsStateWithLifecycle()
     val isHasApiKey by viewModel.isHasApiKey.collectAsStateWithLifecycle()
     val useAITranslation by viewModel.useAITranslation.collectAsStateWithLifecycle()
@@ -554,7 +558,6 @@ fun SettingScreen(
     val customOpenAIBaseUrl by viewModel.customOpenAIBaseUrl.collectAsStateWithLifecycle()
     val customOpenAIHeaders by viewModel.customOpenAIHeaders.collectAsStateWithLifecycle()
     val helpBuildLyricsDatabase by viewModel.helpBuildLyricsDatabase.collectAsStateWithLifecycle()
-    val contributor by viewModel.contributor.collectAsStateWithLifecycle()
     val backupDownloaded by viewModel.backupDownloaded.collectAsStateWithLifecycle()
     val autoBackupEnabled by viewModel.autoBackupEnabled.collectAsStateWithLifecycle()
     val autoBackupFrequency by viewModel.autoBackupFrequency.collectAsStateWithLifecycle()
@@ -566,17 +569,18 @@ fun SettingScreen(
     val themeColorSource by sharedViewModel.getThemeColorSource().collectAsStateWithLifecycle(DataStoreManager.THEME_COLOR_DEFAULT)
     val customThemeColorHex by sharedViewModel.getCustomThemeColor().collectAsStateWithLifecycle(DataStoreManager.DEFAULT_THEME_COLOR_HEX)
     val nowPlayingStyle by sharedViewModel.getNowPlayingStyle().collectAsStateWithLifecycle(DataStoreManager.NOW_PLAYING_STYLE_SPOTIFY)
+    val ambientModeSetting by sharedViewModel.getAmbientMode().collectAsStateWithLifecycle(DataStoreManager.TRUE)
     val lyricsStyle by sharedViewModel.getLyricsStyle().collectAsStateWithLifecycle(DataStoreManager.LYRICS_STYLE_CLASSIC)
     val romanizationStored by sharedViewModel.getRomanizationLanguages().collectAsStateWithLifecycle("")
     val japaneseDictionaryState by viewModel.japaneseDictionaryState.collectAsStateWithLifecycle()
     var showColorPickerDialog by rememberSaveable { mutableStateOf(false) }
     val discordLoggedIn by viewModel.discordLoggedIn.collectAsStateWithLifecycle()
-    val loggedIn by viewModel.loggedIn.collectAsStateWithLifecycle()
-    val syncFollowToYouTube by viewModel.syncFollowToYouTube.collectAsStateWithLifecycle()
     val equalizerEnabled by viewModel.equalizerEnabled.collectAsStateWithLifecycle()
     val equalizerType by viewModel.equalizerType.collectAsStateWithLifecycle()
     val delayEnabled by viewModel.delayEnabled.collectAsStateWithLifecycle()
     val reverbEnabled by viewModel.reverbEnabled.collectAsStateWithLifecycle()
+    val cinematicAudioEnabled by viewModel.cinematicAudioEnabled.collectAsStateWithLifecycle()
+    val dolbyAtmosEnabled by viewModel.dolbyAtmosEnabled.collectAsStateWithLifecycle()
     val lastfmLoggedIn by viewModel.lastfmLoggedIn.collectAsStateWithLifecycle()
     val lastfmUsername by viewModel.lastfmUsername.collectAsStateWithLifecycle()
     val lastfmScrobbleEnabled by viewModel.lastfmScrobbleEnabled.collectAsStateWithLifecycle()
@@ -590,6 +594,11 @@ fun SettingScreen(
     val castState by viewModel.castState.collectAsStateWithLifecycle()
 
     val isCheckingUpdate by sharedViewModel.isCheckingUpdate.collectAsStateWithLifecycle()
+
+    val dataStoreManager: DataStoreManager = koinInject()
+    val supabaseEmail by dataStoreManager.supabaseUserEmail.collectAsStateWithLifecycle(initialValue = null)
+    val ytAccountName by remember { dataStoreManager.getString("AccountName") }.collectAsStateWithLifecycle(initialValue = null)
+    val ytCookie by remember { dataStoreManager.cookie }.collectAsStateWithLifecycle(initialValue = "")
 
     val hazeState =
         rememberHazeState(
@@ -614,15 +623,8 @@ fun SettingScreen(
             }
         }
     }
-    var showYouTubeAccountDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
     var showThirdPartyLibraries by rememberSaveable {
         mutableStateOf(false)
-    }
-
-    LaunchedEffect(true) {
-        viewModel.getAllGoogleAccount()
     }
 
     LaunchedEffect(true) {
@@ -662,12 +664,75 @@ fun SettingScreen(
                 .padding(horizontal = 16.dp)
                 .hazeSource(hazeState),
     ) {
+        item(key = "accounts_section") {
+            Column {
+                Spacer(Modifier.height(64.dp))
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "Account & Cloud Sync",
+                    style = typo().labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                // Pulse Music Cloud Account
+                SettingItem(
+                    title = "Pulse Music Cloud Account",
+                    subtitle = if (!supabaseEmail.isNullOrBlank()) {
+                        "Signed in as $supabaseEmail • Real-time Sync Active"
+                    } else {
+                        "Sign in or register for cloud sync & data backup"
+                    },
+                    onClick = {
+                        if (!supabaseEmail.isNullOrBlank()) {
+                            viewModel.setBasicAlertData(
+                                SettingBasicAlertState(
+                                    title = "Pulse Music Cloud Account",
+                                    message = "Signed in as: $supabaseEmail\n\nYour liked songs, playlists, and listening history are synced in real time.",
+                                    confirm = "Sign Out" to {
+                                        coroutineScope.launch {
+                                            dataStoreManager.setSupabaseAuth(null, null, null, null)
+                                            sharedViewModel.makeToast("Signed out of Pulse Music Cloud")
+                                        }
+                                    },
+                                    dismiss = runBlocking { getString(Res.string.cancel) },
+                                ),
+                            )
+                        } else {
+                            navController.navigate(PulseMusicLoginDestination)
+                        }
+                    },
+                )
+                // YouTube Music / Google Account
+                SettingItem(
+                    title = stringResource(Res.string.youtube_account),
+                    subtitle = if (ytCookie.isNotEmpty()) {
+                        if (!ytAccountName.isNullOrBlank()) ytAccountName!! else stringResource(Res.string.signed_in)
+                    } else {
+                        "Sign in to YouTube Music"
+                    },
+                    onClick = {
+                        if (ytCookie.isNotEmpty()) {
+                            viewModel.setBasicAlertData(
+                                SettingBasicAlertState(
+                                    title = runBlocking { getString(Res.string.youtube_account) },
+                                    message = "Signed in as: ${ytAccountName ?: "YouTube Account"}\nDo you want to log out?",
+                                    confirm = "Log Out" to {
+                                        viewModel.logOutAllYouTube()
+                                        coroutineScope.launch {
+                                            sharedViewModel.makeToast("Signed out of YouTube")
+                                        }
+                                    },
+                                    dismiss = runBlocking { getString(Res.string.cancel) },
+                                ),
+                            )
+                        } else {
+                            navController.navigate(LoginDestination)
+                        }
+                    },
+                )
+            }
+        }
         item(key = "user_interface") {
             Column {
-                // Was its own item. Folded in so item 0 is taller than the glow — the glow's
-                // translation tracks item 0's offset exactly and parks once it scrolls past, and a
-                // 64dp item 0 would have switched branches while the glow was still half-visible.
-                Spacer(Modifier.height(64.dp))
                 Spacer(Modifier.height(16.dp))
                 Text(text = stringResource(Res.string.user_interface), style = typo().labelMedium, color = MaterialTheme.colorScheme.onBackground)
                 val themeModeLabels =
@@ -734,6 +799,13 @@ fun SettingScreen(
                             ),
                         )
                     },
+                )
+                SettingItem(
+                    title = "Ambient Mode",
+                    subtitle = "Dynamic animated lighting glow matching the album art",
+                    switch = ((ambientModeSetting != DataStoreManager.FALSE) to { checked ->
+                        sharedViewModel.setAmbientMode(checked)
+                    }),
                 )
                 // Hidden outright below Android 12 rather than offered with one option: the Apple
                 // Music treatment IS the blur, and Modifier.blur is a documented no-op there, so
@@ -916,14 +988,6 @@ fun SettingScreen(
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
-                    title = stringResource(Res.string.youtube_account),
-                    subtitle = stringResource(Res.string.manage_your_youtube_accounts),
-                    onClick = {
-                        viewModel.getAllGoogleAccount()
-                        showYouTubeAccountDialog = true
-                    },
-                )
-                SettingItem(
                     title = stringResource(Res.string.language),
                     subtitle = SUPPORTED_LANGUAGE.getLanguageFromCode(language ?: "en-US"),
                     onClick = {
@@ -1095,27 +1159,6 @@ fun SettingScreen(
                     subtitle = stringResource(Res.string.radio_audio_only_description),
                     smallSubtitle = true,
                     switch = (radioAudioOnly to { viewModel.setRadioAudioOnly(it) }),
-                )
-                SettingItem(
-                    title = stringResource(Res.string.sync_follow_to_youtube),
-                    subtitle = stringResource(Res.string.sync_follow_to_youtube_description),
-                    smallSubtitle = true,
-                    switch = (syncFollowToYouTube to { viewModel.setSyncFollowToYouTube(it) }),
-                    // Writing to someone's YouTube account needs a session, so the row is dead
-                    // while signed out. Clearing the stored flag is NOT done from here: the reset
-                    // belongs to the logout itself (SettingsViewModel.setUsedAccount /
-                    // logOutAllYouTube), which runs whether or not Settings is ever opened.
-                    isEnable = loggedIn == DataStoreManager.TRUE,
-                )
-                SettingItem(
-                    title = stringResource(Res.string.send_back_listening_data_to_google),
-                    subtitle =
-                        stringResource(
-                            Res.string
-                                .upload_your_listening_history_to_youtube_music_server_it_will_make_yt_music_recommendation_system_better_working_only_if_logged_in,
-                        ),
-                    smallSubtitle = true,
-                    switch = (sendData to { viewModel.setSendBackToGoogle(it) }),
                 )
                 SettingItem(
                     title = stringResource(Res.string.play_explicit_content),
@@ -1425,6 +1468,24 @@ fun SettingScreen(
                     ReverbSection()
                 }
                 SettingItem(
+                    title = stringResource(Res.string.cinematic_audio),
+                    subtitle = stringResource(Res.string.cinematic_audio_description),
+                    smallSubtitle = true,
+                    switch = (cinematicAudioEnabled to { viewModel.setCinematicAudioEnabled(it) }),
+                )
+                AnimatedVisibility(visible = cinematicAudioEnabled) {
+                    CinematicAudioSection()
+                }
+                SettingItem(
+                    title = stringResource(Res.string.dolby_atmos),
+                    subtitle = stringResource(Res.string.dolby_atmos_description),
+                    smallSubtitle = true,
+                    switch = (dolbyAtmosEnabled to { viewModel.setDolbyAtmosEnabled(it) }),
+                )
+                AnimatedVisibility(visible = dolbyAtmosEnabled) {
+                    DolbyAtmosSection()
+                }
+                SettingItem(
                     title = stringResource(Res.string.save_playback_state),
                     subtitle = stringResource(Res.string.save_shuffle_and_repeat_mode),
                     switch = (savePlaybackState to { viewModel.setSavedPlaybackState(it) }),
@@ -1558,10 +1619,17 @@ fun SettingScreen(
         item(key = "listening_history") {
             Column {
                 Text(
-                    text = stringResource(Res.string.listening_history),
+                    text = stringResource(Res.string.daily_analytics_title),
                     style = typo().labelMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
+                )
+                SettingItem(
+                    title = stringResource(Res.string.view_daily_analytics),
+                    subtitle = stringResource(Res.string.daily_analytics_description),
+                    onClick = {
+                        navController.navigate(AnalyticsDestination)
+                    },
                 )
                 SettingItem(
                     title = stringResource(Res.string.local_tracking_title),
@@ -1738,59 +1806,7 @@ fun SettingScreen(
                     subtitle = stringResource(Res.string.help_build_lyrics_database_description),
                     switch = (helpBuildLyricsDatabase to { viewModel.setHelpBuildLyricsDatabase(it) }),
                 )
-                SettingItem(
-                    title = stringResource(Res.string.contributor_name),
-                    subtitle = contributor.first.ifEmpty { stringResource(Res.string.anonymous) },
-                    isEnable = helpBuildLyricsDatabase,
-                    onClick = {
-                        viewModel.setAlertData(
-                            SettingAlertState(
-                                title = runBlocking { getString(Res.string.contributor_name) },
-                                textField =
-                                    SettingAlertState.TextFieldData(
-                                        label = runBlocking { getString(Res.string.contributor_name) },
-                                        value = "",
-                                    ),
-                                message = "",
-                                confirm =
-                                    runBlocking { getString(Res.string.set) } to { state ->
-                                        viewModel.setContributorName(state.textField?.value ?: "")
-                                    },
-                                dismiss = runBlocking { getString(Res.string.cancel) },
-                            ),
-                        )
-                    },
-                )
-                SettingItem(
-                    title = stringResource(Res.string.contributor_email),
-                    subtitle = contributor.second.ifEmpty { stringResource(Res.string.anonymous) },
-                    isEnable = helpBuildLyricsDatabase,
-                    onClick = {
-                        viewModel.setAlertData(
-                            SettingAlertState(
-                                title = runBlocking { getString(Res.string.contributor_email) },
-                                textField =
-                                    SettingAlertState.TextFieldData(
-                                        label = runBlocking { getString(Res.string.contributor_email) },
-                                        value = "",
-                                        verifyCodeBlock = {
-                                            if (it.isNotEmpty()) {
-                                                (it.contains("@")) to runBlocking { getString(Res.string.invalid) }
-                                            } else {
-                                                true to ""
-                                            }
-                                        },
-                                    ),
-                                message = "",
-                                confirm =
-                                    runBlocking { getString(Res.string.set) } to { state ->
-                                        viewModel.setContributorEmail(state.textField?.value ?: "")
-                                    },
-                                dismiss = runBlocking { getString(Res.string.cancel) },
-                            ),
-                        )
-                    },
-                )
+
             }
         }
         item(key = "AI") {
@@ -1842,31 +1858,6 @@ fun SettingScreen(
                                                 else -> DataStoreManager.AI_PROVIDER_OPENAI
                                             },
                                         )
-                                    },
-                                dismiss = runBlocking { getString(Res.string.cancel) },
-                            ),
-                        )
-                    },
-                )
-                SettingItem(
-                    title = stringResource(Res.string.ai_api_key),
-                    subtitle = if (isHasApiKey) "XXXXXXXXXX" else "N/A",
-                    onClick = {
-                        viewModel.setAlertData(
-                            SettingAlertState(
-                                title = runBlocking { getString(Res.string.ai_api_key) },
-                                textField =
-                                    SettingAlertState.TextFieldData(
-                                        label = runBlocking { getString(Res.string.ai_api_key) },
-                                        value = "",
-                                        verifyCodeBlock = {
-                                            (it.isNotEmpty()) to runBlocking { getString(Res.string.invalid_api_key) }
-                                        },
-                                    ),
-                                message = "",
-                                confirm =
-                                    runBlocking { getString(Res.string.set) } to { state ->
-                                        viewModel.setAIApiKey(state.textField?.value ?: "")
                                     },
                                 dismiss = runBlocking { getString(Res.string.cancel) },
                             ),
@@ -2104,83 +2095,6 @@ fun SettingScreen(
                         isEnable = lastfmLoggedIn,
                     )
                 }
-            }
-        }
-        item(key = "sponsor_block") {
-            Column {
-                Text(
-                    text = stringResource(Res.string.sponsorBlock),
-                    style = typo().labelMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                )
-                SettingItem(
-                    title = stringResource(Res.string.enable_sponsor_block),
-                    subtitle = stringResource(Res.string.skip_sponsor_part_of_video),
-                    switch = (enableSponsorBlock to { viewModel.setSponsorBlockEnabled(it) }),
-                )
-                val listName =
-                    SponsorBlockType.toList().map { it.displayString() }
-                SettingItem(
-                    title = stringResource(Res.string.categories_sponsor_block),
-                    subtitle = stringResource(Res.string.what_segments_will_be_skipped),
-                    onClick = {
-                        viewModel.setAlertData(
-                            SettingAlertState(
-                                title = runBlocking { getString(Res.string.categories_sponsor_block) },
-                                multipleSelect =
-                                    SettingAlertState.SelectData(
-                                        listSelect =
-                                            listName
-                                                .mapIndexed { index, item ->
-                                                    (
-                                                        skipSegments?.contains(
-                                                            SponsorBlockType.toList().getOrNull(index)?.value,
-                                                        ) == true
-                                                    ) to item
-                                                }.also {
-                                                    Logger.w("SettingScreen", "SettingAlertState: $skipSegments")
-                                                    Logger.w("SettingScreen", "SettingAlertState: $it")
-                                                },
-                                    ),
-                                confirm =
-                                    runBlocking { getString(Res.string.save) } to { state ->
-                                        viewModel.setSponsorBlockCategories(
-                                            state.multipleSelect
-                                                ?.getListSelected()
-                                                ?.map { selected ->
-                                                    listName.indexOf(selected)
-                                                }?.mapNotNull { s ->
-                                                    SponsorBlockType.toList().getOrNull(s).let {
-                                                        it?.value
-                                                    }
-                                                }?.toCollection(ArrayList()) ?: arrayListOf(),
-                                        )
-                                    },
-                                dismiss = runBlocking { getString(Res.string.cancel) },
-                            ),
-                        )
-                    },
-                    isEnable = enableSponsorBlock,
-                )
-                val beforeUrl = stringResource(Res.string.sponsor_block_intro).substringBefore("https://sponsor.ajay.app/")
-                val afterUrl = stringResource(Res.string.sponsor_block_intro).substringAfter("https://sponsor.ajay.app/")
-                Text(
-                    buildAnnotatedString {
-                        append(beforeUrl)
-                        withLink(
-                            LinkAnnotation.Url(
-                                "https://sponsor.ajay.app/",
-                                TextLinkStyles(style = SpanStyle(color = MaterialTheme.colorScheme.primary)),
-                            ),
-                        ) {
-                            append("https://sponsor.ajay.app/")
-                        }
-                        append(afterUrl)
-                    },
-                    style = typo().bodySmall,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-                )
             }
         }
         if (getPlatform() == Platform.Android) {
@@ -2634,31 +2548,65 @@ fun SettingScreen(
                     },
                 )
                 SettingItem(
-                    title = stringResource(Res.string.import_data),
-                    subtitle = stringResource(Res.string.import_playlists_from_other_apps),
+                    title = stringResource(Res.string.import_playlist_from_link),
+                    subtitle = stringResource(Res.string.import_playlist_from_link_desc),
                     onClick = {
-                        coroutineScope.launch {
-                            importLauncher.launch()
-                        }
+                        showImportLinkDialog = true
                     },
                 )
-                val beforeUrl = stringResource(Res.string.import_data_intro).substringBefore("https://www.simpmusic.org/tools")
-                val afterUrl = stringResource(Res.string.import_data_intro).substringAfter("https://www.simpmusic.org/tools")
+
+            }
+        }
+        item(key = "app_updates") {
+            Column {
                 Text(
-                    buildAnnotatedString {
-                        append(beforeUrl)
-                        withLink(
-                            LinkAnnotation.Url(
-                                "https://www.simpmusic.org/tools",
-                                TextLinkStyles(style = SpanStyle(color = MaterialTheme.colorScheme.primary)),
+                    text = stringResource(Res.string.app_updates),
+                    style = typo().labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+                SettingItem(
+                    title = stringResource(Res.string.background_updates),
+                    subtitle = stringResource(Res.string.background_updates_description),
+                    switch = (autoCheckUpdate to { viewModel.setAutoCheckUpdate(it) }),
+                )
+                SettingItem(
+                    title = stringResource(Res.string.update_source_url),
+                    subtitle =
+                        if (customUpdateEndpoint.isBlank()) {
+                            "GitHub: muthumanikandanb2005-ux/PulseMusic (Default)"
+                        } else {
+                            customUpdateEndpoint
+                        },
+                    onClick = {
+                        viewModel.setAlertData(
+                            SettingAlertState(
+                                title = runBlocking { getString(Res.string.update_source_url) },
+                                message = runBlocking { getString(Res.string.enter_update_source_url) },
+                                textField =
+                                    SettingAlertState.TextFieldData(
+                                        label = "URL or owner/repo",
+                                        value = customUpdateEndpoint,
+                                    ),
+                                confirm =
+                                    runBlocking { getString(Res.string.change) } to { state ->
+                                        val newEndpoint = state.textField?.value?.trim() ?: ""
+                                        viewModel.setCustomUpdateEndpoint(newEndpoint)
+                                    },
+                                dismiss = runBlocking { getString(Res.string.cancel) },
                             ),
-                        ) {
-                            append("https://www.simpmusic.org/tools")
-                        }
-                        append(afterUrl)
+                        )
                     },
-                    style = typo().bodySmall,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                )
+                SettingItem(
+                    title = stringResource(Res.string.check_for_updates_now),
+                    subtitle = checkForUpdateSubtitle,
+                    onClick = {
+                        coroutineScope.launch {
+                            sharedViewModel.makeToast(runBlocking { getString(Res.string.update_checking) })
+                            viewModel.getLastCheckForUpdate()
+                        }
+                    },
                 )
             }
         }
@@ -2671,86 +2619,21 @@ fun SettingScreen(
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
                 SettingItem(
-                    title = stringResource(Res.string.version),
+                    title = "Owned & Developed by Pulse Music Studio",
                     subtitle = stringResource(Res.string.version_format, VersionManager.getVersionName()),
                     onClick = {
                         navController.navigate(CreditDestination)
                     },
                 )
                 SettingItem(
-                    title = stringResource(Res.string.auto_check_for_update),
-                    subtitle = stringResource(Res.string.auto_check_for_update_description),
-                    switch = (autoCheckUpdate to { viewModel.setAutoCheckUpdate(it) }),
-                )
-                SettingItem(
-                    title = stringResource(Res.string.update_channel),
-                    subtitle =
-                        if (updateChannel == DataStoreManager.FDROID) {
-                            "F-Droid"
-                        } else {
-                            "SimpMusic GitHub Release"
-                        },
-                    onClick = {
-                        viewModel.setAlertData(
-                            SettingAlertState(
-                                title = runBlocking { getString(Res.string.update_channel) },
-                                selectOne =
-                                    SettingAlertState.SelectData(
-                                        listSelect =
-                                            listOf(
-                                                (updateChannel == DataStoreManager.FDROID) to "F-Droid",
-                                                (updateChannel == DataStoreManager.GITHUB) to "SimpMusic GitHub Release",
-                                            ),
-                                    ),
-                                confirm =
-                                    runBlocking { getString(Res.string.change) } to { state ->
-                                        viewModel.setUpdateChannel(
-                                            when (state.selectOne?.getSelected()) {
-                                                "F-Droid" -> DataStoreManager.FDROID
-                                                "SimpMusic GitHub Release" -> DataStoreManager.GITHUB
-                                                else -> DataStoreManager.GITHUB
-                                            },
-                                        )
-                                    },
-                                dismiss = runBlocking { getString(Res.string.cancel) },
-                            ),
-                        )
-                    },
-                )
-                SettingItem(
-                    title = stringResource(Res.string.check_for_update),
-                    subtitle = checkForUpdateSubtitle,
-                    onClick = {
-                        sharedViewModel.checkForUpdate()
-                    },
-                )
-                SettingItem(
                     title = stringResource(Res.string.author),
-                    subtitle = stringResource(Res.string.maxrave_dev),
-                    onClick = {
-                        uriHandler.openUri("https://github.com/maxrave-dev")
-                    },
+                    subtitle = "Pulse Music Studio",
+                    onClick = {},
                 )
                 SettingItem(
-                    title = stringResource(Res.string.developer_blog),
-                    subtitle = stringResource(Res.string.developer_blog_tagline),
-                    onClick = {
-                        uriHandler.openUri("https://maxrave.dev")
-                    },
-                )
-                if (getPlatform() == Platform.Android) {
-                    SettingItem(
-                        title = stringResource(Res.string.blog_notification_title),
-                        subtitle = stringResource(Res.string.blog_notification_description),
-                        switch = (blogNotificationEnabled to { viewModel.setBlogNotificationEnabled(it) }),
-                    )
-                }
-                SettingItem(
-                    title = stringResource(Res.string.buy_me_a_coffee),
-                    subtitle = stringResource(Res.string.donation),
-                    onClick = {
-                        uriHandler.openUri("https://github.com/sponsors/maxrave-dev")
-                    },
+                    title = "Security & Protection",
+                    subtitle = "🛡️ Secured by Pulse Music Studio • Anti-Decompilation & Integrity Protected",
+                    onClick = {},
                 )
                 SettingItem(
                     title = stringResource(Res.string.third_party_libraries),
@@ -2764,6 +2647,14 @@ fun SettingScreen(
         item(key = "end") {
             EndOfPage()
         }
+    }
+    if (showImportLinkDialog) {
+        ImportLinkDialog(
+            onDismiss = { showImportLinkDialog = false },
+            onImportUrl = { url ->
+                importViewModel.importFromUrl(url)
+            },
+        )
     }
     importState?.let { progress ->
         ImportProgressDialog(
@@ -2889,171 +2780,7 @@ fun SettingScreen(
             },
         )
     }
-    if (showYouTubeAccountDialog) {
-        BasicAlertDialog(
-            onDismissRequest = { },
-            modifier = Modifier.wrapContentSize(),
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = AlertDialogDefaults.TonalElevation,
-                shadowElevation = 1.dp,
-            ) {
-                val googleAccounts by viewModel.googleAccounts.collectAsStateWithLifecycle(
-                    minActiveState = Lifecycle.State.RESUMED,
-                )
-                LaunchedEffect(googleAccounts) {
-                    Logger.w(
-                        "SettingScreen",
-                        "LaunchedEffect: ${
-                            googleAccounts.data?.map {
-                                it.name to it.isUsed
-                            }
-                        }",
-                    )
-                }
-                LazyColumn(modifier = Modifier.padding(8.dp)) {
-                    item {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                        ) {
-                            IconButton(
-                                onClick = { showYouTubeAccountDialog = false },
-                                colors =
-                                    IconButtonDefaults.iconButtonColors().copy(
-                                        contentColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                modifier =
-                                    Modifier
-                                        .align(Alignment.CenterStart)
-                                        .fillMaxHeight(),
-                            ) {
-                                Icon(SimpIcons.Close, null, tint = MaterialTheme.colorScheme.onSurface)
-                            }
-                            Text(
-                                stringResource(Res.string.youtube_account),
-                                style = typo().titleMedium,
-                                modifier =
-                                    Modifier
-                                        .align(Alignment.Center)
-                                        .wrapContentHeight(align = Alignment.CenterVertically)
-                                        .wrapContentWidth(),
-                            )
-                        }
-                    }
-                    if (googleAccounts is LocalResource.Success) {
-                        val data = googleAccounts.data
-                        if (data.isNullOrEmpty()) {
-                            item {
-                                Text(
-                                    stringResource(Res.string.no_account),
-                                    style = typo().bodyMedium,
-                                    textAlign = TextAlign.Center,
-                                    modifier =
-                                        Modifier
-                                            .padding(12.dp)
-                                            .fillMaxWidth(),
-                                )
-                            }
-                        } else {
-                            items(data) {
-                                Row(
-                                    modifier =
-                                        Modifier
-                                            .padding(vertical = 8.dp)
-                                            .clickable {
-                                                viewModel.setUsedAccount(it)
-                                            },
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Spacer(Modifier.width(24.dp))
-                                    AsyncImage(
-                                        model =
-                                            ImageRequest
-                                                .Builder(LocalPlatformContext.current)
-                                                .data(it.thumbnailUrl)
-                                                .crossfade(550)
-                                                .build(),
-                                        placeholder = rememberVectorPainter(SimpIcons.PeopleAlt),
-                                        error = rememberVectorPainter(SimpIcons.PeopleAlt),
-                                        contentDescription = it.name,
-                                        modifier =
-                                            Modifier
-                                                .size(48.dp)
-                                                .clip(CircleShape),
-                                    )
-                                    Spacer(Modifier.width(12.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(it.name, style = typo().labelMedium, color = MaterialTheme.colorScheme.onBackground)
-                                        Text(it.email, style = typo().bodySmall)
-                                    }
-                                    Spacer(Modifier.width(12.dp))
-                                    AnimatedVisibility(it.isUsed) {
-                                        Text(
-                                            stringResource(Res.string.signed_in),
-                                            style = typo().bodySmall,
-                                            maxLines = 2,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.widthIn(0.dp, 64.dp),
-                                        )
-                                    }
-                                    Spacer(Modifier.width(24.dp))
-                                }
-                            }
-                        }
-                    } else {
-                        item {
-                            CenterLoadingBox(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(80.dp),
-                            )
-                        }
-                    }
-                    item {
-                        Column {
-                            ActionButton(
-                                icon = SimpIcons.PeopleAlt,
-                                text = Res.string.guest,
-                            ) {
-                                viewModel.setUsedAccount(null)
-                                showYouTubeAccountDialog = false
-                            }
-                            ActionButton(
-                                icon = SimpIcons.Close,
-                                text = Res.string.log_out,
-                            ) {
-                                viewModel.setBasicAlertData(
-                                    SettingBasicAlertState(
-                                        title = runBlocking { getString(Res.string.warning) },
-                                        message = runBlocking { getString(Res.string.log_out_warning) },
-                                        confirm =
-                                            runBlocking { getString(Res.string.log_out) } to {
-                                                viewModel.logOutAllYouTube()
-                                                showYouTubeAccountDialog = false
-                                            },
-                                        dismiss = runBlocking { getString(Res.string.cancel) },
-                                    ),
-                                )
-                            }
-                            ActionButton(
-                                icon = SimpIcons.PlaylistAdd,
-                                text = Res.string.add_an_account,
-                            ) {
-                                showYouTubeAccountDialog = false
-                                navController.navigate(LoginDestination)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+
     val alertData by viewModel.alertData.collectAsStateWithLifecycle()
     if (alertData != null) {
         val alertState = alertData ?: return
@@ -3392,96 +3119,4 @@ fun SettingScreen(
                 ),
         )
     }
-}
-
-/**
- * Progress and outcome of a playlist import.
- *
- * Only dismissible once the import has finished — cancelling mid-write would leave the database
- * half-populated with no way to tell the user which half.
- */
-@Composable
-private fun ImportProgressDialog(
-    progress: ImportProgress,
-    onDismiss: () -> Unit,
-) {
-    val finished = progress is ImportProgress.Success || progress is ImportProgress.Error
-    AlertDialog(
-        onDismissRequest = { if (finished) onDismiss() },
-        properties =
-            DialogProperties(
-                dismissOnBackPress = finished,
-                dismissOnClickOutside = finished,
-            ),
-        title = {
-            Text(
-                text =
-                    stringResource(
-                        if (progress is ImportProgress.Error) Res.string.import_failed else Res.string.import_data,
-                    ),
-                style = typo().titleSmall,
-            )
-        },
-        text = {
-            Column {
-                when (progress) {
-                    is ImportProgress.Preparing -> {
-                        Text(
-                            text = stringResource(Res.string.import_reading_file),
-                            style = typo().bodyMedium,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-
-                    is ImportProgress.Importing -> {
-                        Text(
-                            text = stringResource(Res.string.import_progress_songs, progress.processed, progress.total),
-                            style = typo().bodyMedium,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        LinearProgressIndicator(
-                            progress = {
-                                if (progress.total > 0) progress.processed.toFloat() / progress.total else 0f
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    is ImportProgress.Success -> {
-                        Text(
-                            text =
-                                stringResource(
-                                    Res.string.import_result,
-                                    progress.result.playlistsCreated,
-                                    progress.result.songsImported,
-                                ),
-                            style = typo().bodyMedium,
-                        )
-                        if (progress.result.skippedEntries > 0) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = stringResource(Res.string.import_result_skipped, progress.result.skippedEntries),
-                                style = typo().bodySmall,
-                            )
-                        }
-                    }
-
-                    is ImportProgress.Error -> {
-                        Text(
-                            text = progress.message,
-                            style = typo().bodyMedium,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            if (finished) {
-                TextButton(onClick = onDismiss) {
-                    Text(text = stringResource(Res.string.ok))
-                }
-            }
-        },
-    )
 }

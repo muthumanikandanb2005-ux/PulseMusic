@@ -189,4 +189,64 @@ object NotificationHandler {
             notify(url.hashCode(), builder.build())
         }
     }
+
+    private const val APP_UPDATE_CHANNEL_ID = "pulse_app_update_channel"
+
+    fun createAppUpdateNotificationChannel(context: Context) {
+        val notificationManager: NotificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (notificationManager.getNotificationChannel(APP_UPDATE_CHANNEL_ID) == null) {
+            val channel =
+                NotificationChannel(
+                    APP_UPDATE_CHANNEL_ID,
+                    "App Updates",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply {
+                    description = "Notifies when a new version of Pulse is ready to install"
+                }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    fun createAppUpdateNotification(
+        context: Context,
+        versionName: String,
+        apkFile: java.io.File,
+    ) {
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.FileProvider",
+            apkFile,
+        )
+        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            1001,
+            installIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder =
+            NotificationCompat.Builder(context, APP_UPDATE_CHANNEL_ID)
+                .setSmallIcon(R.drawable.mono)
+                .setContentTitle("Pulse Update Ready ($versionName)")
+                .setContentText("A new version of Pulse has been downloaded. Tap to install.")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        with(NotificationManagerCompat.from(context)) {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            notify(1001, builder.build())
+        }
+    }
 }

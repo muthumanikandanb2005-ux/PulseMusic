@@ -18,10 +18,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
@@ -78,145 +81,104 @@ fun CreditScreen(
             contentDescription = "App Icon",
             modifier =
                 Modifier
-                    .size(150.dp)
+                    .size(130.dp)
                     .clip(CircleShape),
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // App name
         Text(
             text = stringResource(Res.string.app_name),
-            style = typo().titleLarge,
-            fontSize = 22.sp,
+            style = typo().titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+            ),
+            fontSize = 26.sp,
         )
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Version
         Text(
             text = stringResource(Res.string.version_format, VersionManager.getVersionName()),
             style = typo().bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 13.sp,
         )
 
-        // Developer - clickable, opens dev blog
-        Text(
-            text = stringResource(Res.string.maxrave_dev),
-            style = typo().bodyMedium,
-            textDecoration = TextDecoration.Underline,
-            modifier =
-                Modifier.clickable {
-                    openUrl("https://maxrave.dev")
-                },
-        )
+        Spacer(modifier = Modifier.height(14.dp))
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // App description
-        Text(
-            text = stringResource(Res.string.credit_app),
-            style = typo().bodyMedium,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 25.dp),
-            textAlign = TextAlign.Start,
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-            // Website button
-            TextButton(
-                onClick = {
-                    openUrl("https://simpmusic.org")
-                },
-                modifier =
-                    Modifier
-                        .align(Alignment.Start)
-                        .padding(horizontal = 25.dp)
-                        .defaultMinSize(minHeight = 1.dp, minWidth = 1.dp),
-            ) {
-                Text(text = stringResource(Res.string.website))
-            }
-
-            // Developer blog button
-            TextButton(
-                onClick = {
-                    openUrl("https://maxrave.dev")
-                },
-                modifier =
-                    Modifier
-                        .align(Alignment.Start)
-                        .padding(horizontal = 25.dp)
-                        .defaultMinSize(minHeight = 1.dp, minWidth = 1.dp),
-            ) {
-                Column {
-                    Text(text = stringResource(Res.string.developer_blog))
-                    Text(
-                        text = stringResource(Res.string.developer_blog_tagline),
-                        style = typo().bodySmall,
-                    )
-                }
-            }
-
-            // GitHub button
-            TextButton(
-                onClick = {
-                    openUrl("https://github.com/maxrave-dev/SimpMusic")
-                },
-                modifier =
-                    Modifier
-                        .align(Alignment.Start)
-                        .padding(horizontal = 25.dp)
-                        .defaultMinSize(minHeight = 1.dp, minWidth = 1.dp),
-            ) {
-                Text(text = stringResource(Res.string.github))
-            }
-
-            // Issue tracker button
-            TextButton(
-                onClick = {
-                    openUrl("https://github.com/maxrave-dev/SimpMusic/issues")
-                },
-                modifier =
-                    Modifier
-                        .align(Alignment.Start)
-                        .padding(horizontal = 25.dp)
-                        .defaultMinSize(minHeight = 1.dp, minWidth = 1.dp),
-            ) {
-                Text(text = stringResource(Res.string.issue_tracker))
-            }
-
-            // Buy me a coffee button
-            TextButton(
-                onClick = {
-                    openUrl("https://github.com/sponsors/maxrave-dev")
-                },
-                modifier =
-                    Modifier
-                        .align(Alignment.Start)
-                        .padding(horizontal = 25.dp)
-                        .defaultMinSize(minHeight = 1.dp, minWidth = 1.dp),
-            ) {
-                Text(text = stringResource(Res.string.buy_me_a_coffee))
-            }
+        // Developer badge
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) {
+            Text(
+                text = "✨ Owned & Developed by Pulse Music Studio",
+                style = typo().bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
         }
 
         Spacer(modifier = Modifier.height(10.dp))
+
+        // Secured by Pulse Music Studio badge
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFF10B981).copy(alpha = 0.15f),
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) {
+            Text(
+                text = "🛡️ Secured by Pulse Music Studio • 100% Anti-Decompilation & Integrity Protected",
+                style = typo().bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
+                fontSize = 13.sp,
+                color = Color(0xFF10B981),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // App description card
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.credit_app),
+                style = typo().bodyMedium,
+                modifier = Modifier.padding(20.dp),
+                textAlign = TextAlign.Start,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Copyright text
         Text(
             text = stringResource(Res.string.copyright),
             style = typo().bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 25.dp, vertical = 5.dp),
-            textAlign = TextAlign.Start,
+                    .padding(horizontal = 25.dp, vertical = 8.dp),
+            textAlign = TextAlign.Center,
         )
 
         // Bottom spacing
-        Spacer(modifier = Modifier.height(200.dp))
+        Spacer(modifier = Modifier.height(120.dp))
     }
     TopAppBar(
         modifier =

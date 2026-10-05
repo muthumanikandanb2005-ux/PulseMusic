@@ -195,6 +195,9 @@ fun NowPlayingScreenContent(
     val nowPlayingStyle by sharedViewModel
         .getNowPlayingStyle()
         .collectAsStateWithLifecycle(initialValue = DataStoreManager.NOW_PLAYING_STYLE_SPOTIFY)
+    val ambientModeSetting by sharedViewModel
+        .getAmbientMode()
+        .collectAsStateWithLifecycle(initialValue = DataStoreManager.TRUE)
 
     // Artwork Pager state — Spotify-style horizontal swipe between queue tracks.
     // The pager wraps the Canvas + Thumbnail layers. Controller layout below stays fixed.
@@ -613,6 +616,7 @@ fun NowPlayingScreenContent(
             // columns: mimeType keeps "audio/webm", codecs keeps "opus". Asking mimeType for the
             // codec therefore never matched anything and the badge never rendered, on any track.
             audioCodecLabel = formatState?.codecs.toAudioCodecLabel(),
+            ambientModeEnabled = ambientModeSetting != DataStoreManager.FALSE,
         )
     val actions =
         NowPlayingContentActions(

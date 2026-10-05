@@ -37,7 +37,7 @@ import com.maxrave.domain.mediaservice.handler.ToastType
 import com.maxrave.logger.Logger
 import com.maxrave.media3.di.setServiceActivitySession
 import com.maxrave.simpmusic.di.viewModelModule
-import com.maxrave.simpmusic.service.rss.RssFeedNotifyWork
+import com.maxrave.simpmusic.service.update.AppUpdateWorker
 import com.maxrave.simpmusic.service.test.notification.NotifyWork
 import com.maxrave.simpmusic.utils.ComposeResUtils
 import com.maxrave.simpmusic.utils.VersionManager
@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
         unloadKoinModules(viewModelModule)
         loadKoinModules(viewModelModule)
         VersionManager.initialize()
-        checkForUpdate()
+        // checkForUpdate() disabled for standalone security
         if (viewModel.recreateActivity.value || viewModel.isServiceRunning) {
             viewModel.activityRecreateDone()
         } else {
@@ -148,12 +148,21 @@ class MainActivity : AppCompatActivity() {
                 )
                 putString(SELECTED_LANGUAGE, Locale.getDefault().toLanguageTag())
                 if (SUPPORTED_LOCATION.items.contains(Locale.getDefault().country)) {
-                    putString("location", Locale.getDefault().country)
+                    val country = Locale.getDefault().country
+                    if (country == "VN") {
+                        putString("location", "IN")
+                    } else {
+                        putString("location", country)
+                    }
                 } else {
-                    putString("location", "US")
+                    putString("location", "IN")
                 }
             } else {
                 putString(SELECTED_LANGUAGE, "en-US")
+                putString("location", "IN")
+            }
+            if (getString("location") == null || getString("location") == "VN") {
+                putString("location", "IN")
             }
             // Fetch the selected language from wherever it was stored. In this case its SharedPref
             getString(SELECTED_LANGUAGE)?.let {
@@ -205,13 +214,16 @@ class MainActivity : AppCompatActivity() {
             request,
         )
         lifecycleScope.launch {
-            dataStoreManager.blogNotificationEnabled.collect { enabled ->
+            // Cancel legacy blog RSS worker
+            WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Blog RSS Worker")
+
+            dataStoreManager.autoCheckForUpdates.collect { enabled ->
                 if (enabled == DataStoreManager.TRUE) {
-                    val rssRequest =
-                        PeriodicWorkRequestBuilder<RssFeedNotifyWork>(
-                            24L,
+                    val updateRequest =
+                        PeriodicWorkRequestBuilder<AppUpdateWorker>(
+                            12L,
                             TimeUnit.HOURS,
-                        ).addTag("Blog RSS Worker")
+                        ).addTag("Pulse App Update Worker")
                             .setConstraints(
                                 Constraints
                                     .Builder()
@@ -219,12 +231,12 @@ class MainActivity : AppCompatActivity() {
                                     .build(),
                             ).build()
                     WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
-                        "Blog RSS Worker",
+                        "Pulse App Update Worker",
                         ExistingPeriodicWorkPolicy.KEEP,
-                        rssRequest,
+                        updateRequest,
                     )
                 } else {
-                    WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Blog RSS Worker")
+                    WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Pulse App Update Worker")
                 }
             }
         }
@@ -301,9 +313,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkForUpdate() {
-        if (viewModel.shouldCheckForUpdate()) {
-            viewModel.checkForUpdate()
-        }
+        // Disabled: App is fully standalone and cannot receive external updates
     }
 
     private fun putString(

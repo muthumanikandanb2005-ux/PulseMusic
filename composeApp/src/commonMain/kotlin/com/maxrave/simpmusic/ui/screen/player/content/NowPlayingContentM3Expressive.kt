@@ -66,6 +66,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -270,7 +272,29 @@ private fun NowPlayingM3ExpressiveLayout(
                 // Tonal design: the page is a plain surface — the artwork card carries the
                 // color. While a canvas is active (showHideMiddleLayout is false exactly
                 // then) the page goes flat black instead, exactly like Classic.
-                .background(if (state.showHideMiddleLayout) colorScheme.surface else Color.Black),
+                .background(if (state.showHideMiddleLayout) colorScheme.surface else Color.Black)
+                .then(
+                    if (state.ambientModeEnabled && state.showHideMiddleLayout) {
+                        Modifier.drawBehind {
+                            val gradientHeight = screenInfo.hPX.toFloat()
+                            drawCircle(
+                                brush =
+                                    Brush.radialGradient(
+                                        colors =
+                                            listOf(
+                                                state.startColor.value.copy(alpha = 0.35f),
+                                                state.endColor.value.copy(alpha = 0.12f),
+                                                Color.Transparent,
+                                            ),
+                                        center = Offset(size.width / 2f, gradientHeight * 0.35f),
+                                        radius = size.width * 0.90f,
+                                    ),
+                            )
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 // === 4. Artwork pager — same state/sync as Classic, card presentation ===
