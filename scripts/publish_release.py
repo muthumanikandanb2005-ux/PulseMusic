@@ -4,6 +4,8 @@ import json
 import urllib.request
 import urllib.parse
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 REPO = "muthumanikandanb2005-ux/PulseMusic"
 TAG = "v2.1.7"
 RELEASE_NAME = "Pulse Music v2.1.7 - BitChord UI & OTA Update Engine"
@@ -49,7 +51,7 @@ def main():
     create_url = f"https://api.github.com/repos/{REPO}/releases"
     payload = {
         "tag_name": TAG,
-        "target_commitish": "dev",
+        "target_commitish": "main",
         "name": RELEASE_NAME,
         "body": BODY,
         "draft": False,
@@ -77,10 +79,33 @@ def main():
             print(f"Failed to create release: {e.code} {err_msg}")
             sys.exit(1)
 
+    # Query existing assets on this release and delete duplicates to allow clean re-upload
+    assets_req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/{release_id}/assets", headers=headers)
+    existing_assets = {}
+    try:
+        with urllib.request.urlopen(assets_req) as resp:
+            for item in json.loads(resp.read().decode("utf-8")):
+                existing_assets[item["name"]] = item["id"]
+    except Exception as e:
+        print(f"Note: Could not list existing assets: {e}")
+
     for asset_name, asset_path in ASSETS:
         if not os.path.exists(asset_path):
             print(f"Skipping {asset_name}: {asset_path} does not exist.")
             continue
+
+        if asset_name in existing_assets:
+            print(f"Deleting existing asset {asset_name} (ID: {existing_assets[asset_name]})...")
+            del_req = urllib.request.Request(
+                f"https://api.github.com/repos/{REPO}/releases/assets/{existing_assets[asset_name]}",
+                headers=headers,
+                method="DELETE"
+            )
+            try:
+                with urllib.request.urlopen(del_req) as resp:
+                    print(f"✓ Removed old {asset_name}")
+            except Exception as e:
+                print(f"Warning: Failed to delete old asset {asset_name}: {e}")
 
         file_size = os.path.getsize(asset_path)
         print(f"Uploading {asset_name} ({file_size / (1024*1024):.1f} MB)...")

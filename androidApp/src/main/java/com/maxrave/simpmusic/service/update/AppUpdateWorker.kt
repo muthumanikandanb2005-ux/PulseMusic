@@ -67,14 +67,21 @@ class AppUpdateWorker(
                     remoteVersion = json.getString("tag_name").trim()
                     if (json.has("assets")) {
                         val assets = json.getJSONArray("assets")
+                        var fallbackApkUrl = ""
                         for (i in 0 until assets.length()) {
                             val asset = assets.getJSONObject(i)
                             val name = asset.optString("name", "")
                             val assetUrl = asset.optString("browser_download_url", "")
                             if (name.endsWith(".apk", ignoreCase = true) || assetUrl.endsWith(".apk", ignoreCase = true)) {
-                                downloadUrl = assetUrl
-                                break
+                                if (fallbackApkUrl.isEmpty()) fallbackApkUrl = assetUrl
+                                if (name.contains("universal", ignoreCase = true)) {
+                                    downloadUrl = assetUrl
+                                    break
+                                }
                             }
+                        }
+                        if (downloadUrl.isEmpty()) {
+                            downloadUrl = fallbackApkUrl
                         }
                     }
                 } else if (json.has("version")) {
