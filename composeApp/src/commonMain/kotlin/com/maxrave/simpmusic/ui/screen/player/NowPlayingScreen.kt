@@ -86,6 +86,7 @@ import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.navigation.destination.player.FullscreenDestination
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentActions
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentAppleMusic
+import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentBitChord
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentM3Expressive
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentSpotify
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentState
@@ -194,7 +195,7 @@ fun NowPlayingScreenContent(
     // Which Now Playing style renders the content layer (Settings → Now Playing style).
     val nowPlayingStyle by sharedViewModel
         .getNowPlayingStyle()
-        .collectAsStateWithLifecycle(initialValue = DataStoreManager.NOW_PLAYING_STYLE_SPOTIFY)
+        .collectAsStateWithLifecycle(initialValue = DataStoreManager.NOW_PLAYING_STYLE_BITCHORD)
     val ambientModeSetting by sharedViewModel
         .getAmbientMode()
         .collectAsStateWithLifecycle(initialValue = DataStoreManager.TRUE)
@@ -856,6 +857,12 @@ fun NowPlayingScreenContent(
     }
 
     when (nowPlayingStyle) {
+        DataStoreManager.NOW_PLAYING_STYLE_BITCHORD ->
+            NowPlayingContentBitChord(
+                state = state,
+                actions = actions,
+            )
+
         DataStoreManager.NOW_PLAYING_STYLE_M3_EXPRESSIVE ->
             NowPlayingContentM3Expressive(
                 state = state,
@@ -868,8 +875,14 @@ fun NowPlayingScreenContent(
                 actions = actions,
             )
 
-        else ->
+        DataStoreManager.NOW_PLAYING_STYLE_SPOTIFY ->
             NowPlayingContentSpotify(
+                state = state,
+                actions = actions,
+            )
+
+        else ->
+            NowPlayingContentBitChord(
                 state = state,
                 actions = actions,
             )

@@ -772,6 +772,7 @@ fun SettingScreen(
                 val requiresAndroid12 = " (" + stringResource(Res.string.requires_android_12) + ")"
                 val nowPlayingStyleLabels =
                     listOf(
+                        DataStoreManager.NOW_PLAYING_STYLE_BITCHORD to "Pulse BitChord (Ultra-Smooth)",
                         DataStoreManager.NOW_PLAYING_STYLE_SPOTIFY to stringResource(Res.string.now_playing_style_spotify),
                         DataStoreManager.NOW_PLAYING_STYLE_M3_EXPRESSIVE to stringResource(Res.string.now_playing_style_m3_expressive),
                         DataStoreManager.NOW_PLAYING_STYLE_APPLE_MUSIC to
