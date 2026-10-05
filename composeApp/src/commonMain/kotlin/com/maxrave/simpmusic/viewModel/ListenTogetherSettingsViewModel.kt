@@ -32,7 +32,7 @@ class ListenTogetherSettingsViewModel(
             .map { !it.isNullOrBlank() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    val autoApproveJoins: StateFlow<Boolean> = boolFlow(KEY_AUTO_APPROVE_JOINS)
+    val autoApproveJoins: StateFlow<Boolean> = boolFlow(KEY_AUTO_APPROVE_JOINS, default = true)
     val autoApproveSuggestions: StateFlow<Boolean> = boolFlow(KEY_AUTO_APPROVE_SUGGESTIONS)
     val followHostVolume: StateFlow<Boolean> = boolFlow(KEY_FOLLOW_HOST_VOLUME, default = true)
 

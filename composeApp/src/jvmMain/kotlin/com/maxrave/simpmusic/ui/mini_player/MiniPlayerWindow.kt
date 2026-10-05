@@ -44,7 +44,7 @@ fun MiniPlayerWindow(
     sharedViewModel: SharedViewModel,
     onCloseRequest: () -> Unit,
 ) {
-    val prefs = remember { Preferences.userRoot().node("SimpMusic/MiniPlayer") }
+    val prefs = remember { Preferences.userRoot().node("PulseMusic/MiniPlayer") }
 
     // Minimum size constraints
     val minWidth = 200f
@@ -85,7 +85,7 @@ fun MiniPlayerWindow(
 
     Window(
         onCloseRequest = onCloseRequest,
-        title = "SimpMusic - Mini Player",
+        title = "PulseMusic - Mini Player",
         icon = painterResource(Res.drawable.circle_app_icon),
         alwaysOnTop = true,
         undecorated = true,

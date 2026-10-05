@@ -250,6 +250,7 @@ class SharedViewModel(
                 )
             }
             dataStoreManager.openApp()
+            checkForAppUpdate(silent = true)
             val timeLineJob =
                 launch {
                     nowPlayingState
@@ -1048,45 +1049,9 @@ class SharedViewModel(
     val updateResponse: StateFlow<UpdateData?> = _updateResponse
 
     fun checkForUpdate() {
-        viewModelScope.launch {
-            _isCheckingUpdate.value = true
-            val updateChannel = dataStoreManager.updateChannel.first()
-            dataStoreManager.putString(
-                "CheckForUpdateAt",
-                System.currentTimeMillis().toString(),
-            )
-            if (updateChannel == DataStoreManager.GITHUB) {
-                updateRepository.checkForGithubReleaseUpdate().collectLatest { response ->
-                    val data = response.data
-                    when (response) {
-                        is Resource.Success if (data != null) -> {
-                            _updateResponse.value = data
-                            showedUpdateDialog = true
-                        }
-
-                        else -> {
-                            log("Check for update error: ${response.message}", LogLevel.WARN)
-                        }
-                    }
-                    _isCheckingUpdate.value = false
-                }
-            } else if (updateChannel == DataStoreManager.FDROID) {
-                updateRepository.checkForFdroidUpdate().collectLatest { response ->
-                    val data = response.data
-                    when (response) {
-                        is Resource.Success if (data != null) -> {
-                            _updateResponse.value = data
-                            showedUpdateDialog = true
-                        }
-
-                        else -> {
-                            log("Check for update error: ${response.message}", LogLevel.WARN)
-                        }
-                    }
-                    _isCheckingUpdate.value = false
-                }
-            }
-        }
+        // Disabled: App is fully standalone and cannot receive external updates
+        _isCheckingUpdate.value = false
+        _updateResponse.value = null
     }
 
     fun stopPlayer() {
@@ -1829,6 +1794,14 @@ class SharedViewModel(
 
     fun getNowPlayingStyle() = dataStoreManager.nowPlayingStyle
 
+    fun getAmbientMode() = dataStoreManager.ambientMode
+
+    fun setAmbientMode(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.setAmbientMode(enabled)
+        }
+    }
+
     fun getLyricsStyle() = dataStoreManager.lyricsStyle
 
     fun getLyricsOffsetMs() = dataStoreManager.lyricsOffsetMs
@@ -1883,6 +1856,43 @@ class SharedViewModel(
 
     fun reloadDestinationDone() {
         _reloadDestination.value = null
+    }
+
+    private val _availableUpdate = MutableStateFlow<UpdateData?>(null)
+    val availableUpdate: StateFlow<UpdateData?> = _availableUpdate.asStateFlow()
+
+    fun dismissUpdate() {
+        _availableUpdate.value = null
+    }
+
+    fun checkForAppUpdate(silent: Boolean = true) {
+        viewModelScope.launch {
+            try {
+                updateRepository.checkForGithubReleaseUpdate().collect { res ->
+                    when (res) {
+                        is Resource.Success -> {
+                            val update = res.data
+                            if (update != null && update.tagName.isNotBlank()) {
+                                val current = VersionManager.getVersionName().trim().removePrefix("v").removePrefix("V")
+                                val remote = update.tagName.trim().removePrefix("v").removePrefix("V")
+                                if (remote.isNotEmpty() && remote != current) {
+                                    _availableUpdate.value = update
+                                } else if (!silent) {
+                                    makeToast("Pulse Music is up to date (v$current)")
+                                }
+                            }
+                        }
+                        is Resource.Error -> {
+                            if (!silent) {
+                                makeToast(res.message ?: "Failed to check for updates")
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e(tag, "checkForAppUpdate error: ${e.message}")
+            }
+        }
     }
 
     fun shouldCheckForUpdate(): Boolean = runBlocking { dataStoreManager.autoCheckForUpdates.first() == TRUE }

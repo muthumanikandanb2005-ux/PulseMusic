@@ -34,7 +34,7 @@ fun EndOfPage(withoutCredit: Boolean = false) {
                     stringResource(
                         Res.string.version_format,
                         VersionManager.getVersionName(),
-                    ) + "\nmaxrave-dev",
+                    ) + "\nOwned & Developed by Pulse Music Studio",
                 style = typo().bodySmall,
                 textAlign = TextAlign.Center,
                 modifier =

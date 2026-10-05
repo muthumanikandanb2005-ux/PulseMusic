@@ -75,17 +75,24 @@ import com.maxrave.simpmusic.ui.component.LibraryItemState
 import com.maxrave.simpmusic.ui.component.LibraryItemType
 import com.maxrave.simpmusic.ui.component.LibraryTilingBox
 import com.maxrave.simpmusic.ui.component.ListenTogetherIconButton
-import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.component.selection.SelectedSongsBottomSheet
 import com.maxrave.simpmusic.ui.component.selection.SongSelectionTopAppBar
 import com.maxrave.simpmusic.ui.component.selection.rememberSongSelectionState
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import com.maxrave.simpmusic.ui.component.ImportProgressDialog
+import com.maxrave.simpmusic.ui.component.ImportLinkDialog
 import com.maxrave.simpmusic.ui.icon.Groups
 import com.maxrave.simpmusic.ui.icon.PeopleAlt
+import com.maxrave.simpmusic.ui.icon.PlaylistAdd
 import com.maxrave.simpmusic.ui.icon.SimpIcons
 import com.maxrave.simpmusic.ui.navigation.destination.home.ListenTogetherDestination
 import com.maxrave.simpmusic.ui.theme.typo
+import com.maxrave.simpmusic.viewModel.ImportViewModel
 import com.maxrave.simpmusic.viewModel.LibraryViewModel
 import com.maxrave.simpmusic.viewModel.SongSelectionViewModel
+import simpmusic.composeapp.generated.resources.import_playlist_from_link
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -158,6 +165,10 @@ fun LibraryScreen(
         mutableStateOf(0.dp)
     }
     var showAddSheet by remember { mutableStateOf(false) }
+    var showImportLinkDialog by remember { mutableStateOf(false) }
+    val importViewModel: ImportViewModel = koinViewModel()
+    val importState by importViewModel.importState.collectAsStateWithLifecycle()
+
 
     LaunchedEffect(nowPlaying) {
         Logger.w("LibraryScreen", "Check nowPlaying: $nowPlaying")
@@ -444,9 +455,54 @@ fun LibraryScreen(
                     ) {
                         Text(text = stringResource(Res.string.create))
                     }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    TextButton(
+                        onClick = {
+                            hideEditTitleBottomSheet()
+                            showImportLinkDialog = true
+                        },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.CenterHorizontally),
+                    ) {
+                        Icon(
+                            imageVector = SimpIcons.PlaylistAdd,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(Res.string.import_playlist_from_link),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
+    }
+    if (showImportLinkDialog) {
+        ImportLinkDialog(
+            onDismiss = { showImportLinkDialog = false },
+            onImportUrl = { url ->
+                importViewModel.importFromUrl(url)
+            },
+        )
+    }
+    importState?.let { progress ->
+        ImportProgressDialog(
+            progress = progress,
+            onDismiss = {
+                importViewModel.dismiss()
+                viewModel.getLocalPlaylist()
+            },
+        )
     }
     Column(
         Modifier
@@ -565,7 +621,7 @@ fun LibraryScreen(
         if (showSelectionSheet) {
             val selectedIds = selectionState.selected.toList()
             SelectedSongsBottomSheet(
-                count = selectedIds.size,
+                count = selectedIds.count(),
                 onDismiss = { showSelectionSheet = false },
                 onPlayNext = {
                     selectionViewModel.playNext(selectedIds)

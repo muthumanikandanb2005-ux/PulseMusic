@@ -133,6 +133,7 @@ import simpmusic.composeapp.generated.resources.analytics_no_data_period
 import simpmusic.composeapp.generated.resources.no_data_analytics
 import simpmusic.composeapp.generated.resources.songs_played
 import simpmusic.composeapp.generated.resources.this_year
+import simpmusic.composeapp.generated.resources.today
 import simpmusic.composeapp.generated.resources.top_song
 import simpmusic.composeapp.generated.resources.total_listened_time
 import simpmusic.composeapp.generated.resources.your_recently_played
@@ -482,6 +483,7 @@ private fun DayRangePill(
     val label =
         stringResource(
             when (uiState.dayRange) {
+                AnalyticsUiState.DayRange.TODAY -> Res.string.today
                 AnalyticsUiState.DayRange.LAST_7_DAYS -> Res.string.last_7_days
                 AnalyticsUiState.DayRange.LAST_30_DAYS -> Res.string.last_30_days
                 AnalyticsUiState.DayRange.LAST_90_DAYS -> Res.string.last_90_days
@@ -515,6 +517,7 @@ private fun DayRangePill(
                         Text(
                             stringResource(
                                 when (range) {
+                                    AnalyticsUiState.DayRange.TODAY -> Res.string.today
                                     AnalyticsUiState.DayRange.LAST_7_DAYS -> Res.string.last_7_days
                                     AnalyticsUiState.DayRange.LAST_30_DAYS -> Res.string.last_30_days
                                     AnalyticsUiState.DayRange.LAST_90_DAYS -> Res.string.last_90_days
@@ -1277,6 +1280,7 @@ private fun DateRangeSection(
                     Text(
                         text =
                             when (bucket) {
+                                is AnalyticsUiState.ChartType.Hour -> "${bucket.startHour.toString().padStart(2, '0')}:00 – ${bucket.endHour.toString().padStart(2, '0')}:00"
                                 is AnalyticsUiState.ChartType.Day -> formatChartDay(bucket.day)
                                 is AnalyticsUiState.ChartType.Week -> formatChartWeek(bucket.start, bucket.end)
                                 is AnalyticsUiState.ChartType.Month -> formatChartMonth(bucket.month, bucket.year)

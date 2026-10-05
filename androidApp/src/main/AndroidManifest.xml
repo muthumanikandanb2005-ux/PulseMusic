@@ -17,6 +17,7 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <uses-feature
         android:name="android.hardware.type.automotive"
@@ -49,7 +50,7 @@
     </queries>
 
     <application
-        android:name=".SimpMusicApplication"
+        android:name=".PulseMusicApplication"
         android:allowBackup="true"
         android:appCategory="audio"
         android:dataExtractionRules="@xml/data_extraction_rules"

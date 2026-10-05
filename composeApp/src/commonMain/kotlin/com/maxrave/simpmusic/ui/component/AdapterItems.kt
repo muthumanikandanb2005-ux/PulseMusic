@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -434,7 +435,11 @@ fun HomeItemContentPlaylist(
                         .size(thumbSize)
                         .aspectRatio(1f)
                         .clip(
-                            RoundedCornerShape(10.dp),
+                            RoundedCornerShape(16.dp),
+                        ).border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                            RoundedCornerShape(16.dp),
                         ),
             )
             Text(
@@ -549,12 +554,7 @@ fun HomeItemContentPlaylist(
                 modifier =
                     Modifier
                         .width(thumbSize)
-                        .wrapContentHeight(align = Alignment.CenterVertically)
-                        .basicMarquee(
-                            initialDelayMillis = 2000,
-                            repeatDelayMillis = 2000,
-                            velocity = 25.dp,
-                        ),
+                        .wrapContentHeight(align = Alignment.CenterVertically),
             )
         }
     }
@@ -575,7 +575,7 @@ fun QuickPicksItem(
                 .wrapContentHeight()
                 .width(widthDp - 30.dp)
                 .focusable(true)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick,
@@ -592,9 +592,10 @@ fun QuickPicksItem(
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
                         .data(data.thumbnails.lastOrNull()?.url)
-                        .crossfade(550)
+                        .crossfade(300)
                         .diskCacheKey(data.thumbnails.lastOrNull()?.url)
                         .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
                         .build(),
                 placeholder = rememberHolderPainter(),
                 contentDescription = stringResource(Res.string.description),
@@ -602,9 +603,13 @@ fun QuickPicksItem(
                 modifier =
                     Modifier
                         .align(Alignment.CenterVertically)
-                        .size(44.dp)
+                        .size(46.dp)
                         .clip(
-                            RoundedCornerShape(10),
+                            RoundedCornerShape(10.dp),
+                        ).border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                            RoundedCornerShape(10.dp),
                         ),
             )
             Column(
@@ -629,43 +634,28 @@ fun QuickPicksItem(
                             .wrapContentHeight(align = Alignment.CenterVertically)
                             .padding(
                                 bottom = 3.dp,
-                            ).basicMarquee(
-                                iterations = Int.MAX_VALUE,
-                                initialDelayMillis = 2000,
-                                repeatDelayMillis = 2000,
-                                velocity = 25.dp,
                             ),
                 )
-                LazyRow(verticalAlignment = Alignment.CenterVertically) {
-                    item {
-                        androidx.compose.animation.AnimatedVisibility(visible = data.isExplicit == true) {
-                            ExplicitBadge(
-                                modifier =
-                                    Modifier
-                                        .size(20.dp)
-                                        .padding(end = 4.dp)
-                                        .weight(1f),
-                            )
-                        }
-                    }
-                    item {
-                        Text(
-                            text = data.artists.toListName().connectArtists(),
-                            style = typo().bodySmall,
-                            minLines = 1,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.animation.AnimatedVisibility(visible = data.isExplicit == true) {
+                        ExplicitBadge(
                             modifier =
                                 Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentHeight(align = Alignment.CenterVertically)
-                                    .basicMarquee(
-                                        initialDelayMillis = 2000,
-                                        repeatDelayMillis = 2000,
-                                        velocity = 25.dp,
-                                    ),
+                                    .size(20.dp)
+                                    .padding(end = 4.dp),
                         )
                     }
+                    Text(
+                        text = data.artists.toListName().connectArtists(),
+                        style = typo().bodySmall,
+                        minLines = 1,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight(align = Alignment.CenterVertically),
+                    )
                 }
             }
         }
@@ -704,15 +694,15 @@ fun HomeItemSong(
                         it
                     }
                 }
-            Logger.w("AsyncImage", "HomeItemSong: $thumb")
             AsyncImage(
                 model =
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
                         .data(thumb)
                         .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCacheKey(thumb)
-                        .crossfade(550)
+                        .crossfade(300)
                         .build(),
                 placeholder = rememberHolderPainter(),
                 error = rememberHolderPainter(),
@@ -765,11 +755,7 @@ fun HomeItemSong(
                         Modifier
                             .width(160.dp)
                             .wrapContentHeight(align = Alignment.CenterVertically)
-                            .basicMarquee(
-                                initialDelayMillis = 2000,
-                                repeatDelayMillis = 2000,
-                                velocity = 25.dp,
-                            ).padding(vertical = 3.dp),
+                            .padding(vertical = 3.dp),
                 )
             }
         }
@@ -802,15 +788,15 @@ fun HomeItemVideo(
                     .heightIn(min = 236.dp),
         ) {
             val thumb = data.thumbnails.lastOrNull()?.url
-            Logger.w("AsyncImage", "HomeItemSong: $thumb")
             AsyncImage(
                 model =
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
                         .data(thumb)
                         .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCacheKey(thumb)
-                        .crossfade(550)
+                        .crossfade(300)
                         .build(),
                 placeholder = rememberHolderPainter(isVideo = true),
                 error = rememberHolderPainter(isVideo = true),
@@ -854,11 +840,7 @@ fun HomeItemVideo(
                     Modifier
                         .width(284.5.dp)
                         .wrapContentHeight(align = Alignment.CenterVertically)
-                        .basicMarquee(
-                            initialDelayMillis = 2000,
-                            repeatDelayMillis = 2000,
-                            velocity = 25.dp,
-                        ).padding(vertical = 2.dp),
+                        .padding(vertical = 2.dp),
             )
         }
     }
@@ -888,15 +870,15 @@ fun HomeItemArtist(
                     .heightIn(min = 236.dp),
         ) {
             val thumb = data.thumbnails.lastOrNull()?.url
-            Logger.w("AsyncImage", "HomeItemSong: $thumb")
             AsyncImage(
                 model =
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
                         .data(thumb)
                         .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCacheKey(thumb)
-                        .crossfade(550)
+                        .crossfade(300)
                         .build(),
                 placeholder = rememberHolderPainter(),
                 error = rememberHolderPainter(),
@@ -933,12 +915,7 @@ fun HomeItemArtist(
                 modifier =
                     Modifier
                         .width(160.dp)
-                        .wrapContentHeight(align = Alignment.CenterVertically)
-                        .basicMarquee(
-                            initialDelayMillis = 2000,
-                            repeatDelayMillis = 2000,
-                            velocity = 25.dp,
-                        ),
+                        .wrapContentHeight(align = Alignment.CenterVertically),
             )
         }
     }
@@ -1008,15 +985,15 @@ fun ItemVideoChart(
                     .padding(10.dp),
         ) {
             val thumb = data.thumbnails.lastOrNull()?.url
-            Logger.w("AsyncImage", "HomeItemSong: $thumb")
             AsyncImage(
                 model =
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
                         .data(thumb)
                         .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCacheKey(thumb)
-                        .crossfade(550)
+                        .crossfade(300)
                         .build(),
                 placeholder = rememberHolderPainter(isVideo = true),
                 error = rememberHolderPainter(isVideo = true),
@@ -1073,11 +1050,7 @@ fun ItemVideoChart(
                             Modifier
                                 .width(210.dp)
                                 .wrapContentHeight(align = Alignment.CenterVertically)
-                                .basicMarquee(
-                                    initialDelayMillis = 2000,
-                                    repeatDelayMillis = 2000,
-                                    velocity = 25.dp,
-                                ).padding(vertical = 3.dp),
+                                .padding(vertical = 3.dp),
                     )
                 }
             }
@@ -1095,7 +1068,7 @@ fun ItemArtistChart(
         Modifier
             .wrapContentSize()
             .focusable(true)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable {
                 onClick()
             },
@@ -1119,15 +1092,15 @@ fun ItemArtistChart(
                         .padding(end = 20.dp),
             )
             val thumb = data.thumbnails.lastOrNull()?.url
-            Logger.w("AsyncImage", "HomeItemSong: $thumb")
             AsyncImage(
                 model =
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
                         .data(thumb)
                         .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCacheKey(thumb)
-                        .crossfade(550)
+                        .crossfade(300)
                         .build(),
                 placeholder = rememberHolderPainter(),
                 error = rememberHolderPainter(),
@@ -1175,12 +1148,7 @@ fun ItemArtistChart(
                     overflow = TextOverflow.Ellipsis,
                     modifier =
                         Modifier
-                            .wrapContentHeight(align = Alignment.CenterVertically)
-                            .basicMarquee(
-                                initialDelayMillis = 2000,
-                                repeatDelayMillis = 2000,
-                                velocity = 25.dp,
-                            ),
+                            .wrapContentHeight(align = Alignment.CenterVertically),
                 )
             }
         }
@@ -1199,7 +1167,7 @@ fun ItemTrackChart(
             Modifier
                 .wrapContentSize()
                 .focusable(true)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .clickable {
                     onClick()
                 },
@@ -1230,15 +1198,15 @@ fun ItemTrackChart(
                 }
             }
             val thumb = data.thumbnails?.lastOrNull()?.url
-            Logger.w("AsyncImage", "HomeItemSong: $thumb")
             AsyncImage(
                 model =
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
                         .data(thumb)
                         .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCacheKey(thumb)
-                        .crossfade(550)
+                        .crossfade(300)
                         .build(),
                 placeholder = rememberHolderPainter(),
                 error = rememberHolderPainter(),
@@ -1249,7 +1217,11 @@ fun ItemTrackChart(
                         .align(Alignment.CenterVertically)
                         .size(50.dp)
                         .clip(
-                            RoundedCornerShape(10),
+                            RoundedCornerShape(12.dp),
+                        ).border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                            RoundedCornerShape(12.dp),
                         ),
             )
             Column(
@@ -1283,12 +1255,7 @@ fun ItemTrackChart(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .wrapContentHeight(align = Alignment.CenterVertically)
-                            .basicMarquee(
-                                initialDelayMillis = 2000,
-                                repeatDelayMillis = 2000,
-                                velocity = 25.dp,
-                            ),
+                            .wrapContentHeight(align = Alignment.CenterVertically),
                 )
             }
         }

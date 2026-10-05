@@ -6,3 +6,5 @@ package com.maxrave.simpmusic.ui.icon
  * `SimpIcons.PlayArrow`, mirroring how androidx exposes `Icons.Rounded.PlayArrow`.
  */
 object SimpIcons
+
+typealias PulseIcons = SimpIcons

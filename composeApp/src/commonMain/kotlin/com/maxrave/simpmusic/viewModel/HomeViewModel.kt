@@ -87,17 +87,11 @@ class HomeViewModel(
     val mainHomeThumbnail: StateFlow<String?> = _mainHomeThumbnail
 
     init {
-        if (runBlocking { dataStoreManager.cookie.first() }.isEmpty() &&
-            runBlocking {
-                dataStoreManager.shouldShowLogInRequiredAlert.first() == TRUE
-            }
-        ) {
-            _showLogInAlert.update { true }
-        }
         homeJob = Job()
         viewModelScope.launch {
             regionCodeChart.value = dataStoreManager.chartKey.first()
-            exploreChart(regionCodeChart.value ?: "ZZ")
+            val chartRegion = regionCodeChart.value.let { if (it == null || it == "VN") "ZZ" else it }
+            exploreChart(chartRegion)
             language = dataStoreManager.getString(SELECTED_LANGUAGE).first()
                 ?: SUPPORTED_LANGUAGE.codes.first()
             //  refresh when region change
@@ -214,7 +208,7 @@ class HomeViewModel(
                     when (home) {
                         is Resource.Success -> {
                             _continuation.value = home.data?.first
-                            _homeItemList.value = home.data?.second ?: listOf()
+                            _homeItemList.value = filterCleanHomeItems(home.data?.second ?: listOf())
                         }
 
                         else -> {
@@ -229,7 +223,7 @@ class HomeViewModel(
                     }
                     when (chart) {
                         is Resource.Success -> {
-                            _chart.value = chart.data
+                            _chart.value = filterCleanChart(chart.data)
                         }
 
                         else -> {
@@ -238,7 +232,7 @@ class HomeViewModel(
                     }
                     when (newRelease) {
                         is Resource.Success -> {
-                            _newRelease.value = newRelease.data ?: arrayListOf()
+                            _newRelease.value = filterCleanHomeItems(newRelease.data ?: arrayListOf())
                         }
 
                         else -> {
@@ -299,7 +293,7 @@ class HomeViewModel(
                         when (home) {
                             is Resource.Success -> {
                                 _continuation.value = home.data?.first
-                                val newItems = home.data?.second ?: listOf()
+                                val newItems = filterCleanHomeItems(home.data?.second ?: listOf())
                                 _homeItemList.update { it + newItems }
                                 if (home.data?.first.isNullOrEmpty()) {
                                     _homeListState.value = ListState.PAGINATION_EXHAUST
@@ -331,7 +325,7 @@ class HomeViewModel(
                     dataStoreManager.setChartKey(region)
                     when (values) {
                         is Resource.Success -> {
-                            _chart.value = values.data
+                            _chart.value = filterCleanChart(values.data)
                         }
 
                         else -> {
@@ -341,6 +335,82 @@ class HomeViewModel(
                     loadingChart.value = false
                 }
         }
+    }
+
+    private fun isBollywoodOrVideo(content: com.maxrave.domain.data.model.home.Content?): Boolean {
+        if (content == null) return false
+        val title = content.title.lowercase()
+        val desc = content.description?.lowercase().orEmpty()
+        val album = content.album?.name?.lowercase().orEmpty()
+        val videoType = content.videoType?.lowercase().orEmpty()
+
+        // Filter Bollywood content
+        if (title.contains("bollywood") || desc.contains("bollywood") || album.contains("bollywood")) {
+            return true
+        }
+        if (content.artists?.any { it.name.lowercase().contains("bollywood") } == true) {
+            return true
+        }
+
+        // Filter video songs (YouTube Music classifies standard audio tracks as ATV - Audio Track Video)
+        if (videoType.isNotEmpty() && !videoType.contains("atv") && (videoType.contains("omv") || videoType.contains("ugc") || videoType.contains("video"))) {
+            return true
+        }
+
+        // Filter video songs by title patterns
+        val videoPatterns = listOf(
+            "official video",
+            "official music video",
+            "music video",
+            "video song",
+            "full video",
+            "visualizer",
+            "lyric video",
+            "performance video",
+            "(video)",
+            "[video]",
+            "(mv)",
+            "[mv]"
+        )
+        return videoPatterns.any { title.contains(it) }
+    }
+
+    private fun isBollywoodOrVideoShelf(shelfTitle: String): Boolean {
+        val lower = shelfTitle.lowercase()
+        return lower.contains("bollywood") || lower.contains("video") || lower.contains("music video")
+    }
+
+    private fun filterCleanHomeItems(items: List<HomeItem>): List<HomeItem> {
+        return items.mapNotNull { item ->
+            if (isBollywoodOrVideoShelf(item.title)) {
+                null
+            } else {
+                val filteredContents = item.contents.filterNotNull().filter { content ->
+                    !isBollywoodOrVideo(content)
+                }
+                if (filteredContents.isEmpty()) {
+                    null
+                } else {
+                    item.copy(contents = filteredContents)
+                }
+            }
+        }
+    }
+
+    private fun filterCleanChart(chart: Chart?): Chart? {
+        if (chart == null) return null
+        val filteredPlaylists = chart.listChartItem.mapNotNull { item ->
+            if (isBollywoodOrVideoShelf(item.title)) {
+                null
+            } else {
+                val cleanPlaylists = item.playlists.filter { playlist ->
+                    val pTitle = playlist.title.lowercase()
+                    !pTitle.contains("bollywood") && !pTitle.contains("video")
+                }
+                if (cleanPlaylists.isEmpty()) null else item.copy(playlists = cleanPlaylists)
+            }
+        }
+        return chart.copy(listChartItem = filteredPlaylists)
     }
 
     fun setParams(params: String?) {

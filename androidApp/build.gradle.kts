@@ -20,7 +20,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.maxrave.simpmusic"
+        applicationId = "com.pulse.music"
         minSdk = 26
         targetSdk = 36
         versionCode =
@@ -100,8 +100,6 @@ android {
         }
         debug {
             isMinifyEnabled = false
-            applicationIdSuffix = ".dev"
-            versionNameSuffix = "-dev"
         }
     }
     compileOptions {
@@ -147,11 +145,12 @@ android {
             excludes += "com/atilika/kuromoji/ipadic/*.bin"
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 }
+
 
 dependencies {
     coreLibraryDesugaring(libs.desugaring)

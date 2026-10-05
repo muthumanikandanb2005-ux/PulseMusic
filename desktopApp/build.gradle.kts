@@ -128,9 +128,9 @@ tasks.named<hydraulic.conveyor.gradle.WriteConveyorConfigTask>("writeConveyorCon
     doLast {
         destination.get().asFile.appendText(
             """
-            |app.fsname = simpmusic
-            |app.display-name = SimpMusic
-            |app.rdns-name = com.maxrave.simpmusic
+            |app.fsname = pulse
+            |app.display-name = Pulse
+            |app.rdns-name = com.pulse.music
             |
             |// Override the Gradle-detected classpath with the ProGuard'd
             |// jar directory. Conveyor expands a directory entry to every
@@ -167,7 +167,7 @@ compose.desktop {
             }
             targetFormats(*listTarget.toTypedArray())
             modules("jdk.unsupported")
-            packageName = "SimpMusic"
+            packageName = "Pulse"
             macOS {
                 val formatedDate =
                     Instant.now().let {
@@ -332,7 +332,7 @@ tasks.register("packageConveyorAppImage") {
     )
 
     doLast {
-        val appName = "SimpMusic"
+        val appName = "PulseMusic"
         val conveyorOutput = rootDir.resolve("output")
         if (!conveyorOutput.exists()) {
             throw GradleException(
@@ -396,13 +396,13 @@ tasks.register("packageConveyorAppImage") {
             """[Desktop Entry]
             |Type=Application
             |Version=1.0
-            |Name=SimpMusic
-            |Comment=SimpMusic v$versionName - FOSS YouTube Music Client
+            |Name=Pulse Music
+            |Comment=Pulse Music v$versionName - Owned & Developed by Pulse Music Studio
             |Exec=bin/simpmusic %u
             |Icon=simpmusic
             |Terminal=false
             |Categories=Audio;AudioVideo;
-            |StartupWMClass=SimpMusic
+            |StartupWMClass=PulseMusic
             |MimeType=x-scheme-handler/simpmusic;x-scheme-handler/wordbyword;
             |
             """.trimMargin(),

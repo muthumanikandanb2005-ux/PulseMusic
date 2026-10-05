@@ -6,6 +6,7 @@ import androidx.compose.animation.Animatable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -86,12 +87,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -200,6 +203,28 @@ fun NowPlayingContentSpotify(
 
     val isRepeatOne = state.controllerState.repeatState is RepeatState.One
 
+    val ambientTransition = rememberInfiniteTransition(label = "ambientPulse")
+    val ambientScale by ambientTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.08f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "ambientScale",
+    )
+    val ambientAlpha by ambientTransition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 0.85f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "ambientAlpha",
+    )
+
     var showShareLyricsSheet by rememberSaveable { mutableStateOf(false) }
 
     // Height
@@ -301,6 +326,21 @@ fun NowPlayingContentSpotify(
                                         ),
                                     size = area,
                                 )
+                                if (state.ambientModeEnabled) {
+                                    drawCircle(
+                                        brush =
+                                            Brush.radialGradient(
+                                                colors =
+                                                    listOf(
+                                                        state.startColor.value.copy(alpha = 0.40f),
+                                                        state.endColor.value.copy(alpha = 0.18f),
+                                                        Color.Transparent,
+                                                    ),
+                                                center = Offset(size.width / 2f, gradientHeight * 0.38f),
+                                                radius = size.width * 0.90f,
+                                            ),
+                                    )
+                                }
                             }
                     } else {
                         Modifier.background(Color.Black)
@@ -513,6 +553,29 @@ fun NowPlayingContentSpotify(
                                         .alpha(if (pageHasCanvas) 0f else 1f)
                                         .aspectRatio(1f),
                             ) {
+                                if (state.ambientModeEnabled && !pageHasCanvas) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .matchParentSize()
+                                                .graphicsLayer {
+                                                    scaleX = ambientScale * 1.25f
+                                                    scaleY = ambientScale * 1.25f
+                                                    alpha = if (state.controllerState.isPlaying) ambientAlpha else 0.45f
+                                                }.background(
+                                                    brush =
+                                                        Brush.radialGradient(
+                                                            colors =
+                                                                listOf(
+                                                                    state.startColor.value.copy(alpha = 0.75f),
+                                                                    state.endColor.value.copy(alpha = 0.35f),
+                                                                    Color.Transparent,
+                                                                ),
+                                                        ),
+                                                    shape = RoundedCornerShape(32.dp),
+                                                ),
+                                    )
+                                }
                                 if (isCurrentArtworkPage) {
                                     // Live artwork (drives palette extraction via setBitmap).
                                     // The artwork URL that is actually loading. `maxresdefault.jpg` —

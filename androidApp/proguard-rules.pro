@@ -12,13 +12,28 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Maximum anti-decompilation, anti-reverse-engineering and obfuscation security (Secured by MK)
+-overloadaggressively
+-repackageclasses ''
+-allowaccessmodification
+-renamesourcefileattribute ""
+-keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!MethodParameters
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+    public static *** wtf(...);
+}
+-assumenosideeffects class com.maxrave.logger.Logger {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+}
+-assumenosideeffects class java.lang.Throwable { public void printStackTrace(); }
 -keep class kotlinx.coroutines.CoroutineExceptionHandler
 -keep class kotlinx.coroutines.internal.MainDispatcherFactory
 # Keep `Companion` object fields of serializable classes.
@@ -63,14 +78,19 @@
 -keep class com.maxrave.simpmusic.extension.AllExtKt$* { *; }
 -keep class com.maxrave.kotlinytmusicscraper.extension.MapExtKt$* { *; }
 
-## Removes all Logs as they cause perfomance issues in prod
-#-assumenosideeffects class android.util.Log {
-#    public static int w(...);
-#    public static int e(...);
-#    public static int i(...);
-#    public static int d(...);
-#    public static int v(...);
-#}
+## Removes all Logs to prevent reverse engineering and performance overhead
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+}
+-assumenosideeffects class com.maxrave.logger.Logger {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+}
 ## Rules for NewPipeExtractor
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
 -keep class dev.maxrave.pipepipe.extractor.timeago.patterns.** { *; }
@@ -184,7 +204,6 @@
 #YtDlp
 -keep class com.yausername.** { *; }
 -keep class org.apache.commons.compress.archivers.zip.** { *; }
--keepattributes SourceFile
 
 ## Rules for NewPipeExtractor
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }

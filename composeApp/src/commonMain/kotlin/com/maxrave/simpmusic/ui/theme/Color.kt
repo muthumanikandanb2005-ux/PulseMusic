@@ -5,18 +5,18 @@ import androidx.compose.ui.graphics.Color
 // ===== Brand =====
 
 /**
- * Brand seed color. The whole Material 3 ColorScheme is generated from this
+ * Brand seed color for Pulse. The whole Material 3 ColorScheme is generated from this
  * color at runtime — see [AppTheme].
  */
-val seed = Color(0xFF8ECAE6)
+val seed = Color(0xFFFA2D48)
 
 // ===== Semantic colors (not derivable from the color scheme) =====
 
 /** Liked/favorite state (heart buttons, favorite tiles). */
-val favoriteColor = Color(0xFFFF4081)
+val favoriteColor = Color(0xFFFF2E63)
 
 /** Currently playing lyric line. */
-val lyricActiveColor = Color(0xFFFFFF00)
+val lyricActiveColor = Color(0xFF00E5FF)
 
 val shimmerBackground = Color(0x7E383737)
 val shimmerLine = Color(0xFF4D4848)

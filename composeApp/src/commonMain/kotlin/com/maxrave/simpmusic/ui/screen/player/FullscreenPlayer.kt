@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.maxrave.common.Config.MAIN_PLAYER
+import com.maxrave.domain.manager.DataStoreManager
 import com.maxrave.simpmusic.expect.ui.MediaPlayerViewWithSubtitle
 import com.maxrave.simpmusic.extension.artworkScrimBrush
 import com.maxrave.simpmusic.extension.formatDuration
@@ -69,6 +71,7 @@ import com.maxrave.simpmusic.extension.rememberIsInPipMode
 import com.maxrave.simpmusic.extension.smoothScrimBrush
 import com.maxrave.simpmusic.ui.component.NowPlayingBottomSheet
 import com.maxrave.simpmusic.ui.component.RippleIconButton
+import com.maxrave.simpmusic.ui.component.rememberNowPlayingGlowTint
 import com.maxrave.simpmusic.ui.icon.ArrowBackIosNew
 import com.maxrave.simpmusic.ui.icon.Forward5
 import com.maxrave.simpmusic.ui.icon.FullscreenExit
@@ -122,6 +125,11 @@ fun FullscreenPlayer(
     val nowPlayingState by sharedViewModel.nowPlayingScreenData.collectAsStateWithLifecycle()
     val controllerState by sharedViewModel.controllerState.collectAsStateWithLifecycle()
     val timelineState by sharedViewModel.timeline.collectAsStateWithLifecycle()
+    val ambientModeSetting by sharedViewModel
+        .getAmbientMode()
+        .collectAsStateWithLifecycle(initialValue = DataStoreManager.TRUE)
+    val isAmbientEnabled = ambientModeSetting != DataStoreManager.FALSE
+    val ambientTint = rememberNowPlayingGlowTint(nowPlayingState.thumbnailURL)
 
     var showBottom by rememberSaveable { mutableStateOf(false) }
     var isSliding by rememberSaveable {
@@ -182,6 +190,23 @@ fun FullscreenPlayer(
     }
 
     Box {
+        if (isAmbientEnabled && !isInPipMode && ambientTint != null) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush =
+                                Brush.radialGradient(
+                                    colors =
+                                        listOf(
+                                            Color.Transparent,
+                                            ambientTint.copy(alpha = 0.25f),
+                                        ),
+                                ),
+                        ),
+            )
+        }
         MediaPlayerViewWithSubtitle(
             playerName = MAIN_PLAYER,
             modifier =

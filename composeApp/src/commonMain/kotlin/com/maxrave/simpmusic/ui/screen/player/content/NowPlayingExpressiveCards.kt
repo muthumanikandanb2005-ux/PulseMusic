@@ -62,9 +62,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
@@ -285,10 +287,38 @@ internal fun ExpressiveArtworkCardPage(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                         .alpha(if (pageHasCanvas) 0f else 1f)
-                        .aspectRatio(cardAspectRatio)
-                        .clip(ArtworkCardShape)
-                        .background(colorScheme.surfaceContainer),
+                        .aspectRatio(cardAspectRatio),
             ) {
+                if (state.ambientModeEnabled && !pageHasCanvas) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .matchParentSize()
+                                .graphicsLayer {
+                                    scaleX = 1.15f
+                                    scaleY = 1.15f
+                                    alpha = if (state.controllerState.isPlaying) 0.65f else 0.35f
+                                }.background(
+                                    brush =
+                                        Brush.radialGradient(
+                                            colors =
+                                                listOf(
+                                                    state.startColor.value.copy(alpha = 0.70f),
+                                                    state.endColor.value.copy(alpha = 0.35f),
+                                                    Color.Transparent,
+                                                ),
+                                        ),
+                                    shape = ArtworkCardShape,
+                                ),
+                    )
+                }
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .clip(ArtworkCardShape)
+                            .background(colorScheme.surfaceContainer),
+                ) {
                 if (isCurrentArtworkPage) {
                     // Live artwork — kept composed even under canvas/video (alpha 0) so
                     // onSuccess keeps feeding the palette that drives the whole scheme.
@@ -519,6 +549,7 @@ internal fun ExpressiveArtworkCardPage(
             }
         }
     }
+}
 }
 
 /**

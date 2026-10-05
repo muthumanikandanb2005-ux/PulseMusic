@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="Song_and_artist_name">Песня • %1$s</string>
     <string name="playlist_and_author">Плейлист • %1$s</string>
@@ -121,12 +121,12 @@
     <string name="about_us">О нас</string>
     <string name="version">Версия</string>
     <string name="github">Github</string>
-    <string name="maxrave_dev">maxrave-dev</string>
+    <string name="maxrave_dev">Manikandan</string>
     <string name="buy_me_a_coffee">Купите мне кофе</string>
     <string name="developer_blog">Блог разработчика</string>
     <string name="developer_blog_tagline">Читайте заметки разработчика, руководства и информацию о процессе разработки</string>
     <string name="blog_promo_title">Что-то новое из разработки</string>
-    <string name="blog_promo_message">Я только что запустил свой персональный блог на maxrave.dev — поделитесь историей за SimpMusic, музыкальными погружениями и инженерными заметками. Читайте, если интересно ✨</string>
+    <string name="blog_promo_message">Я только что запустил свой персональный блог на pulse.app — поделитесь историей за Pulse, музыкальными погружениями и инженерными заметками. Читайте, если интересно ✨</string>
     <string name="visit_blog">Посетить блог</string>
     <string name="paypal">PayPal</string>
     <string name="title">Название</string>
@@ -145,7 +145,7 @@
     <string name="albums_inArtist">Альбомы</string>
     <string name="singles_inArtist">Синглы</string>
     <string name="fans_might_also_like_inArtist">Похожие исполнители</string>
-    <string name="crash_log">В программе SimpMusic произошел сбой. Приносим извинения за эту проблему.\nОтправить журнал сбоя разработчику</string>
+    <string name="crash_log">В программе Pulse произошел сбой. Приносим извинения за эту проблему.\nОтправить журнал сбоя разработчику</string>
     <string name="crash">Сбой</string>
     <string name="send">Отправить</string>
     <string name="mail_subject">Сообщить о сбое</string>
@@ -205,12 +205,12 @@
     <string name="what_segments_will_be_skipped">Какие сегменты будут пропущены</string>
     <string name="save">Сохранить</string>
     <string name="saved">Сохранено</string>
-    <string name="sponsor_block_intro">SponsorBlock - это система пропуска раздражающих фрагментов видеороликов на YouTube.\nПодробнее: https://sponsor.ajay.app/\nВ SimpMusic SponsorBlock доступен, только когда устройство находится в сети</string>
+    <string name="sponsor_block_intro">SponsorBlock - это система пропуска раздражающих фрагментов видеороликов на YouTube.\nПодробнее: https://sponsor.ajay.app/\nВ Pulse SponsorBlock доступен, только когда устройство находится в сети</string>
     <string name="skip_sponsor_part_of_video">Пропустить спонсорскую часть видео</string>
     <string name="customactivityoncrash_error_activity_error_occurred_explanation">Неизвестная ошибка. Извините за неудобства.</string>
     <string name="customactivityoncrash_error_activity_restart_app">Перезапустить приложение</string>
-    <string name="help_build_lyrics_database">Помогите SimpMusic Lyrics создать базу данных текстов песен</string>
-    <string name="help_build_lyrics_database_description">Отправить сохраненные тексты песен в базу данных SimpMusic lyrics</string>
+    <string name="help_build_lyrics_database">Помогите Pulse Lyrics создать базу данных текстов песен</string>
+    <string name="help_build_lyrics_database_description">Отправить сохраненные тексты песен в базу данных Pulse lyrics</string>
     <string name="customactivityoncrash_error_activity_close_app">Закрыть приложение</string>
     <string name="customactivityoncrash_error_activity_error_details">Подробные сведения об ошибке</string>
     <string name="customactivityoncrash_error_activity_error_details_title">Подробные сведения об ошибке</string>
@@ -246,7 +246,7 @@
     <string name="saved_to_local_playlist">Сохранено в локальном плейлисте</string>
     <string name="if_you_want_to_unsync_this_playlist_please_go_to_local_playlist">если вы хотите отменить синхронизацию этого плейлиста, перейдите в локальный плейлист</string>
     <string name="log_in_to_get_YouTube_playlist">Войдите, чтобы получить плейлист YouTube</string>
-    <string name="sync_playlist_warning">SimpMusic автоматически создаст плейлист YouTube Music. Вы уверены?</string>
+    <string name="sync_playlist_warning">Pulse автоматически создаст плейлист YouTube Music. Вы уверены?</string>
     <string name="syncing">Синхронизация</string>
     <string name="unsync_playlist_warning">"Отменить синхронизацию этого плейлиста? Этот плейлист не будет удален из YouTube Music "</string>
     <string name="unsyncing">Отмена синхронизации</string>
@@ -263,7 +263,7 @@
     <string name="email">Электронная почта</string>
     <string name="password">Пароль</string>
     <string name="please_enter_your_email_and_password">Пожалуйста, введите свой адрес электронной почты и пароль</string>
-    <string name="translation_language_message">Введите код языка (например: en) (2 буквы). Если вы хотите установить то же самое для языка SimpMusic, оставьте поле редактирования пустым.</string>
+    <string name="translation_language_message">Введите код языка (например: en) (2 буквы). Если вы хотите установить то же самое для языка Pulse, оставьте поле редактирования пустым.</string>
     <string name="invalid_language_code">Неверный код языка</string>
     <string name="lyrics_provider_youtube">Текст предоставлен YouTube</string>
     <string name="lyrics_provider_betterlyrics">Текст песни предоставлен BetterLyrics</string>
@@ -282,7 +282,7 @@
     <string name="older_first">Сначала старые</string>
     <string name="newer_first">Сначала новые</string>
     <string name="added_date">Дата добавления</string>
-    <string name="credit_app">Простое музыкальное приложение, использующее YouTube Music в качестве серверной части. \n\nSimpMusic — это проект с открытым исходным кодом для потоковой передачи музыки с YouTube и YouTube Music без рекламы и отслеживания. SimpMusic предоставляет множество функций:\n\n - Потоковое воспроизведение музыки \n - Синхронизированные тексты песен\n - Персонализация данных\n - и т. д. \n\nSimpMusic бесплатен и без рекламы\n\nСоздал с ❤️ Туан Минь Нгуен Дык (maxrave-dev)</string>
+    <string name="credit_app">Простое музыкальное приложение, использующее YouTube Music в качестве серверной части.\n\nDeveloped by Manikandan</string>
     <string name="issue_tracker">Трекер проблем</string>
     <string name="featured_playlists">Избранные плейлисты</string>
     <string name="featured_inArtist">Где встречается</string>
@@ -322,7 +322,7 @@
     <string name="equalizer_autoeq_unavailable">Не удалось подключиться к AutoEq. Проверьте подключение и повторите попытку.</string>
     <string name="equalizer_autoeq_empty">Мы не нашли профилей для наушников с таким названием</string>
     <string name="equalizer_autoeq_failed">Не удалось загрузить этот профиль — для этого требуется подключение</string>
-    <string name="sync_follow_to_youtube_description">Подписка на артиста в SimpMusic автоматически подписывает вас на его канал в YouTube</string>
+    <string name="sync_follow_to_youtube_description">Подписка на артиста в Pulse автоматически подписывает вас на его канал в YouTube</string>
     <string name="sync_follow_failed">Не удалось обновить список ваших подписок в YouTube</string>
     <string name="subscribed_on_youtube">Вы подписаны на YouTube</string>
     <string name="unsubscribed_on_youtube">Вы не подписаны на YouTube</string>
@@ -343,7 +343,7 @@
     <string name="enable_spotify_lyrics">Включить тексты песен Spotify</string>
     <string name="spotify_lyrícs_info">Больше текстов песен без перевода</string>
     <string name="enable_canvas">Включить Canvas</string>
-    <string name="canvas_info">Показывать Canvas Spotify в SimpMusic</string>
+    <string name="canvas_info">Показывать Canvas Spotify в Pulse</string>
     <string name="spotify_lyrics_provider">Текст предоставлен Spotify</string>
     <string name="offline_mode">Офлайн режим</string>
     <string name="added_to_youtube_liked">Добавлено в лайки YouTube</string>
@@ -408,7 +408,7 @@
     <string name="loading">Загрузка</string>
     <string name="updating">Обновление</string>
     <string name="go_to_log_in_page">Войти в аккаунт</string>
-    <string name="log_in_warning">YouTube Music теперь требует входа в систему для потоковой передачи музыки, Piped Instance иногда тоже не может работать. Вам следует войти в систему YouTube, чтобы получить лучший опыт работы с SimpMusic.</string>
+    <string name="log_in_warning">YouTube Music теперь требует входа в систему для потоковой передачи музыки, Piped Instance иногда тоже не может работать. Вам следует войти в систему YouTube, чтобы получить лучший опыт работы с Pulse.</string>
     <string name="spotify_canvas_cache">Кэш Canvas Spotify</string>
     <string name="clear_canvas_cache">Очистить кэш Canvas</string>
     <string name="listening_history">История прослушивания</string>
@@ -455,8 +455,8 @@
     <string name="other_version">Другие версии</string>
     <string name="later">Позже</string>
     <string name="give_a_star">Дать звезду</string>
-    <string name="enjoying_simpmusic">Нравится SimpMusic</string>
-    <string name="if_you_enjoy_using_simpmusic_star_simpmusic_on_github_or_leave_a_review_on">Если вам нравится пользоваться SimpMusic, оцените SimpMusic на GitHub или оставьте свой отзыв на</string>
+    <string name="enjoying_simpmusic">Нравится Pulse</string>
+    <string name="if_you_enjoy_using_simpmusic_star_simpmusic_on_github_or_leave_a_review_on">Если вам нравится пользоваться Pulse, оцените Pulse на GitHub или оставьте свой отзыв на</string>
     <string name="if_you_love_my_work_consider">"Если вам нравится моя работа, рассмотрите "</string>
     <string name="buying_me_a_coffee">купить мне кофе.</string>
     <string name="fade_audio_effect">Эффект затухания звука</string>
@@ -514,14 +514,14 @@
     <string name="contributor_name">Имя участника</string>
     <string name="contributor_email">Почта участника</string>
     <string name="anonymous">Анонимно</string>
-    <string name="simpmusic_lyrics">SimpMusic Lyrics</string>
-    <string name="lyrics_provider_simpmusic">Текст песни предоставлен SimpMusic Lyrics</string>
+    <string name="simpmusic_lyrics">Pulse Lyrics</string>
+    <string name="lyrics_provider_simpmusic">Текст песни предоставлен Pulse Lyrics</string>
     <string name="backup_in_progress">Выполняется резервное копирование</string>
     <string name="restore_in_progress">Выполняется восстановление</string>
     <string name="backup_downloaded">Резервное копирование загруженных данных</string>
     <string name="backup_downloaded_description">Резервное копирование всех загруженных данных песен</string>
     <string name="auto_backup">Авторезервирование</string>
-    <string name="auto_backup_description">Автоматически сохранять резервные копии данных в папку Downloads/SimpMusic</string>
+    <string name="auto_backup_description">Автоматически сохранять резервные копии данных в папку Downloads/Pulse</string>
     <string name="backup_frequency">Частота резервного копирования</string>
     <string name="daily">Ежедневно</string>
     <string name="weekly">Еженедельно</string>
@@ -562,8 +562,8 @@
     <string name="intro_login_to_lastfm">Войдите в аккаунт, чтобы отслеживать, что вы слушаете</string>
     <string name="enable_scrobbling">Включить скробблинг</string>
     <string name="scrobbling_info">Отправляет то, что вы слушаете на ваш профиль Last.fm</string>
-    <string name="lastfm_login_step_1">Откройте Last.fm и предоставьте SimpMusic доступ к вашему аккаунту.</string>
-    <string name="lastfm_login_step_2">После получения доступа, SimpMusic самостоятельно откроется снова.</string>
+    <string name="lastfm_login_step_1">Откройте Last.fm и предоставьте Pulse доступ к вашему аккаунту.</string>
+    <string name="lastfm_login_step_2">После получения доступа, Pulse самостоятельно откроется снова.</string>
     <string name="lastfm_open_authorize_page">Открыть Last.fm</string>
     <string name="lastfm_login_failed">Не удалось войти в Last.fm. Повторите попытку.</string>
     <string name="lastfm_paste_callback_title">Вы не вернулись автоматически?</string>
@@ -638,7 +638,7 @@
     <string name="downvote">Не нравится</string>
     <string name="vote_submitted">Спасибо за оценку текста!</string>
     <string name="vote_error">Не удалось отправить</string>
-    <string name="open_app">Открыть SimpMusic</string>
+    <string name="open_app">Открыть Pulse</string>
     <string name="close_miniplayer">Закрыть мини-плеер</string>
     <string name="open_miniplayer">Открыть мини-плеер</string>
     <string name="quit_app">Выйти из приложения</string>
@@ -646,7 +646,7 @@
     <string name="local_tracking_description">Записывать историю прослушивания в локальную базу данных</string>
     <string name="blog_notification_title">Уведомления о публикациях в блоге</string>
     <string name="blog_notification_description">Получайте уведомления о публикации новых записей в блоге</string>
-    <string name="simpmusic_charts">Чарты SimpMusic</string>
+    <string name="simpmusic_charts">Чарты Pulse</string>
     <string name="crossfading">Кроссфейд</string>
     <string name="your_320kbps_url">Ваш URL 320 кбит/с</string>
     <string name="your_320kbps_url_description">Оставьте пустым для автоматического выбора рабочего URL-адреса из контроллера обновления.</string>
@@ -662,13 +662,13 @@
     <string name="not_available_while_casting">Недоступно во время трансляции</string>
     <string name="import_data">Импортировать плейлист</string>
     <string name="import_playlists_from_other_apps">Импортирует плейлисты из других приложений</string>
-    <string name="import_data_intro">Импорт добавляет плейлисты из Spotify или другого YTMusic клиента. \nИнструмент для конвертирования: https://www.simpmusic.org/tools\n В SimpMusic можно импортировать файлы плейлистов только нашего формата</string>
+    <string name="import_data_intro">Импорт добавляет плейлисты из Spotify или другого YTMusic клиента. \nИнструмент для конвертирования: https://www.pulse.org/tools\n В Pulse можно импортировать файлы плейлистов только нашего формата</string>
     <string name="import_reading_file">Чтение файла…</string>
     <string name="import_progress_songs">%1$d из %2$d песен</string>
     <string name="import_result">Создано %1$d плейлистов и импортировано %2$d песен.</string>
     <string name="import_result_skipped">%1$d записей было пропущено, потому что такой песни нет в файле.</string>
     <string name="import_failed">Сбой импорта</string>
-    <string name="import_invalid_file">Этот файл не является допустимым файлом импорта SimpMusic. Сначала конвертируйте вашу библиотеку на simpmusic.org.</string>
+    <string name="import_invalid_file">Этот файл не является допустимым файлом импорта Pulse. Сначала конвертируйте вашу библиотеку на pulse.org.</string>
     <string name="analytics">Статистика</string>
     <string name="select_all">Выделить все</string>
     <string name="n_selected">%1$d выбрано</string>

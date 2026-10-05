@@ -16,13 +16,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import simpmusic.composeapp.generated.resources.Res
 import simpmusic.composeapp.generated.resources.import_invalid_file
+import simpmusic.composeapp.generated.resources.import_link_invalid
+
+import com.mohamedrejeb.calf.io.getPath
 
 /**
- * Drives an import of a file produced by the SimpMusic web converter.
- *
- * The picked file is read here rather than in the repository because only the app module knows
- * what a picked file is. [KmpFile] comes from the same Calf picker the backup/restore flow uses,
- * and its `readByteArray` is already cross-platform, so no expect/actual is needed.
+ * Drives an import of a playlist file (Pulse JSON, generic JSON, M3U, M3U8, CSV, TSV, or TXT).
  */
 class ImportViewModel(
     private val importRepository: ImportRepository,
@@ -37,13 +36,19 @@ class ImportViewModel(
     fun import(
         file: KmpFile,
         context: PlatformContext,
+        defaultPlaylistTitle: String? = null,
     ) {
         importJob?.cancel()
         importJob =
             viewModelScope.launch {
                 _importState.value = ImportProgress.Preparing
                 val invalidFileMessage = getString(Res.string.import_invalid_file)
-                val json =
+                val fallbackTitle = defaultPlaylistTitle
+                    ?: runCatching {
+                        file.getPath(context)?.substringAfterLast('/')?.substringAfterLast('\\')?.substringBeforeLast('.')
+                    }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Imported Playlist"
+
+                val content =
                     withContext(Dispatchers.IO) {
                         runCatching { file.readByteArray(context).decodeToString() }
                     }.getOrElse { throwable ->
@@ -51,7 +56,23 @@ class ImportViewModel(
                         _importState.value = ImportProgress.Error(invalidFileMessage)
                         return@launch
                     }
-                importRepository.import(json, invalidFileMessage).collect { progress ->
+                importRepository.import(content, invalidFileMessage, fallbackTitle).collect { progress ->
+                    _importState.value = progress
+                }
+            }
+    }
+
+    fun importFromUrl(
+        url: String,
+        defaultPlaylistTitle: String? = null,
+    ) {
+        importJob?.cancel()
+        importJob =
+            viewModelScope.launch {
+                _importState.value = ImportProgress.Preparing
+                val invalidUrlMessage = runCatching { getString(Res.string.import_link_invalid) }.getOrNull()
+                    ?: "Could not fetch or parse playlist from this link. Please check the URL and try again."
+                importRepository.importFromUrl(url.trim(), invalidUrlMessage, defaultPlaylistTitle).collect { progress ->
                     _importState.value = progress
                 }
             }

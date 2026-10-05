@@ -12,6 +12,7 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
@@ -39,7 +40,7 @@ import org.simpmusic.crashlytics.configCrashlytics
 import org.simpmusic.lastfm.configLastfm
 import java.lang.reflect.Field
 
-class SimpMusicApplication :
+class PulseMusicApplication :
     Application(),
     KoinComponent,
     SingletonImageLoader.Factory {
@@ -47,6 +48,10 @@ class SimpMusicApplication :
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val dataStoreManager: DataStoreManager by inject()
     private lateinit var autoBackupScheduler: AutoBackupScheduler
+    private val sharedOkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .build()
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -54,7 +59,7 @@ class SimpMusicApplication :
         configLastfm(BuildKonfig.lastfmApiKey, BuildKonfig.lastfmSecret)
         startKoin {
             androidLogger(level = Level.DEBUG)
-            androidContext(this@SimpMusicApplication)
+            androidContext(this@PulseMusicApplication)
             loadAllModules(
                 AppIdentity(
                     applicationId = BuildConfig.APPLICATION_ID,
@@ -117,11 +122,18 @@ class SimpMusicApplication :
                 add(
                     OkHttpNetworkFetcherFactory(
                         callFactory = {
-                            OkHttpClient()
+                            sharedOkHttpClient
                         },
                     ),
                 )
-            }.diskCachePolicy(CachePolicy.ENABLED)
+            }
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .memoryCache {
+                MemoryCache.Builder()
+                    .maxSizePercent(context, 0.25)
+                    .build()
+            }
+            .diskCachePolicy(CachePolicy.ENABLED)
             .networkCachePolicy(CachePolicy.ENABLED)
             .diskCache(
                 DiskCache
