@@ -228,8 +228,9 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         }
     }
 
-    // Register simpmusic:// protocol handler on Windows (HKCU, no admin needed)
+    // Register pulsemusic:// protocol handler on Windows (HKCU, no admin needed)
     WindowsProtocolRegistrar.register()
+    WindowsShortcutManager.ensureShortcutsCreated()
 
     val desktopNotificationManager = getKoin().get<DesktopNotificationManager>()
     desktopNotificationManager.initialize()

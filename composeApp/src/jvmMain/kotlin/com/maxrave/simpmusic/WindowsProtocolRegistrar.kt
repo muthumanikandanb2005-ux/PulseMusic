@@ -37,8 +37,9 @@ object WindowsProtocolRegistrar {
             return
         }
 
-        register(SCHEME, "URL:SimpMusic Protocol", exePath)
-        register(LASTFM_SCHEME, "URL:SimpMusic Last.fm Callback", exePath)
+        register("pulsemusic", "URL:Pulse Music Protocol", exePath)
+        register(SCHEME, "URL:Pulse Music Protocol", exePath)
+        register(LASTFM_SCHEME, "URL:Pulse Music Last.fm Callback", exePath)
     }
 
     private fun register(
@@ -77,7 +78,7 @@ object WindowsProtocolRegistrar {
     ): Boolean {
         return try {
             val result = regQuery("${regKeyOf(scheme)}\\shell\\open\\command", null)
-            // Registry stores path with quotes: "C:\path\to\SimpMusic.exe" "%1"
+            // Registry stores path with quotes: "C:\path\to\Pulse.exe" "%1"
             // Normalize both for comparison
             val normalizedExe = currentExePath.replace("\\", "/").lowercase()
             result?.replace("\\", "/")?.lowercase()?.contains(normalizedExe) == true
@@ -86,11 +87,11 @@ object WindowsProtocolRegistrar {
         }
     }
 
-    private fun resolveExePath(): String? {
+    fun resolveExePath(): String? {
         // JPackage directory structure:
         //   <app>/runtime/...  (java.home points here)
-        //   <app>/SimpMusic.exe
-        // So we go: java.home → parent (runtime) → parent (app) → SimpMusic.exe
+        //   <app>/Pulse.exe (or PulseMusic.exe)
+        // So we go: java.home → parent (runtime) → parent (app) → Pulse.exe
         val javaHome = System.getProperty("java.home") ?: return null
         val javaHomeDir = java.io.File(javaHome)
 
@@ -105,9 +106,12 @@ object WindowsProtocolRegistrar {
         }
 
         if (appDir != null) {
-            val exeFile = java.io.File(appDir, "SimpMusic.exe")
-            if (exeFile.exists()) {
-                return exeFile.absolutePath
+            val candidateNames = listOf("Pulse.exe", "PulseMusic.exe", "Pulse Music.exe", "SimpMusic.exe")
+            for (name in candidateNames) {
+                val candidate = java.io.File(appDir, name)
+                if (candidate.exists()) {
+                    return candidate.absolutePath
+                }
             }
         }
 

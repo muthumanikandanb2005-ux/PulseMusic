@@ -107,6 +107,9 @@ import com.maxrave.simpmusic.ui.icon.VolumeUp
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
 import com.maxrave.simpmusic.ui.screen.player.content.AppleMusicArtworkBackdrop
 import com.maxrave.simpmusic.ui.screen.player.content.AppleMusicMainTitleRow
+import com.maxrave.simpmusic.ui.screen.player.content.BitChordNeonAccent
+import com.maxrave.simpmusic.ui.screen.player.content.BitChordTrackInfoRow
+import com.maxrave.simpmusic.ui.screen.player.content.BitChordTransportRow
 import com.maxrave.simpmusic.ui.screen.player.content.ExpressivePlaybackControls
 import com.maxrave.simpmusic.ui.screen.player.content.ExpressiveTrackInfoRow
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentActions
@@ -922,6 +925,37 @@ private fun FullscreenLyricsLandscape(
                                         actions = actions,
                                         typography = typography,
                                         showShuffleAndRepeat = true,
+                                    )
+                                }
+                            }
+
+                            DataStoreManager.NOW_PLAYING_STYLE_BITCHORD -> {
+                                val accentColor = if (state.spotShadowColor != Color.Unspecified &&
+                                    state.spotShadowColor != Color.Black &&
+                                    state.spotShadowColor != Color.Transparent
+                                ) {
+                                    state.spotShadowColor
+                                } else {
+                                    BitChordNeonAccent
+                                }
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 20.dp),
+                                ) {
+                                    BitChordTrackInfoRow(
+                                        title = state.screenData.nowPlayingTitle,
+                                        artist = state.screenData.artistName,
+                                        codec = state.audioCodecLabel ?: "HQ AUDIO",
+                                        isLiked = state.likeStatus,
+                                        onArtistClick = { actions.onNavigateToArtist() },
+                                        onLikeClick = { actions.onAddToYouTubeLiked() },
+                                        accentColor = accentColor,
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    BitChordTransportRow(
+                                        state = state,
+                                        actions = actions,
+                                        isPlaying = state.controllerState.isPlaying,
+                                        accentColor = accentColor,
                                     )
                                 }
                             }
