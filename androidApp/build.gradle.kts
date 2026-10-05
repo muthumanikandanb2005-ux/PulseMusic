@@ -19,10 +19,17 @@ android {
     namespace = "com.maxrave.simpmusic"
     compileSdk = 37
 
+    signingConfigs {
+        getByName("debug") {
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+    }
+
     defaultConfig {
         applicationId = "com.pulse.music"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode =
             libs.versions.version.code
                 .get()
