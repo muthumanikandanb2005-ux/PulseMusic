@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.maxrave.simpmusic.extension.greyScale
 import com.maxrave.simpmusic.ui.theme.typo
@@ -113,6 +115,18 @@ fun SettingItem(
                         switch.second.invoke(it)
                     },
                     enabled = isEnable,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color(0xFF00E676),
+                        checkedTrackColor = Color(0xFF04381C),
+                        checkedBorderColor = Color(0xFF00E676),
+                        uncheckedThumbColor = Color(0xFF8E8E93),
+                        uncheckedTrackColor = Color(0xFF18181B),
+                        uncheckedBorderColor = Color(0xFF2E2E33),
+                        disabledCheckedThumbColor = Color(0xFF00E676).copy(alpha = 0.5f),
+                        disabledCheckedTrackColor = Color(0xFF04381C).copy(alpha = 0.5f),
+                        disabledUncheckedThumbColor = Color(0xFF55555B),
+                        disabledUncheckedTrackColor = Color(0xFF121215),
+                    ),
                 )
             }
         }

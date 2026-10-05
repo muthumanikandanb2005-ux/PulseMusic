@@ -91,7 +91,7 @@ import com.maxrave.simpmusic.ui.icon.SkipPrevious
 import com.maxrave.simpmusic.ui.icon.Subtitles
 import com.maxrave.simpmusic.viewModel.UIEvent
 
-private val BitChordPulseRed = Color(0xFFFA2D48)
+private val BitChordNeonAccent = Color(0xFF00E676)
 private val BitChordOledBlack = Color(0xFF000000)
 private val BitChordSurface = Color(0xFF0D0D10)
 
@@ -111,6 +111,16 @@ fun NowPlayingContentBitChord(
     val isPlaying = state.controllerState.isPlaying
     val songTitle = state.screenData.nowPlayingTitle.ifEmpty { "Pulse Music" }
     val artistName = state.screenData.artistName.ifEmpty { "Pulse Studio" }
+
+    val accentColor = remember(state.spotShadowColor) {
+        if (state.spotShadowColor != Color.Unspecified &&
+            state.spotShadowColor != Color.Black &&
+            state.spotShadowColor != Color.Transparent) {
+            state.spotShadowColor
+        } else {
+            BitChordNeonAccent
+        }
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -158,6 +168,7 @@ fun NowPlayingContentBitChord(
             BitChordTopBar(
                 state = state,
                 actions = actions,
+                accentColor = accentColor,
             )
 
             Spacer(Modifier.height(8.dp))
@@ -186,6 +197,7 @@ fun NowPlayingContentBitChord(
                 isLiked = state.likeStatus,
                 onArtistClick = { actions.onNavigateToArtist() },
                 onLikeClick = { actions.onAddToYouTubeLiked() },
+                accentColor = accentColor,
             )
 
             Spacer(Modifier.height(18.dp))
@@ -194,6 +206,7 @@ fun NowPlayingContentBitChord(
             BitChordIsolatedScrubber(
                 state = state,
                 actions = actions,
+                accentColor = accentColor,
             )
 
             Spacer(Modifier.height(16.dp))
@@ -203,6 +216,7 @@ fun NowPlayingContentBitChord(
                 state = state,
                 actions = actions,
                 isPlaying = isPlaying,
+                accentColor = accentColor,
             )
 
             Spacer(Modifier.height(20.dp))
@@ -211,6 +225,7 @@ fun NowPlayingContentBitChord(
             BitChordActionDock(
                 hasLyrics = state.screenData.lyricsData != null,
                 actions = actions,
+                accentColor = accentColor,
             )
 
             Spacer(Modifier.height(24.dp))
@@ -223,6 +238,7 @@ fun NowPlayingContentBitChord(
 private fun BitChordTopBar(
     state: NowPlayingContentState,
     actions: NowPlayingContentActions,
+    accentColor: Color,
 ) {
     Row(
         modifier = Modifier
@@ -250,7 +266,7 @@ private fun BitChordTopBar(
                     letterSpacing = 1.6.sp,
                     fontWeight = FontWeight.Bold,
                 ),
-                color = BitChordPulseRed,
+                color = accentColor,
             )
             val queueTrack = state.artworkQueue.getOrNull(state.currentOrderIndex)
             Text(
@@ -358,6 +374,7 @@ private fun BitChordTrackInfoRow(
     isLiked: Boolean,
     onArtistClick: () -> Unit,
     onLikeClick: () -> Unit,
+    accentColor: Color,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -408,7 +425,7 @@ private fun BitChordTrackInfoRow(
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                         ),
-                        color = BitChordPulseRed,
+                        color = accentColor,
                     )
                 }
             }
@@ -419,12 +436,12 @@ private fun BitChordTrackInfoRow(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(if (isLiked) BitChordPulseRed.copy(alpha = 0.15f) else Color.Transparent),
+                .background(if (isLiked) accentColor.copy(alpha = 0.15f) else Color.Transparent),
         ) {
             Icon(
                 imageVector = if (isLiked) SimpIcons.Favorite else SimpIcons.FavoriteBorder,
                 contentDescription = "Like",
-                tint = if (isLiked) BitChordPulseRed else Color.White.copy(alpha = 0.7f),
+                tint = if (isLiked) accentColor else Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -439,6 +456,7 @@ private fun BitChordTrackInfoRow(
 private fun BitChordIsolatedScrubber(
     state: NowPlayingContentState,
     actions: NowPlayingContentActions,
+    accentColor: Color,
 ) {
     val timeline by state.timelineFlow.collectAsStateWithLifecycle()
     var isDragging by remember { mutableStateOf(false) }
@@ -463,7 +481,7 @@ private fun BitChordIsolatedScrubber(
             },
             idleHeight = 5.dp,
             activeHeight = 11.dp,
-            activeColor = BitChordPulseRed,
+            activeColor = accentColor,
             inactiveColor = Color.White.copy(alpha = 0.2f),
         )
 
@@ -504,7 +522,7 @@ private fun BitChordThinSlider(
     modifier: Modifier = Modifier,
     idleHeight: Dp = 5.dp,
     activeHeight: Dp = 11.dp,
-    activeColor: Color = BitChordPulseRed,
+    activeColor: Color = BitChordNeonAccent,
     inactiveColor: Color = Color.White.copy(alpha = 0.2f),
 ) {
     var isTouching by remember { mutableStateOf(false) }
@@ -580,6 +598,7 @@ private fun BitChordTransportRow(
     state: NowPlayingContentState,
     actions: NowPlayingContentActions,
     isPlaying: Boolean,
+    accentColor: Color,
 ) {
     val isShuffle = state.controllerState.isShuffle
     val repeatState = state.controllerState.repeatState
@@ -597,7 +616,7 @@ private fun BitChordTransportRow(
             Icon(
                 imageVector = SimpIcons.Shuffle,
                 contentDescription = "Shuffle",
-                tint = if (isShuffle) BitChordPulseRed else Color.White.copy(alpha = 0.45f),
+                tint = if (isShuffle) accentColor else Color.White.copy(alpha = 0.45f),
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -620,19 +639,19 @@ private fun BitChordTransportRow(
             modifier = Modifier
                 .size(72.dp)
                 .shadow(
-                    elevation = 12.dp,
+                    elevation = 14.dp,
                     shape = CircleShape,
-                    spotColor = BitChordPulseRed.copy(alpha = 0.6f),
+                    spotColor = accentColor.copy(alpha = 0.65f),
                 )
                 .clip(CircleShape)
-                .background(BitChordPulseRed)
+                .background(accentColor)
                 .clickable { actions.onUIEvent(UIEvent.PlayPause) },
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (isPlaying) SimpIcons.Pause else SimpIcons.PlayArrow,
                 contentDescription = if (isPlaying) "Pause" else "Play",
-                tint = Color.White,
+                tint = if (accentColor == BitChordNeonAccent) Color.Black else Color.White,
                 modifier = Modifier.size(38.dp),
             )
         }
@@ -661,7 +680,7 @@ private fun BitChordTransportRow(
             }
             val repeatTint = when (repeatState) {
                 RepeatState.None -> Color.White.copy(alpha = 0.45f)
-                else -> BitChordPulseRed
+                else -> accentColor
             }
             Icon(
                 imageVector = repeatIcon,
@@ -678,6 +697,7 @@ private fun BitChordTransportRow(
 private fun BitChordActionDock(
     hasLyrics: Boolean,
     actions: NowPlayingContentActions,
+    accentColor: Color,
 ) {
     Row(
         modifier = Modifier
@@ -697,7 +717,7 @@ private fun BitChordActionDock(
             Icon(
                 imageVector = SimpIcons.Subtitles,
                 contentDescription = "Lyrics",
-                tint = if (hasLyrics) BitChordPulseRed else Color.White.copy(alpha = 0.6f),
+                tint = if (hasLyrics) accentColor else Color.White.copy(alpha = 0.6f),
                 modifier = Modifier.size(22.dp),
             )
         }

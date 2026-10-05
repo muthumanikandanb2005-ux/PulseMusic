@@ -12,12 +12,18 @@
 #   public *;
 #}
 
-# Maximum anti-decompilation, anti-reverse-engineering and obfuscation security (Secured by MK)
+# Maximum anti-decompilation, anti-reverse-engineering and obfuscation security (Secured by Pulse Music Studio)
 -overloadaggressively
 -repackageclasses ''
 -allowaccessmodification
--renamesourcefileattribute ""
+-renamesourcefileattribute "PrivateApp_AccessDenied.java"
 -keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!MethodParameters
+
+# Keep Private App Integrity Notice intact for decompiler inspection
+-keep class com.pulse.music.security.PrivateAppIntegrityLock {
+    public static ** *;
+    public *;
+}
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
     public static *** v(...);

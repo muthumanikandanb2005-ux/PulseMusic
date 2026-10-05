@@ -64,6 +64,11 @@ import com.maxrave.simpmusic.ui.theme.typo
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
+private val BitChordNeonGreen = Color(0xFF00E676)
+private val BitChordOledBlack = Color(0xFF000000)
+private val BitChordFieldSurface = Color(0xFF101014)
+private val BitChordCardSurface = Color(0xFF0C130E)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PulseMusicLoginScreen(
@@ -123,7 +128,7 @@ fun PulseMusicLoginScreen(
                 ),
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = BitChordOledBlack,
     ) { padding ->
         Box(
             modifier = Modifier
@@ -239,14 +244,14 @@ fun PulseMusicLoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
-                            .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .background(BitChordCardSurface)
+                            .border(1.dp, BitChordNeonGreen.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                             .padding(12.dp),
                     ) {
                         Text(
                             text = "Sign in is optional. You can enjoy all player features, Equalizer, and local playlists without an account.",
                             style = typo().bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = Color.White.copy(alpha = 0.85f),
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -257,13 +262,19 @@ fun PulseMusicLoginScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email") },
+                        label = { Text("Email", color = if (email.isNotEmpty()) BitChordNeonGreen else Color.White.copy(alpha = 0.6f)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedBorderColor = BitChordNeonGreen,
+                            unfocusedBorderColor = Color(0xFF2E2E36),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = BitChordNeonGreen,
+                            focusedContainerColor = BitChordFieldSurface,
+                            unfocusedContainerColor = BitChordFieldSurface,
                         ),
                     )
 
@@ -272,21 +283,27 @@ fun PulseMusicLoginScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text("Password", color = if (password.isNotEmpty()) BitChordNeonGreen else Color.White.copy(alpha = 0.6f)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedBorderColor = BitChordNeonGreen,
+                            unfocusedBorderColor = Color(0xFF2E2E36),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = BitChordNeonGreen,
+                            focusedContainerColor = BitChordFieldSurface,
+                            unfocusedContainerColor = BitChordFieldSurface,
                         ),
                     )
 
                     AnimatedVisibility(visible = !statusMessage.isNullOrBlank()) {
                         Text(
                             text = statusMessage.orEmpty(),
-                            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            color = if (isError) MaterialTheme.colorScheme.error else BitChordNeonGreen,
                             style = typo().bodySmall,
                             modifier = Modifier.padding(top = 8.dp),
                             textAlign = TextAlign.Center,
@@ -325,6 +342,10 @@ fun PulseMusicLoginScreen(
                                 )
                             }
                         },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BitChordNeonGreen,
+                            contentColor = Color.Black,
+                        ),
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         enabled = !isLoading,
@@ -332,11 +353,15 @@ fun PulseMusicLoginScreen(
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = Color.Black,
                                 strokeWidth = 2.dp,
                             )
                         } else {
-                            Text(if (isSignUpMode) "Sign Up" else "Sign In")
+                            Text(
+                                text = if (isSignUpMode) "Sign Up" else "Sign In",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                            )
                         }
                     }
 
@@ -350,7 +375,7 @@ fun PulseMusicLoginScreen(
                         Text(
                             text = if (isSignUpMode) "Already have an account?" else "Don't have an account?",
                             style = typo().bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color.White.copy(alpha = 0.7f),
                         )
                         TextButton(
                             onClick = {
@@ -358,7 +383,11 @@ fun PulseMusicLoginScreen(
                                 statusMessage = null
                             }
                         ) {
-                            Text(if (isSignUpMode) "Sign In" else "Sign Up")
+                            Text(
+                                text = if (isSignUpMode) "Sign In" else "Sign Up",
+                                color = BitChordNeonGreen,
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
 
@@ -374,7 +403,7 @@ fun PulseMusicLoginScreen(
                     ) {
                         Text(
                             text = "Continue as Guest",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color.White.copy(alpha = 0.7f),
                             style = typo().labelLarge,
                         )
                     }
