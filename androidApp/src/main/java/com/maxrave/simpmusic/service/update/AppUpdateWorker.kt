@@ -97,7 +97,14 @@ class AppUpdateWorker(
                 Logger.i(TAG, "Current version: $currentVersion, Remote version: $remoteVersion, URL: $downloadUrl")
 
                 if (remoteVersion.isNotEmpty() && downloadUrl.isNotEmpty() && isNewerVersion(remoteVersion, currentVersion)) {
-                    Logger.i(TAG, "New version $remoteVersion detected! Starting background download...")
+                    Logger.i(TAG, "New version $remoteVersion detected! Posting update notification immediately...")
+                    NotificationHandler.createAppUpdateNotificationChannel(applicationContext)
+                    NotificationHandler.postUpdateAvailableNotification(
+                        context = applicationContext,
+                        versionName = remoteVersion.trim().removePrefix("v").removePrefix("V"),
+                        downloadUrl = downloadUrl,
+                    )
+
                     val updateDir = File(context.cacheDir, "updates")
                     if (!updateDir.exists()) {
                         updateDir.mkdirs()

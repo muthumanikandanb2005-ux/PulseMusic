@@ -2695,6 +2695,7 @@ fun SettingScreen(
                             onClick = {
                                 coroutineScope.launch {
                                     sharedViewModel.makeToast(runBlocking { getString(Res.string.update_checking) })
+                                    sharedViewModel.checkForAppUpdate(silent = false)
                                     viewModel.getLastCheckForUpdate()
                                 }
                             },
