@@ -7,34 +7,37 @@ import urllib.parse
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "muthumanikandanb2005-ux/PulseMusic"
-TAG = "v2.2.1"
-RELEASE_NAME = "Pulse Music v2.2.1 - App Logo Splash, Continuous Video Playback, Hybrid Lyrics & OTA Update Notifications"
-BODY = """### Pulse Music v2.2.1
+TAG = "v2.2.2"
+RELEASE_NAME = "Pulse Music v2.2.2 - Mobile Notification Delivery Fix & Instant OTA Alerts"
+BODY = """### Pulse Music v2.2.2
 
+- **Mobile Notification Delivery Fix (In-Shade & Push Alerts)**:
+  - Fixed notification reception across all Android versions (Android 8 through Android 15 / API 35).
+  - Configured high-priority notification channels (`pulse_trending_music_channel` & `pulse_app_update_channel`) with vibration, lights, badge, and heads-up alert behavior.
+  - Integrated `TrendingMusicNotificationWorker` (WorkManager) for automatic background delivery of trending songs and new releases directly to the mobile notification drawer.
+  - Instant OTA update notification triggered immediately upon detecting a newer version.
+  - Fixed "Check for updates now" in Settings to actively verify and post update notifications.
 - **Native App Logo Startup Animation**:
-  - Matches the official Pulse Music app logo with gentle ambient radial breathing, smooth glow aura, and refined fade transition.
+  - Official Pulse Music circular logo with gentle ambient radial breathing, smooth glow aura, and clean entry fade transition.
 - **Smooth & Freeze-Free Video Songs Playback**:
-  - Fixed video songs playback freezing by upgrading player surface pipeline to hardware-accelerated `TextureView` and preventing period clipping locks in `MergingMediaSource`.
+  - Hardware-accelerated `TextureView` pipeline and decoupled audio-video stream locks in `MergingMediaSource` completely eliminating video frame freezes.
 - **Apple Music + Spotify Mixed Design Lyrics**:
-  - Premium hybrid lyrics interface featuring large bold active typography (26sp), defocused inactive lines (alpha 0.35, scale 0.96), frosted glass pill containers, and ultra-smooth line & word synchronization.
-  - Soft silver romanization and soft sage translations for multilingual clarity.
+  - 26sp bold active typography, frosted glass pill containers, cinematic 0.35 alpha defocus on inactive lines, with soft silver romanization & soft sage translations.
 - **Progressive Playback Timing Fix**:
-  - Fixed duration and progress playback calculations in Pulse Player, restoring accurate live track times and interactive playhead scrub thumb.
+  - Accurate live track time display (elapsed and remaining) and interactive playhead scrub thumb in Pulse Player.
 - **Soft Color Palette Harmonization**:
-  - Replaced harsh neon tones across home, settings, and login screens with gentle modern emerald & mint tones (`#10B981` / `#34D399`).
-- **Direct Mobile Notification Panel for New Updates**:
-  - Integrated immediate notification shade alerts on Android (`pulse_app_update_channel`) as soon as a new OTA update is detected, allowing direct updates from the phone's notification drawer.
+  - Gentle emerald & mint tones (`#10B981` / `#34D399`) across all screens.
 """
 
 ASSETS = [
     ("PulseMusic-Universal.apk", "dist/PulseMusic-Universal.apk"),
     ("PulseMusic-arm64-v8a.apk", "dist/PulseMusic-arm64-v8a.apk"),
     ("PulseMusic-armeabi-v7a.apk", "dist/PulseMusic-armeabi-v7a.apk"),
-    ("PulseMusic-v2.2.1-Release-Universal.apk", "dist/PulseMusic-v2.2.1-Release-Universal.apk"),
-    ("PulseMusic-v2.2.1-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.1-Release-arm64-v8a.apk"),
-    ("PulseMusic-v2.2.1-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.1-Release-armeabi-v7a.apk"),
+    ("PulseMusic-v2.2.2-Release-Universal.apk", "dist/PulseMusic-v2.2.2-Release-Universal.apk"),
+    ("PulseMusic-v2.2.2-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.2-Release-arm64-v8a.apk"),
+    ("PulseMusic-v2.2.2-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.2-Release-armeabi-v7a.apk"),
     ("PulseMusic-Windows-x64.zip", "dist/PulseMusic-Windows-x64.zip"),
-    ("PulseMusic-v2.2.1-Windows-x64.zip", "dist/PulseMusic-v2.2.1-Windows-x64.zip"),
+    ("PulseMusic-v2.2.2-Windows-x64.zip", "dist/PulseMusic-v2.2.2-Windows-x64.zip"),
 ]
 
 def main():

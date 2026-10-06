@@ -91,15 +91,23 @@ object NotificationHandler {
                 .setAutoCancel(true) // Remove notification when tapped
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Show on lock screen
         with(NotificationManagerCompat.from(context)) {
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
+            if (!canPostNotification(context)) {
                 return
             }
             notify(noti.hashCode(), builder.build())
         }
+    }
+
+    fun canPostNotification(context: Context): Boolean {
+        val manager = NotificationManagerCompat.from(context)
+        if (!manager.areNotificationsEnabled()) return false
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            return androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+        return true
     }
 
     /**
@@ -179,11 +187,7 @@ object NotificationHandler {
                 .setAutoCancel(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         with(NotificationManagerCompat.from(context)) {
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
+            if (!canPostNotification(context)) {
                 return
             }
             notify(url.hashCode(), builder.build())
@@ -193,18 +197,25 @@ object NotificationHandler {
     private const val APP_UPDATE_CHANNEL_ID = "pulse_app_update_channel"
 
     fun createAppUpdateNotificationChannel(context: Context) {
-        val notificationManager: NotificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (notificationManager.getNotificationChannel(APP_UPDATE_CHANNEL_ID) == null) {
-            val channel =
-                NotificationChannel(
-                    APP_UPDATE_CHANNEL_ID,
-                    "App Updates",
-                    NotificationManager.IMPORTANCE_HIGH,
-                ).apply {
-                    description = "Notifies when a new version of Pulse is ready to install"
-                }
-            notificationManager.createNotificationChannel(channel)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val notificationManager: NotificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (notificationManager.getNotificationChannel(APP_UPDATE_CHANNEL_ID) == null) {
+                val channel =
+                    NotificationChannel(
+                        APP_UPDATE_CHANNEL_ID,
+                        "Pulse App Updates",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        description = "Notifies when a new version of Pulse is ready to install"
+                        enableLights(true)
+                        enableVibration(true)
+                        vibrationPattern = longArrayOf(0, 250, 250, 250)
+                        setShowBadge(true)
+                        lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                    }
+                notificationManager.createNotificationChannel(channel)
+            }
         }
     }
 
@@ -233,17 +244,14 @@ object NotificationHandler {
                 .setSmallIcon(R.drawable.mono)
                 .setContentTitle("Pulse Update Ready ($versionName)")
                 .setContentText("A new version of Pulse has been downloaded. Tap to install.")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
         with(NotificationManagerCompat.from(context)) {
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
+            if (!canPostNotification(context)) {
                 return
             }
             notify(1001, builder.build())
@@ -253,18 +261,25 @@ object NotificationHandler {
     private const val TRENDING_CHANNEL_ID = "pulse_trending_music_channel"
 
     fun createTrendingNotificationChannel(context: Context) {
-        val notificationManager: NotificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (notificationManager.getNotificationChannel(TRENDING_CHANNEL_ID) == null) {
-            val channel =
-                NotificationChannel(
-                    TRENDING_CHANNEL_ID,
-                    "Trending & New Music",
-                    NotificationManager.IMPORTANCE_HIGH,
-                ).apply {
-                    description = "Notifies when trending songs and new releases are available"
-                }
-            notificationManager.createNotificationChannel(channel)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val notificationManager: NotificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (notificationManager.getNotificationChannel(TRENDING_CHANNEL_ID) == null) {
+                val channel =
+                    NotificationChannel(
+                        TRENDING_CHANNEL_ID,
+                        "Trending & New Music",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        description = "Notifies when trending songs and new releases are available"
+                        enableLights(true)
+                        enableVibration(true)
+                        vibrationPattern = longArrayOf(0, 250, 250, 250)
+                        setShowBadge(true)
+                        lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                    }
+                notificationManager.createNotificationChannel(channel)
+            }
         }
     }
 
@@ -275,6 +290,11 @@ object NotificationHandler {
         videoId: String? = null,
     ) {
         createTrendingNotificationChannel(context)
+        if (!canPostNotification(context)) {
+            com.maxrave.logger.Logger.w("NotificationHandler", "Cannot post trending notification: permission not granted or disabled")
+            return
+        }
+
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             if (!videoId.isNullOrEmpty()) {
@@ -296,19 +316,13 @@ object NotificationHandler {
                     NotificationCompat.BigTextStyle()
                         .bigText("🔥 \"$title\" by $artist is trending on charts! Tap to stream in crystal-clear audio on Pulse Music.")
                 )
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
         with(NotificationManagerCompat.from(context)) {
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return
-            }
             notify((title + artist).hashCode(), builder.build())
         }
     }
@@ -319,6 +333,11 @@ object NotificationHandler {
         downloadUrl: String? = null,
     ) {
         createAppUpdateNotificationChannel(context)
+        if (!canPostNotification(context)) {
+            com.maxrave.logger.Logger.w("NotificationHandler", "Cannot post update notification: permission not granted or disabled")
+            return
+        }
+
         val intent = if (!downloadUrl.isNullOrEmpty()) {
             Intent(Intent.ACTION_VIEW, downloadUrl.toUri()).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -343,20 +362,50 @@ object NotificationHandler {
                     NotificationCompat.BigTextStyle()
                         .bigText("Pulse Music v$versionName is now available. Tap to update for the latest performance improvements and features.")
                 )
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
         with(NotificationManagerCompat.from(context)) {
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return
-            }
             notify(1002, builder.build())
         }
+    }
+
+    fun postTestNotification(context: Context): Boolean {
+        createTrendingNotificationChannel(context)
+        if (!canPostNotification(context)) {
+            return false
+        }
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            9999,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder =
+            NotificationCompat.Builder(context, TRENDING_CHANNEL_ID)
+                .setSmallIcon(R.drawable.mono)
+                .setContentTitle("⚡ Pulse Music Connected")
+                .setContentText("Mobile notification panel alerts are working perfectly!")
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText("⚡ Your mobile notification panel is successfully configured! You will receive instant notifications for trending songs, new releases, and app updates.")
+                )
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        with(NotificationManagerCompat.from(context)) {
+            notify(9999, builder.build())
+        }
+        return true
     }
 }

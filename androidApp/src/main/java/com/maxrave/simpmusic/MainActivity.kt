@@ -19,9 +19,12 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
+import android.content.pm.PackageManager
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.eygraber.uri.toKmpUriOrNull
@@ -40,9 +43,11 @@ import com.maxrave.simpmusic.di.viewModelModule
 import com.maxrave.simpmusic.service.update.AppUpdateWorker
 import com.maxrave.simpmusic.service.test.notification.NotificationHandler
 import com.maxrave.simpmusic.service.test.notification.NotifyWork
+import com.maxrave.simpmusic.service.test.notification.TrendingMusicNotificationWorker
 import com.maxrave.simpmusic.utils.ComposeResUtils
 import com.maxrave.simpmusic.utils.VersionManager
 import com.maxrave.simpmusic.viewModel.SharedViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
@@ -55,7 +60,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 @Suppress("DEPRECATION")
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     val viewModel: SharedViewModel by inject()
     val mediaPlayerHandler by inject<MediaPlayerHandler>()
     val dataStoreManager: DataStoreManager by inject()
@@ -201,7 +206,38 @@ class MainActivity : AppCompatActivity() {
         NotificationHandler.createNotificationChannel(this)
         NotificationHandler.createAppUpdateNotificationChannel(this)
         NotificationHandler.createTrendingNotificationChannel(this)
-        val request =
+
+        // Schedule periodic & immediate Trending Music Worker
+        val trendingPeriodic =
+            PeriodicWorkRequestBuilder<TrendingMusicNotificationWorker>(
+                4L,
+                TimeUnit.HOURS,
+            ).addTag("Pulse Trending Music Worker")
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build(),
+                ).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "Pulse Trending Music Worker",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            trendingPeriodic,
+        )
+
+        val trendingImmediate =
+            OneTimeWorkRequestBuilder<TrendingMusicNotificationWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build(),
+                ).build()
+        WorkManager.getInstance(this).enqueueUniqueWork(
+            "Pulse Trending Music Immediate",
+            ExistingWorkPolicy.REPLACE,
+            trendingImmediate,
+        )
+
+        val artistRequest =
             PeriodicWorkRequestBuilder<NotifyWork>(
                 12L,
                 TimeUnit.HOURS,
@@ -215,8 +251,9 @@ class MainActivity : AppCompatActivity() {
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "Artist Worker",
             ExistingPeriodicWorkPolicy.KEEP,
-            request,
+            artistRequest,
         )
+
         lifecycleScope.launch {
             // Cancel legacy blog RSS worker
             WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Blog RSS Worker")
@@ -225,7 +262,7 @@ class MainActivity : AppCompatActivity() {
                 if (enabled == DataStoreManager.TRUE) {
                     val updateRequest =
                         PeriodicWorkRequestBuilder<AppUpdateWorker>(
-                            12L,
+                            4L,
                             TimeUnit.HOURS,
                         ).addTag("Pulse App Update Worker")
                             .setConstraints(
@@ -236,8 +273,22 @@ class MainActivity : AppCompatActivity() {
                             ).build()
                     WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
                         "Pulse App Update Worker",
-                        ExistingPeriodicWorkPolicy.KEEP,
+                        ExistingPeriodicWorkPolicy.UPDATE,
                         updateRequest,
+                    )
+
+                    val updateImmediate =
+                        OneTimeWorkRequestBuilder<AppUpdateWorker>()
+                            .setConstraints(
+                                Constraints
+                                    .Builder()
+                                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                                    .build(),
+                            ).build()
+                    WorkManager.getInstance(this@MainActivity).enqueueUniqueWork(
+                        "Pulse App Update Immediate",
+                        ExistingWorkPolicy.REPLACE,
+                        updateImmediate,
                     )
                 } else {
                     WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Pulse App Update Worker")
@@ -257,25 +308,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (!EasyPermissions.hasPermissions(this, Manifest.permission.POST_NOTIFICATIONS)) {
+        if (NotificationHandler.canPostNotification(this)) {
+            triggerInitialNotifications()
+        } else if (!EasyPermissions.hasPermissions(this, Manifest.permission.POST_NOTIFICATIONS)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val doNotAsk = getString("notification_permission_do_not_ask")
-                if (doNotAsk != "true") {
-                    val wasAsked = getString("notification_permission_asked")
-                    if (wasAsked != "true") {
-                        // First time: request system permission
-                        EasyPermissions.requestPermissions(
-                            this,
-                            runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.NOTIFICATION_REQUEST) },
-                            1,
-                            Manifest.permission.POST_NOTIFICATIONS,
-                        )
-                        putString("notification_permission_asked", "true")
-                    } else {
-                        // Already asked before: show custom dialog with "Don't show again"
-                        viewModel.showNotificationPermissionDialog()
-                    }
-                }
+                EasyPermissions.requestPermissions(
+                    this,
+                    runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.NOTIFICATION_REQUEST) },
+                    1,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                )
             }
         }
         viewModel.getLocation()
@@ -340,6 +382,66 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getString(key: String): String? = viewModel.getString(key)
+
+    private fun triggerInitialNotifications() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            NotificationHandler.createNotificationChannel(this@MainActivity)
+            NotificationHandler.createAppUpdateNotificationChannel(this@MainActivity)
+            NotificationHandler.createTrendingNotificationChannel(this@MainActivity)
+
+            if (!NotificationHandler.canPostNotification(this@MainActivity)) {
+                return@launch
+            }
+
+            val lastTrendingNotif = viewModel.getString("last_trending_notif_time")?.toLongOrNull() ?: 0L
+            val now = System.currentTimeMillis()
+            if (now - lastTrendingNotif > 2 * 60 * 60 * 1000L) {
+                val trendingHits = listOf(
+                    Triple("Illuminati", "Sushin Shyam", "tOM-nWPcR4U"),
+                    Triple("Tauba Tauba", "Karan Aujla", "LK7-_dgAVQE"),
+                    Triple("Espresso", "Sabrina Carpenter", "eVli-tstM5E"),
+                    Triple("Chuttamalle", "Shilpa Rao & Anirudh Ravichander", "m1qFz4s2qZ8"),
+                    Triple("Aasa Kooda", "Sai Abhyankkar", "4y_vA_kQJt8"),
+                    Triple("Hukum - Thalaivar Alappara", "Anirudh Ravichander", "1F3HM6353Qc"),
+                    Triple("Not Like Us", "Kendrick Lamar", "T6eK-2OQtew"),
+                    Triple("Millionaire", "Yo Yo Honey Singh", "XO8wew38VM8"),
+                    Triple("Starboy", "The Weeknd ft. Daft Punk", "34Na4j8AVgA"),
+                    Triple("Die With A Smile", "Lady Gaga & Bruno Mars", "kPa7bsKwL-8")
+                )
+                val hit = trendingHits.random()
+                NotificationHandler.postTrendingSongNotification(
+                    context = this@MainActivity,
+                    title = hit.first,
+                    artist = hit.second,
+                    videoId = hit.third,
+                )
+                viewModel.putString("last_trending_notif_time", now.toString())
+            }
+
+            viewModel.checkForAppUpdate(silent = true)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
+        if (NotificationHandler.canPostNotification(this)) {
+            triggerInitialNotifications()
+        }
+    }
+
+    override fun onPermissionsGranted(requestCode: Int, perms: List<String>) {
+        Logger.i("MainActivity", "onPermissionsGranted: $perms")
+        triggerInitialNotifications()
+    }
+
+    override fun onPermissionsDenied(requestCode: Int, perms: List<String>) {
+        Logger.w("MainActivity", "onPermissionsDenied: $perms")
+    }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
