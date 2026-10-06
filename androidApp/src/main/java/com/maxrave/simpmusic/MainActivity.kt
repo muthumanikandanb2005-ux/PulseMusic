@@ -245,6 +245,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        lifecycleScope.launch {
+            viewModel.availableUpdate.collect { update ->
+                if (update != null && update.tagName.isNotBlank()) {
+                    NotificationHandler.postUpdateAvailableNotification(
+                        context = this@MainActivity,
+                        versionName = update.tagName.trim().removePrefix("v").removePrefix("V"),
+                        downloadUrl = "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest",
+                    )
+                }
+            }
+        }
+
         if (!EasyPermissions.hasPermissions(this, Manifest.permission.POST_NOTIFICATIONS)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val doNotAsk = getString("notification_permission_do_not_ask")
