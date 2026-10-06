@@ -685,7 +685,7 @@ fun SettingScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF0C140F))
-                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                         .clickable { navController.navigate(PulseMusicLoginDestination) }
                         .padding(16.dp),
                 ) {
@@ -697,14 +697,14 @@ fun SettingScreen(
                             modifier = Modifier
                                 .size(50.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF00E676).copy(alpha = 0.15f))
-                                .border(1.5.dp, Color(0xFF00E676), CircleShape),
+                                .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                .border(1.5.dp, Color(0xFF10B981), CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = if (profileName.isNotBlank()) profileName.take(1).uppercase() else "P",
                                 style = typo().titleMedium,
-                                color = Color(0xFF00E676),
+                                color = Color(0xFF10B981),
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
@@ -722,13 +722,13 @@ fun SettingScreen(
                             Text(
                                 text = if (details.isNotBlank()) details else "Tap to set Name, Age, Gender & Language",
                                 style = typo().bodySmall,
-                                color = if (details.isNotBlank()) Color(0xFF00E676).copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (details.isNotBlank()) Color(0xFF10B981).copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Text(
                             text = "Edit",
                             style = typo().labelMedium,
-                            color = Color(0xFF00E676),
+                            color = Color(0xFF10B981),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(Color(0xFF04381C))
@@ -753,7 +753,7 @@ fun SettingScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF0C140F))
-                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                         .padding(vertical = 4.dp),
                 ) {
                     SettingItem(
@@ -2652,7 +2652,7 @@ fun SettingScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF0C140F))
-                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                         .padding(vertical = 4.dp),
                 ) {
                     Column {
@@ -2729,7 +2729,7 @@ fun SettingScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color(0xFF101317))
-                        .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(14.dp))
                         .padding(vertical = 2.dp),
                 ) {
                     SettingItem(
@@ -2958,7 +2958,7 @@ fun SettingScreen(
                         }
                     },
                 ) {
-                    Text(text = stringResource(Res.string.save), color = Color(0xFF00E676))
+                    Text(text = stringResource(Res.string.save), color = Color(0xFF10B981))
                 }
             },
             dismissButton = {

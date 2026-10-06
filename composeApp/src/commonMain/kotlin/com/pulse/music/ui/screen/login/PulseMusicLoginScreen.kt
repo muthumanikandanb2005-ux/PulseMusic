@@ -96,7 +96,7 @@ import com.pulse.music.ui.screen.profile.INDIAN_LANGUAGES
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
-private val PulseNeonGreen = Color(0xFF00E676)
+private val PulseNeonGreen = Color(0xFF10B981)
 private val PulseOledBlack = Color(0xFF000000)
 private val PulseFieldSurface = Color(0xFF101014)
 private val PulseCardSurface = Color(0xFF0C130E)
@@ -244,7 +244,7 @@ fun PulseMusicLoginScreen(
                         modifier = Modifier
                             .size(76.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF00E676).copy(alpha = 0.15f))
+                            .background(PulseNeonGreen.copy(alpha = 0.15f))
                             .border(2.dp, PulseNeonGreen, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -1734,7 +1734,7 @@ fun PulseMusicLoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) Color(0xFF00E676).copy(alpha = 0.15f) else PulseFieldSurface)
+                                .background(if (isSelected) PulseNeonGreen.copy(alpha = 0.15f) else PulseFieldSurface)
                                 .border(
                                     1.dp,
                                     if (isSelected) PulseNeonGreen else Color(0xFF26262E),

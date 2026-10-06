@@ -631,14 +631,14 @@ fun LyricsView(
                                         romanizedWords = romanizedWords,
                                         currentTimeMs = current.current - lyricsOffsetMs,
                                         isCurrent = index == currentLineIndex,
-                                        customFontSize = if (isPulseNeonStyle) 24.sp else if (appleStyle) AppleMusicLyricFontSize else null,
+                                        customFontSize = if (isPulseNeonStyle) 26.sp else if (appleStyle) AppleMusicLyricFontSize else null,
                                         glow = if (isPulseNeonStyle && index == currentLineIndex) {
-                                            Shadow(color = Color(0xFF00E676).copy(alpha = 0.7f), blurRadius = 16f)
+                                            Shadow(color = Color.White.copy(alpha = 0.35f), blurRadius = 14f)
                                         } else if (appleStyle && index == currentLineIndex) {
                                             AppleMusicActiveLineGlow
                                         } else null,
-                                        pendingColorOverride = if (isPulseNeonStyle) Color.White.copy(alpha = 0.45f) else if (appleStyle) AppleMusicPendingWordColor else null,
-                                        translatedColorOverride = if (isPulseNeonStyle) Color(0xFF6EE7B7) else if (appleStyle) AppleMusicTranslatedColor else null,
+                                        pendingColorOverride = if (isPulseNeonStyle) Color.White.copy(alpha = 0.35f) else if (appleStyle) AppleMusicPendingWordColor else null,
+                                        translatedColorOverride = if (isPulseNeonStyle) Color(0xFFA7F3D0) else if (appleStyle) AppleMusicTranslatedColor else null,
                                         translatedStyleOverride =
                                             if (appleStyle) {
                                                 typo().bodyMedium.copy(
@@ -894,15 +894,16 @@ fun PulseNeonLyricsLineItem(
     romanizedWords: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    // Apple Music smooth kinetic scaling and defocusing
     val scale by animateFloatAsState(
-        targetValue = if (isCurrent) 1.03f else 0.98f,
-        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
-        label = "PulseNeonScale",
+        targetValue = if (isCurrent) 1.02f else 0.96f,
+        animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing),
+        label = "PulseHybridScale",
     )
     val alpha by animateFloatAsState(
-        targetValue = if (isCurrent) 1.0f else 0.38f,
-        animationSpec = tween(durationMillis = 240),
-        label = "PulseNeonAlpha",
+        targetValue = if (isCurrent) 1.0f else 0.35f,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "PulseHybridAlpha",
     )
 
     Column(
@@ -915,6 +916,7 @@ fun PulseNeonLyricsLineItem(
             }
             .padding(vertical = 4.dp),
     ) {
+        // Spotify frosted translucent card for active line
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -922,60 +924,38 @@ fun PulseNeonLyricsLineItem(
                     if (isCurrent) {
                         Modifier
                             .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color(0x3310B981),
-                                        Color(0x1F00F5D4),
-                                        Color(0x0010B981),
-                                    ),
-                                ),
-                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0x18FFFFFF),
+                                shape = RoundedCornerShape(18.dp),
                             )
                             .border(
                                 width = 1.dp,
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color(0xFF00E676),
-                                        Color(0xFF00F5D4),
-                                        Color(0x4400E676),
-                                    ),
-                                ),
-                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0x1EFFFFFF),
+                                shape = RoundedCornerShape(18.dp),
                             )
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .padding(horizontal = 18.dp, vertical = 14.dp)
                     } else {
-                        Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
                     }
                 ),
         ) {
             Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (isCurrent) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(Color(0xFF00E676), CircleShape),
-                        )
-                        Spacer(modifier = Modifier.size(10.dp))
-                    }
-                    Text(
-                        text = originalWords,
-                        style = TextStyle(
-                            fontSize = if (isCurrent) 24.sp else 19.sp,
-                            fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.SemiBold,
-                            letterSpacing = 0.2.sp,
-                            shadow = if (isCurrent) {
-                                Shadow(
-                                    color = Color(0xFF00E676).copy(alpha = 0.65f),
-                                    blurRadius = 18f,
-                                )
-                            } else null,
-                        ),
-                        color = if (isCurrent) Color.White else Color(0xFFB0B0B0),
-                    )
-                }
+                // Apple Music large crisp typography
+                Text(
+                    text = originalWords,
+                    style = TextStyle(
+                        fontSize = if (isCurrent) 26.sp else 20.sp,
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                        lineHeight = if (isCurrent) 34.sp else 28.sp,
+                        letterSpacing = (-0.3).sp,
+                        shadow = if (isCurrent) {
+                            Shadow(
+                                color = Color.White.copy(alpha = 0.25f),
+                                blurRadius = 12f,
+                            )
+                        } else null,
+                    ),
+                    color = if (isCurrent) Color.White else Color(0xFFCBD5E1),
+                )
 
                 if (!romanizedWords.isNullOrEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -984,9 +964,9 @@ fun PulseNeonLyricsLineItem(
                         style = TextStyle(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
+                            lineHeight = 20.sp,
                         ),
-                        color = if (isCurrent) Color(0xFF80CBC4) else Color.LightGray.copy(alpha = 0.35f),
-                        modifier = Modifier.padding(start = if (isCurrent) 18.dp else 0.dp),
+                        color = if (isCurrent) Color(0xFFE2E8F0).copy(alpha = 0.85f) else Color(0xFF94A3B8).copy(alpha = 0.35f),
                     )
                 }
 
@@ -997,9 +977,9 @@ fun PulseNeonLyricsLineItem(
                         style = TextStyle(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal,
+                            lineHeight = 20.sp,
                         ),
-                        color = if (isCurrent) Color(0xFF6EE7B7) else Color.LightGray.copy(alpha = 0.3f),
-                        modifier = Modifier.padding(start = if (isCurrent) 18.dp else 0.dp),
+                        color = if (isCurrent) Color(0xFFA7F3D0).copy(alpha = 0.85f) else Color(0xFF94A3B8).copy(alpha = 0.35f),
                     )
                 }
             }

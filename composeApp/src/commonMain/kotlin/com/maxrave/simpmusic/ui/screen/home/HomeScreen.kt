@@ -1155,7 +1155,7 @@ fun HomeUpdateNotificationCard(
                 .fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = Color(0xFF0C1813),
-        border = BorderStroke(1.dp, Color(0xFF00E676).copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f)),
         tonalElevation = 6.dp,
     ) {
         Column(
@@ -1174,12 +1174,12 @@ fun HomeUpdateNotificationCard(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF00E676)),
+                            .background(Color(0xFF10B981)),
                     )
                     Text(
                         text = "Update Available • ${update.tagName}",
                         style = typo().titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF00E676),
+                        color = Color(0xFF10B981),
                     )
                 }
                 IconButton(
@@ -1196,7 +1196,7 @@ fun HomeUpdateNotificationCard(
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "A new version of Pulse Music is available with continuous video playback fixes, Pulse neon lyrics, and enhanced performance.",
+                text = "A new version of Pulse Music is available with continuous video playback fixes, refined lyrics, and enhanced performance.",
                 style = typo().bodySmall,
                 color = Color.White.copy(alpha = 0.85f),
             )
@@ -1209,7 +1209,7 @@ fun HomeUpdateNotificationCard(
                     onClick = onDownload,
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00E676),
+                            containerColor = Color(0xFF10B981),
                             contentColor = Color.Black,
                         ),
                     shape = RoundedCornerShape(10.dp),
@@ -1227,7 +1227,7 @@ fun HomeUpdateNotificationCard(
                     Text(
                         text = "Later",
                         style = typo().labelMedium,
-                        color = Color(0xFF00E676).copy(alpha = 0.85f),
+                        color = Color(0xFF10B981).copy(alpha = 0.85f),
                     )
                 }
             }

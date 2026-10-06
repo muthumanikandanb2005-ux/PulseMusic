@@ -96,7 +96,7 @@ import com.maxrave.simpmusic.ui.icon.SkipPrevious
 import com.maxrave.simpmusic.ui.icon.Subtitles
 import com.maxrave.simpmusic.viewModel.UIEvent
 
-internal val BitChordNeonAccent = Color(0xFF00E676)
+internal val BitChordNeonAccent = Color(0xFF10B981)
 private val BitChordOledBlack = Color(0xFF000000)
 private val BitChordSurface = Color(0xFF0D0D10)
 
@@ -462,7 +462,7 @@ internal fun BitChordTrackInfoRow(
 }
 
 /**
- * Isolated Scrubber collecting `state.timelineFlow` locally.
+ * Isolated Scrubber collecting `state.timelineFlow` and `state.timelineState` locally.
  * Prevents full NowPlaying screen recomposition during high-frequency audio position updates!
  */
 @Composable
@@ -475,10 +475,27 @@ private fun BitChordIsolatedScrubber(
     var isDragging by remember { mutableStateOf(false) }
     var dragProgress by remember { mutableFloatStateOf(0f) }
 
-    val totalMs = timeline.total.coerceAtLeast(1L)
-    val currentMs = if (isDragging) (dragProgress * totalMs).toLong() else timeline.current
+    val rawTotal = timeline.total.takeIf { it > 1L }
+        ?: state.timelineState.total.takeIf { it > 1L }
+        ?: (state.artworkQueue.getOrNull(state.currentOrderIndex)?.durationSeconds?.toLong()?.let { it * 1000L })
+        ?: 1L
 
-    val currentFraction = (currentMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
+    val totalMs = rawTotal.coerceAtLeast(1L)
+    val currentMs = when {
+        isDragging -> (dragProgress * totalMs).toLong()
+        timeline.current > 0L -> timeline.current
+        state.timelineState.current > 0L -> state.timelineState.current
+        state.sliderValue > 0f -> (totalMs * (state.sliderValue / 100f)).toLong()
+        else -> 0L
+    }.coerceIn(0L, totalMs)
+
+    val currentFraction = if (isDragging) {
+        dragProgress
+    } else if (totalMs > 1L) {
+        (currentMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
+    } else {
+        (state.sliderValue / 100f).coerceIn(0f, 1f)
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         BitChordThinSlider(
@@ -506,7 +523,7 @@ private fun BitChordIsolatedScrubber(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = formatDuration(currentMs / 1000),
+                text = formatDuration(currentMs),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
@@ -522,7 +539,7 @@ private fun BitChordIsolatedScrubber(
                 border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
             ) {
                 Text(
-                    text = "Time ${formatDuration(currentMs / 1000)} / ${formatDuration(totalMs / 1000)}",
+                    text = "Time ${formatDuration(currentMs)} / ${formatDuration(totalMs)}",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
@@ -533,9 +550,9 @@ private fun BitChordIsolatedScrubber(
                 )
             }
 
-            val remainingSec = ((totalMs - currentMs).coerceAtLeast(0L)) / 1000
+            val remainingMs = (totalMs - currentMs).coerceAtLeast(0L)
             Text(
-                text = "-${formatDuration(remainingSec)}",
+                text = "-${formatDuration(remainingMs)}",
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
@@ -620,6 +637,17 @@ private fun BitChordThinSlider(
                     topLeft = Offset(0f, 0f),
                     size = Size(playedWidth, barHeight),
                     cornerRadius = cornerRadius,
+                )
+                // Visible playhead thumb for clear progressive timing indication
+                val thumbRadius = if (isTouching) 7.dp.toPx() else 4.5.dp.toPx()
+                val thumbCenter = Offset(
+                    x = playedWidth.coerceIn(thumbRadius, barWidth - thumbRadius),
+                    y = barHeight / 2f,
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = thumbRadius,
+                    center = thumbCenter,
                 )
             }
         }
