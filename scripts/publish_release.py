@@ -7,37 +7,37 @@ import urllib.parse
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "muthumanikandanb2005-ux/PulseMusic"
-TAG = "v2.2.2"
-RELEASE_NAME = "Pulse Music v2.2.2 - Mobile Notification Delivery Fix & Instant OTA Alerts"
-BODY = """### Pulse Music v2.2.2
+TAG = "v2.2.3"
+RELEASE_NAME = "Pulse Music v2.2.3 - Playback Auto-Skip Fix & Audio API Decoupling"
+BODY = """### Pulse Music v2.2.3
 
-- **Mobile Notification Delivery Fix (In-Shade & Push Alerts)**:
-  - Fixed notification reception across all Android versions (Android 8 through Android 15 / API 35).
-  - Configured high-priority notification channels (`pulse_trending_music_channel` & `pulse_app_update_channel`) with vibration, lights, badge, and heads-up alert behavior.
-  - Integrated `TrendingMusicNotificationWorker` (WorkManager) for automatic background delivery of trending songs and new releases directly to the mobile notification drawer.
-  - Instant OTA update notification triggered immediately upon detecting a newer version.
-  - Fixed "Check for updates now" in Settings to actively verify and post update notifications.
-- **Native App Logo Startup Animation**:
-  - Official Pulse Music circular logo with gentle ambient radial breathing, smooth glow aura, and clean entry fade transition.
-- **Smooth & Freeze-Free Video Songs Playback**:
-  - Hardware-accelerated `TextureView` pipeline and decoupled audio-video stream locks in `MergingMediaSource` completely eliminating video frame freezes.
-- **Apple Music + Spotify Mixed Design Lyrics**:
-  - 26sp bold active typography, frosted glass pill containers, cinematic 0.35 alpha defocus on inactive lines, with soft silver romanization & soft sage translations.
-- **Progressive Playback Timing Fix**:
-  - Accurate live track time display (elapsed and remaining) and interactive playhead scrub thumb in Pulse Player.
-- **Soft Color Palette Harmonization**:
-  - Gentle emerald & mint tones (`#10B981` / `#34D399`) across all screens.
+- **Playback Stoppage Fix (Continuous Music Playing)**:
+  - Fixed an issue where songs stopped automatically when skipping tracks in the queue.
+  - Replaced player pause on playback error with intelligent queue advancement: when a track cannot be resolved or played, Pulse Player automatically transitions to the next playable track so your music queue never freezes or stops.
+  - Ensured `playWhenReady` is preserved as active during track skipping (`seekToNext`, `seekToPrevious`), guaranteeing immediate playback start.
+- **Complete Decoupling of Supabase & Audio API**:
+  - Fully decoupled Supabase synchronization from core media playback and local data repositories (`SongRepositoryImpl`, `LocalPlaylistRepositoryImpl`).
+  - Listen counts, like statuses, and playlist updates now execute purely against local SQLite without waiting on or blocking for remote Supabase network round-trips or auth token refreshes.
+  - Supabase cloud sync is isolated to explicit user account management, preventing any network latency or authentication states from interfering with audio streaming.
+- **Stream Resolution Resilience & Instant Audio Start**:
+  - Implemented automatic retry logic in `ResolvingDataSource` to gracefully recover from temporary network hiccups without dropping playback.
+  - Converted external metadata lookups to asynchronous background operations so audio stream URLs resolve and start playing with zero delay.
+- **Includes All Previous Enhancements**:
+  - Mobile notification drawer delivery for trending songs, new releases, and OTA update notifications.
+  - Native Pulse Music circular logo startup animation.
+  - Freeze-free video songs playback.
+  - Apple Music + Spotify hybrid lyrics typography and progressive timing in Pulse Player.
 """
 
 ASSETS = [
     ("PulseMusic-Universal.apk", "dist/PulseMusic-Universal.apk"),
     ("PulseMusic-arm64-v8a.apk", "dist/PulseMusic-arm64-v8a.apk"),
     ("PulseMusic-armeabi-v7a.apk", "dist/PulseMusic-armeabi-v7a.apk"),
-    ("PulseMusic-v2.2.2-Release-Universal.apk", "dist/PulseMusic-v2.2.2-Release-Universal.apk"),
-    ("PulseMusic-v2.2.2-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.2-Release-arm64-v8a.apk"),
-    ("PulseMusic-v2.2.2-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.2-Release-armeabi-v7a.apk"),
+    ("PulseMusic-v2.2.3-Release-Universal.apk", "dist/PulseMusic-v2.2.3-Release-Universal.apk"),
+    ("PulseMusic-v2.2.3-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.3-Release-arm64-v8a.apk"),
+    ("PulseMusic-v2.2.3-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.3-Release-armeabi-v7a.apk"),
     ("PulseMusic-Windows-x64.zip", "dist/PulseMusic-Windows-x64.zip"),
-    ("PulseMusic-v2.2.2-Windows-x64.zip", "dist/PulseMusic-v2.2.2-Windows-x64.zip"),
+    ("PulseMusic-v2.2.3-Windows-x64.zip", "dist/PulseMusic-v2.2.3-Windows-x64.zip"),
 ]
 
 def main():
