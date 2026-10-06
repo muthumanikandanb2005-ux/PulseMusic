@@ -11,6 +11,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,8 +48,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.painterResource
+import simpmusic.composeapp.generated.resources.Res
+import simpmusic.composeapp.generated.resources.circle_app_icon
 
-private val PulseNeonGreen = Color(0xFF00E676)
+private val PulseSoftMint = Color(0xFF10B981)
+private val PulseSoftEmerald = Color(0xFF34D399)
 private val PulseDeepBlack = Color(0xFF000000)
 private val PulseGoldAccent = Color(0xFFFFD700)
 
@@ -58,28 +63,28 @@ fun PulseStartupSplash(
     modifier: Modifier = Modifier,
 ) {
     var isVisible by remember { mutableStateOf(true) }
-    val scale = remember { Animatable(0.7f) }
+    val scale = remember { Animatable(0.75f) }
     val alpha = remember { Animatable(0f) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "PulseHaloTransition")
     val pulseRingScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.35f,
+        targetValue = 1.25f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "PulseRingScale",
     )
 
-    val shimmerOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
+    val logoPulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.97f,
+        targetValue = 1.03f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1600, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
         ),
-        label = "ShimmerOffset",
+        label = "LogoPulseScale",
     )
 
     LaunchedEffect(Unit) {
@@ -124,74 +129,51 @@ fun PulseStartupSplash(
                     .scale(scale.value)
                     .alpha(alpha.value),
             ) {
-                // Animated Pulsing Halo Logo
+                // Official App Logo with smooth ambient breathing glow
                 Box(
-                    modifier = Modifier.size(130.dp),
+                    modifier = Modifier.size(140.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Outer pulsating glow ring
+                    // Outer soft pulsating halo
                     Box(
                         modifier = Modifier
-                            .size(110.dp * pulseRingScale)
+                            .size(125.dp * pulseRingScale)
                             .clip(CircleShape)
                             .background(
                                 Brush.radialGradient(
                                     listOf(
-                                        PulseNeonGreen.copy(alpha = 0.35f),
+                                        PulseSoftMint.copy(alpha = 0.28f),
+                                        PulseSoftEmerald.copy(alpha = 0.12f),
                                         Color.Transparent,
                                     )
                                 )
                             ),
                     )
 
-                    // Secondary border ring
+                    // Secondary delicate border ring
                     Box(
                         modifier = Modifier
-                            .size(96.dp)
+                            .size(108.dp)
                             .clip(CircleShape)
-                            .border(1.5.dp, PulseNeonGreen.copy(alpha = 0.5f), CircleShape),
+                            .border(1.5.dp, PulseSoftMint.copy(alpha = 0.35f), CircleShape),
                     )
 
-                    // Core Circular Icon Emblem
+                    // Core Official App Logo
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
+                            .size(92.dp)
+                            .scale(logoPulseScale)
                             .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        Color(0xFF0F2618),
-                                        Color(0xFF06140B),
-                                    )
-                                )
-                            )
-                            .border(2.dp, PulseNeonGreen, CircleShape),
+                            .border(2.dp, PulseSoftMint.copy(alpha = 0.8f), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
-                        // Soundwave Bars
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            listOf(16.dp, 32.dp, 44.dp, 28.dp, 18.dp).forEachIndexed { i, height ->
-                                val barScale by infiniteTransition.animateFloat(
-                                    initialValue = 0.4f,
-                                    targetValue = 1f,
-                                    animationSpec = infiniteRepeatable(
-                                        animation = tween(400 + i * 150, easing = FastOutSlowInEasing),
-                                        repeatMode = RepeatMode.Reverse,
-                                    ),
-                                    label = "Bar$i",
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(5.dp)
-                                        .height(height * barScale)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(PulseNeonGreen),
-                                )
-                            }
-                        }
+                        Image(
+                            painter = painterResource(Res.drawable.circle_app_icon),
+                            contentDescription = "Pulse Music Logo",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                        )
                     }
                 }
 
@@ -209,11 +191,11 @@ fun PulseStartupSplash(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Premium Badge with shimmering highlight
+                // Premium Badge with soft styling
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFF101B13),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PulseNeonGreen.copy(alpha = 0.7f)),
+                    color = Color(0xFF101B15),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PulseSoftMint.copy(alpha = 0.45f)),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -231,7 +213,7 @@ fun PulseStartupSplash(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp,
-                            color = PulseNeonGreen,
+                            color = PulseSoftEmerald,
                         )
                     }
                 }
