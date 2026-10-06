@@ -761,7 +761,7 @@ fun SettingScreen(
                         subtitle = if (!supabaseEmail.isNullOrBlank()) {
                             "Signed in as $supabaseEmail • Real-time Sync Active"
                         } else {
-                            "Sign in or register for BitChord cloud sync & backup"
+                            "Sign in or register for Pulse Music cloud sync & backup"
                         },
                         onClick = {
                             if (!supabaseEmail.isNullOrBlank()) {
@@ -856,7 +856,7 @@ fun SettingScreen(
                 val requiresAndroid12 = " (" + stringResource(Res.string.requires_android_12) + ")"
                 val nowPlayingStyleLabels =
                     listOf(
-                        DataStoreManager.NOW_PLAYING_STYLE_BITCHORD to "Pulse BitChord (Ultra-Smooth)",
+                        DataStoreManager.NOW_PLAYING_STYLE_BITCHORD to "Pulse Dynamic Neon (Ultra-Smooth)",
                         DataStoreManager.NOW_PLAYING_STYLE_SPOTIFY to stringResource(Res.string.now_playing_style_spotify),
                         DataStoreManager.NOW_PLAYING_STYLE_M3_EXPRESSIVE to stringResource(Res.string.now_playing_style_m3_expressive),
                         DataStoreManager.NOW_PLAYING_STYLE_APPLE_MUSIC to
@@ -892,22 +892,19 @@ fun SettingScreen(
                         sharedViewModel.setAmbientMode(checked)
                     }),
                 )
-                // Hidden outright below Android 12 rather than offered with one option: the Apple
-                // Music treatment IS the blur, and Modifier.blur is a documented no-op there, so
-                // the choice would be between Classic and a broken-looking Classic.
-                if (isLyricsBlurSupported()) {
-                    val lyricsStyleLabels =
-                        listOf(
-                            DataStoreManager.LYRICS_STYLE_CLASSIC to stringResource(Res.string.lyrics_style_classic),
-                            DataStoreManager.LYRICS_STYLE_APPLE_MUSIC to
-                                stringResource(Res.string.lyrics_style_apple_music) + requiresAndroid12,
-                        )
-                    SettingItem(
-                        title = stringResource(Res.string.lyrics_style),
-                        subtitle = lyricsStyleLabels.firstOrNull { it.first == lyricsStyle }?.second ?: "",
-                        onClick = {
-                            viewModel.setAlertData(
-                                SettingAlertState(
+                val lyricsStyleLabels =
+                    listOf(
+                        DataStoreManager.LYRICS_STYLE_PULSE_NEON to "Pulse Kinetic Neon (Ultra-Synced)",
+                        DataStoreManager.LYRICS_STYLE_CLASSIC to stringResource(Res.string.lyrics_style_classic),
+                        DataStoreManager.LYRICS_STYLE_APPLE_MUSIC to
+                            stringResource(Res.string.lyrics_style_apple_music) + requiresAndroid12,
+                    )
+                SettingItem(
+                    title = stringResource(Res.string.lyrics_style),
+                    subtitle = lyricsStyleLabels.firstOrNull { it.first == lyricsStyle }?.second ?: "",
+                    onClick = {
+                        viewModel.setAlertData(
+                            SettingAlertState(
                                     title = runBlocking { getString(Res.string.lyrics_style) },
                                     selectOne =
                                         SettingAlertState.SelectData(
@@ -925,7 +922,6 @@ fun SettingScreen(
                             )
                         },
                     )
-                }
 
                 // Independent of BOTH style settings, and not gated on Android 12: this changes
                 // what the words SAY, not how they are drawn, so it applies to every style on
@@ -2650,7 +2646,7 @@ fun SettingScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
-                // App Updates BitChord Themed Card
+                // App Updates Pulse Themed Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

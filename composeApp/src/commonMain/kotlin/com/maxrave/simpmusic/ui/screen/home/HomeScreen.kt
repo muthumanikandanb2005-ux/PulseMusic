@@ -1154,8 +1154,8 @@ fun HomeUpdateNotificationCard(
             modifier
                 .fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+        color = Color(0xFF0C1813),
+        border = BorderStroke(1.dp, Color(0xFF00E676).copy(alpha = 0.5f)),
         tonalElevation = 6.dp,
     ) {
         Column(
@@ -1166,11 +1166,22 @@ fun HomeUpdateNotificationCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(
-                    text = "🚀 Update Available • ${update.tagName}",
-                    style = typo().titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF00E676)),
+                    )
+                    Text(
+                        text = "Update Available • ${update.tagName}",
+                        style = typo().titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFF00E676),
+                    )
+                }
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.size(24.dp),
@@ -1178,28 +1189,28 @@ fun HomeUpdateNotificationCard(
                     Icon(
                         imageVector = PulseIcons.Close,
                         contentDescription = "Dismiss",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp),
                     )
                 }
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "A new version of Pulse Music is available from Pulse Music Studio with performance improvements and new features.",
+                text = "A new version of Pulse Music is available with continuous video playback fixes, Pulse neon lyrics, and enhanced performance.",
                 style = typo().bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                color = Color.White.copy(alpha = 0.85f),
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Button(
                     onClick = onDownload,
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = Color(0xFF00E676),
+                            contentColor = Color.Black,
                         ),
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -1207,6 +1218,7 @@ fun HomeUpdateNotificationCard(
                     Text(
                         text = "Download Update",
                         style = typo().labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.Black,
                     )
                 }
                 TextButton(
@@ -1215,7 +1227,7 @@ fun HomeUpdateNotificationCard(
                     Text(
                         text = "Later",
                         style = typo().labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = Color(0xFF00E676).copy(alpha = 0.85f),
                     )
                 }
             }

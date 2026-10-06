@@ -398,6 +398,7 @@ fun App(
     }
     val isTablet = windowSize.isWidthAtLeastBreakpoint(WIDTH_DP_MEDIUM_LOWER_BOUND)
     val isTabletLandscape = isTablet && currentOrientation() == Orientation.LANDSCAPE
+    var showStartupSplash by rememberSaveable { mutableStateOf(true) }
 
     AppTheme(
         themeMode = themeMode,
@@ -791,5 +792,11 @@ fun App(
                 }
             },
         )
+
+        if (showStartupSplash) {
+            com.pulse.music.ui.component.PulseStartupSplash(
+                onDismiss = { showStartupSplash = false },
+            )
+        }
     }
 }

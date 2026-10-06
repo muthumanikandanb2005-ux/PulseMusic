@@ -9,6 +9,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
@@ -22,6 +23,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -450,7 +456,8 @@ fun LyricsView(
     // would be four copies of the same lookup. Re-checked against isLyricsBlurSupported() even
     // though Settings hides the option below Android 12 — a DataStore restored from a backup, or
     // carried to another device, can still hold APPLE_MUSIC on a phone that cannot draw it.
-    val lyricsStyle by dataStoreManager.lyricsStyle.collectAsStateWithLifecycle(DataStoreManager.LYRICS_STYLE_CLASSIC)
+    val lyricsStyle by dataStoreManager.lyricsStyle.collectAsStateWithLifecycle(DataStoreManager.LYRICS_STYLE_PULSE_NEON)
+    val isPulseNeonStyle = lyricsStyle == DataStoreManager.LYRICS_STYLE_PULSE_NEON
     val appleStyle = lyricsStyle == DataStoreManager.LYRICS_STYLE_APPLE_MUSIC && isLyricsBlurSupported()
 
     // Read here for the same reason the style is: all four call sites want the user's one choice,
@@ -551,11 +558,12 @@ fun LyricsView(
         // is only possible if there is empty space below it to scroll into. Without this tail the
         // list simply runs out of content and the closing lines pile up against the bottom edge,
         // so the final third of every song reads bottom-anchored instead of top-anchored.
-        val tailPadding = if (appleStyle) maxHeight * 0.72f else 0.dp
+        val tailPadding = if (appleStyle) maxHeight * 0.72f else if (isPulseNeonStyle) maxHeight * 0.45f else 0.dp
+        val topPadding = if (isPulseNeonStyle) maxHeight * 0.35f else 0.dp
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = tailPadding),
+            contentPadding = PaddingValues(top = topPadding, bottom = tailPadding),
         ) {
             items(displayLines.lines.size) { index ->
                 val line = displayLines.lines.getOrNull(index)
@@ -623,10 +631,14 @@ fun LyricsView(
                                         romanizedWords = romanizedWords,
                                         currentTimeMs = current.current - lyricsOffsetMs,
                                         isCurrent = index == currentLineIndex,
-                                        customFontSize = if (appleStyle) AppleMusicLyricFontSize else null,
-                                        glow = if (appleStyle && index == currentLineIndex) AppleMusicActiveLineGlow else null,
-                                        pendingColorOverride = if (appleStyle) AppleMusicPendingWordColor else null,
-                                        translatedColorOverride = if (appleStyle) AppleMusicTranslatedColor else null,
+                                        customFontSize = if (isPulseNeonStyle) 24.sp else if (appleStyle) AppleMusicLyricFontSize else null,
+                                        glow = if (isPulseNeonStyle && index == currentLineIndex) {
+                                            Shadow(color = Color(0xFF00E676).copy(alpha = 0.7f), blurRadius = 16f)
+                                        } else if (appleStyle && index == currentLineIndex) {
+                                            AppleMusicActiveLineGlow
+                                        } else null,
+                                        pendingColorOverride = if (isPulseNeonStyle) Color.White.copy(alpha = 0.45f) else if (appleStyle) AppleMusicPendingWordColor else null,
+                                        translatedColorOverride = if (isPulseNeonStyle) Color(0xFF6EE7B7) else if (appleStyle) AppleMusicTranslatedColor else null,
                                         translatedStyleOverride =
                                             if (appleStyle) {
                                                 typo().bodyMedium.copy(
@@ -648,6 +660,17 @@ fun LyricsView(
                                                 Modifier.clickable {
                                                     onLineClick(line.startTimeMs.toFloat() * 100 / timeLine.value.total)
                                                 }
+                                            },
+                                    )
+                                } else if (isPulseNeonStyle) {
+                                    PulseNeonLyricsLineItem(
+                                        originalWords = words,
+                                        translatedWords = translatedWords,
+                                        romanizedWords = romanizedWords,
+                                        isCurrent = index == currentLineIndex || allLinesCurrent,
+                                        modifier =
+                                            Modifier.clickable {
+                                                onLineClick(line.startTimeMs.toFloat() * 100 / timeLine.value.total)
                                             },
                                     )
                                 } else if (appleStyle) {
@@ -679,6 +702,20 @@ fun LyricsView(
                                                 },
                                     )
                                 }
+                            }
+
+                            // Pulse Neon style (Line sync or unsynced)
+                            isPulseNeonStyle -> {
+                                PulseNeonLyricsLineItem(
+                                    originalWords = words,
+                                    translatedWords = translatedWords,
+                                    romanizedWords = romanizedWords,
+                                    isCurrent = index == currentLineIndex || allLinesCurrent,
+                                    modifier =
+                                        Modifier.clickable(enabled = lyricsData.lyrics.syncType == "LINE_SYNCED") {
+                                            onLineClick(line.startTimeMs.toFloat() * 100 / timeLine.value.total)
+                                        },
+                                )
                             }
 
                             // Line sync or unsynced
@@ -845,6 +882,127 @@ fun LyricsLineItem(
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+fun PulseNeonLyricsLineItem(
+    originalWords: String,
+    translatedWords: String?,
+    isCurrent: Boolean,
+    romanizedWords: String? = null,
+    modifier: Modifier = Modifier,
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (isCurrent) 1.03f else 0.98f,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "PulseNeonScale",
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isCurrent) 1.0f else 0.38f,
+        animationSpec = tween(durationMillis = 240),
+        label = "PulseNeonAlpha",
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
+            .padding(vertical = 4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (isCurrent) {
+                        Modifier
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0x3310B981),
+                                        Color(0x1F00F5D4),
+                                        Color(0x0010B981),
+                                    ),
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                            .border(
+                                width = 1.dp,
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFF00E676),
+                                        Color(0xFF00F5D4),
+                                        Color(0x4400E676),
+                                    ),
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    } else {
+                        Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    }
+                ),
+        ) {
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (isCurrent) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(Color(0xFF00E676), CircleShape),
+                        )
+                        Spacer(modifier = Modifier.size(10.dp))
+                    }
+                    Text(
+                        text = originalWords,
+                        style = TextStyle(
+                            fontSize = if (isCurrent) 24.sp else 19.sp,
+                            fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.SemiBold,
+                            letterSpacing = 0.2.sp,
+                            shadow = if (isCurrent) {
+                                Shadow(
+                                    color = Color(0xFF00E676).copy(alpha = 0.65f),
+                                    blurRadius = 18f,
+                                )
+                            } else null,
+                        ),
+                        color = if (isCurrent) Color.White else Color(0xFFB0B0B0),
+                    )
+                }
+
+                if (!romanizedWords.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = romanizedWords,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        color = if (isCurrent) Color(0xFF80CBC4) else Color.LightGray.copy(alpha = 0.35f),
+                        modifier = Modifier.padding(start = if (isCurrent) 18.dp else 0.dp),
+                    )
+                }
+
+                if (!translatedWords.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = translatedWords,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                        ),
+                        color = if (isCurrent) Color(0xFF6EE7B7) else Color.LightGray.copy(alpha = 0.3f),
+                        modifier = Modifier.padding(start = if (isCurrent) 18.dp else 0.dp),
+                    )
+                }
+            }
         }
     }
 }
