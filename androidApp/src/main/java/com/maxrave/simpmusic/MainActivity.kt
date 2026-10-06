@@ -38,6 +38,7 @@ import com.maxrave.logger.Logger
 import com.maxrave.media3.di.setServiceActivitySession
 import com.maxrave.simpmusic.di.viewModelModule
 import com.maxrave.simpmusic.service.update.AppUpdateWorker
+import com.maxrave.simpmusic.service.test.notification.NotificationHandler
 import com.maxrave.simpmusic.service.test.notification.NotifyWork
 import com.maxrave.simpmusic.utils.ComposeResUtils
 import com.maxrave.simpmusic.utils.VersionManager
@@ -197,6 +198,9 @@ class MainActivity : AppCompatActivity() {
                 ),
         )
         viewModel.checkIsRestoring()
+        NotificationHandler.createNotificationChannel(this)
+        NotificationHandler.createAppUpdateNotificationChannel(this)
+        NotificationHandler.createTrendingNotificationChannel(this)
         val request =
             PeriodicWorkRequestBuilder<NotifyWork>(
                 12L,

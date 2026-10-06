@@ -249,4 +249,114 @@ object NotificationHandler {
             notify(1001, builder.build())
         }
     }
+
+    private const val TRENDING_CHANNEL_ID = "pulse_trending_music_channel"
+
+    fun createTrendingNotificationChannel(context: Context) {
+        val notificationManager: NotificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (notificationManager.getNotificationChannel(TRENDING_CHANNEL_ID) == null) {
+            val channel =
+                NotificationChannel(
+                    TRENDING_CHANNEL_ID,
+                    "Trending & New Music",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply {
+                    description = "Notifies when trending songs and new releases are available"
+                }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    fun postTrendingSongNotification(
+        context: Context,
+        title: String,
+        artist: String,
+        videoId: String? = null,
+    ) {
+        createTrendingNotificationChannel(context)
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (!videoId.isNullOrEmpty()) {
+                putExtra("EXTRA_VIDEO_ID", videoId)
+            }
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            (title + artist).hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder =
+            NotificationCompat.Builder(context, TRENDING_CHANNEL_ID)
+                .setSmallIcon(R.drawable.mono)
+                .setContentTitle("🔥 Trending Now: $title")
+                .setContentText("By $artist • Tap to stream on Pulse Music")
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText("🔥 \"$title\" by $artist is trending on charts! Tap to stream in crystal-clear audio on Pulse Music.")
+                )
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        with(NotificationManagerCompat.from(context)) {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            notify((title + artist).hashCode(), builder.build())
+        }
+    }
+
+    fun postUpdateAvailableNotification(
+        context: Context,
+        versionName: String,
+        downloadUrl: String? = null,
+    ) {
+        createAppUpdateNotificationChannel(context)
+        val intent = if (!downloadUrl.isNullOrEmpty()) {
+            Intent(Intent.ACTION_VIEW, downloadUrl.toUri()).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+        } else {
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            1002,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder =
+            NotificationCompat.Builder(context, APP_UPDATE_CHANNEL_ID)
+                .setSmallIcon(R.drawable.mono)
+                .setContentTitle("⚡ Pulse Music v$versionName Available")
+                .setContentText("A new update with improved playback and features is ready!")
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText("Pulse Music v$versionName is now available. Tap to update for the latest performance improvements and features.")
+                )
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        with(NotificationManagerCompat.from(context)) {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            notify(1002, builder.build())
+        }
+    }
 }

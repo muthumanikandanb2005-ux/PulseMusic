@@ -44,6 +44,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -497,20 +498,40 @@ private fun BitChordIsolatedScrubber(
             inactiveColor = Color.White.copy(alpha = 0.2f),
         )
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = formatDuration(currentMs / 1000),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
                 ),
-                color = Color.White.copy(alpha = 0.55f),
+                color = accentColor,
             )
+
+            // Prominent Music Time Badge
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color.White.copy(alpha = 0.08f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
+            ) {
+                Text(
+                    text = "Time ${formatDuration(currentMs / 1000)} / ${formatDuration(totalMs / 1000)}",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
 
             val remainingSec = ((totalMs - currentMs).coerceAtLeast(0L)) / 1000
             Text(
@@ -518,8 +539,9 @@ private fun BitChordIsolatedScrubber(
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
                 ),
-                color = Color.White.copy(alpha = 0.55f),
+                color = Color.White.copy(alpha = 0.65f),
             )
         }
     }

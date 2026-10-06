@@ -7,27 +7,40 @@ import urllib.parse
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "muthumanikandanb2005-ux/PulseMusic"
-TAG = "v2.1.8"
-RELEASE_NAME = "Pulse Music v2.1.8 - User Profile, Butter-Smooth Playback & BitChord Cyber Theme"
-BODY = """### Pulse Music v2.1.8
+TAG = "v2.2.0"
+RELEASE_NAME = "Pulse Music v2.2.0 - Premium Splash Animation, Kinetic Neon Lyrics & Mobile System Notifications"
+BODY = """### Pulse Music v2.2.0
 
-- **Dedicated User Profile**: Brand new Profile screen in Settings allowing personalized configuration of **Name**, **Age**, **Gender**, and **Language Preference**, with instant local persistence.
-- **Continuous Video Playback (7-12s Freeze Resolved)**: Fixed DASH audio-video period timeline desynchronization (`adjustPeriodTimeOffsets`), cache format resolution, and enhanced `LoadControl` buffering thresholds for uninterrupted, butter-smooth video streaming.
-- **Author Attribution**: Owned & Developed by **Pulse Music Studio • Manikandan**.
-- **Private App Security & Anti-Decompilation Lock**: Aggressive code obfuscation and integrity protection (`PrivateAppIntegrityLock`). Source code inspection and decompilation locked.
-- **BitChord Cyber Color Theme**: 
-  - Settings on/off toggles themed with vibrant BitChord Electric Emerald (`#00E676`) and stealth charcoal.
-  - Sign-in option and screen themed with pure AMOLED black (`#000000`) and cyber neon green accents.
-  - App updates section elevated to a dedicated BitChord OTA Update Engine card.
-- **BitChord Music Player Engine**: Authentic BitChord player with breathing album art, hairline capsule scrubber, dynamic ambient glow, and ultra-low latency audio playback.
-- **Full Dual Signing**: Signed with both v1 (JAR Scheme) and v2/v3 (APK Signature Scheme) for universal ROM and package installer compatibility.
+- **Premium Startup Splash Animation**:
+  - Pulsating radiant emerald & cyan halo ring with animated equalizer soundwave bars.
+  - Glowing **PULSE MUSIC** typography with "PREMIUM AUDIO" badge and smooth fade transition into the app.
+- **Pulse Kinetic Neon Lyrics (Ultra-Synced)**:
+  - All-new futuristic lyrics style featuring glowing frosted emerald-cyan pill container (`#00E676` to `#00F5D4`).
+  - Active line expands with kinetic spring scaling and displays a glowing pulse indicator dot.
+  - Interactive click-to-seek, smooth vertical center-locking, and support for word-by-word and line-by-line sync.
+- **Lyrics Language Consistency Fix**:
+  - Solved issue where some songs displayed lyrics in foreign languages by prioritizing native audio language and human-created captions over auto-generated speech recognition (`a.`) tracks.
+  - Preserves original song lyrics as primary text, with clean phonetic romanization and translations as subtext.
+- **Music Playback Time Display**:
+  - High-visibility monospace `Time 01:25 / 03:45` badge on the player with elapsed and remaining time.
+- **Mobile Push & System Notification Panel**:
+  - Integrated native Android notification drawer channels:
+    - `pulse_trending_music_channel`: System notifications for trending tracks, charts, and new artist releases.
+    - `pulse_app_update_channel`: Direct in-shade alerts when a new OTA version is available or ready to install.
+- **Complete Removal of BitChord Branding**:
+  - Replaced all remaining legacy labels with Pulse Music and Pulse Dynamic Neon across player styles, settings, and home banners.
+- **Unified Profile Hub with Google Sign-In**:
+  - Instant access to Listening History, Liked Songs, Playlists, Supabase Cloud Sync, and Profile Demographics.
 """
 
 ASSETS = [
     ("PulseMusic-Universal.apk", "dist/PulseMusic-Universal.apk"),
     ("PulseMusic-arm64-v8a.apk", "dist/PulseMusic-arm64-v8a.apk"),
-    ("PulseMusic-v2.1.8-Release-Universal.apk", "dist/PulseMusic-v2.1.8-Release-Universal.apk"),
-    ("PulseMusic-v2.1.8-Release-arm64-v8a.apk", "dist/PulseMusic-v2.1.8-Release-arm64-v8a.apk"),
+    ("PulseMusic-armeabi-v7a.apk", "dist/PulseMusic-armeabi-v7a.apk"),
+    ("PulseMusic-v2.2.0-Release-Universal.apk", "dist/PulseMusic-v2.2.0-Release-Universal.apk"),
+    ("PulseMusic-v2.2.0-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.0-Release-arm64-v8a.apk"),
+    ("PulseMusic-v2.2.0-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.0-Release-armeabi-v7a.apk"),
+    ("PulseMusic-Windows-x64.zip", "dist/PulseMusic-Windows-x64.zip"),
 ]
 
 def main():
@@ -40,9 +53,14 @@ def main():
                     break
 
     if not token:
-        print("ERROR: GITHUB_TOKEN environment variable is not set.")
-        print("Please set your GitHub Personal Access Token (classic or fine-grained with 'repo' scope):")
-        print("PowerShell: $env:GITHUB_TOKEN = 'ghp_your_token_here'; python scripts/publish_release.py")
+        try:
+            import subprocess
+            token = subprocess.check_output(["gh", "auth", "token"]).decode("utf-8").strip()
+        except Exception:
+            pass
+
+    if not token:
+        print("ERROR: GITHUB_TOKEN environment variable is not set and gh auth token could not be retrieved.")
         sys.exit(1)
 
     headers = {

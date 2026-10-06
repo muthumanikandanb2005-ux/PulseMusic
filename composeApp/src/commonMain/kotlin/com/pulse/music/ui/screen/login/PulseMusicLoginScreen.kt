@@ -30,12 +30,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -52,34 +55,51 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import com.maxrave.common.Config
+import com.maxrave.domain.data.entities.LocalPlaylistEntity
+import com.maxrave.domain.data.entities.SongEntity
 import com.maxrave.domain.manager.DataStoreManager
+import com.maxrave.domain.repository.LocalPlaylistRepository
+import com.maxrave.domain.repository.SongRepository
 import com.maxrave.domain.repository.SupabaseAuthRepository
+import com.maxrave.domain.utils.toTrack
 import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.icon.ArrowBackIosNew
 import com.maxrave.simpmusic.ui.icon.Check
 import com.maxrave.simpmusic.ui.icon.Close
+import com.maxrave.simpmusic.ui.icon.Favorite
+import com.maxrave.simpmusic.ui.icon.History
 import com.maxrave.simpmusic.ui.icon.KeyboardArrowDown
-import com.maxrave.simpmusic.ui.icon.Subtitles
+import com.maxrave.simpmusic.ui.icon.PlayArrow
+import com.maxrave.simpmusic.ui.icon.QueueMusic
 import com.maxrave.simpmusic.ui.icon.SimpIcons
+import com.maxrave.simpmusic.ui.icon.Subtitles
+import com.maxrave.simpmusic.ui.icon.Sync
+import com.maxrave.simpmusic.ui.navigation.destination.home.RecentlySongsDestination
+import com.maxrave.simpmusic.ui.navigation.destination.library.LibraryDynamicPlaylistDestination
+import com.maxrave.simpmusic.ui.navigation.destination.list.LocalPlaylistDestination
 import com.maxrave.simpmusic.ui.theme.typo
+import com.maxrave.simpmusic.viewModel.SharedViewModel
 import com.pulse.music.ui.screen.profile.GENDER_OPTIONS
 import com.pulse.music.ui.screen.profile.INDIAN_LANGUAGES
-import com.pulse.music.ui.screen.profile.IndianLanguageInfo
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
-private val BitChordNeonGreen = Color(0xFF00E676)
-private val BitChordOledBlack = Color(0xFF000000)
-private val BitChordFieldSurface = Color(0xFF101014)
-private val BitChordCardSurface = Color(0xFF0C130E)
+private val PulseNeonGreen = Color(0xFF00E676)
+private val PulseOledBlack = Color(0xFF000000)
+private val PulseFieldSurface = Color(0xFF101014)
+private val PulseCardSurface = Color(0xFF0C130E)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -90,6 +110,9 @@ fun PulseMusicLoginScreen(
     showBottomNavigation: () -> Unit = {},
     supabaseAuthRepository: SupabaseAuthRepository = koinInject(),
     dataStoreManager: DataStoreManager = koinInject(),
+    songRepository: SongRepository = koinInject(),
+    localPlaylistRepository: LocalPlaylistRepository = koinInject(),
+    sharedViewModel: SharedViewModel = koinInject(),
 ) {
     val coroutineScope = rememberCoroutineScope()
     val isLoggedIn by supabaseAuthRepository.isLoggedIn.collectAsStateWithLifecycle(false)
@@ -100,6 +123,16 @@ fun PulseMusicLoginScreen(
     val savedProfileGender by dataStoreManager.profileGender.collectAsStateWithLifecycle("")
     val savedProfileLanguage by dataStoreManager.profileLanguagePreference.collectAsStateWithLifecycle("")
 
+    // User library flows
+    val likedSongs by songRepository.getLikedSongs().collectAsStateWithLifecycle(emptyList())
+    val userPlaylists by localPlaylistRepository.getAllLocalPlaylists().collectAsStateWithLifecycle(emptyList())
+    var recentSongs by remember { mutableStateOf<List<SongEntity>>(emptyList()) }
+    var isSyncing by remember { mutableStateOf(false) }
+
+    // State determining whether to show ONLY Details vs Login/Signup form
+    var hasJustSignedUpOrIn by remember { mutableStateOf(false) }
+    val isUserActive = (isLoggedIn && !userEmail.isNullOrBlank()) || savedProfileName.isNotBlank() || !userEmail.isNullOrBlank() || hasJustSignedUpOrIn
+
     var isSignUpMode by remember { mutableStateOf(false) }
 
     // User Profile Form State
@@ -109,6 +142,9 @@ fun PulseMusicLoginScreen(
     var languagePreference by remember { mutableStateOf("Tamil (தமிழ்)") }
 
     var showLanguagePicker by remember { mutableStateOf(false) }
+    var showGoogleSignInDialog by remember { mutableStateOf(false) }
+    var googleEmailInput by remember { mutableStateOf("") }
+    var googleNameInput by remember { mutableStateOf("") }
 
     // Auth Form State
     var email by remember { mutableStateOf("") }
@@ -123,6 +159,15 @@ fun PulseMusicLoginScreen(
         if (age.isEmpty() && savedProfileAge.isNotEmpty()) age = savedProfileAge
         if (savedProfileGender.isNotEmpty()) gender = savedProfileGender
         if (savedProfileLanguage.isNotEmpty()) languagePreference = savedProfileLanguage
+    }
+
+    // Load recent songs
+    LaunchedEffect(isLoggedIn, userEmail, savedProfileName) {
+        try {
+            recentSongs = songRepository.getRecentSong(limit = 10, offset = 0)
+        } catch (_: Exception) {
+            // ignore
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -140,7 +185,7 @@ fun PulseMusicLoginScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isLoggedIn) "Pulse Music Profile & Account" else "Account & Profile Setup",
+                        text = if (isUserActive) "Pulse Music Profile & Library" else "Account & Profile Setup",
                         style = typo().titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -161,17 +206,17 @@ fun PulseMusicLoginScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BitChordOledBlack,
+                    containerColor = PulseOledBlack,
                 ),
             )
         },
-        containerColor = BitChordOledBlack,
+        containerColor = PulseOledBlack,
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 20.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
             Column(
@@ -181,96 +226,694 @@ fun PulseMusicLoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top,
             ) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                if (isLoggedIn && !userEmail.isNullOrBlank()) {
+                if (isUserActive) {
                     // ==========================================
-                    // 1. INTEGRATED LOGGED-IN PROFILE HUB
+                    // 1. INTEGRATED LOGGED-IN PROFILE & LIBRARY DETAILS ONLY
                     // ==========================================
+
+                    val displayName = when {
+                        name.isNotBlank() -> name
+                        savedProfileName.isNotBlank() -> savedProfileName
+                        !userEmail.isNullOrBlank() -> userEmail!!.substringBefore("@")
+                        else -> "Pulse Listener"
+                    }
+
                     Box(
                         modifier = Modifier
                             .size(76.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF00E676).copy(alpha = 0.15f))
-                            .border(2.dp, BitChordNeonGreen, CircleShape),
+                            .border(2.dp, PulseNeonGreen, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = if (name.isNotBlank()) name.take(1).uppercase() else userEmail?.firstOrNull()?.uppercase() ?: "P",
+                            text = displayName.take(1).uppercase(),
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
-                            color = BitChordNeonGreen,
+                            color = PulseNeonGreen,
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = if (name.isNotBlank()) name else "Pulse Music Listener",
-                        style = typo().titleMedium,
+                        text = displayName,
+                        style = typo().titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                     )
 
+                    val displayEmail = userEmail ?: "pulse.listener@local"
                     Text(
-                        text = userEmail ?: "",
+                        text = displayEmail,
                         style = typo().bodySmall,
                         color = Color.White.copy(alpha = 0.7f),
                     )
 
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Language Preference & Age Badges
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF14241B),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PulseNeonGreen.copy(alpha = 0.6f)),
+                        ) {
+                            Text(
+                                text = if (languagePreference.isNotBlank()) languagePreference else "Tamil (தமிழ்)",
+                                style = typo().labelSmall,
+                                color = PulseNeonGreen,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            )
+                        }
+
+                        if (age.isNotBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = PulseFieldSurface,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2A36)),
+                            ) {
+                                Text(
+                                    text = "$age yrs • $gender",
+                                    style = typo().labelSmall,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Editable Profile Information Card
+                    // CLOUD SYNC & DATA PERSISTENCE CARD
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(BitChordCardSurface)
-                            .border(1.dp, BitChordNeonGreen.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                            .background(PulseCardSurface)
+                            .border(1.dp, PulseNeonGreen.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                            .padding(16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(PulseNeonGreen),
+                                )
+                                Text(
+                                    text = "Cloud Sync & Backup",
+                                    style = typo().titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isSyncing = true
+                                        statusMessage = "Syncing local library to cloud..."
+                                        val res = supabaseAuthRepository.syncAll()
+                                        isSyncing = false
+                                        res.fold(
+                                            onSuccess = {
+                                                statusMessage = "Sync completed! All library data backed up."
+                                                isError = false
+                                            },
+                                            onFailure = { err ->
+                                                statusMessage = err.message ?: "Sync failed"
+                                                isError = true
+                                            }
+                                        )
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PulseNeonGreen,
+                                    contentColor = Color.Black,
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                enabled = !isSyncing,
+                            ) {
+                                if (isSyncing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = Color.Black,
+                                        strokeWidth = 2.dp,
+                                    )
+                                } else {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = SimpIcons.Sync,
+                                            contentDescription = "Sync",
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                        Text(
+                                            text = "Sync Now",
+                                            style = typo().labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Your liked songs, custom playlists, and listening history are persistently stored and automatically backed up to your account.",
+                            style = typo().bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // LIBRARY STATISTICS OVERVIEW (3 CARDS)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    navController.navigate(RecentlySongsDestination)
+                                },
+                            shape = RoundedCornerShape(14.dp),
+                            color = PulseCardSurface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2E24)),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.Start,
+                            ) {
+                                Icon(
+                                    imageVector = SimpIcons.History,
+                                    contentDescription = "History",
+                                    tint = PulseNeonGreen,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "${recentSongs.size}",
+                                    style = typo().titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                                Text(
+                                    text = "Recently Played",
+                                    style = typo().labelSmall,
+                                    color = Color.White.copy(alpha = 0.65f),
+                                )
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    navController.navigate(LibraryDynamicPlaylistDestination(type = "favorite"))
+                                },
+                            shape = RoundedCornerShape(14.dp),
+                            color = PulseCardSurface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2E24)),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.Start,
+                            ) {
+                                Icon(
+                                    imageVector = SimpIcons.Favorite,
+                                    contentDescription = "Liked",
+                                    tint = PulseNeonGreen,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "${likedSongs.size}",
+                                    style = typo().titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                                Text(
+                                    text = "Liked Songs",
+                                    style = typo().labelSmall,
+                                    color = Color.White.copy(alpha = 0.65f),
+                                )
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = PulseCardSurface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2E24)),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.Start,
+                            ) {
+                                Icon(
+                                    imageVector = SimpIcons.QueueMusic,
+                                    contentDescription = "Playlists",
+                                    tint = PulseNeonGreen,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "${userPlaylists.size}",
+                                    style = typo().titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                                Text(
+                                    text = "Playlists",
+                                    style = typo().labelSmall,
+                                    color = Color.White.copy(alpha = 0.65f),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // RECENTLY LISTENED SECTION
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(PulseCardSurface)
+                            .border(1.dp, Color(0xFF1E2822), RoundedCornerShape(16.dp))
+                            .padding(16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = SimpIcons.History,
+                                    contentDescription = "Recent",
+                                    tint = PulseNeonGreen,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = "Recently Listened",
+                                    style = typo().titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                            }
+
+                            if (recentSongs.isNotEmpty()) {
+                                TextButton(
+                                    onClick = {
+                                        navController.navigate(RecentlySongsDestination)
+                                    },
+                                    contentPadding = PaddingValues(0.dp),
+                                ) {
+                                    Text(
+                                        text = "View All",
+                                        style = typo().labelSmall,
+                                        color = PulseNeonGreen,
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (recentSongs.isEmpty()) {
+                            Text(
+                                text = "No recent tracks yet. Start listening to any music and your last played songs will appear here automatically!",
+                                style = typo().bodySmall,
+                                color = Color.White.copy(alpha = 0.6f),
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                recentSongs.take(5).forEach { song ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                sharedViewModel.loadMediaItemFromTrack(song.toTrack(), Config.SONG_CLICK)
+                                            }
+                                            .background(PulseFieldSurface)
+                                            .padding(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        AsyncImage(
+                                            model = song.thumbnails,
+                                            contentDescription = song.title,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                        )
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(
+                                                text = song.title,
+                                                style = typo().bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                text = song.artistName?.joinToString(", ") ?: "Unknown Artist",
+                                                style = typo().bodySmall,
+                                                color = Color.White.copy(alpha = 0.65f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                sharedViewModel.loadMediaItemFromTrack(song.toTrack(), Config.SONG_CLICK)
+                                            },
+                                            modifier = Modifier.size(32.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = SimpIcons.PlayArrow,
+                                                contentDescription = "Play",
+                                                tint = PulseNeonGreen,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // LIKED SONGS SECTION
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(PulseCardSurface)
+                            .border(1.dp, Color(0xFF1E2822), RoundedCornerShape(16.dp))
+                            .padding(16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = SimpIcons.Favorite,
+                                    contentDescription = "Liked",
+                                    tint = PulseNeonGreen,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = "Liked Songs (${likedSongs.size})",
+                                    style = typo().titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                            }
+
+                            if (likedSongs.isNotEmpty()) {
+                                TextButton(
+                                    onClick = {
+                                        navController.navigate(LibraryDynamicPlaylistDestination(type = "favorite"))
+                                    },
+                                    contentPadding = PaddingValues(0.dp),
+                                ) {
+                                    Text(
+                                        text = "Open Playlist",
+                                        style = typo().labelSmall,
+                                        color = PulseNeonGreen,
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (likedSongs.isEmpty()) {
+                            Text(
+                                text = "You haven't liked any songs yet. Tap the heart icon on any player to add songs to your favorites!",
+                                style = typo().bodySmall,
+                                color = Color.White.copy(alpha = 0.6f),
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                likedSongs.take(4).forEach { song ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                sharedViewModel.loadMediaItemFromTrack(song.toTrack(), Config.SONG_CLICK)
+                                            }
+                                            .background(PulseFieldSurface)
+                                            .padding(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        AsyncImage(
+                                            model = song.thumbnails,
+                                            contentDescription = song.title,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                        )
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(
+                                                text = song.title,
+                                                style = typo().bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                text = song.artistName?.joinToString(", ") ?: "Pulse Music",
+                                                style = typo().bodySmall,
+                                                color = Color.White.copy(alpha = 0.65f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                sharedViewModel.loadMediaItemFromTrack(song.toTrack(), Config.SONG_CLICK)
+                                            },
+                                            modifier = Modifier.size(32.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = SimpIcons.PlayArrow,
+                                                contentDescription = "Play",
+                                                tint = PulseNeonGreen,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // USER PLAYLISTS SECTION
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(PulseCardSurface)
+                            .border(1.dp, Color(0xFF1E2822), RoundedCornerShape(16.dp))
+                            .padding(16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = SimpIcons.QueueMusic,
+                                    contentDescription = "Playlists",
+                                    tint = PulseNeonGreen,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = "My Playlists (${userPlaylists.size})",
+                                    style = typo().titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (userPlaylists.isEmpty()) {
+                            Text(
+                                text = "No local playlists yet. Create playlists from the Library tab to keep your music organized!",
+                                style = typo().bodySmall,
+                                color = Color.White.copy(alpha = 0.6f),
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                userPlaylists.forEach { playlist ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                navController.navigate(LocalPlaylistDestination(id = playlist.id))
+                                            }
+                                            .background(PulseFieldSurface)
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0xFF192A1F)),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                imageVector = SimpIcons.QueueMusic,
+                                                contentDescription = null,
+                                                tint = PulseNeonGreen,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(
+                                                text = playlist.title,
+                                                style = typo().bodyMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                text = "${playlist.tracks?.size ?: 0} tracks",
+                                                style = typo().bodySmall,
+                                                color = Color.White.copy(alpha = 0.65f),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // EDITABLE PROFILE SETTINGS CARD
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(PulseCardSurface)
+                            .border(1.dp, PulseNeonGreen.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                             .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Text(
-                            text = "Profile Information",
+                            text = "Edit Profile & Language",
                             style = typo().titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = BitChordNeonGreen,
+                            color = PulseNeonGreen,
                         )
 
                         OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
-                            label = { Text("Profile Name", color = BitChordNeonGreen) },
+                            label = { Text("Profile Name", color = PulseNeonGreen) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BitChordNeonGreen,
+                                focusedBorderColor = PulseNeonGreen,
                                 unfocusedBorderColor = Color(0xFF2E2E36),
                                 focusedTextColor = Color.White,
                                 unfocusedTextColor = Color.White,
-                                cursorColor = BitChordNeonGreen,
-                                focusedContainerColor = BitChordFieldSurface,
-                                unfocusedContainerColor = BitChordFieldSurface,
+                                cursorColor = PulseNeonGreen,
+                                focusedContainerColor = PulseFieldSurface,
+                                unfocusedContainerColor = PulseFieldSurface,
                             ),
                         )
 
                         OutlinedTextField(
                             value = age,
                             onValueChange = { age = it.filter { char -> char.isDigit() } },
-                            label = { Text("Age", color = BitChordNeonGreen) },
+                            label = { Text("Age", color = PulseNeonGreen) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BitChordNeonGreen,
+                                focusedBorderColor = PulseNeonGreen,
                                 unfocusedBorderColor = Color(0xFF2E2E36),
                                 focusedTextColor = Color.White,
                                 unfocusedTextColor = Color.White,
-                                cursorColor = BitChordNeonGreen,
-                                focusedContainerColor = BitChordFieldSurface,
-                                unfocusedContainerColor = BitChordFieldSurface,
+                                cursorColor = PulseNeonGreen,
+                                focusedContainerColor = PulseFieldSurface,
+                                unfocusedContainerColor = PulseFieldSurface,
                             ),
                         )
 
@@ -292,10 +935,10 @@ fun PulseMusicLoginScreen(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
-                                            .background(if (isSelected) BitChordNeonGreen else BitChordFieldSurface)
+                                            .background(if (isSelected) PulseNeonGreen else PulseFieldSurface)
                                             .border(
                                                 1.dp,
-                                                if (isSelected) BitChordNeonGreen else Color(0xFF2E2E36),
+                                                if (isSelected) PulseNeonGreen else Color(0xFF2E2E36),
                                                 RoundedCornerShape(20.dp),
                                             )
                                             .clickable { gender = opt }
@@ -324,8 +967,8 @@ fun PulseMusicLoginScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(BitChordFieldSurface)
-                                    .border(1.dp, BitChordNeonGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                    .background(PulseFieldSurface)
+                                    .border(1.dp, PulseNeonGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                                     .clickable { showLanguagePicker = true }
                                     .padding(horizontal = 16.dp, vertical = 14.dp),
                             ) {
@@ -341,7 +984,7 @@ fun PulseMusicLoginScreen(
                                         Icon(
                                             imageVector = SimpIcons.Subtitles,
                                             contentDescription = "Language",
-                                            tint = BitChordNeonGreen,
+                                            tint = PulseNeonGreen,
                                             modifier = Modifier.size(20.dp),
                                         )
                                         Text(
@@ -354,7 +997,7 @@ fun PulseMusicLoginScreen(
                                     Icon(
                                         imageVector = SimpIcons.KeyboardArrowDown,
                                         contentDescription = "Select",
-                                        tint = BitChordNeonGreen,
+                                        tint = PulseNeonGreen,
                                         modifier = Modifier.size(20.dp),
                                     )
                                 }
@@ -376,7 +1019,7 @@ fun PulseMusicLoginScreen(
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = BitChordNeonGreen,
+                                containerColor = PulseNeonGreen,
                                 contentColor = Color.Black,
                             ),
                             shape = RoundedCornerShape(12.dp),
@@ -386,35 +1029,10 @@ fun PulseMusicLoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // Cloud Sync Active Card
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(BitChordCardSurface)
-                            .border(1.dp, Color(0xFF1E2822), RoundedCornerShape(16.dp))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = "Pulse Music Cloud Sync Active",
-                            style = typo().labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = BitChordNeonGreen,
-                        )
-                        Text(
-                            text = "• Liked songs synced securely in real time\n• Custom playlists safely backed up\n• Listening history and analytics preserved\n• Author: Manikandan • BitChord Engine",
-                            style = typo().bodySmall,
-                            color = Color.White.copy(alpha = 0.75f),
-                        )
-                    }
-
                     AnimatedVisibility(visible = !statusMessage.isNullOrBlank()) {
                         Text(
                             text = statusMessage.orEmpty(),
-                            color = if (isError) MaterialTheme.colorScheme.error else BitChordNeonGreen,
+                            color = if (isError) MaterialTheme.colorScheme.error else PulseNeonGreen,
                             style = typo().bodySmall,
                             modifier = Modifier.padding(top = 10.dp),
                             textAlign = TextAlign.Center,
@@ -423,25 +1041,51 @@ fun PulseMusicLoginScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // DONE / RETURN BUTTON
                     Button(
                         onClick = {
                             coroutineScope.launch {
-                                supabaseAuthRepository.signOut()
-                                statusMessage = "Signed out"
-                                isError = false
+                                dataStoreManager.setHasSeenLoginPrompt(true)
                             }
+                            navController.navigateUp()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            containerColor = PulseNeonGreen,
+                            contentColor = Color.Black,
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                     ) {
-                        Text("Sign Out")
+                        Text("Done • Return to Music", fontWeight = FontWeight.Bold)
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // SIGN OUT / SWITCH ACCOUNT BUTTON
+                    OutlinedButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                supabaseAuthRepository.signOut()
+                                dataStoreManager.setProfile("", "", "", "")
+                                name = ""
+                                age = ""
+                                hasJustSignedUpOrIn = false
+                                statusMessage = "Signed out. You can now sign in or create a new account."
+                                isError = false
+                            }
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFFF5252),
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                    ) {
+                        Text("Sign Out / Switch Account", fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Spacer(modifier = Modifier.height(36.dp))
+
                 } else {
                     // ==========================================
                     // 2. INTEGRATED AUTH & SIGN UP PROFILE FLOW
@@ -452,7 +1096,7 @@ fun PulseMusicLoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(BitChordCardSurface)
+                            .background(PulseCardSurface)
                             .border(1.dp, Color(0xFF26332A), RoundedCornerShape(14.dp))
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -461,7 +1105,7 @@ fun PulseMusicLoginScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (!isSignUpMode) BitChordNeonGreen else Color.Transparent)
+                                .background(if (!isSignUpMode) PulseNeonGreen else Color.Transparent)
                                 .clickable {
                                     isSignUpMode = false
                                     statusMessage = null
@@ -481,7 +1125,7 @@ fun PulseMusicLoginScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSignUpMode) BitChordNeonGreen else Color.Transparent)
+                                .background(if (isSignUpMode) PulseNeonGreen else Color.Transparent)
                                 .clickable {
                                     isSignUpMode = true
                                     statusMessage = null
@@ -514,7 +1158,7 @@ fun PulseMusicLoginScreen(
                         text = if (isSignUpMode) {
                             "Fill your name, age, and Indian language preference below to set up your profile and cloud backup simultaneously."
                         } else {
-                            "Sign in with your email to access your synchronized library, or continue as guest."
+                            "Sign in with your email or Google account to access your synchronized library, liked songs, and playlists."
                         },
                         style = typo().bodySmall,
                         color = Color.White.copy(alpha = 0.7f),
@@ -529,8 +1173,8 @@ fun PulseMusicLoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(BitChordCardSurface)
-                                .border(1.dp, BitChordNeonGreen.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                                .background(PulseCardSurface)
+                                .border(1.dp, PulseNeonGreen.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -538,43 +1182,43 @@ fun PulseMusicLoginScreen(
                                 text = "Profile Details",
                                 style = typo().labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = BitChordNeonGreen,
+                                color = PulseNeonGreen,
                             )
 
                             OutlinedTextField(
                                 value = name,
                                 onValueChange = { name = it },
-                                label = { Text("Full Name *", color = if (name.isNotEmpty()) BitChordNeonGreen else Color.White.copy(alpha = 0.6f)) },
+                                label = { Text("Full Name *", color = if (name.isNotEmpty()) PulseNeonGreen else Color.White.copy(alpha = 0.6f)) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BitChordNeonGreen,
+                                    focusedBorderColor = PulseNeonGreen,
                                     unfocusedBorderColor = Color(0xFF2E2E36),
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White,
-                                    cursorColor = BitChordNeonGreen,
-                                    focusedContainerColor = BitChordFieldSurface,
-                                    unfocusedContainerColor = BitChordFieldSurface,
+                                    cursorColor = PulseNeonGreen,
+                                    focusedContainerColor = PulseFieldSurface,
+                                    unfocusedContainerColor = PulseFieldSurface,
                                 ),
                             )
 
                             OutlinedTextField(
                                 value = age,
                                 onValueChange = { age = it.filter { char -> char.isDigit() } },
-                                label = { Text("Age *", color = if (age.isNotEmpty()) BitChordNeonGreen else Color.White.copy(alpha = 0.6f)) },
+                                label = { Text("Age *", color = if (age.isNotEmpty()) PulseNeonGreen else Color.White.copy(alpha = 0.6f)) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BitChordNeonGreen,
+                                    focusedBorderColor = PulseNeonGreen,
                                     unfocusedBorderColor = Color(0xFF2E2E36),
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White,
-                                    cursorColor = BitChordNeonGreen,
-                                    focusedContainerColor = BitChordFieldSurface,
-                                    unfocusedContainerColor = BitChordFieldSurface,
+                                    cursorColor = PulseNeonGreen,
+                                    focusedContainerColor = PulseFieldSurface,
+                                    unfocusedContainerColor = PulseFieldSurface,
                                 ),
                             )
 
@@ -596,10 +1240,10 @@ fun PulseMusicLoginScreen(
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(20.dp))
-                                                .background(if (isSelected) BitChordNeonGreen else BitChordFieldSurface)
+                                                .background(if (isSelected) PulseNeonGreen else PulseFieldSurface)
                                                 .border(
                                                     1.dp,
-                                                    if (isSelected) BitChordNeonGreen else Color(0xFF2E2E36),
+                                                    if (isSelected) PulseNeonGreen else Color(0xFF2E2E36),
                                                     RoundedCornerShape(20.dp),
                                                 )
                                                 .clickable { gender = opt }
@@ -628,8 +1272,8 @@ fun PulseMusicLoginScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(BitChordFieldSurface)
-                                        .border(1.dp, BitChordNeonGreen.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                                        .background(PulseFieldSurface)
+                                        .border(1.dp, PulseNeonGreen.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
                                         .clickable { showLanguagePicker = true }
                                         .padding(horizontal = 14.dp, vertical = 12.dp),
                                 ) {
@@ -645,7 +1289,7 @@ fun PulseMusicLoginScreen(
                                             Icon(
                                                 imageVector = SimpIcons.Subtitles,
                                                 contentDescription = "Language",
-                                                tint = BitChordNeonGreen,
+                                                tint = PulseNeonGreen,
                                                 modifier = Modifier.size(18.dp),
                                             )
                                             Text(
@@ -658,12 +1302,14 @@ fun PulseMusicLoginScreen(
                                         Icon(
                                             imageVector = SimpIcons.KeyboardArrowDown,
                                             contentDescription = "Expand",
-                                            tint = BitChordNeonGreen,
+                                            tint = PulseNeonGreen,
                                             modifier = Modifier.size(20.dp),
                                         )
                                     }
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(14.dp))
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -673,19 +1319,19 @@ fun PulseMusicLoginScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email", color = if (email.isNotEmpty()) BitChordNeonGreen else Color.White.copy(alpha = 0.6f)) },
+                        label = { Text("Email", color = if (email.isNotEmpty()) PulseNeonGreen else Color.White.copy(alpha = 0.6f)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BitChordNeonGreen,
+                            focusedBorderColor = PulseNeonGreen,
                             unfocusedBorderColor = Color(0xFF2E2E36),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = BitChordNeonGreen,
-                            focusedContainerColor = BitChordFieldSurface,
-                            unfocusedContainerColor = BitChordFieldSurface,
+                            cursorColor = PulseNeonGreen,
+                            focusedContainerColor = PulseFieldSurface,
+                            unfocusedContainerColor = PulseFieldSurface,
                         ),
                     )
 
@@ -694,27 +1340,27 @@ fun PulseMusicLoginScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password", color = if (password.isNotEmpty()) BitChordNeonGreen else Color.White.copy(alpha = 0.6f)) },
+                        label = { Text("Password", color = if (password.isNotEmpty()) PulseNeonGreen else Color.White.copy(alpha = 0.6f)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BitChordNeonGreen,
+                            focusedBorderColor = PulseNeonGreen,
                             unfocusedBorderColor = Color(0xFF2E2E36),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            cursorColor = BitChordNeonGreen,
-                            focusedContainerColor = BitChordFieldSurface,
-                            unfocusedContainerColor = BitChordFieldSurface,
+                            cursorColor = PulseNeonGreen,
+                            focusedContainerColor = PulseFieldSurface,
+                            unfocusedContainerColor = PulseFieldSurface,
                         ),
                     )
 
                     AnimatedVisibility(visible = !statusMessage.isNullOrBlank()) {
                         Text(
                             text = statusMessage.orEmpty(),
-                            color = if (isError) MaterialTheme.colorScheme.error else BitChordNeonGreen,
+                            color = if (isError) MaterialTheme.colorScheme.error else PulseNeonGreen,
                             style = typo().bodySmall,
                             modifier = Modifier.padding(top = 10.dp),
                             textAlign = TextAlign.Center,
@@ -748,7 +1394,6 @@ fun PulseMusicLoginScreen(
                                 isLoading = true
                                 statusMessage = null
 
-                                // If sign up, save profile first
                                 if (isSignUpMode) {
                                     dataStoreManager.setProfile(
                                         name = name.trim(),
@@ -768,9 +1413,12 @@ fun PulseMusicLoginScreen(
                                 result.fold(
                                     onSuccess = {
                                         dataStoreManager.setHasSeenLoginPrompt(true)
+                                        hasJustSignedUpOrIn = true
                                         statusMessage = if (isSignUpMode) "Profile and account created successfully!" else "Signed in successfully!"
                                         isError = false
-                                        navController.navigateUp()
+                                        coroutineScope.launch {
+                                            supabaseAuthRepository.syncAll()
+                                        }
                                     },
                                     onFailure = { err ->
                                         statusMessage = err.message ?: "Authentication failed"
@@ -780,7 +1428,7 @@ fun PulseMusicLoginScreen(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = BitChordNeonGreen,
+                            containerColor = PulseNeonGreen,
                             contentColor = Color.Black,
                         ),
                         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -802,7 +1450,75 @@ fun PulseMusicLoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // "OR" DIVIDER
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFF26262E),
+                        )
+                        Text(
+                            text = "  OR  ",
+                            style = typo().labelSmall,
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontWeight = FontWeight.Bold,
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFF26262E),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // GOOGLE SIGN IN BUTTON
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clickable {
+                                googleEmailInput = if (email.isNotBlank()) email else ""
+                                googleNameInput = if (name.isNotBlank()) name else ""
+                                showGoogleSignInDialog = true
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF1E2024),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF33363F)),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "G",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF4285F4),
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = "Continue with Google",
+                                style = typo().labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     // GUEST CONTINUE / LOCAL PROFILE OPTION
                     TextButton(
@@ -817,12 +1533,12 @@ fun PulseMusicLoginScreen(
                                     )
                                 }
                                 dataStoreManager.setHasSeenLoginPrompt(true)
-                                navController.navigateUp()
+                                hasJustSignedUpOrIn = true
                             }
                         }
                     ) {
                         Text(
-                            text = "Save & Continue as Guest",
+                            text = "Continue as Guest / View Details",
                             color = Color.White.copy(alpha = 0.75f),
                             style = typo().labelLarge,
                         )
@@ -835,7 +1551,146 @@ fun PulseMusicLoginScreen(
     }
 
     // ==========================================
-    // 3. INDIAN LANGUAGES SELECTION DIALOG
+    // 3. GOOGLE SIGN IN DIALOG
+    // ==========================================
+    if (showGoogleSignInDialog) {
+        AlertDialog(
+            onDismissRequest = { showGoogleSignInDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "G",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF4285F4),
+                        )
+                    }
+                    Text(
+                        text = "Sign in with Google",
+                        style = typo().titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "Sign in with your Google account to automatically store and sync your liked songs and playlists across devices.",
+                        style = typo().bodySmall,
+                        color = Color.White.copy(alpha = 0.75f),
+                    )
+
+                    OutlinedTextField(
+                        value = googleEmailInput,
+                        onValueChange = { googleEmailInput = it },
+                        label = { Text("Google Email *", color = PulseNeonGreen) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PulseNeonGreen,
+                            unfocusedBorderColor = Color(0xFF2E2E36),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = PulseNeonGreen,
+                            focusedContainerColor = PulseFieldSurface,
+                            unfocusedContainerColor = PulseFieldSurface,
+                        ),
+                    )
+
+                    OutlinedTextField(
+                        value = googleNameInput,
+                        onValueChange = { googleNameInput = it },
+                        label = { Text("Display Name (Optional)", color = PulseNeonGreen) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PulseNeonGreen,
+                            unfocusedBorderColor = Color(0xFF2E2E36),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = PulseNeonGreen,
+                            focusedContainerColor = PulseFieldSurface,
+                            unfocusedContainerColor = PulseFieldSurface,
+                        ),
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (googleEmailInput.isBlank()) return@Button
+                        showGoogleSignInDialog = false
+                        coroutineScope.launch {
+                            isLoading = true
+                            val res = supabaseAuthRepository.signInWithGoogle(
+                                email = googleEmailInput.trim(),
+                                name = googleNameInput.trim().ifBlank { null },
+                            )
+                            isLoading = false
+                            res.fold(
+                                onSuccess = {
+                                    if (googleNameInput.isNotBlank()) {
+                                        dataStoreManager.setProfile(
+                                            name = googleNameInput.trim(),
+                                            age = age.ifBlank { "22" },
+                                            gender = gender,
+                                            languagePreference = languagePreference,
+                                        )
+                                    }
+                                    dataStoreManager.setHasSeenLoginPrompt(true)
+                                    hasJustSignedUpOrIn = true
+                                    statusMessage = "Welcome, ${googleNameInput.ifBlank { googleEmailInput }}! Google account connected."
+                                    isError = false
+                                    coroutineScope.launch {
+                                        supabaseAuthRepository.syncAll()
+                                    }
+                                },
+                                onFailure = { err ->
+                                    statusMessage = err.message ?: "Google sign in failed"
+                                    isError = true
+                                }
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PulseNeonGreen,
+                        contentColor = Color.Black,
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Text("Sign In with Google", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showGoogleSignInDialog = false },
+                ) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.7f))
+                }
+            },
+            containerColor = Color(0xFF0D140F),
+            shape = RoundedCornerShape(20.dp),
+        )
+    }
+
+    // ==========================================
+    // 4. INDIAN LANGUAGES SELECTION DIALOG
     // ==========================================
     if (showLanguagePicker) {
         AlertDialog(
@@ -879,10 +1734,10 @@ fun PulseMusicLoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) Color(0xFF00E676).copy(alpha = 0.15f) else BitChordFieldSurface)
+                                .background(if (isSelected) Color(0xFF00E676).copy(alpha = 0.15f) else PulseFieldSurface)
                                 .border(
                                     1.dp,
-                                    if (isSelected) BitChordNeonGreen else Color(0xFF26262E),
+                                    if (isSelected) PulseNeonGreen else Color(0xFF26262E),
                                     RoundedCornerShape(12.dp),
                                 )
                                 .clickable {
@@ -898,19 +1753,19 @@ fun PulseMusicLoginScreen(
                                     text = lang.englishName,
                                     style = typo().bodyLarge,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) BitChordNeonGreen else Color.White,
+                                    color = if (isSelected) PulseNeonGreen else Color.White,
                                 )
                                 Text(
                                     text = lang.nativeScript,
                                     style = typo().bodySmall,
-                                    color = if (isSelected) BitChordNeonGreen.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.6f),
+                                    color = if (isSelected) PulseNeonGreen.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.6f),
                                 )
                             }
                             if (isSelected) {
                                 Icon(
                                     imageVector = SimpIcons.Check,
                                     contentDescription = "Selected",
-                                    tint = BitChordNeonGreen,
+                                    tint = PulseNeonGreen,
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
