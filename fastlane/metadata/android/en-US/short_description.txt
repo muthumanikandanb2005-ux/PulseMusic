@@ -1,1 +1,1 @@
-A simple music app using YouTube Music for backend
+Pulse Music - Modern music player with real-time lyrics & seamless continuous playback.

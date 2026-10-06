@@ -1,0 +1,38 @@
+Categories:
+  - Multimedia
+  - Audio
+License: GPL-3.0-or-later
+AuthorName: MUTHU MANIKANDAN B
+SourceCode: https://github.com/muthumanikandanb2005-ux/PulseMusic
+IssueTracker: https://github.com/muthumanikandanb2005-ux/PulseMusic/issues
+Changelog: https://github.com/muthumanikandanb2005-ux/PulseMusic/releases
+AutoName: Pulse Music
+Summary: Modern music player streaming YouTube Music with synced lyrics & zero freezes
+Description: |-
+  Experience music like never before with Pulse Music.
+
+  Features:
+  * Ad-free YouTube Music streaming in the background
+  * Continuous playback engine with zero freezes and rapid skipping
+  * Real-time Apple Music and Spotify hybrid styled synchronized lyrics
+  * Offline caching and downloaded songs support
+  * Equalizer, spatial audio, and sound enhancements
+  * SponsorBlock & Return YouTube Dislike integration
+  * Android Auto support
+
+RepoType: git
+Repo: https://github.com/muthumanikandanb2005-ux/PulseMusic.git
+
+Builds:
+  - versionName: 2.2.4
+    versionCode: 72
+    commit: v2.2.4
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 2.2.4
+CurrentCode: 72
