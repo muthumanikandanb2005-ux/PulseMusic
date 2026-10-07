@@ -40,6 +40,40 @@ object WindowsProtocolRegistrar {
         register("pulsemusic", "URL:Pulse Music Protocol", exePath)
         register(SCHEME, "URL:Pulse Music Protocol", exePath)
         register(LASTFM_SCHEME, "URL:Pulse Music Last.fm Callback", exePath)
+        registerApplicationIdentity(exePath)
+    }
+
+    private fun registerApplicationIdentity(exePath: String) {
+        try {
+            val exeFile = java.io.File(exePath)
+            val appDir = exeFile.parentFile
+            val icoCandidate = listOf(
+                java.io.File(appDir, "PulseMusic.ico"),
+                java.io.File(appDir, "Pulse.ico"),
+                java.io.File(appDir, "icon.ico"),
+            ).firstOrNull { it.exists() }?.absolutePath ?: "\"$exePath\",0"
+
+            val appName = exeFile.name
+            val regAppKey = "HKCU\\Software\\Classes\\Applications\\$appName"
+            regAdd(regAppKey, null, "Pulse Music")
+            regAdd(regAppKey, "FriendlyAppName", "Pulse Music")
+            regAdd(regAppKey, "ApplicationCompany", "Pulse Music Studio (Muthumanikandan B)")
+            regAdd("$regAppKey\\DefaultIcon", null, icoCandidate)
+
+            val aumidKey = "HKCU\\Software\\Classes\\AppUserModelId\\com.pulse.music"
+            regAdd(aumidKey, "DisplayName", "Pulse Music")
+            regAdd(aumidKey, "IconUri", icoCandidate)
+            regAdd(aumidKey, "IconBackgroundColor", "0")
+
+            if (appDir != null) {
+                val appPathsKey = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\$appName"
+                regAdd(appPathsKey, null, exePath)
+                regAdd(appPathsKey, "Path", appDir.absolutePath)
+            }
+            Logger.d(TAG, "Windows Application Identity registered for $appName")
+        } catch (e: Exception) {
+            Logger.e(TAG, "Failed to register Windows Application Identity: ${e.message}")
+        }
     }
 
     private fun register(
