@@ -38,17 +38,11 @@
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg" width="30%" alt="Screenshot 1" />
-  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg" width="30%" alt="Screenshot 2" />
-  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg" width="30%" alt="Screenshot 3" />
-</div>
-
-<br/>
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg" width="30%" alt="Screenshot 4" />
-  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/5.jpg" width="30%" alt="Screenshot 5" />
-  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/6.jpg" width="30%" alt="Screenshot 6" />
+  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="19%" alt="Home Screen" />
+  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="19%" alt="Now Playing" />
+  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="19%" alt="Synced Lyrics" />
+  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="19%" alt="Listen Together" />
+  <img src="https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="19%" alt="Settings" />
 </div>
 
 ---
