@@ -566,7 +566,16 @@ fun LyricsView(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = topPadding, bottom = tailPadding),
         ) {
-            items(displayLines.lines.size) { index ->
+            items(
+                count = displayLines.lines.size,
+                key = { index ->
+                    val l = displayLines.lines[index]
+                    "${l.startTimeMs}_${l.endTimeMs}_$index"
+                },
+                contentType = { index ->
+                    if (index in displayLines.interludeIndices) "interlude" else "lyric_line"
+                },
+            ) { index ->
                 val line = displayLines.lines.getOrNull(index)
                 // A dots line stands for silence, so it has nothing to translate or romanize. Worth
                 // saying out loud for the translation: that map matches by TIME, and the silence
@@ -630,7 +639,7 @@ fun LyricsView(
                                         parsedLine = parsedLine,
                                         translatedWords = translatedWords,
                                         romanizedWords = romanizedWords,
-                                        currentTimeMs = current.current - lyricsOffsetMs,
+                                        currentTimeMs = if (index == currentLineIndex) current.current - lyricsOffsetMs else 0L,
                                         isCurrent = index == currentLineIndex,
                                         customFontSize = if (isPulseNeonStyle) 26.sp else if (appleStyle) AppleMusicLyricFontSize else null,
                                         glow = if (isPulseNeonStyle && index == currentLineIndex) {
@@ -667,18 +676,19 @@ fun LyricsView(
                                     val currentMs = current.current - lyricsOffsetMs
                                     val startMs = line.startTimeMs.toLongOrNull() ?: 0L
                                     val endMs = line.endTimeMs.toLongOrNull() ?: (startMs + 4000L)
+                                    val isCur = index == currentLineIndex || allLinesCurrent
                                     PulseNeonLyricsLineItem(
                                         originalWords = words,
                                         translatedWords = translatedWords,
                                         romanizedWords = romanizedWords,
-                                        isCurrent = index == currentLineIndex || allLinesCurrent,
-                                        currentTimeMs = currentMs,
+                                        isCurrent = isCur,
+                                        currentTimeMs = if (index == currentLineIndex) currentMs else 0L,
                                         lineStartTimeMs = startMs,
                                         lineEndTimeMs = endMs,
                                         modifier =
                                             Modifier.clickable {
                                                 onLineClick(line.startTimeMs.toFloat() * 100 / timeLine.value.total)
-                                            },
+                                             },
                                     )
                                 } else if (appleStyle) {
                                     // Parsing failed — fall back to a plain line, but still the
@@ -716,12 +726,13 @@ fun LyricsView(
                                 val currentMs = current.current - lyricsOffsetMs
                                 val startMs = line.startTimeMs.toLongOrNull() ?: 0L
                                 val endMs = line.endTimeMs.toLongOrNull() ?: (startMs + 4000L)
+                                val isCur = index == currentLineIndex || allLinesCurrent
                                 PulseNeonLyricsLineItem(
                                     originalWords = words,
                                     translatedWords = translatedWords,
                                     romanizedWords = romanizedWords,
-                                    isCurrent = index == currentLineIndex || allLinesCurrent,
-                                    currentTimeMs = currentMs,
+                                    isCurrent = isCur,
+                                    currentTimeMs = if (index == currentLineIndex) currentMs else 0L,
                                     lineStartTimeMs = startMs,
                                     lineEndTimeMs = endMs,
                                     modifier =
@@ -988,46 +999,10 @@ fun PulseNeonLyricsLineItem(
                             val isWordActive = currentTimeMs in wordStart until wordEnd
                             val isWordPast = currentTimeMs >= wordEnd
 
-                            val wordScale by animateFloatAsState(
-                                targetValue = if (isWordActive) 1.08f else if (isWordPast) 1.0f else 0.98f,
-                                animationSpec = tween(180, easing = FastOutSlowInEasing),
-                                label = "wordScale",
-                            )
-
-                            val wordColor = when {
-                                isWordActive -> Color.White
-                                isWordPast -> Color.White.copy(alpha = 0.95f)
-                                else -> Color.White.copy(alpha = 0.40f)
-                            }
-
-                            val wordGlow = when {
-                                isWordActive -> Shadow(
-                                    color = Color(0xFF38BDF8),
-                                    blurRadius = 24f,
-                                    offset = Offset.Zero,
-                                )
-                                isWordPast -> Shadow(
-                                    color = Color.White.copy(alpha = 0.25f),
-                                    blurRadius = 8f,
-                                    offset = Offset.Zero,
-                                )
-                                else -> null
-                            }
-
-                            Text(
-                                text = wordText,
-                                style = TextStyle(
-                                    fontSize = 26.sp,
-                                    fontWeight = if (isWordActive) FontWeight.ExtraBold else FontWeight.Bold,
-                                    lineHeight = 34.sp,
-                                    letterSpacing = (-0.3).sp,
-                                    shadow = wordGlow,
-                                ),
-                                color = wordColor,
-                                modifier = Modifier.graphicsLayer {
-                                    scaleX = wordScale
-                                    scaleY = wordScale
-                                },
+                            PulseNeonWordItem(
+                                wordText = wordText,
+                                isWordActive = isWordActive,
+                                isWordPast = isWordPast,
                             )
                         }
                     }
@@ -1062,6 +1037,56 @@ fun PulseNeonLyricsLineItem(
         }
     }
 }
+
+@Composable
+private fun PulseNeonWordItem(
+    wordText: String,
+    isWordActive: Boolean,
+    isWordPast: Boolean,
+) {
+    val wordScale by animateFloatAsState(
+        targetValue = if (isWordActive) 1.08f else if (isWordPast) 1.0f else 0.98f,
+        animationSpec = tween(180, easing = FastOutSlowInEasing),
+        label = "wordScale",
+    )
+
+    val wordColor = when {
+        isWordActive -> Color.White
+        isWordPast -> Color.White.copy(alpha = 0.95f)
+        else -> Color.White.copy(alpha = 0.40f)
+    }
+
+    val wordGlow = when {
+        isWordActive -> Shadow(
+            color = Color(0xFF38BDF8),
+            blurRadius = 24f,
+            offset = Offset.Zero,
+        )
+        isWordPast -> Shadow(
+            color = Color.White.copy(alpha = 0.25f),
+            blurRadius = 8f,
+            offset = Offset.Zero,
+        )
+        else -> null
+    }
+
+    Text(
+        text = wordText,
+        style = TextStyle(
+            fontSize = 26.sp,
+            fontWeight = if (isWordActive) FontWeight.ExtraBold else FontWeight.Bold,
+            lineHeight = 34.sp,
+            letterSpacing = (-0.3).sp,
+            shadow = wordGlow,
+        ),
+        color = wordColor,
+        modifier = Modifier.graphicsLayer {
+            scaleX = wordScale
+            scaleY = wordScale
+        },
+    )
+}
+
 
 /**
  * The playback position, carried forward between the player's 100 ms position ticks so that it

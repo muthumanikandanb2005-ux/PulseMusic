@@ -857,50 +857,12 @@ internal fun ColumnScope.ExpressivePlaybackControls(
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Left,
         )
-        // Sweep head for the "Crossfading" shimmer, 0..1. Runs
-        // unconditionally: behind the crossfade check it would
-        // restart from zero each time the label appears (same
-        // rationale as the desktop MiniPlayer's crossfadeSweep).
-        val sweepTransition = rememberInfiniteTransition(label = "m3eCrossfadeSweep")
-        val crossfadeSweep by sweepTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(3200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart,
-                ),
-            label = "m3eSweepHead",
-        )
         AnimatedVisibility(
             enter = fadeIn(),
             exit = fadeOut(),
             visible = state.timelineState.isCrossfading,
         ) {
-            // Same effect as the desktop MiniPlayer label: a
-            // highlight sweeping through the glyphs via a text
-            // brush — no overlay, no clipping.
-            val shimmerSpan = 140f
-            val shimmerHead = crossfadeSweep * (shimmerSpan * 3f) - shimmerSpan
-            val labelColor = typo().bodyMedium.color
-            Text(
-                text = stringResource(Res.string.crossfading),
-                style =
-                    typo().bodyMedium.copy(
-                        brush =
-                            Brush.horizontalGradient(
-                                0f to labelColor.copy(alpha = 0.45f),
-                                // The sweep head is PURE white, not the resting label colour — the label
-                                // colour is an adaptive grey, and a grey gleam reads as no gleam at all.
-                                0.5f to Color.White,
-                                1f to labelColor.copy(alpha = 0.45f),
-                                startX = shimmerHead,
-                                endX = shimmerHead + shimmerSpan,
-                                tileMode = TileMode.Clamp,
-                            ),
-                    ),
-                textAlign = TextAlign.Center,
-            )
+            M3ECrossfadingLabel()
         }
         Text(
             text = formatDuration(state.timelineState.total),
@@ -1084,3 +1046,38 @@ private fun RowScope.ExpressiveConnectedSlot(
         }
     }
 }
+
+@Composable
+private fun M3ECrossfadingLabel() {
+    val sweepTransition = rememberInfiniteTransition(label = "m3eCrossfadeSweep")
+    val crossfadeSweep by sweepTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(3200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "m3eSweepHead",
+    )
+    val shimmerSpan = 140f
+    val shimmerHead = crossfadeSweep * (shimmerSpan * 3f) - shimmerSpan
+    val labelColor = typo().bodyMedium.color
+    Text(
+        text = stringResource(Res.string.crossfading),
+        style =
+            typo().bodyMedium.copy(
+                brush =
+                    Brush.horizontalGradient(
+                        0f to labelColor.copy(alpha = 0.45f),
+                        0.5f to Color.White,
+                        1f to labelColor.copy(alpha = 0.45f),
+                        startX = shimmerHead,
+                        endX = shimmerHead + shimmerSpan,
+                        tileMode = TileMode.Clamp,
+                    ),
+            ),
+        textAlign = TextAlign.Center,
+    )
+}
+

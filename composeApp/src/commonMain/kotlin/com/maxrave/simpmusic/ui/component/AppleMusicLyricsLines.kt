@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
@@ -208,7 +209,7 @@ fun Modifier.appleMusicLyricFocus(
     // alpha BEFORE blur: blurring an already-faded line keeps the two effects independent, whereas
     // fading a blurred layer washes the blur out into a flat smear.
     return this
-        .alpha(lineAlpha)
+        .graphicsLayer { alpha = lineAlpha }
         .then(
             if (blurRadius > 0.dp) {
                 // Unbounded, NOT the default, on Android. blur(radius) alone uses

@@ -389,7 +389,20 @@ fun SearchScreen(
                         state = suggestionsState,
                         contentPadding = PaddingValues(top = searchBarHeight, bottom = 10.dp),
                     ) {
-                        items(searchScreenState.suggestYTItems) { item ->
+                        items(
+                            items = searchScreenState.suggestYTItems,
+                            key = { item ->
+                                when (item) {
+                                    is SongsResult -> "yt_song_${item.videoId}"
+                                    is VideosResult -> "yt_video_${item.videoId}"
+                                    is AlbumsResult -> "yt_album_${item.browseId}"
+                                    is ArtistsResult -> "yt_artist_${item.browseId}"
+                                    is PlaylistsResult -> "yt_playlist_${item.browseId}"
+                                    else -> item.hashCode().toString()
+                                }
+                            },
+                            contentType = { it::class.simpleName },
+                        ) { item ->
                             SuggestItemRow(
                                 searchResult = item,
                                 onItemClick = { item ->
@@ -432,7 +445,10 @@ fun SearchScreen(
                                 },
                             )
                         }
-                        items(searchScreenState.suggestQueries) { suggestion ->
+                        items(
+                            items = searchScreenState.suggestQueries,
+                            key = { "query_$it" },
+                        ) { suggestion ->
                             Row(
                                 modifier =
                                     Modifier
@@ -522,7 +538,10 @@ fun SearchScreen(
                                     }
                                 }
                             }
-                            items(searchHistory) { historyItem ->
+                            items(
+                                items = searchHistory,
+                                key = { "history_$it" },
+                            ) { historyItem ->
                                 Row(
                                     modifier =
                                         Modifier
@@ -760,7 +779,20 @@ fun SearchScreen(
                                                             ),
                                                         state = resultsState,
                                                     ) {
-                                                        items(currentResults) { result ->
+                                                        items(
+                                                            items = currentResults,
+                                                            key = { result ->
+                                                                when (result) {
+                                                                    is SongsResult -> "res_song_${result.videoId}"
+                                                                    is VideosResult -> "res_video_${result.videoId}"
+                                                                    is AlbumsResult -> "res_album_${result.browseId}"
+                                                                    is ArtistsResult -> "res_artist_${result.browseId}"
+                                                                    is PlaylistsResult -> "res_playlist_${result.browseId}"
+                                                                    else -> result.hashCode().toString()
+                                                                }
+                                                            },
+                                                            contentType = { it::class.simpleName },
+                                                        ) { result ->
                                                             when (result) {
                                                                 is SongsResult -> {
                                                                     SongFullWidthItems(

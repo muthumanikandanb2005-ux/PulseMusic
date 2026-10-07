@@ -193,7 +193,18 @@ fun HomeItem(
             state = lazyListState,
             flingBehavior = snapperFlingBehavior,
         ) {
-            items(data.contents) { temp ->
+            items(
+                items = data.contents,
+                key = { temp ->
+                    temp?.videoId?.ifBlank { null }
+                        ?: temp?.browseId?.ifBlank { null }
+                        ?: temp?.playlistId?.ifBlank { null }
+                        ?: temp.hashCode().toString()
+                },
+                contentType = { temp ->
+                    if (temp?.playlistId != null) "playlist" else if (temp?.videoId != null) "video" else "artist"
+                },
+            ) { temp ->
                 if (temp != null) {
                     val browseId = temp.browseId
                     val playlistId = temp.playlistId
@@ -1299,7 +1310,11 @@ fun MoodAndGenresContentItem(
                     is Item -> (data).contents
                     else -> listOf()
                 }
-            items(itemList) { item ->
+            items(
+                items = itemList,
+                key = { item -> item.hashCode().toString() },
+                contentType = { "mood_item" },
+            ) { item ->
                 HomeItemContentPlaylist(onClick = {
                     // The "Songs" shelf mixes tracks into a list that is otherwise all playlists,
                     // so route by videoId: a track starts its radio, everything else opens a page.
