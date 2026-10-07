@@ -307,7 +307,7 @@ internal class CrossfadeExoPlayerAdapter(
     // VideoId -> PrecachedPlayer
     private val precachedPlayers = ConcurrentHashMap<String, PrecachedPlayer>()
     private var precacheEnabled = true
-    private val maxPrecacheCount = 2
+    private val maxPrecacheCount = 1
     private var precacheJob: Job? = null
 
     // ========== Crossfade System ==========
@@ -582,12 +582,12 @@ internal class CrossfadeExoPlayerAdapter(
                     DefaultLoadControl
                         .Builder()
                         .setBufferDurationsMs(
-                            45_000,
-                            120_000,
+                            50_000,
+                            180_000,
+                            1_200,
                             2_500,
-                            3_500,
                         )
-                        .setBackBuffer(30_000, true)
+                        .setBackBuffer(60_000, true)
                         .setPrioritizeTimeOverSizeThresholds(true)
                         .build(),
                 ).setWakeMode(C.WAKE_MODE_NETWORK)
@@ -614,6 +614,14 @@ internal class CrossfadeExoPlayerAdapter(
             when (internalState) {
                 InternalState.READY, InternalState.ENDED, InternalState.PAUSED -> {
                     currentPlayer?.let { player ->
+                        if (player.playbackState == Player.STATE_IDLE || player.playerError != null) {
+                            Logger.w(TAG, "CurrentPlayer is in STATE_IDLE or error, reloading track to recover")
+                            internalPlayWhenReady = true
+                            if (localCurrentMediaItemIndex in playlist.indices) {
+                                loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition, true)
+                                return@launch
+                            }
+                        }
                         requestAudioFocusInternal()
                         // At the end of the queue `play()` only sets playWhenReady, which does
                         // nothing while the player sits in STATE_ENDED — the press would look
@@ -1534,8 +1542,18 @@ internal class CrossfadeExoPlayerAdapter(
                         )
                     }
 
+                    // Reset retry count on new track load
+                    retryCount = 0
+
                     // Use precached player if available
                     val cachedPlayerEntry = precachedPlayers.remove(videoId)
+
+                    // Prune and release any stale precached players to prevent resource leaks during rapid skips
+                    if (precachedPlayers.isNotEmpty()) {
+                        Logger.d(TAG, "Pruning ${precachedPlayers.size} stale precached player(s)")
+                        precachedPlayers.values.forEach { cleanupPlayerInternal(it.player) }
+                        precachedPlayers.clear()
+                    }
                     val player: ExoPlayer
                     val playerFilter: CrossfadeFilterAudioProcessor?
                     if (cachedPlayerEntry?.player != null) {

@@ -38,6 +38,9 @@ fun LocalDateTime.plusSeconds(seconds: Long): LocalDateTime =
         .plus(seconds, DateTimeUnit.SECOND, TimeZone.currentSystemDefault())
         .toLocalDateTime(TimeZone.currentSystemDefault())
 
+@OptIn(ExperimentalTime::class)
+fun LocalDateTime.plusMinutes(minutes: Long): LocalDateTime = plusSeconds(minutes * 60)
+
 fun startTimestampOfThisYear(): LocalDateTime = LocalDateTime(now().year, 1, 1, 0, 0, 0, 0)
 
 fun LocalDateTime.beforeXDays(x: Int): LocalDateTime = this.date.minus(x, DateTimeUnit.DAY).atTime(this.time)
