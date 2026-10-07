@@ -25,6 +25,13 @@ SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\PulseMusic.ico
 ChangesAssociations=yes
+VersionInfoCompany=Pulse Music Studio
+VersionInfoDescription=Pulse Music Desktop Setup
+VersionInfoVersion=2.2.6.0
+VersionInfoTextVersion=2.2.6
+VersionInfoCopyright=Copyright (C) 2026 Pulse Music Studio
+VersionInfoProductName=Pulse Music
+VersionInfoProductVersion=2.2.6.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -45,6 +52,15 @@ Root: HKCU; Subkey: "Software\Classes\pulsemusic"; ValueType: string; ValueName:
 Root: HKCU; Subkey: "Software\Classes\pulsemusic"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\pulsemusic\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\PulseMusic.ico"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\pulsemusic\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}"; ValueType: string; ValueName: ""; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}"; ValueType: string; ValueName: "ApplicationCompany"; ValueData: "{#MyAppPublisher}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\PulseMusic.ico"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\AppUserModelId\{#MyAppAppUserModelId}"; ValueType: string; ValueName: "DisplayName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\AppUserModelId\{#MyAppAppUserModelId}"; ValueType: string; ValueName: "IconUri"; ValueData: "{app}\PulseMusic.ico"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\AppUserModelId\{#MyAppAppUserModelId}"; ValueType: string; ValueName: "IconBackgroundColor"; ValueData: "0"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppExeName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"; Flags: uninsdeletekey
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
