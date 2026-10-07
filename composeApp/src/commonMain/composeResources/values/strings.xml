@@ -397,6 +397,12 @@
     <string name="enable_animated_artwork">Animated artwork</string>
     <string name="animated_artwork_info">Play the album's animated cover instead of a Canvas. No account needed. Albums without one keep the still cover.</string>
     <string name="spotify_lyrics_provider">Lyrics provided by Spotify</string>
+    <string name="spotify_lyrics_api_url">Spotify Lyrics API URL</string>
+    <string name="spotify_lyrics_api_url_desc">Custom endpoint for Spotify Lyrics API (self-hosted Docker or Vercel instance)</string>
+    <string name="spotify_lyrics_api_url_placeholder">https://your-spotify-lyrics-api.vercel.app</string>
+    <string name="lrclib_client_id">LRCLIB Client ID</string>
+    <string name="lrclib_client_id_desc">Client identifier for LRCLIB requests to avoid rate limits and improve sync accuracy</string>
+    <string name="lrclib_client_id_placeholder">Q577SzaQFl01aTiReKY9NKgkcENPwiaHVceaOk4p8JQ</string>
     <string name="offline_mode">Offline mode</string>
     <string name="added_to_youtube_liked">Added to YouTube Liked</string>
     <string name="removed_from_youtube_liked">Removed from YouTube Liked</string>

@@ -250,6 +250,7 @@ import simpmusic.composeapp.generated.resources.set
 import simpmusic.composeapp.generated.resources.share
 import simpmusic.composeapp.generated.resources.share_url
 import simpmusic.composeapp.generated.resources.simpmusic_lyrics
+import simpmusic.composeapp.generated.resources.spotify
 import simpmusic.composeapp.generated.resources.sleep_minutes
 import simpmusic.composeapp.generated.resources.sleep_timer
 import simpmusic.composeapp.generated.resources.sleep_timer_end_of_song
@@ -1548,6 +1549,7 @@ fun NowPlayingBottomSheet(
                     DataStoreManager.LRCLIB -> 1
                     DataStoreManager.YOUTUBE -> 2
                     DataStoreManager.BETTER_LYRICS -> 3
+                    DataStoreManager.SPOTIFY -> 4
                     else -> 0
                 },
             )
@@ -1575,6 +1577,18 @@ fun NowPlayingBottomSheet(
                         RadioButton(selected = selected == 0, onClick = { selected = 0 })
                         Spacer(modifier = Modifier.size(10.dp))
                         Text(text = stringResource(Res.string.simpmusic_lyrics), style = typo().labelSmall)
+                    }
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 4.dp)
+                                .fillMaxWidth()
+                                .clickable { selected = 4 },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected == 4, onClick = { selected = 4 })
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Text(text = stringResource(Res.string.spotify), style = typo().labelSmall)
                     }
                     Row(
                         modifier =
@@ -1624,6 +1638,7 @@ fun NowPlayingBottomSheet(
                                     1 -> DataStoreManager.LRCLIB
                                     2 -> DataStoreManager.YOUTUBE
                                     3 -> DataStoreManager.BETTER_LYRICS
+                                    4 -> DataStoreManager.SPOTIFY
                                     else -> DataStoreManager.SIMPMUSIC
                                 },
                             ),
