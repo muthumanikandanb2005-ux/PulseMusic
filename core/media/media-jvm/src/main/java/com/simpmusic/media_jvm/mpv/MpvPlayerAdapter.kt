@@ -7,6 +7,8 @@ import com.maxrave.domain.data.player.GenericPlaybackParameters
 import com.maxrave.domain.data.player.PlayerConstants
 import com.maxrave.domain.data.player.PlayerError
 import com.maxrave.domain.extension.isVideo
+import com.maxrave.domain.extension.now
+import com.maxrave.domain.extension.plusMinutes
 import com.maxrave.domain.manager.DataStoreManager
 import com.maxrave.domain.mediaservice.player.MediaPlayerInterface
 import com.maxrave.domain.mediaservice.player.MediaPlayerListener
@@ -185,7 +187,7 @@ class MpvPlayerAdapter(
 
     private val precachedPlayers = ConcurrentHashMap<String, PrecachedPlayer>()
     private var precacheEnabled = true
-    private val maxPrecacheCount = 2
+    private val maxPrecacheCount = 1
     private var precacheJob: Job? = null
 
     // Crossfade system
@@ -299,7 +301,13 @@ class MpvPlayerAdapter(
                         player.play()
                         transitionToState(InternalState.PLAYING)
                         internalPlayWhenReady = true
-                    } ?: Logger.w(TAG, "Play called but currentPlayer is null")
+                    } ?: run {
+                        Logger.w(TAG, "Play called but currentPlayer is null, attempting to reload track")
+                        internalPlayWhenReady = true
+                        if (localCurrentMediaItemIndex in playlist.indices) {
+                            loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition, true)
+                        }
+                    }
                 }
 
                 InternalState.PREPARING -> {
@@ -317,7 +325,14 @@ class MpvPlayerAdapter(
                 }
 
                 else -> {
-                    Logger.w(TAG, "Play: Called in invalid state: $internalState")
+                    Logger.w(TAG, "Play: Called in state $internalState - reloading current track")
+                    internalPlayWhenReady = true
+                    if (localCurrentMediaItemIndex in playlist.indices) {
+                        loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition, true)
+                    } else if (playlist.isNotEmpty()) {
+                        localCurrentMediaItemIndex = 0
+                        loadAndPlayTrackInternal(0, 0, true)
+                    }
                 }
             }
         }
@@ -1319,6 +1334,11 @@ class MpvPlayerAdapter(
 
                     // Extract URL on IO thread (network), mpv native calls stay on service thread
                     val cachedPrecache = precachedPlayers.remove(videoId)
+                    if (precachedPlayers.isNotEmpty()) {
+                        Logger.d(TAG, "Pruning ${precachedPlayers.size} stale precached player(s)")
+                        precachedPlayers.values.forEach { cleanupPlayerInternal(it.player) }
+                        precachedPlayers.clear()
+                    }
                     var resolvedSource: PlayableSource? = null
                     val player =
                         if (cachedPrecache?.player != null) {
@@ -2862,14 +2882,15 @@ class MpvPlayerAdapter(
         streamRepository.getNewFormat(videoId).lastOrNull()?.let { format ->
             val audioUrl = format.audioUrl
             val videoUrl = format.videoUrl
+            val isFresh = format.expiredTime > now().plusMinutes(15)
 
             if (shouldFindVideo && !videoUrl.isNullOrEmpty()) {
-                val is403Video = streamRepository.is403Url(videoUrl).firstOrNull() != false
+                val is403Video = if (isFresh) false else (streamRepository.is403Url(videoUrl).firstOrNull() != false)
                 if (!is403Video) {
                     // Return video URL with audio as a second EDL stream for merging
                     val audioSlave =
                         if (!audioUrl.isNullOrEmpty()) {
-                            val is403Audio = streamRepository.is403Url(audioUrl).firstOrNull() != false
+                            val is403Audio = if (isFresh) false else (streamRepository.is403Url(audioUrl).firstOrNull() != false)
                             if (!is403Audio) audioUrl else null
                         } else {
                             null
@@ -2883,7 +2904,7 @@ class MpvPlayerAdapter(
                     )
                 }
             } else if (!shouldFindVideo && !audioUrl.isNullOrEmpty()) {
-                val is403Url = streamRepository.is403Url(audioUrl).firstOrNull() != false
+                val is403Url = if (isFresh) false else (streamRepository.is403Url(audioUrl).firstOrNull() != false)
                 if (!is403Url) {
                     Logger.w("Stream", "Audio from format")
                     return PlayableSource(isVideo = false, url = audioUrl)
