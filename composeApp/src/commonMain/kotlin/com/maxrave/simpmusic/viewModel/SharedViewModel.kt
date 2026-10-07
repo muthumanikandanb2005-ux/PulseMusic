@@ -1356,6 +1356,14 @@ class SharedViewModel(
                         duration,
                     )
                 }
+
+                DataStoreManager.SPOTIFY -> {
+                    getSpotifyLyrics(
+                        song.toTrack().copy(durationSeconds = duration),
+                        "${song.title} $artist",
+                        duration,
+                    )
+                }
             }
         }
     }
@@ -1680,7 +1688,7 @@ class SharedViewModel(
                 val data = response.data
                 when (response) {
                     is Resource.Success -> {
-                        if (data != null) {
+                        if (data != null && !data.lines.isNullOrEmpty()) {
                             insertLyrics(
                                 data.toLyricsEntity(
                                     track.videoId,
@@ -1696,6 +1704,12 @@ class SharedViewModel(
                             getAITranslationLyrics(
                                 track.videoId,
                                 data,
+                            )
+                        } else {
+                            getLrclibLyrics(
+                                track.toSongEntity(),
+                                track.artists.toListName().firstOrNull() ?: "",
+                                duration ?: 0,
                             )
                         }
                     }

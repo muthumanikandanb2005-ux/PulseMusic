@@ -302,6 +302,8 @@ class SettingsViewModel(
         getVideoQuality()
         getSpotifyLogIn()
         getSpotifyLyrics()
+        getSpotifyLyricsApiUrl()
+        getLrclibClientId()
         getSyncFollowToYouTube()
         getEqualizer()
         getAudioEffects()
@@ -2036,6 +2038,13 @@ class SettingsViewModel(
     private var _spotifyLyrics: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val spotifyLyrics: StateFlow<Boolean> = _spotifyLyrics
 
+    private var _spotifyLyricsApiUrl: MutableStateFlow<String> = MutableStateFlow("")
+    val spotifyLyricsApiUrl: StateFlow<String> = _spotifyLyricsApiUrl
+
+    private var _lrclibClientId: MutableStateFlow<String> =
+        MutableStateFlow(DataStoreManager.DEFAULT_LRCLIB_CLIENT_ID)
+    val lrclibClientId: StateFlow<String> = _lrclibClientId
+
     private var _spotifyCanvas: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val spotifyCanvas: StateFlow<Boolean> = _spotifyCanvas
 
@@ -2058,6 +2067,36 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setSpotifyLyrics(loggedIn)
             getSpotifyLyrics()
+        }
+    }
+
+    fun getSpotifyLyricsApiUrl() {
+        viewModelScope.launch {
+            dataStoreManager.spotifyLyricsApiUrl.collect {
+                _spotifyLyricsApiUrl.emit(it)
+            }
+        }
+    }
+
+    fun setSpotifyLyricsApiUrl(url: String) {
+        viewModelScope.launch {
+            dataStoreManager.setSpotifyLyricsApiUrl(url)
+            getSpotifyLyricsApiUrl()
+        }
+    }
+
+    fun getLrclibClientId() {
+        viewModelScope.launch {
+            dataStoreManager.lrclibClientId.collect {
+                _lrclibClientId.emit(it)
+            }
+        }
+    }
+
+    fun setLrclibClientId(clientId: String) {
+        viewModelScope.launch {
+            dataStoreManager.setLrclibClientId(clientId)
+            getLrclibClientId()
         }
     }
 

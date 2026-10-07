@@ -323,6 +323,9 @@ import simpmusic.composeapp.generated.resources.log_out_warning
 import simpmusic.composeapp.generated.resources.logged_in
 import simpmusic.composeapp.generated.resources.logged_in_as
 import simpmusic.composeapp.generated.resources.lrclib
+import simpmusic.composeapp.generated.resources.lrclib_client_id
+import simpmusic.composeapp.generated.resources.lrclib_client_id_desc
+import simpmusic.composeapp.generated.resources.lrclib_client_id_placeholder
 import simpmusic.composeapp.generated.resources.lyrics
 import simpmusic.composeapp.generated.resources.lyrics_style
 import simpmusic.composeapp.generated.resources.lyrics_offset
@@ -401,6 +404,9 @@ import simpmusic.composeapp.generated.resources.skip_silent
 import simpmusic.composeapp.generated.resources.socks
 import simpmusic.composeapp.generated.resources.spotify
 import simpmusic.composeapp.generated.resources.spotify_canvas_cache
+import simpmusic.composeapp.generated.resources.spotify_lyrics_api_url
+import simpmusic.composeapp.generated.resources.spotify_lyrics_api_url_desc
+import simpmusic.composeapp.generated.resources.spotify_lyrics_api_url_placeholder
 import simpmusic.composeapp.generated.resources.spotify_lyrícs_info
 import simpmusic.composeapp.generated.resources.storage
 import simpmusic.composeapp.generated.resources.such_as_music_video_lyrics_video_podcasts_and_more
@@ -532,6 +538,8 @@ fun SettingScreen(
     val youtubeSubtitleLanguage by viewModel.youtubeSubtitleLanguage.collectAsStateWithLifecycle()
     val spotifyLoggedIn by viewModel.spotifyLogIn.collectAsStateWithLifecycle()
     val spotifyLyrics by viewModel.spotifyLyrics.collectAsStateWithLifecycle()
+    val spotifyLyricsApiUrl by viewModel.spotifyLyricsApiUrl.collectAsStateWithLifecycle()
+    val lrclibClientId by viewModel.lrclibClientId.collectAsStateWithLifecycle()
     val spotifyCanvas by viewModel.spotifyCanvas.collectAsStateWithLifecycle()
     val amAnimatedArtwork by viewModel.amAnimatedArtwork.collectAsStateWithLifecycle()
     val playerCache by viewModel.cacheSize.collectAsStateWithLifecycle()
@@ -894,7 +902,7 @@ fun SettingScreen(
                 )
                 val lyricsStyleLabels =
                     listOf(
-                        DataStoreManager.LYRICS_STYLE_PULSE_NEON to "Pulse Kinetic Neon (Ultra-Synced)",
+                        DataStoreManager.LYRICS_STYLE_PULSE_NEON to "Pulse Moving Light (Dynamic Glow & Blur)",
                         DataStoreManager.LYRICS_STYLE_CLASSIC to stringResource(Res.string.lyrics_style_classic),
                         DataStoreManager.LYRICS_STYLE_APPLE_MUSIC to
                             stringResource(Res.string.lyrics_style_apple_music) + requiresAndroid12,
@@ -1749,6 +1757,7 @@ fun SettingScreen(
                     subtitle =
                         when (mainLyricsProvider) {
                             DataStoreManager.SIMPMUSIC -> stringResource(Res.string.simpmusic_lyrics)
+                            DataStoreManager.SPOTIFY -> stringResource(Res.string.spotify)
                             DataStoreManager.YOUTUBE -> stringResource(Res.string.youtube_transcript)
                             DataStoreManager.LRCLIB -> stringResource(Res.string.lrclib)
                             DataStoreManager.BETTER_LYRICS -> stringResource(Res.string.better_lyrics)
@@ -1764,6 +1773,8 @@ fun SettingScreen(
                                             listOf(
                                                 (mainLyricsProvider == DataStoreManager.SIMPMUSIC) to
                                                     runBlocking { getString(Res.string.simpmusic_lyrics) },
+                                                (mainLyricsProvider == DataStoreManager.SPOTIFY) to
+                                                    runBlocking { getString(Res.string.spotify) },
                                                 (mainLyricsProvider == DataStoreManager.YOUTUBE) to
                                                     runBlocking { getString(Res.string.youtube_transcript) },
                                                 (mainLyricsProvider == DataStoreManager.LRCLIB) to runBlocking { getString(Res.string.lrclib) },
@@ -1776,6 +1787,7 @@ fun SettingScreen(
                                         viewModel.setLyricsProvider(
                                             when (state.selectOne?.getSelected()) {
                                                 runBlocking { getString(Res.string.simpmusic_lyrics) } -> DataStoreManager.SIMPMUSIC
+                                                runBlocking { getString(Res.string.spotify) } -> DataStoreManager.SPOTIFY
                                                 runBlocking { getString(Res.string.youtube_transcript) } -> DataStoreManager.YOUTUBE
                                                 runBlocking { getString(Res.string.lrclib) } -> DataStoreManager.LRCLIB
                                                 runBlocking { getString(Res.string.better_lyrics) } -> DataStoreManager.BETTER_LYRICS
@@ -1822,6 +1834,30 @@ fun SettingScreen(
                                             ?.trim()
                                             ?.toIntOrNull()
                                             ?.let { viewModel.setLyricsOffsetMs(it) }
+                                    },
+                                dismiss = runBlocking { getString(Res.string.cancel) },
+                            ),
+                        )
+                    },
+                )
+
+                SettingItem(
+                    title = stringResource(Res.string.lrclib_client_id),
+                    subtitle = lrclibClientId.ifBlank { DataStoreManager.DEFAULT_LRCLIB_CLIENT_ID },
+                    onClick = {
+                        viewModel.setAlertData(
+                            SettingAlertState(
+                                title = runBlocking { getString(Res.string.lrclib_client_id) },
+                                message = runBlocking { getString(Res.string.lrclib_client_id_desc) },
+                                textField =
+                                    SettingAlertState.TextFieldData(
+                                        label = runBlocking { getString(Res.string.lrclib_client_id_placeholder) },
+                                        value = lrclibClientId,
+                                    ),
+                                confirm =
+                                    runBlocking { getString(Res.string.change) } to { state ->
+                                        val newId = state.textField?.value?.trim() ?: ""
+                                        viewModel.setLrclibClientId(newId.ifBlank { DataStoreManager.DEFAULT_LRCLIB_CLIENT_ID })
                                     },
                                 dismiss = runBlocking { getString(Res.string.cancel) },
                             ),
@@ -2078,7 +2114,38 @@ fun SettingScreen(
                     title = stringResource(Res.string.enable_spotify_lyrics),
                     subtitle = stringResource(Res.string.spotify_lyrícs_info),
                     switch = (spotifyLyrics to { viewModel.setSpotifyLyrics(it) }),
-                    isEnable = spotifyLoggedIn,
+                    isEnable = spotifyLoggedIn || spotifyLyricsApiUrl.isNotBlank(),
+                )
+                SettingItem(
+                    title = stringResource(Res.string.spotify_lyrics_api_url),
+                    subtitle =
+                        if (spotifyLyricsApiUrl.isBlank()) {
+                            stringResource(Res.string.spotify_lyrics_api_url_desc)
+                        } else {
+                            spotifyLyricsApiUrl
+                        },
+                    onClick = {
+                        viewModel.setAlertData(
+                            SettingAlertState(
+                                title = runBlocking { getString(Res.string.spotify_lyrics_api_url) },
+                                message = runBlocking { getString(Res.string.spotify_lyrics_api_url_desc) },
+                                textField =
+                                    SettingAlertState.TextFieldData(
+                                        label = runBlocking { getString(Res.string.spotify_lyrics_api_url_placeholder) },
+                                        value = spotifyLyricsApiUrl,
+                                    ),
+                                confirm =
+                                    runBlocking { getString(Res.string.change) } to { state ->
+                                        val newUrl = state.textField?.value?.trim() ?: ""
+                                        viewModel.setSpotifyLyricsApiUrl(newUrl)
+                                        if (newUrl.isNotBlank()) {
+                                            viewModel.setSpotifyLyrics(true)
+                                        }
+                                    },
+                                dismiss = runBlocking { getString(Res.string.cancel) },
+                            ),
+                        )
+                    },
                 )
                 SettingItem(
                     title = stringResource(Res.string.enable_canvas),
