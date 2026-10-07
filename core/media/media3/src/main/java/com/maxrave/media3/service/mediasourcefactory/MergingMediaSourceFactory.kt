@@ -43,8 +43,8 @@ internal class MergingMediaSourceFactory(
                     .setCustomCacheKey("${MERGING_DATA_TYPE.VIDEO}${mediaItem.mediaId}")
                     .build()
             return MergingMediaSource(
-                false,
-                false,
+                true,
+                true,
                 defaultMediaSourceFactory.createMediaSource(videoItem),
                 defaultMediaSourceFactory.createMediaSource(mediaItem),
             )

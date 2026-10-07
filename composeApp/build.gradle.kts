@@ -880,6 +880,8 @@ aboutLibraries {
     }
 }
 
+
+
 // Wire BuildKonfig output as input to AGP ArtProfile prepare tasks.
 // Required by Gradle 9 strict task dependency validation. BuildKonfig 0.21.0
 // migrated to AGP 9.2.1 + Gradle 9.4.1 but doesn't auto-wire

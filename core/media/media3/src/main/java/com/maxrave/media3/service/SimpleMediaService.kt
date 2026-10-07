@@ -33,6 +33,7 @@ import com.maxrave.media3.R
 import com.maxrave.media3.extension.toCommandButton
 import com.maxrave.media3.utils.CoilBitmapLoader
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
@@ -64,6 +65,9 @@ internal class SimpleMediaService :
     private val binder = MusicBinder()
 
     private lateinit var playerNotificationManager: PlayerNotificationManager
+
+    private var pauseTimeoutJob: Job? = null
+    private val pauseGracePeriodMs = 120_000L // 2 minutes (120 seconds) grace period before releasing foreground / stopping
 
     inner class MusicBinder : Binder() {
         val service: SimpleMediaService
@@ -201,11 +205,53 @@ internal class SimpleMediaService :
         session: MediaSession,
         startInForegroundRequired: Boolean,
     ) {
-        super.onUpdateNotification(session, startInForegroundRequired)
+        val isPlaying = session.player.playWhenReady &&
+            session.player.playbackState != Player.STATE_IDLE &&
+            session.player.playbackState != Player.STATE_ENDED
+
+        if (isPlaying) {
+            // Actively playing: cancel pause timeout and maintain active foreground notification
+            pauseTimeoutJob?.cancel()
+            pauseTimeoutJob = null
+            super.onUpdateNotification(session, true)
+        } else {
+            // Playback is paused or idle: do NOT immediately detach foreground notification!
+            // Xiaomi HyperOS Mini Capsules / Dynamic Island require ongoing media session in foreground.
+            // Hold foreground service for a 2-minute grace period before allowing detach / stop.
+            if (session.player.currentMediaItem != null) {
+                if (pauseTimeoutJob == null || pauseTimeoutJob?.isActive == false) {
+                    pauseTimeoutJob = coroutineScope.launch {
+                        Logger.d("Service", "Playback paused. Holding foreground status for 2 minutes...")
+                        delay(pauseGracePeriodMs)
+                        Logger.d("Service", "2-minute pause grace period elapsed. Releasing foreground status.")
+                        pauseTimeoutJob = null
+                        if (!session.player.playWhenReady) {
+                            try {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                    stopForeground(STOP_FOREGROUND_DETACH)
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    stopForeground(false)
+                                }
+                            } catch (e: Exception) {
+                                Logger.w("Service", "Error stopping foreground: ${e.message}")
+                            }
+                        }
+                    }
+                }
+                // Keep notification ongoing in foreground while grace period is active
+                val keepForeground = pauseTimeoutJob?.isActive == true
+                super.onUpdateNotification(session, keepForeground)
+            } else {
+                super.onUpdateNotification(session, startInForegroundRequired)
+            }
+        }
     }
 
     @UnstableApi
     fun release() {
+        pauseTimeoutJob?.cancel()
+        pauseTimeoutJob = null
         Logger.w("Service", "Starting release process")
         runBlocking {
             try {
@@ -228,6 +274,8 @@ internal class SimpleMediaService :
 
     @UnstableApi
     override fun onDestroy() {
+        pauseTimeoutJob?.cancel()
+        pauseTimeoutJob = null
         super.onDestroy()
         Logger.w("Service", "Simple Media Service Destroyed")
         if (simpleMediaServiceHandler.shouldReleaseOnTaskRemoved()) {
@@ -243,10 +291,21 @@ internal class SimpleMediaService :
     @UnstableApi
     override fun onTaskRemoved(rootIntent: Intent?) {
         Logger.w("Service", "Simple Media Service Task Removed")
-        if (simpleMediaServiceHandler.shouldReleaseOnTaskRemoved()) {
-            release()
-            super.onTaskRemoved(rootIntent)
-            exitProcess(0)
+        if (player.isPlaying || player.playWhenReady) {
+            // Keep playing uninterrupted in background
+            Logger.d("Service", "App task removed while playing — keep service alive in foreground.")
+            return
+        }
+        // If paused when task removed, do NOT kill immediately in RAM! Wait 2 minutes!
+        pauseTimeoutJob?.cancel()
+        pauseTimeoutJob = coroutineScope.launch {
+            Logger.d("Service", "App task removed while paused. Keeping alive in RAM for 2 minutes...")
+            delay(pauseGracePeriodMs)
+            if (!player.isPlaying && !player.playWhenReady) {
+                Logger.d("Service", "2 minutes elapsed after task removed while paused — stopping service gracefully.")
+                release()
+                stopSelf()
+            }
         }
     }
 

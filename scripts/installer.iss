@@ -1,5 +1,5 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "2.2.5"
+#define MyAppVersion "2.2.6"
 #define MyAppPublisher "Pulse Music Studio"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"

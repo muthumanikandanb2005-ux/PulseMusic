@@ -7,37 +7,35 @@ import urllib.parse
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "muthumanikandanb2005-ux/PulseMusic"
-TAG = "v2.2.5"
-RELEASE_NAME = "Pulse Music v2.2.5 - Moving Light Lyrics Effect, Blur Focus & 100% Synced Lyrics"
-BODY = """### Pulse Music v2.2.5 (OTA Update)
+TAG = "v2.2.6"
+RELEASE_NAME = "Pulse Music v2.2.6 - Continuous Zero-Freeze Playback & Windows Setup Installer"
+BODY = """### Pulse Music v2.2.6 (OTA Update)
 
-- ✨ **Pulse Moving Light Effect**:
-  - Word-by-word dynamic radiant glow and neon spotlight beam tracking playback progress in real time.
-  - Active words enlarge smoothly to 1.08x scale with a cyan-gold bloom halo.
-- 🌫️ **Depth-of-Field Blur Effect**:
-  - Non-active lyric lines receive progressive Gaussian blur and gentle dimming, keeping the active lyric line in sharp focus.
-- ⏱️ **100% Synced Lyrics & Timing Precision**:
-  - Fixed standard LRC two-digit centisecond parsing (`centiseconds * 10L = milliseconds`), eliminating previously accumulated ~400ms timing offsets.
-  - Accurate `endTimeMs` calculation across all lyric lines for fluid word/line transitions.
-- 🔑 **LRCLIB Client Token Integration**:
-  - Direct exact-match querying (`/api/get`) with dedicated client headers for instant, rate-limit-free lyrics fetching.
-  - Added LRCLIB Client ID dialog in Settings.
-- 🌐 **Clean Standalone Open-Source Architecture**:
-  - Embedded core library modules natively into repository for zero-dependency open-source builds.
-- ⚡ **Includes Continuous Zero-Freeze Playback Engine**:
-  - Full playback freeze fix on fast skip and play/pause toggles.
-  - Complete decoupling from external audio dependencies.
+- ⚡ **Unlimited Rapid Skipping & Zero-Freeze Playback**:
+  - Eliminated audio track and hardware decoder exhaustion on rapid track skipping (>5 songs) by actively pruning stale player instances in both Android (Media3/ExoPlayer) and Desktop (MPV).
+  - Skips are now instantaneous and unlimited without app freezing or stuck buffering.
+- 🔄 **Seamless Background & Pause Recovery**:
+  - Automatically detects idle or expired player states when reopening or unpausing the app after some time and reloads the active track seamlessly.
+- 🚀 **Buffer Optimization & Stutter Elimination**:
+  - Raised stream buffer ceilings (up to 180s for ExoPlayer, 60s/120s with 64MB/192MB demuxer for MPV) and reduced network reconnect delay to 5s.
+  - Bypassed redundant HTTP probes on fresh stream URLs to prevent the "plays and stops" buffering loop.
+- 🎞️ **Smooth Audio/Video Playback Sync**:
+  - Fixed video stream end freezes and duration offsets with adjusted period time offsets and duration clipping.
+- 💻 **Direct Windows Setup Installer (.exe)**:
+  - Direct Windows installer (`PulseMusic-Windows-x64-Setup.exe`) with official app branding, Start menu integration, and AppUserModelID.
 """
 
 ASSETS = [
     ("PulseMusic-Universal.apk", "dist/PulseMusic-Universal.apk"),
     ("PulseMusic-arm64-v8a.apk", "dist/PulseMusic-arm64-v8a.apk"),
     ("PulseMusic-armeabi-v7a.apk", "dist/PulseMusic-armeabi-v7a.apk"),
-    ("PulseMusic-v2.2.5-Release-Universal.apk", "dist/PulseMusic-v2.2.5-Release-Universal.apk"),
-    ("PulseMusic-v2.2.5-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.5-Release-arm64-v8a.apk"),
-    ("PulseMusic-v2.2.5-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.5-Release-armeabi-v7a.apk"),
+    ("PulseMusic-v2.2.6-Release-Universal.apk", "dist/PulseMusic-v2.2.6-Release-Universal.apk"),
+    ("PulseMusic-v2.2.6-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.6-Release-arm64-v8a.apk"),
+    ("PulseMusic-v2.2.6-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.6-Release-armeabi-v7a.apk"),
+    ("PulseMusic-Windows-x64-Setup.exe", "dist/PulseMusic-Windows-x64-Setup.exe"),
+    ("PulseMusic-v2.2.6-Windows-x64-Setup.exe", "dist/PulseMusic-v2.2.6-Windows-x64-Setup.exe"),
     ("PulseMusic-Windows-x64.zip", "dist/PulseMusic-Windows-x64.zip"),
-    ("PulseMusic-v2.2.5-Windows-x64.zip", "dist/PulseMusic-v2.2.5-Windows-x64.zip"),
+    ("PulseMusic-v2.2.6-Windows-x64.zip", "dist/PulseMusic-v2.2.6-Windows-x64.zip"),
 ]
 
 def main():
