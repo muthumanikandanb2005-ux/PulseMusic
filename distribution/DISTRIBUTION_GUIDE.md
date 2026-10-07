@@ -7,12 +7,12 @@ This document lists the status, repository URLs, direct links, and submission te
 ## 1. GitHub Releases (Primary Official Release Channel)
 - **Status**: **LIVE & ACTIVE**
 - **Repository**: [muthumanikandanb2005-ux/PulseMusic](https://github.com/muthumanikandanb2005-ux/PulseMusic)
-- **Latest Release**: [v2.2.4 Release](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v2.2.4)
-- **Direct Universal APK Download**: [PulseMusic-Universal.apk](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.4/PulseMusic-Universal.apk)
+- **Latest Release**: [v2.2.5 Release](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v2.2.5)
+- **Direct Universal APK Download**: [PulseMusic-Universal.apk](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.5/PulseMusic-Universal.apk)
 - **Architecture APKs**:
-  - [PulseMusic-arm64-v8a.apk](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.4/PulseMusic-arm64-v8a.apk)
-  - [PulseMusic-armeabi-v7a.apk](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.4/PulseMusic-armeabi-v7a.apk)
-  - [PulseMusic-Windows-x64.zip](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.4/PulseMusic-Windows-x64.zip)
+  - [PulseMusic-arm64-v8a.apk](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.5/PulseMusic-arm64-v8a.apk)
+  - [PulseMusic-armeabi-v7a.apk](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.5/PulseMusic-armeabi-v7a.apk)
+  - [PulseMusic-Windows-x64-Setup.exe](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v2.2.5/PulseMusic-Windows-x64-Setup.exe) (Direct Windows 10/11 Installer)
 
 ---
 

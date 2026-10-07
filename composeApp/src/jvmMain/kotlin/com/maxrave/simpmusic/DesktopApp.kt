@@ -80,8 +80,20 @@ import simpmusic.composeapp.generated.resources.time_out_check_internet_connecti
  */
 private val DEEP_LINK_ARG = Regex("^[A-Za-z][A-Za-z0-9+.\\-]*://.+")
 
+private fun setWindowsAppUserModelId(appId: String = "com.pulse.music") {
+    if (!System.getProperty("os.name", "").contains("Windows", ignoreCase = true)) return
+    runCatching {
+        com.sun.jna.platform.win32.Shell32.INSTANCE.SetCurrentProcessExplicitAppUserModelID(com.sun.jna.WString(appId))
+    }.onFailure { e ->
+        System.err.println("Failed to set Windows AppUserModelID: ${e.message}")
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 fun runDesktopApp(args: Array<String> = emptyArray()) {
+    // Explicitly identify process to Windows Shell & SMTC
+    setWindowsAppUserModelId()
+
     // Install crash dialog handler first — catches all uncaught exceptions
     CrashDialog.install()
 
