@@ -203,28 +203,6 @@ fun NowPlayingContentSpotify(
 
     val isRepeatOne = state.controllerState.repeatState is RepeatState.One
 
-    val ambientTransition = rememberInfiniteTransition(label = "ambientPulse")
-    val ambientScale by ambientTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 1.08f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(4000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "ambientScale",
-    )
-    val ambientAlpha by ambientTransition.animateFloat(
-        initialValue = 0.55f,
-        targetValue = 0.85f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(4000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "ambientAlpha",
-    )
-
     var showShareLyricsSheet by rememberSaveable { mutableStateOf(false) }
 
     // Height
@@ -554,26 +532,11 @@ fun NowPlayingContentSpotify(
                                         .aspectRatio(1f),
                             ) {
                                 if (state.ambientModeEnabled && !pageHasCanvas) {
-                                    Box(
-                                        modifier =
-                                            Modifier
-                                                .matchParentSize()
-                                                .graphicsLayer {
-                                                    scaleX = ambientScale * 1.25f
-                                                    scaleY = ambientScale * 1.25f
-                                                    alpha = if (state.controllerState.isPlaying) ambientAlpha else 0.45f
-                                                }.background(
-                                                    brush =
-                                                        Brush.radialGradient(
-                                                            colors =
-                                                                listOf(
-                                                                    state.startColor.value.copy(alpha = 0.75f),
-                                                                    state.endColor.value.copy(alpha = 0.35f),
-                                                                    Color.Transparent,
-                                                                ),
-                                                        ),
-                                                    shape = RoundedCornerShape(32.dp),
-                                                ),
+                                    AmbientArtworkGlow(
+                                        isPlaying = state.controllerState.isPlaying,
+                                        startColor = state.startColor.value,
+                                        endColor = state.endColor.value,
+                                        modifier = Modifier.matchParentSize(),
                                     )
                                 }
                                 if (isCurrentArtworkPage) {
@@ -2039,51 +2002,12 @@ internal fun ColumnScope.SpotifyPlaybackControls(
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Left,
         )
-        // Sweep head for the "Crossfading" shimmer, 0..1. Runs
-        // unconditionally: behind the crossfade check it would
-        // restart from zero each time the label appears (same
-        // rationale as MiniPlayer's crossfadeSweep).
-        val sweepTransition = rememberInfiniteTransition(label = "nowPlayingCrossfadeSweep")
-        val crossfadeSweep by sweepTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(3200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart,
-                ),
-            label = "nowPlayingSweepHead",
-        )
         AnimatedVisibility(
             enter = fadeIn(),
             exit = fadeOut(),
             visible = state.timelineState.isCrossfading,
         ) {
-            // Same effect as the desktop MiniPlayer label: a
-            // highlight sweeping through the glyphs via a text
-            // brush — no overlay, no clipping.
-            val shimmerSpan = 140f
-            val shimmerHead = crossfadeSweep * (shimmerSpan * 3f) - shimmerSpan
-            val labelColor = typo().bodyMedium.color
-            Text(
-                text = stringResource(Res.string.crossfading),
-                style =
-                    typo().bodyMedium.copy(
-                        brush =
-                            Brush.horizontalGradient(
-                                0f to labelColor.copy(alpha = 0.45f),
-                                // The sweep head is PURE white, not the resting label colour — the label
-                                // colour is an adaptive grey, and a grey gleam reads as no gleam at all.
-                                0.5f to Color.White,
-                                1f to labelColor.copy(alpha = 0.45f),
-                                startX = shimmerHead,
-                                endX = shimmerHead + shimmerSpan,
-                                tileMode = TileMode.Clamp,
-                            ),
-                    ),
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-            )
+            SpotifyCrossfadingLabel(modifier = Modifier.weight(1f))
         }
         Text(
             text = formatDuration(state.timelineState.total),
@@ -2106,3 +2030,89 @@ internal fun ColumnScope.SpotifyPlaybackControls(
         actions.onUIEvent(it)
     }
 }
+
+@Composable
+private fun AmbientArtworkGlow(
+    isPlaying: Boolean,
+    startColor: Color,
+    endColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val ambientTransition = rememberInfiniteTransition(label = "ambientPulse")
+    val ambientScale by ambientTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.08f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "ambientScale",
+    )
+    val ambientAlpha by ambientTransition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 0.85f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "ambientAlpha",
+    )
+    Box(
+        modifier =
+            modifier
+                .graphicsLayer {
+                    scaleX = ambientScale * 1.25f
+                    scaleY = ambientScale * 1.25f
+                    alpha = if (isPlaying) ambientAlpha else 0.45f
+                }.background(
+                    brush =
+                        Brush.radialGradient(
+                            colors =
+                                listOf(
+                                    startColor.copy(alpha = 0.75f),
+                                    endColor.copy(alpha = 0.35f),
+                                    Color.Transparent,
+                                ),
+                        ),
+                    shape = RoundedCornerShape(32.dp),
+                ),
+    )
+}
+
+@Composable
+private fun SpotifyCrossfadingLabel(modifier: Modifier = Modifier) {
+    val sweepTransition = rememberInfiniteTransition(label = "nowPlayingCrossfadeSweep")
+    val crossfadeSweep by sweepTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(3200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "nowPlayingSweepHead",
+    )
+    val shimmerSpan = 140f
+    val shimmerHead = crossfadeSweep * (shimmerSpan * 3f) - shimmerSpan
+    val labelColor = typo().bodyMedium.color
+    Text(
+        text = stringResource(Res.string.crossfading),
+        style =
+            typo().bodyMedium.copy(
+                brush =
+                    Brush.horizontalGradient(
+                        0f to labelColor.copy(alpha = 0.45f),
+                        0.5f to Color.White,
+                        1f to labelColor.copy(alpha = 0.45f),
+                        startX = shimmerHead,
+                        endX = shimmerHead + shimmerSpan,
+                        tileMode = TileMode.Clamp,
+                    ),
+            ),
+        modifier = modifier,
+        textAlign = TextAlign.Center,
+    )
+}
+
