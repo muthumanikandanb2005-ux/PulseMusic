@@ -48,6 +48,7 @@ import com.maxrave.common.Config.PLAYER_CACHE
 import com.maxrave.common.Config.SERVICE_SCOPE
 import com.maxrave.common.MERGING_DATA_TYPE
 import com.maxrave.domain.extension.now
+import com.maxrave.domain.extension.plusMinutes
 import com.maxrave.domain.manager.DataStoreManager
 import com.maxrave.domain.mediaservice.handler.DownloadHandler
 import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
@@ -282,7 +283,7 @@ private fun provideResolvingDataSourceFactory(
                 (streamRepository.getNewFormat(mediaId).lastOrNull()
                     ?: streamRepository.getNewFormat(id).lastOrNull())?.let {
                     val videoUrl = it.videoUrl
-                    if (videoUrl != null && it.expiredTime > now()) {
+                    if (videoUrl != null && it.expiredTime > now().plusMinutes(15)) {
                         Logger.d("Stream", videoUrl)
                         Logger.w("Stream", "Video from format cache (uninterrupted)")
                         val finalUrl = if (it.cpn != null && !videoUrl.contains("&cpn=")) {
@@ -309,7 +310,7 @@ private fun provideResolvingDataSourceFactory(
             } else {
                 streamRepository.getNewFormat(mediaId).lastOrNull()?.let {
                     val audioUrl = it.audioUrl
-                    if (audioUrl != null && it.expiredTime > now()) {
+                    if (audioUrl != null && it.expiredTime > now().plusMinutes(15)) {
                         Logger.d("Stream", audioUrl)
                         Logger.w("Stream", "Audio from format cache (uninterrupted)")
                         val finalUrl = if (it.cpn != null && !audioUrl.contains("&cpn=")) {
@@ -485,8 +486,8 @@ private fun provideCacheDataSource(
                             OkHttpDataSource.Factory(
                                 OkHttpClient
                                     .Builder()
-                                    .connectTimeout(30.seconds)
-                                    .readTimeout(30.seconds)
+                                    .connectTimeout(15.seconds)
+                                    .readTimeout(20.seconds)
                                     .retryOnConnectionFailure(true)
                                     .proxy(
                                         proxy,
@@ -494,7 +495,7 @@ private fun provideCacheDataSource(
                                         HttpLoggingInterceptor()
                                             .apply {
                                                 level = HttpLoggingInterceptor.Level.NONE
-                                            },
+                                             },
                                     ).build(),
                             ).setUserAgent("Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro Build/UD1A.231105.004) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36"),
                         ),
@@ -507,12 +508,12 @@ private fun provideLoadControl(): LoadControl =
     DefaultLoadControl
         .Builder()
         .setBufferDurationsMs(
-            30_000,
-            120_000,
-            2_000,
-            3_000,
+            50_000,
+            180_000,
+            1_200,
+            2_500,
         )
-        .setBackBuffer(30_000, true)
+        .setBackBuffer(60_000, true)
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 

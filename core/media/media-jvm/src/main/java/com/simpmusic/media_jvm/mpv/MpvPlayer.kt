@@ -167,7 +167,7 @@ class MpvPlayer private constructor(
          */
         fun create(
             audioOnly: Boolean = true,
-            networkCacheSeconds: Int = 10,
+            networkCacheSeconds: Int = if (audioOnly) 60 else 120,
         ): MpvPlayer? {
             val lib = MpvLibrary.INSTANCE ?: return null
             val ctx = lib.mpv_create()
@@ -264,18 +264,16 @@ class MpvPlayer private constructor(
             option("cache", "yes")
             option("cache-secs", networkCacheSeconds.toString())
 
-            // cache-secs alone is only a target; the hard ceiling is demuxer-max-bytes, whose
-            // default is 150 MB forward plus a back-buffer. Two handles exist at once during a
-            // crossfade, so the default lets the demuxer alone account for several hundred MB of
-            // resident memory. 32 MB covers cache-secs of audio comfortably — a 320 kbps stream
-            // is 2.4 MB per minute — and mpv simply refills more often if it ever runs short.
-            option("demuxer-max-bytes", (32 * 1024 * 1024).toString())
-            option("demuxer-max-back-bytes", (8 * 1024 * 1024).toString())
+            // Sized to allow uninterrupted high bitrate audio and video without buffer stalls
+            val demuxerBytes = if (audioOnly) 64 * 1024 * 1024 else 192 * 1024 * 1024
+            val demuxerBackBytes = if (audioOnly) 16 * 1024 * 1024 else 32 * 1024 * 1024
+            option("demuxer-max-bytes", demuxerBytes.toString())
+            option("demuxer-max-back-bytes", demuxerBackBytes.toString())
 
-            // VLC ":http-reconnect".
+            // Fast reconnect (fail/reconnect fast within 5s instead of stalling 30s)
             option(
                 "stream-lavf-o",
-                "reconnect=1,reconnect_streamed=1,reconnect_delay_max=30",
+                "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5",
             )
 
             // ALWAYS pin the video output explicitly, on every branch.
