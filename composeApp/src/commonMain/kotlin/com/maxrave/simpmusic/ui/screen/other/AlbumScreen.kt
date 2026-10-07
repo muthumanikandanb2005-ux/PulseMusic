@@ -908,7 +908,7 @@ fun AlbumScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(horizontal = 12.dp),
                                 ) {
-                                    items(uiState.otherVersion) { album ->
+                                    items(uiState.otherVersion, key = { it.browseId }) { album ->
                                         HomeItemContentPlaylist(
                                             forceDark = true,
                                             onClick = {

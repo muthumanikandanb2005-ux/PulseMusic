@@ -278,6 +278,8 @@ fun SongFullWidthItems(
                                         .data(thumb)
                                         .diskCachePolicy(CachePolicy.ENABLED)
                                         .diskCacheKey(thumb)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .memoryCacheKey(thumb)
                                         .crossfade(true)
                                         .build(),
                                 placeholder = rememberHolderPainter(),
@@ -438,6 +440,8 @@ fun SuggestItems(
                                     .data(thumb)
                                     .diskCachePolicy(CachePolicy.ENABLED)
                                     .diskCacheKey(thumb)
+                                    .memoryCachePolicy(CachePolicy.ENABLED)
+                                    .memoryCacheKey(thumb)
                                     .crossfade(true)
                                     .build(),
                             placeholder = rememberHolderPainter(),
@@ -593,6 +597,8 @@ fun PlaylistFullWidthItems(
                             .data(thumb)
                             .diskCachePolicy(CachePolicy.ENABLED)
                             .diskCacheKey(thumb)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .memoryCacheKey(thumb)
                             .crossfade(true)
                             .build(),
                     placeholder = rememberHolderPainter(),
@@ -715,6 +721,8 @@ fun ArtistFullWidthItems(
                             .data(thumbnails)
                             .diskCachePolicy(CachePolicy.ENABLED)
                             .diskCacheKey(thumbnails)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .memoryCacheKey(thumbnails)
                             .crossfade(true)
                             .build(),
                     placeholder = rememberHolderPainter(),
