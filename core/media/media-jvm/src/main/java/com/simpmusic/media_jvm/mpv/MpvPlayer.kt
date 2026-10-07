@@ -227,7 +227,9 @@ class MpvPlayer private constructor(
             // Keep the core alive across end-of-file so one handle can be reloaded, and so EOF
             // surfaces as MPV_EVENT_END_FILE instead of MPV_EVENT_SHUTDOWN.
             option("idle", "yes")
-            option("audio-client-name", "SimpMusic")
+            option("audio-client-name", "Pulse Music")
+            option("title", "Pulse Music")
+            option("force-media-title", "Pulse Music")
 
             // macOS only: keep mpv off ao_coreaudio, which leaks a process-wide CoreAudio
             // listener pointing at a freed `struct ao` and takes the whole JVM down the next
