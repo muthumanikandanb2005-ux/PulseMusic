@@ -31,6 +31,7 @@ class AppUpdateWorker(
     override suspend fun doWork(): Result =
         withContext(Dispatchers.IO) {
             try {
+                VersionManager.initialize()
                 Logger.i(TAG, "Starting Pulse App Update check...")
 
                 val isAutoCheckEnabled = dataStoreManager.autoCheckForUpdates.first()
