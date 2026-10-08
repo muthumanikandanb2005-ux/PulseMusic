@@ -47,30 +47,61 @@ object WindowsProtocolRegistrar {
         try {
             val exeFile = java.io.File(exePath)
             val appDir = exeFile.parentFile
-            val icoCandidate = listOf(
-                java.io.File(appDir, "PulseMusic.ico"),
-                java.io.File(appDir, "Pulse.ico"),
-                java.io.File(appDir, "icon.ico"),
-            ).firstOrNull { it.exists() }?.absolutePath ?: "\"$exePath\",0"
+
+            // Ensure a standalone .ico file exists in AppData for reliable Windows SMTC icon resolution
+            val userHome = System.getProperty("user.home") ?: System.getenv("USERPROFILE") ?: ""
+            val pulseAppDataDir = java.io.File(System.getenv("APPDATA") ?: "$userHome\\AppData\\Roaming", "PulseMusic")
+            pulseAppDataDir.mkdirs()
+            val appDataIco = java.io.File(pulseAppDataDir, "PulseMusic.ico")
+
+            val icoCandidates = listOfNotNull(
+                appDir?.let { java.io.File(it, "PulseMusic.ico") },
+                appDir?.let { java.io.File(it, "Pulse.ico") },
+                appDir?.let { java.io.File(it, "icon.ico") },
+            )
+            val foundIco = icoCandidates.firstOrNull { it.exists() }
+            if (foundIco != null && (!appDataIco.exists() || appDataIco.length() == 0L)) {
+                runCatching { foundIco.copyTo(appDataIco, overwrite = true) }
+            } else if (!appDataIco.exists() || appDataIco.length() == 0L) {
+                runCatching {
+                    val stream = WindowsProtocolRegistrar::class.java.getResourceAsStream("/circle_app_icon.ico")
+                        ?: WindowsProtocolRegistrar::class.java.getResourceAsStream("/icon.ico")
+                    stream?.use { input ->
+                        appDataIco.outputStream().use { output -> input.copyTo(output) }
+                    }
+                }
+            }
+
+            val iconPath = when {
+                appDataIco.exists() && appDataIco.length() > 0L -> appDataIco.absolutePath
+                foundIco != null -> foundIco.absolutePath
+                else -> exePath
+            }
 
             val appName = exeFile.name
-            val regAppKey = "HKCU\\Software\\Classes\\Applications\\$appName"
-            regAdd(regAppKey, null, "Pulse Music")
-            regAdd(regAppKey, "FriendlyAppName", "Pulse Music")
-            regAdd(regAppKey, "ApplicationCompany", "Pulse Music Studio (Muthumanikandan B)")
-            regAdd("$regAppKey\\DefaultIcon", null, icoCandidate)
+            val appNames = listOf(appName, "Pulse.exe", "PulseMusic.exe")
+            for (name in appNames) {
+                val regAppKey = "HKCU\\Software\\Classes\\Applications\\$name"
+                regAdd(regAppKey, null, "Pulse Music")
+                regAdd(regAppKey, "FriendlyAppName", "Pulse Music")
+                regAdd(regAppKey, "ApplicationCompany", "Pulse Music Studio (Muthumanikandan B)")
+                regAdd("$regAppKey\\DefaultIcon", null, iconPath)
+            }
 
-            val aumidKey = "HKCU\\Software\\Classes\\AppUserModelId\\com.pulse.music"
-            regAdd(aumidKey, "DisplayName", "Pulse Music")
-            regAdd(aumidKey, "IconUri", icoCandidate)
-            regAdd(aumidKey, "IconBackgroundColor", "0")
+            val aumids = listOf("com.pulse.music", "Pulse", "Pulse.exe", "PulseMusic")
+            for (aumid in aumids) {
+                val aumidKey = "HKCU\\Software\\Classes\\AppUserModelId\\$aumid"
+                regAdd(aumidKey, "DisplayName", "Pulse Music")
+                regAdd(aumidKey, "IconUri", iconPath)
+                regAdd(aumidKey, "IconBackgroundColor", "0")
+            }
 
             if (appDir != null) {
                 val appPathsKey = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\$appName"
                 regAdd(appPathsKey, null, exePath)
                 regAdd(appPathsKey, "Path", appDir.absolutePath)
             }
-            Logger.d(TAG, "Windows Application Identity registered for $appName")
+            Logger.d(TAG, "Windows Application Identity registered for $appName and SMTC")
         } catch (e: Exception) {
             Logger.e(TAG, "Failed to register Windows Application Identity: ${e.message}")
         }
