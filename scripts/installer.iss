@@ -1,5 +1,5 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "2.2.6"
+#define MyAppVersion "2.2.7"
 #define MyAppPublisher "Pulse Music Studio (Muthumanikandan B)"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"
@@ -27,11 +27,11 @@ UninstallDisplayIcon={app}\PulseMusic.ico
 ChangesAssociations=yes
 VersionInfoCompany=Pulse Music Studio
 VersionInfoDescription=Pulse Music Desktop Setup
-VersionInfoVersion=2.2.6.0
-VersionInfoTextVersion=2.2.6
+VersionInfoVersion=2.2.7.0
+VersionInfoTextVersion=2.2.7
 VersionInfoCopyright=Copyright (C) 2026 Pulse Music Studio
 VersionInfoProductName=Pulse Music
-VersionInfoProductVersion=2.2.6.0
+VersionInfoProductVersion=2.2.7.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -40,7 +40,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\desktopApp\build\compose\binaries\main\app\Pulse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\desktopApp\build\compose\binaries\main-release\app\Pulse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\desktopApp\PulseMusic.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
