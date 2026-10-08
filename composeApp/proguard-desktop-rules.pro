@@ -389,3 +389,13 @@
 # JNA references the signature-polymorphic java.lang.invoke.MethodHandle.invoke(...) overloads, which
 # ProGuard can't resolve as concrete methods. JNA itself is kept above; suppress these warnings.
 -dontwarn com.sun.jna.**
+
+# Security hardening and log stripping (Secured by Pulse Music Studio)
+-assumenosideeffects class com.maxrave.logger.Logger {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+}
+-assumenosideeffects class java.lang.Throwable { public void printStackTrace(); }
+

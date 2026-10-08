@@ -174,6 +174,8 @@ import io.ktor.http.Url
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import com.maxrave.domain.manager.DataStoreManager
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import simpmusic.composeapp.generated.resources.Res
@@ -233,6 +235,8 @@ fun HomeScreen(
     navController: NavController,
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val dataStoreManager: DataStoreManager = koinInject()
+    val profileName by dataStoreManager.profileName.collectAsStateWithLifecycle(initialValue = "")
     val scrollState = rememberLazyListState()
     val isScrollingUp by scrollState.isScrollingUp()
     val accountInfo by viewModel.accountInfo.collectAsStateWithLifecycle()
@@ -727,7 +731,11 @@ fun HomeScreen(
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically(),
                 ) {
-                    HomeTopAppBar(navController)
+                    HomeTopAppBar(
+                        navController = navController,
+                        profileName = profileName,
+                        accountName = accountInfo?.first,
+                    )
                 }
                 AnimatedVisibility(
                     visible = !isScrollingUp,
@@ -794,12 +802,34 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopAppBar(navController: NavController) {
+fun HomeTopAppBar(
+    navController: NavController,
+    profileName: String = "",
+    accountName: String? = null,
+) {
     val hour =
         remember {
             val date = now().time
             date.hour
         }
+    val greeting =
+        when (hour) {
+            in 5..11 -> stringResource(Res.string.good_morning)
+            in 12..16 -> stringResource(Res.string.good_afternoon)
+            in 17..21 -> stringResource(Res.string.good_evening)
+            else -> stringResource(Res.string.good_night)
+        }
+    val welcomePrefix = stringResource(Res.string.welcome_back).trim().trimEnd(',')
+    val displayName = remember(profileName, accountName) {
+        profileName.trim().ifEmpty { accountName?.trim()?.ifEmpty { null } }
+    }
+    val subtitleText = remember(greeting, displayName, welcomePrefix) {
+        if (!displayName.isNullOrBlank()) {
+            "$greeting • $welcomePrefix, $displayName"
+        } else {
+            greeting
+        }
+    }
     TopAppBar(
         windowInsets =
             TopAppBarDefaults.windowInsets.exclude(
@@ -827,28 +857,13 @@ fun HomeTopAppBar(navController: NavController) {
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text =
-                        when (hour) {
-                            in 6..12 -> {
-                                stringResource(Res.string.good_morning)
-                            }
-
-                            in 13..17 -> {
-                                stringResource(Res.string.good_afternoon)
-                            }
-
-                            in 18..23 -> {
-                                stringResource(Res.string.good_evening)
-                            }
-
-                            else -> {
-                                stringResource(Res.string.good_night)
-                            }
-                        },
+                    text = subtitleText,
                     style = typo().bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium,
                     ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         },
