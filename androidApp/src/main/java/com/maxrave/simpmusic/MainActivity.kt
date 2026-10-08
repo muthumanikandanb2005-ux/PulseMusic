@@ -117,11 +117,11 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                 single<AppCompatActivity> { this@MainActivity }
             },
         )
+        VersionManager.initialize()
         // Recreate view model to fix the issue of view model not getting data from the service
         unloadKoinModules(viewModelModule)
         loadKoinModules(viewModelModule)
-        VersionManager.initialize()
-        // checkForUpdate() disabled for standalone security
+        checkForUpdate()
         if (viewModel.recreateActivity.value || viewModel.isServiceRunning) {
             viewModel.activityRecreateDone()
         } else {
@@ -371,7 +371,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun checkForUpdate() {
-        // Disabled: App is fully standalone and cannot receive external updates
+        viewModel.checkForAppUpdate(silent = true)
     }
 
     private fun putString(
@@ -388,6 +388,9 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             NotificationHandler.createNotificationChannel(this@MainActivity)
             NotificationHandler.createAppUpdateNotificationChannel(this@MainActivity)
             NotificationHandler.createTrendingNotificationChannel(this@MainActivity)
+
+            // Always check for updates in background regardless of notification permission
+            viewModel.checkForAppUpdate(silent = true)
 
             if (!NotificationHandler.canPostNotification(this@MainActivity)) {
                 return@launch
@@ -417,8 +420,6 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                 )
                 viewModel.putString("last_trending_notif_time", now.toString())
             }
-
-            viewModel.checkForAppUpdate(silent = true)
         }
     }
 
@@ -431,12 +432,28 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
         if (NotificationHandler.canPostNotification(this)) {
             triggerInitialNotifications()
+            val update = viewModel.availableUpdate.value
+            if (update != null && update.tagName.isNotBlank()) {
+                NotificationHandler.postUpdateAvailableNotification(
+                    context = this,
+                    versionName = update.tagName.trim().removePrefix("v").removePrefix("V"),
+                    downloadUrl = "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest",
+                )
+            }
         }
     }
 
     override fun onPermissionsGranted(requestCode: Int, perms: List<String>) {
         Logger.i("MainActivity", "onPermissionsGranted: $perms")
         triggerInitialNotifications()
+        val update = viewModel.availableUpdate.value
+        if (update != null && update.tagName.isNotBlank()) {
+            NotificationHandler.postUpdateAvailableNotification(
+                context = this,
+                versionName = update.tagName.trim().removePrefix("v").removePrefix("V"),
+                downloadUrl = "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest",
+            )
+        }
     }
 
     override fun onPermissionsDenied(requestCode: Int, perms: List<String>) {

@@ -242,6 +242,7 @@ class SharedViewModel(
     init {
         viewModelScope.launch {
             log("SharedViewModel init")
+            VersionManager.initialize()
             if (dataStoreManager.appVersion.first() != VersionManager.getVersionName()) {
                 dataStoreManager.resetOpenAppTime()
                 dataStoreManager.putString(FOOTGUNS_STAR_KEY, "false")
@@ -1049,9 +1050,7 @@ class SharedViewModel(
     val updateResponse: StateFlow<UpdateData?> = _updateResponse
 
     fun checkForUpdate() {
-        // Disabled: App is fully standalone and cannot receive external updates
-        _isCheckingUpdate.value = false
-        _updateResponse.value = null
+        checkForAppUpdate(silent = true)
     }
 
     fun stopPlayer() {
@@ -1879,9 +1878,26 @@ class SharedViewModel(
         _availableUpdate.value = null
     }
 
+    private fun isNewerVersion(remote: String, current: String): Boolean {
+        if (current.isBlank()) return true
+        val cleanRemote = remote.trim().removePrefix("v").substringBefore("-")
+        val cleanCurrent = current.trim().removePrefix("v").substringBefore("-")
+        val remoteParts = cleanRemote.split(".").mapNotNull { it.toIntOrNull() }
+        val currentParts = cleanCurrent.split(".").mapNotNull { it.toIntOrNull() }
+        val maxLen = maxOf(remoteParts.size, currentParts.size)
+        for (i in 0 until maxLen) {
+            val r = remoteParts.getOrElse(i) { 0 }
+            val c = currentParts.getOrElse(i) { 0 }
+            if (r > c) return true
+            if (r < c) return false
+        }
+        return false
+    }
+
     fun checkForAppUpdate(silent: Boolean = true) {
         viewModelScope.launch {
             try {
+                VersionManager.initialize()
                 updateRepository.checkForGithubReleaseUpdate().collect { res ->
                     when (res) {
                         is Resource.Success -> {
@@ -1889,7 +1905,7 @@ class SharedViewModel(
                             if (update != null && update.tagName.isNotBlank()) {
                                 val current = VersionManager.getVersionName().trim().removePrefix("v").removePrefix("V")
                                 val remote = update.tagName.trim().removePrefix("v").removePrefix("V")
-                                if (remote.isNotEmpty() && remote != current) {
+                                if (remote.isNotEmpty() && isNewerVersion(remote, current)) {
                                     _availableUpdate.value = update
                                 } else if (!silent) {
                                     makeToast("Pulse Music is up to date (v$current)")

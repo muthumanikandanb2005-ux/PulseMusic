@@ -664,6 +664,8 @@ class Ytmusic {
     suspend fun checkForGithubReleaseUpdate(customUrl: String = ""): HttpResponse =
         if (customUrl.isNotBlank()) {
             httpClient.get(customUrl) {
+                header("User-Agent", "PulseMusicApp")
+                header("Accept", "application/vnd.github.v3+json")
                 contentType(ContentType.Application.Json)
             }
         } else {

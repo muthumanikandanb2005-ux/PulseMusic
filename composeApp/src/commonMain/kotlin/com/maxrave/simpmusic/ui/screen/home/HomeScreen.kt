@@ -415,7 +415,49 @@ fun HomeScreen(
         )
     }
 
-
+    var showUpdateDialog by rememberSaveable { mutableStateOf(true) }
+    if (availableUpdate != null && showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = {
+                Text(
+                    text = "⚡ Pulse Music ${availableUpdate!!.tagName} Available",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF10B981),
+                )
+            },
+            text = {
+                Text(
+                    text = "A new OTA update is ready with lag optimizations, greetings, and enhanced performance.\n\nTap Update Now to install the latest version.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        uriHandler.openUri("https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest")
+                        showUpdateDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10B981),
+                        contentColor = Color.Black,
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Text("Update Now", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showUpdateDialog = false
+                    sharedViewModel.dismissUpdate()
+                }) {
+                    Text("Later", color = Color(0xFF10B981))
+                }
+            },
+            containerColor = Color(0xFF1A1A1A),
+        )
+    }
 
     Box {
         PullToRefreshBox(
