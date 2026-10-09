@@ -75,7 +75,8 @@ class ExoPlayerAdapter(
 
     // Media item management
     override fun setMediaItem(mediaItem: GenericMediaItem) {
-        exoPlayer.setMediaItem(mediaItem.toMedia3MediaItem())
+        exoPlayer.setMediaItem(mediaItem.toMedia3MediaItem(), true)
+        exoPlayer.seekTo(0, 0L)
         if (shuffleModeEnabled) {
             createShuffleOrder()
         }
@@ -133,6 +134,7 @@ class ExoPlayerAdapter(
 
     override fun clearMediaItems() {
         exoPlayer.clearMediaItems()
+        exoPlayer.seekTo(0, 0L)
         clearShuffleOrder()
         notifyTimelineChanged("TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED")
     }

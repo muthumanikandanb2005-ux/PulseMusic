@@ -7,37 +7,45 @@ import urllib.parse
 sys.stdout.reconfigure(encoding='utf-8')
 
 REPO = "muthumanikandanb2005-ux/PulseMusic"
-TAG = "v2.2.7"
-RELEASE_NAME = "Pulse Music v2.2.7 - Personalized Greetings, Smooth Fluid Animations & Enhanced Windows Identity"
-BODY = """### Pulse Music v2.2.7 (OTA Update)
+TAG = "v3.0.0"
+RELEASE_NAME = "Pulse Music v3.0.0 - Pastel Pearl Lavender Theme, Mobile Landscape Player, Windows DataStore Fix & Cross-Device Account Sync"
+BODY = """### Pulse Music v3.0.0 (OTA Major Update)
 
-- ✨ **Personalized Greetings & User Presence**:
-  - Accurate time-based greetings: **Good Morning** (05:00-11:59), **Good Afternoon** (12:00-16:59), **Good Evening** (17:00-21:59), and **Good Night** (22:00-04:59).
-  - Displays personalized *Welcome back, {User Name}* automatically detected from your profile or connected account.
-- ⚡ **Buttery Smooth Performance & Zero Lag**:
-  - Over 90% reduction in Compose recomposition overhead across lyrics playback through optimized fast-path line and word rendering in `LyricsView`.
-  - Scoped GPU blur and hardware layers to the active line neighborhood, eliminating animation jitter and touch latency on both Android and Windows.
-- 🪟 **Complete Windows Application Identity**:
-  - Registered dedicated `AppUserModelId` (`com.pulse.music`, `Pulse`, `Pulse.exe`) with permanent standalone `PulseMusic.ico` integration in AppData.
-  - Windows System Media Transport Controls (SMTC) and volume flyout now cleanly display "Pulse Music" and the official logo without "Unknown app".
-- 🛡️ **App & Code Security Hardening**:
-  - Strict R8 and ProGuard obfuscation rules stripping internal logging and stack traces from release binaries.
-  - Authentic DigiCert RFC 3161 timestamped Authenticode signature on the Windows installer.
-- 📱 **Enhanced Background Reliability**:
-  - 2-minute grace period before background teardown preserves active playback status for Xiaomi HyperOS Mini Capsules and dynamic islands.
+- 🎨 **Pastel Pearl Lavender Theme**:
+  - Brand-new elegant Pastel Pearl Lavender theme inspired by soft lavender, violet, and creamy pearl tones.
+  - Dedicated toggle switch in **Settings -> Appearance & Themes** with instant persistence across app restarts.
+  - Carefully tuned high contrast for full accessibility in both Light and Dark modes.
+
+- 📱 **Mobile Landscape Playback Enhancements**:
+  - Redesigned landscape playback interface specifically optimized for phones.
+  - Perfectly aligned side-by-side layout: prominent square album poster on the left with breathable padding.
+  - Full playback controls on the right: previous track, play/pause toggle, next track, repeat, shuffle, and progress scrubber properly spaced and aligned.
+
+- 🔄 **Cross-Device Account Sync (Android & Windows)**:
+  - Seamless cloud synchronization across all devices connected to the same account via Supabase.
+  - Automatically syncs **Liked Songs**, **Custom Playlists**, **Listening History**, and **Active Playback State / Position**.
+  - Continue listening right where you left off when switching between your phone and PC.
+
+- ⏪ **Track Playback Reset Fix**:
+  - Fixed an issue where searching and playing a new song resumed from the previous song's paused position instead of starting from the beginning.
+  - New songs now reliably start playing from 0:00 (the very beginning) across both Android (Media3/ExoPlayer) and Desktop (MPV).
+
+- 🪟 **Windows DataStore Stability**:
+  - Fixed `java.io.IOException: Unable to rename settings.preferences_pb.tmp` crash on Windows.
+  - Implemented thread-safe process-wide singleton DataStore instance with automatic cleanup of orphaned temporary preference files.
 """
 
 ASSETS = [
     ("PulseMusic-Universal.apk", "dist/PulseMusic-Universal.apk"),
     ("PulseMusic-arm64-v8a.apk", "dist/PulseMusic-arm64-v8a.apk"),
     ("PulseMusic-armeabi-v7a.apk", "dist/PulseMusic-armeabi-v7a.apk"),
-    ("PulseMusic-v2.2.7-Release-Universal.apk", "dist/PulseMusic-v2.2.7-Release-Universal.apk"),
-    ("PulseMusic-v2.2.7-Release-arm64-v8a.apk", "dist/PulseMusic-v2.2.7-Release-arm64-v8a.apk"),
-    ("PulseMusic-v2.2.7-Release-armeabi-v7a.apk", "dist/PulseMusic-v2.2.7-Release-armeabi-v7a.apk"),
+    ("PulseMusic-v3.0.0-Release-Universal.apk", "dist/PulseMusic-v3.0.0-Release-Universal.apk"),
+    ("PulseMusic-v3.0.0-Release-arm64-v8a.apk", "dist/PulseMusic-v3.0.0-Release-arm64-v8a.apk"),
+    ("PulseMusic-v3.0.0-Release-armeabi-v7a.apk", "dist/PulseMusic-v3.0.0-Release-armeabi-v7a.apk"),
     ("PulseMusic-Windows-x64-Setup.exe", "dist/PulseMusic-Windows-x64-Setup.exe"),
-    ("PulseMusic-v2.2.7-Windows-x64-Setup.exe", "dist/PulseMusic-v2.2.7-Windows-x64-Setup.exe"),
+    ("PulseMusic-v3.0.0-Windows-x64-Setup.exe", "dist/PulseMusic-v3.0.0-Windows-x64-Setup.exe"),
     ("PulseMusic-Windows-x64.zip", "dist/PulseMusic-Windows-x64.zip"),
-    ("PulseMusic-v2.2.7-Windows-x64.zip", "dist/PulseMusic-v2.2.7-Windows-x64.zip"),
+    ("PulseMusic-v3.0.0-Windows-x64.zip", "dist/PulseMusic-v3.0.0-Windows-x64.zip"),
     ("SHA256SUMS.txt", "dist/SHA256SUMS.txt"),
 ]
 

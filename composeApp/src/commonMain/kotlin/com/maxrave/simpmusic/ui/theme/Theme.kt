@@ -6,6 +6,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalRippleConfiguration
@@ -115,6 +117,96 @@ private fun ColorScheme.withNeutralLightSurfaces(): ColorScheme =
         inverseOnSurface = Color(0xFFF1F1F1),
     )
 
+val PearlLavenderDarkAppColors =
+    AppColors(
+        favorite = pearlLavenderDarkPlayButton,
+        lyricActive = pearlLavenderDarkPrimary,
+        shimmerBackground = Color(0x33A78BFA),
+        shimmerLine = Color(0x66A78BFA),
+        overlay = overlay,
+        overlayHeavy = blackMoreOverlay,
+    )
+
+val PearlLavenderLightAppColors =
+    AppColors(
+        favorite = pearlLavenderLightProgressBar,
+        lyricActive = pearlLavenderLightSelected,
+        shimmerBackground = Color(0x33C9B4E6),
+        shimmerLine = Color(0x66A78BFA),
+        overlay = overlay,
+        overlayHeavy = blackMoreOverlay,
+    )
+
+val PearlLavenderLightColorScheme: ColorScheme =
+    lightColorScheme(
+        primary = pearlLavenderLightPrimary,
+        onPrimary = pearlLavenderLightOnPrimary,
+        primaryContainer = pearlLavenderLightSurfaceSecondary,
+        onPrimaryContainer = pearlLavenderLightTextPrimary,
+        inversePrimary = pearlLavenderLightSelected,
+        secondary = pearlLavenderLightSelected,
+        onSecondary = Color(0xFFFFFFFF),
+        secondaryContainer = pearlLavenderLightSurface,
+        onSecondaryContainer = pearlLavenderLightTextPrimary,
+        tertiary = pearlLavenderLightPlayButton,
+        onTertiary = pearlLavenderLightTextPrimary,
+        tertiaryContainer = pearlLavenderLightProgressBar,
+        onTertiaryContainer = pearlLavenderLightTextPrimary,
+        background = pearlLavenderLightBackground,
+        onBackground = pearlLavenderLightTextPrimary,
+        surface = pearlLavenderLightSurface,
+        onSurface = pearlLavenderLightTextPrimary,
+        surfaceVariant = pearlLavenderLightSurfaceSecondary,
+        onSurfaceVariant = pearlLavenderLightTextSecondary,
+        surfaceTint = pearlLavenderLightPrimary,
+        inverseSurface = pearlLavenderDarkSurface,
+        inverseOnSurface = pearlLavenderLightBackground,
+        outline = pearlLavenderLightDivider,
+        outlineVariant = pearlLavenderLightSurfaceSecondary,
+        surfaceBright = Color(0xFFFFFFFF),
+        surfaceDim = pearlLavenderLightSurface,
+        surfaceContainerLowest = Color(0xFFFFFFFF),
+        surfaceContainerLow = pearlLavenderLightBackground,
+        surfaceContainer = pearlLavenderLightSurface,
+        surfaceContainerHigh = Color(0xFFE2D2F2),
+        surfaceContainerHighest = pearlLavenderLightSurfaceSecondary,
+    )
+
+val PearlLavenderDarkColorScheme: ColorScheme =
+    darkColorScheme(
+        primary = pearlLavenderDarkPrimary,
+        onPrimary = pearlLavenderDarkBackground,
+        primaryContainer = pearlLavenderDarkSurfaceSecondary,
+        onPrimaryContainer = pearlLavenderDarkTextSecondary,
+        inversePrimary = pearlLavenderLightSelected,
+        secondary = pearlLavenderLightSelected,
+        onSecondary = Color(0xFFFFFFFF),
+        secondaryContainer = pearlLavenderDarkSurfaceSecondary,
+        onSecondaryContainer = pearlLavenderDarkTextSecondary,
+        tertiary = pearlLavenderDarkPlayButton,
+        onTertiary = pearlLavenderDarkBackground,
+        tertiaryContainer = pearlLavenderDarkProgressBar,
+        onTertiaryContainer = pearlLavenderDarkBackground,
+        background = pearlLavenderDarkBackground,
+        onBackground = pearlLavenderDarkTextPrimary,
+        surface = pearlLavenderDarkSurface,
+        onSurface = pearlLavenderDarkTextPrimary,
+        surfaceVariant = pearlLavenderDarkSurfaceSecondary,
+        onSurfaceVariant = pearlLavenderDarkTextSecondary,
+        surfaceTint = pearlLavenderDarkPrimary,
+        inverseSurface = pearlLavenderLightSurface,
+        inverseOnSurface = pearlLavenderDarkBackground,
+        outline = pearlLavenderDarkSurfaceSecondary,
+        outlineVariant = Color(0xFF4C3870),
+        surfaceBright = Color(0xFF3A2A57),
+        surfaceDim = pearlLavenderDarkBackground,
+        surfaceContainerLowest = Color(0xFF150D27),
+        surfaceContainerLow = Color(0xFF211538),
+        surfaceContainer = pearlLavenderDarkSurface,
+        surfaceContainerHigh = Color(0xFF32234E),
+        surfaceContainerHighest = pearlLavenderDarkSurfaceSecondary,
+    )
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AppTheme(
@@ -122,13 +214,14 @@ fun AppTheme(
     themeColorSource: String = DataStoreManager.THEME_COLOR_DEFAULT,
     customThemeColor: Color? = null,
     liquidGlassEnabled: Boolean = true,
+    pearlLavenderEnabled: Boolean = false,
     content:
         @Composable()
         () -> Unit,
 ) {
     val isDark = isDarkTheme(themeMode)
     val wallpaperScheme =
-        if (themeColorSource == DataStoreManager.THEME_COLOR_WALLPAPER) {
+        if (!pearlLavenderEnabled && themeColorSource == DataStoreManager.THEME_COLOR_WALLPAPER) {
             platformDynamicColorScheme(isDark)
         } else {
             null
@@ -142,32 +235,38 @@ fun AppTheme(
     // Symmetric base: dark pins background/surface to pure black via isAmoled; light pins them to
     // pure white with a neutral-grey ramp (the seed otherwise tints the light neutrals warm/cream).
     val colorScheme =
-        wallpaperScheme
-            ?: rememberDynamicColorScheme(
-                seedColor = seedColor,
-                isDark = isDark,
-                isAmoled = isDark,
-                style = PaletteStyle.Vibrant,
-                modifyColorScheme = { cs ->
-                    if (isDark) {
-                        cs.copy(
-                            background = Color(0xFF000000),
-                            surface = Color(0xFF0D0D10),
-                            surfaceVariant = Color(0xFF1C1C22),
-                            surfaceContainer = Color(0xFF141418),
-                            surfaceContainerHigh = Color(0xFF1C1C22),
-                            surfaceContainerHighest = Color(0xFF26262E),
-                            outline = Color(0xFF2C2C32),
-                        )
-                    } else {
-                        cs.withNeutralLightSurfaces()
-                    }
-                },
-            )
+        if (pearlLavenderEnabled) {
+            if (isDark) PearlLavenderDarkColorScheme else PearlLavenderLightColorScheme
+        } else {
+            wallpaperScheme
+                ?: rememberDynamicColorScheme(
+                    seedColor = seedColor,
+                    isDark = isDark,
+                    isAmoled = isDark,
+                    style = PaletteStyle.Vibrant,
+                    modifyColorScheme = { cs ->
+                        if (isDark) {
+                            cs.copy(
+                                background = Color(0xFF000000),
+                                surface = Color(0xFF0D0D10),
+                                surfaceVariant = Color(0xFF1C1C22),
+                                surfaceContainer = Color(0xFF141418),
+                                surfaceContainerHigh = Color(0xFF1C1C22),
+                                surfaceContainerHighest = Color(0xFF26262E),
+                                outline = Color(0xFF2C2C32),
+                            )
+                        } else {
+                            cs.withNeutralLightSurfaces()
+                        }
+                    },
+                )
+        }
     // Immersive screens stay dark even at light theme (see [ForceDarkContent]). Resolve their scheme
     // once here instead of letting every such subtree build a palette of its own.
     val forcedDarkScheme =
-        if (isDark) {
+        if (pearlLavenderEnabled) {
+            PearlLavenderDarkColorScheme
+        } else if (isDark) {
             colorScheme
         } else {
             rememberDynamicColorScheme(
@@ -195,7 +294,12 @@ fun AppTheme(
             CompositionLocalProvider(
                 LocalRippleConfiguration provides SoftRippleConfiguration,
                 LocalContentColor provides colorScheme.onSurfaceVariant,
-                LocalAppColors provides if (isDark) DarkAppColors else LightAppColors,
+                LocalAppColors provides
+                    if (pearlLavenderEnabled) {
+                        if (isDark) PearlLavenderDarkAppColors else PearlLavenderLightAppColors
+                    } else {
+                        if (isDark) DarkAppColors else LightAppColors
+                    },
                 LocalIsDarkTheme provides isDark,
                 LocalForcedDarkColorScheme provides forcedDarkScheme,
                 LocalLiquidGlassEnabled provides liquidGlassEnabled,

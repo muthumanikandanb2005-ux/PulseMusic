@@ -187,6 +187,9 @@ class SettingsViewModel(
     private var _enableLiquidGlass: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val enableLiquidGlass: StateFlow<Boolean> = _enableLiquidGlass
 
+    private var _pearlLavenderTheme: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val pearlLavenderTheme: StateFlow<Boolean> = _pearlLavenderTheme
+
     private val _explicitContentEnabled = MutableStateFlow(false)
     val explicitContentEnabled: StateFlow<Boolean> = _explicitContentEnabled
 
@@ -330,6 +333,7 @@ class SettingsViewModel(
         getBackupDownloaded()
         getUpdateChannel()
         getEnableLiquidGlass()
+        getPearlLavenderTheme()
         getExplicitContentEnabled()
         getDiscordLoggedIn()
         getDiscordRichPresenceEnabled()
@@ -652,6 +656,21 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setEnableLiquidGlass(enableLiquidGlass)
             getEnableLiquidGlass()
+        }
+    }
+
+    private fun getPearlLavenderTheme() {
+        viewModelScope.launch {
+            dataStoreManager.pearlLavenderTheme.collect { enabled ->
+                _pearlLavenderTheme.value = enabled == DataStoreManager.TRUE
+            }
+        }
+    }
+
+    fun setPearlLavenderTheme(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.setPearlLavenderTheme(enabled)
+            getPearlLavenderTheme()
         }
     }
 

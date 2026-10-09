@@ -19,5 +19,6 @@ interface SupabaseAuthRepository {
     suspend fun syncPlaylist(playlist: LocalPlaylistEntity, tracks: List<String>)
     suspend fun syncListenCount(videoId: String, song: SongEntity?)
     suspend fun syncAnalyticsEvent(eventType: String, eventData: Map<String, String>)
+    suspend fun syncPlaybackState(videoId: String, positionMs: Long, playlistName: String = "")
     suspend fun syncAll(): Result<Unit>
 }

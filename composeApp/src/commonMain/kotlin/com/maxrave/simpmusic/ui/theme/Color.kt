@@ -56,3 +56,28 @@ val windowMaximiseButtonHover = Color(0xFF00B344)
  */
 @Deprecated("Legacy storage bar color only — use MaterialTheme.colorScheme.primary in new code")
 val md_theme_dark_primary = Color(0xFFB2C5FF)
+
+// ===== Pearl Lavender Theme (Pastel Lavender Palette) =====
+// Light mode tokens
+val pearlLavenderLightBackground = Color(0xFFF8F4FF)
+val pearlLavenderLightSurface = Color(0xFFEADDF8)
+val pearlLavenderLightSurfaceSecondary = Color(0xFFC9B4E6)
+val pearlLavenderLightPrimary = Color(0xFFA78BFA)
+val pearlLavenderLightSelected = Color(0xFF8B6FCD)
+val pearlLavenderLightPlayButton = Color(0xFFF2B8C6)
+val pearlLavenderLightProgressBar = Color(0xFFE8A6B7)
+val pearlLavenderLightTextPrimary = Color(0xFF6B5B8F)
+val pearlLavenderLightTextSecondary = Color(0xFF7D6E9A)
+val pearlLavenderLightOnPrimary = Color(0xFFFFFFEF)
+val pearlLavenderLightDivider = Color(0xFFF5EFFF)
+
+// Dark mode tokens
+val pearlLavenderDarkBackground = Color(0xFF1B1230)
+val pearlLavenderDarkSurface = Color(0xFF291B40)
+val pearlLavenderDarkSurfaceSecondary = Color(0xFF3A2A57)
+val pearlLavenderDarkPrimary = Color(0xFFA78BFA)
+val pearlLavenderDarkPlayButton = Color(0xFFF2B8C6)
+val pearlLavenderDarkProgressBar = Color(0xFFE8A6B7)
+val pearlLavenderDarkTextSecondary = Color(0xFFC4B6D8)
+val pearlLavenderDarkTextPrimary = Color(0xFFFFFFFF)
+

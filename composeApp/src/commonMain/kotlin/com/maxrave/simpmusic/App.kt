@@ -145,6 +145,7 @@ fun App(
     val themeMode by viewModel.getThemeMode().collectAsStateWithLifecycle(DataStoreManager.THEME_MODE_DARK)
     val themeColorSource by viewModel.getThemeColorSource().collectAsStateWithLifecycle(DataStoreManager.THEME_COLOR_DEFAULT)
     val customThemeColorHex by viewModel.getCustomThemeColor().collectAsStateWithLifecycle(DataStoreManager.DEFAULT_THEME_COLOR_HEX)
+    val isPearlLavenderEnabled by viewModel.getPearlLavenderTheme().collectAsStateWithLifecycle(DataStoreManager.FALSE)
     // MiniPlayer visibility: derived, never stored.
     //
     // This used to be a rememberSaveable Boolean written by a LaunchedEffect. Two things went
@@ -407,6 +408,7 @@ fun App(
         // Desktop is unconditionally true — the liquid-glass setting row is Android-only, and the
         // Desktop capsule player is glass by design. Same rule as MiniPlayer's useGlassSurface.
         liquidGlassEnabled = isLiquidGlassEnabled == TRUE || getPlatform() == Platform.Desktop,
+        pearlLavenderEnabled = isPearlLavenderEnabled == TRUE,
     ) {
         // Backdrop base must match the theme: white page → white glass, dark/AMOLED → black glass.
         // Read inside AppTheme so MaterialTheme reflects the resolved scheme (light background is #FFFFFF).
@@ -416,9 +418,23 @@ fun App(
         // The desktop shell is a window colour with panels floating on it. The two schemes mirror
         // each other: the window takes the extreme (pure black / pure white) and the panel steps
         // one shade back towards the middle, so the panels read as raised either way.
-        val desktopWindow = if (isLightScheme) desktopWindowLight else desktopWindowDark
+        val isPearl = isPearlLavenderEnabled == TRUE
+        val desktopWindow =
+            if (isPearl) {
+                MaterialTheme.colorScheme.background
+            } else if (isLightScheme) {
+                desktopWindowLight
+            } else {
+                desktopWindowDark
+            }
         val desktopPanel =
-            if (isLightScheme) MaterialTheme.colorScheme.surfaceContainer else desktopPanelDark
+            if (isPearl) {
+                MaterialTheme.colorScheme.surface
+            } else if (isLightScheme) {
+                MaterialTheme.colorScheme.surfaceContainer
+            } else {
+                desktopPanelDark
+            }
         Scaffold(
             containerColor =
                 if (isDesktopShell) desktopWindow else MaterialTheme.colorScheme.background,

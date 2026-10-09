@@ -368,6 +368,8 @@ import simpmusic.composeapp.generated.resources.openai_api_compatible
 import simpmusic.composeapp.generated.resources.other_app
 import simpmusic.composeapp.generated.resources.play_explicit_content
 import simpmusic.composeapp.generated.resources.play_explicit_content_description
+import simpmusic.composeapp.generated.resources.pearl_lavender_theme
+import simpmusic.composeapp.generated.resources.pearl_lavender_theme_description
 import simpmusic.composeapp.generated.resources.play_video_for_video_track_instead_of_audio_only
 import simpmusic.composeapp.generated.resources.playback
 import simpmusic.composeapp.generated.resources.player_cache
@@ -573,6 +575,7 @@ fun SettingScreen(
     val autoBackupLastTime by viewModel.autoBackupLastTime.collectAsStateWithLifecycle()
     val updateChannel by viewModel.updateChannel.collectAsStateWithLifecycle()
     val enableLiquidGlass by viewModel.enableLiquidGlass.collectAsStateWithLifecycle()
+    val pearlLavenderTheme by viewModel.pearlLavenderTheme.collectAsStateWithLifecycle()
     val themeMode by sharedViewModel.getThemeMode().collectAsStateWithLifecycle(DataStoreManager.THEME_MODE_DARK)
     val themeColorSource by sharedViewModel.getThemeColorSource().collectAsStateWithLifecycle(DataStoreManager.THEME_COLOR_DEFAULT)
     val customThemeColorHex by sharedViewModel.getCustomThemeColor().collectAsStateWithLifecycle(DataStoreManager.DEFAULT_THEME_COLOR_HEX)
@@ -1051,6 +1054,12 @@ fun SettingScreen(
                         onClick = { showColorPickerDialog = true },
                     )
                 }
+                SettingItem(
+                    title = stringResource(Res.string.pearl_lavender_theme),
+                    subtitle = stringResource(Res.string.pearl_lavender_theme_description),
+                    smallSubtitle = true,
+                    switch = (pearlLavenderTheme to { viewModel.setPearlLavenderTheme(it) }),
+                )
                 SettingItem(
                     title = stringResource(Res.string.translucent_bottom_navigation_bar),
                     subtitle = stringResource(Res.string.you_can_see_the_content_below_the_bottom_bar),

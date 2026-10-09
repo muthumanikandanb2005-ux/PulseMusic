@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -160,80 +161,229 @@ fun NowPlayingContentBitChord(
             )
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 24.dp)
-                .widthIn(max = 520.dp)
-                .align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // 1. Top Bar: Dismiss, Header title, More options
-            BitChordTopBar(
-                state = state,
-                actions = actions,
-                accentColor = accentColor,
-            )
+        val isLandscape = maxWidth > maxHeight
 
-            Spacer(Modifier.height(8.dp))
-
-            // 2. Centered Breathing Artwork Hero with swipe support
-            Box(
+        if (isLandscape) {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center,
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                BitChordArtworkHero(
+                // Left Column: Top Bar dismiss + Breathing Artwork Poster
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    // Mini Top Bar for left column
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick = { actions.onDismiss() },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = state.dismissIcon,
+                                contentDescription = "Dismiss",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        BitChordMiniVisualizer(isPlaying = isPlaying, color = accentColor)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "NOW PLAYING",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 1.6.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = accentColor,
+                        )
+                    }
+
+                    // Centered Breathing Artwork Poster (fits height in landscape)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BitChordArtworkHero(
+                            state = state,
+                            actions = actions,
+                            isPlaying = isPlaying,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .aspectRatio(1f, matchHeightConstraintsFirst = true),
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+                }
+
+                // Right Column: More Options + Track Info + Scrubber + Transport Controls + Action Dock
+                Column(
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .fillMaxHeight()
+                        .padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    // Top Bar for right column with track/playlist title and overflow
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val queueTrack = state.artworkQueue.getOrNull(state.currentOrderIndex)
+                        Text(
+                            text = queueTrack?.title ?: "Pulse Music",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Medium,
+                            ),
+                            color = Color.White.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Start,
+                        )
+                        IconButton(
+                            onClick = { actions.onShowMoreSheet() },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = SimpIcons.MoreVert,
+                                contentDescription = "More Options",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+
+                    // Track Info (Title, Clickable Artist, Codec badge & Heart toggle)
+                    BitChordTrackInfoRow(
+                        title = songTitle,
+                        artist = artistName,
+                        codec = state.audioCodecLabel ?: "HQ AUDIO",
+                        isLiked = state.likeStatus,
+                        onArtistClick = { actions.onNavigateToArtist() },
+                        onLikeClick = { actions.onAddToYouTubeLiked() },
+                        accentColor = accentColor,
+                    )
+
+                    // Isolated Hairline Scrubber (ThinSlider)
+                    BitChordIsolatedScrubber(
+                        state = state,
+                        actions = actions,
+                        accentColor = accentColor,
+                    )
+
+                    // Primary Transport Controls (Shuffle, Prev, Big Pulse Play/Pause, Next, Repeat)
+                    BitChordTransportRow(
+                        state = state,
+                        actions = actions,
+                        isPlaying = isPlaying,
+                        accentColor = accentColor,
+                    )
+
+                    // Bottom Action Dock (Lyrics, Pipeline/Info, Add to Playlist, Queue)
+                    BitChordActionDock(
+                        hasLyrics = state.screenData.lyricsData != null,
+                        actions = actions,
+                        accentColor = accentColor,
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp)
+                    .widthIn(max = 520.dp)
+                    .align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // 1. Top Bar: Dismiss, Header title, More options
+                BitChordTopBar(
+                    state = state,
+                    actions = actions,
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // 2. Centered Breathing Artwork Hero with swipe support
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BitChordArtworkHero(
+                        state = state,
+                        actions = actions,
+                        isPlaying = isPlaying,
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // 3. Track Info (Title, Clickable Artist, Codec badge & Heart toggle)
+                BitChordTrackInfoRow(
+                    title = songTitle,
+                    artist = artistName,
+                    codec = state.audioCodecLabel ?: "HQ AUDIO",
+                    isLiked = state.likeStatus,
+                    onArtistClick = { actions.onNavigateToArtist() },
+                    onLikeClick = { actions.onAddToYouTubeLiked() },
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(18.dp))
+
+                // 4. Isolated Hairline Scrubber (ThinSlider) — zero parent recomposition!
+                BitChordIsolatedScrubber(
+                    state = state,
+                    actions = actions,
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // 5. Primary Transport Controls (Shuffle, Prev, Big Pulse Play/Pause, Next, Repeat)
+                BitChordTransportRow(
                     state = state,
                     actions = actions,
                     isPlaying = isPlaying,
+                    accentColor = accentColor,
                 )
+
+                Spacer(Modifier.height(20.dp))
+
+                // 6. Bottom Action Dock (Lyrics, Pipeline/Info, Add to Playlist, Queue)
+                BitChordActionDock(
+                    hasLyrics = state.screenData.lyricsData != null,
+                    actions = actions,
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(24.dp))
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            // 3. Track Info (Title, Clickable Artist, Codec badge & Heart toggle)
-            BitChordTrackInfoRow(
-                title = songTitle,
-                artist = artistName,
-                codec = state.audioCodecLabel ?: "HQ AUDIO",
-                isLiked = state.likeStatus,
-                onArtistClick = { actions.onNavigateToArtist() },
-                onLikeClick = { actions.onAddToYouTubeLiked() },
-                accentColor = accentColor,
-            )
-
-            Spacer(Modifier.height(18.dp))
-
-            // 4. Isolated Hairline Scrubber (ThinSlider) — zero parent recomposition!
-            BitChordIsolatedScrubber(
-                state = state,
-                actions = actions,
-                accentColor = accentColor,
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            // 5. Primary Transport Controls (Shuffle, Prev, Big Pulse Play/Pause, Next, Repeat)
-            BitChordTransportRow(
-                state = state,
-                actions = actions,
-                isPlaying = isPlaying,
-                accentColor = accentColor,
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            // 6. Bottom Action Dock (Lyrics, Pipeline/Info, Add to Playlist, Queue)
-            BitChordActionDock(
-                hasLyrics = state.screenData.lyricsData != null,
-                actions = actions,
-                accentColor = accentColor,
-            )
-
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -315,6 +465,7 @@ private fun BitChordArtworkHero(
     state: NowPlayingContentState,
     actions: NowPlayingContentActions,
     isPlaying: Boolean,
+    modifier: Modifier = Modifier.fillMaxWidth().aspectRatio(1f),
 ) {
     val scale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f else 0.94f,
@@ -326,9 +477,7 @@ private fun BitChordArtworkHero(
     )
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
+        modifier = modifier
             .scale(scale)
             .shadow(
                 elevation = 16.dp,

@@ -545,6 +545,7 @@ class MpvPlayerAdapter(
             currentLoadJob?.cancel()
             cancelPrecaching()
 
+            cachedPosition = 0L
             playlist.clear()
             clearAllPrecacheInternal()
             playlist.add(mediaItem)
@@ -694,6 +695,7 @@ class MpvPlayerAdapter(
 
     override fun clearMediaItems() {
         coroutineScope.launch {
+            cachedPosition = 0L
             playlist.clear()
             localCurrentMediaItemIndex = -1
             clearShuffleOrder()
@@ -1398,6 +1400,8 @@ class MpvPlayerAdapter(
                         delay(100)
                         player.seekTo(startPositionMs)
                         cachedPosition = startPositionMs
+                    } else {
+                        cachedPosition = 0L
                     }
 
                     // Always transition to READY first so UI receives
@@ -1662,6 +1666,7 @@ class MpvPlayerAdapter(
         currentPlayer = null
         currentPlayerIsVideo = false
         _currentVideoFrames.value = null
+        cachedPosition = 0L
     }
 
     /**
