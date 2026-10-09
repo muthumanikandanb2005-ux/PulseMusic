@@ -895,6 +895,7 @@ internal class CrossfadeExoPlayerAdapter(
             currentLoadJob?.cancel()
             cancelPrecaching()
 
+            cachedPosition = 0L
             playlist.clear()
             clearAllPrecacheInternal()
             playlist.add(mediaItem)
@@ -1044,6 +1045,7 @@ internal class CrossfadeExoPlayerAdapter(
 
     override fun clearMediaItems() {
         coroutineScope.launch {
+            cachedPosition = 0L
             playlist.clear()
             localCurrentMediaItemIndex = -1
             clearShuffleOrder()
@@ -1625,6 +1627,9 @@ internal class CrossfadeExoPlayerAdapter(
                     if (startPositionMs > 0) {
                         player.seekTo(startPositionMs)
                         cachedPosition = startPositionMs
+                    } else {
+                        player.seekTo(0L)
+                        cachedPosition = 0L
                     }
 
                     // Auto-play if requested (respecting if user paused during prepare)
@@ -1921,6 +1926,7 @@ internal class CrossfadeExoPlayerAdapter(
 
         currentPlayer?.let { cleanupPlayerInternal(it) }
         currentPlayer = null
+        cachedPosition = 0L
     }
 
     /**

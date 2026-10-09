@@ -1326,6 +1326,7 @@ internal class MediaServiceHandlerImpl(
     ) {
         player.clearMediaItems()
         player.setMediaItem(mediaItem)
+        player.seekTo(0, 0L)
         player.prepare()
         player.playWhenReady = playWhenReady
     }
@@ -2330,11 +2331,20 @@ internal class MediaServiceHandlerImpl(
                 // track (plus a blank media id), which desyncs the next restore.
                 val videoId = nowPlayingState.value.songEntity?.videoId
                 if (videoId != null && queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZED) {
+                    val pos = player.contentPosition
+                    val plName = queueData.value.data.playlistName ?: ""
                     dataStoreManager.saveRecentSong(
                         videoId,
-                        player.contentPosition,
+                        pos,
                     )
-                    dataStoreManager.setPlaylistFromSaved(queueData.value.data.playlistName ?: "")
+                    dataStoreManager.setPlaylistFromSaved(plName)
+                    try {
+                        getKoin().getOrNull<com.maxrave.domain.repository.SupabaseAuthRepository>()?.syncPlaybackState(
+                            videoId = videoId,
+                            positionMs = pos,
+                            playlistName = plName,
+                        )
+                    } catch (_: Exception) {}
                     Logger.d(
                         "Check saved",
                         player.currentMediaItem
@@ -2365,7 +2375,16 @@ internal class MediaServiceHandlerImpl(
     private fun mayBeSaveRecentPosition() {
         coroutineScope.launch {
             val videoId = nowPlayingState.value.songEntity?.videoId ?: return@launch
-            dataStoreManager.saveRecentSong(videoId, player.contentPosition)
+            val pos = player.contentPosition
+            val plName = queueData.value.data.playlistName ?: ""
+            dataStoreManager.saveRecentSong(videoId, pos)
+            try {
+                getKoin().getOrNull<com.maxrave.domain.repository.SupabaseAuthRepository>()?.syncPlaybackState(
+                    videoId = videoId,
+                    positionMs = pos,
+                    playlistName = plName,
+                )
+            } catch (_: Exception) {}
         }
     }
 

@@ -544,6 +544,10 @@ interface DataStoreManager {
 
     suspend fun setEnableLiquidGlass(enable: Boolean)
 
+    val pearlLavenderTheme: Flow<String>
+
+    suspend fun setPearlLavenderTheme(enabled: Boolean)
+
     /** One of [THEME_MODE_SYSTEM], [THEME_MODE_DARK], [THEME_MODE_LIGHT]. */
     val themeMode: Flow<String>
 

@@ -48,6 +48,7 @@ import com.maxrave.domain.mediaservice.handler.SleepTimerState
 import com.maxrave.domain.repository.AlbumRepository
 import com.maxrave.domain.repository.CacheRepository
 import com.maxrave.domain.repository.LocalPlaylistRepository
+import com.maxrave.domain.repository.SupabaseAuthRepository
 import com.maxrave.domain.repository.LyricsCanvasRepository
 import com.maxrave.domain.repository.PlaylistRepository
 import com.maxrave.domain.repository.SongRepository
@@ -62,6 +63,7 @@ import com.maxrave.domain.utils.toSyncedLyrics
 import com.maxrave.domain.utils.toTrack
 import com.maxrave.logger.LogLevel
 import com.maxrave.logger.Logger
+import org.koin.core.component.inject
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.getDownloadFolderPath
 import com.maxrave.simpmusic.expect.ui.toByteArray
@@ -126,6 +128,7 @@ class SharedViewModel(
     private val lyricsCanvasRepository: LyricsCanvasRepository,
     private val cacheRepository: CacheRepository,
 ) : BaseViewModel() {
+    private val supabaseAuthRepository: SupabaseAuthRepository by inject<SupabaseAuthRepository>()
     var isFirstLiked: Boolean = false
     var isFirstMiniplayer: Boolean = false
     var isFirstSuggestions: Boolean = false
@@ -252,6 +255,15 @@ class SharedViewModel(
             }
             dataStoreManager.openApp()
             checkForAppUpdate(silent = true)
+            launch {
+                try {
+                    if (supabaseAuthRepository.isLoggedIn.first()) {
+                        supabaseAuthRepository.syncAll()
+                    }
+                } catch (e: Exception) {
+                    Logger.w(tag, "Initial cloud sync failed: ${e.message}")
+                }
+            }
             val timeLineJob =
                 launch {
                     nowPlayingState
@@ -1808,6 +1820,14 @@ class SharedViewModel(
     fun getNowPlayingStyle() = dataStoreManager.nowPlayingStyle
 
     fun getAmbientMode() = dataStoreManager.ambientMode
+
+    fun getPearlLavenderTheme() = dataStoreManager.pearlLavenderTheme
+
+    fun setPearlLavenderTheme(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.setPearlLavenderTheme(enabled)
+        }
+    }
 
     fun setAmbientMode(enabled: Boolean) {
         viewModelScope.launch {

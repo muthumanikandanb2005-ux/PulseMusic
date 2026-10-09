@@ -3,11 +3,14 @@ package com.maxrave.data.repository
 import com.maxrave.domain.data.entities.LocalPlaylistEntity
 import com.maxrave.domain.data.entities.SongEntity
 import com.maxrave.domain.manager.DataStoreManager
+import com.maxrave.domain.repository.LocalPlaylistRepository
+import com.maxrave.domain.repository.SongRepository
 import com.maxrave.domain.repository.SupabaseAuthRepository
 import com.maxrave.ktorext.getEngine
 import com.maxrave.logger.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.request.delete
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -29,12 +32,17 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 class SupabaseAuthRepositoryImpl(
     private val dataStoreManager: DataStoreManager,
+    private val songRepository: SongRepository,
+    private val localPlaylistRepository: LocalPlaylistRepository,
 ) : SupabaseAuthRepository {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
@@ -333,9 +341,32 @@ class SupabaseAuthRepositoryImpl(
         }
     }
 
+    override suspend fun syncPlaybackState(videoId: String, positionMs: Long, playlistName: String) {
+        scope.launch {
+            performAuthenticatedRequest("syncPlaybackState") { userId, token ->
+                val payload = buildJsonObject {
+                    put("id", "${userId}_playback")
+                    put("user_id", userId)
+                    put("song_id", videoId)
+                    put("position_ms", positionMs)
+                    put("playlist_name", playlistName)
+                }.toString()
+
+                client.post("$SUPABASE_URL/rest/v1/user_playback_state") {
+                    header("apikey", SUPABASE_KEY)
+                    header("Authorization", "Bearer $token")
+                    header("Prefer", "resolution=merge-duplicates")
+                    contentType(ContentType.Application.Json)
+                    setBody(payload)
+                }
+            }
+        }
+    }
+
     override suspend fun syncAll(): Result<Unit> {
         return runCatching {
             performAuthenticatedRequest("syncAll") { userId, token ->
+                // 1. Send sync analytics heartbeat
                 val payload = buildJsonObject {
                     put("user_id", userId)
                     put("event_type", "full_background_sync")
@@ -344,11 +375,157 @@ class SupabaseAuthRepositoryImpl(
                     })
                 }.toString()
 
-                client.post("$SUPABASE_URL/rest/v1/user_analytics") {
+                try {
+                    client.post("$SUPABASE_URL/rest/v1/user_analytics") {
+                        header("apikey", SUPABASE_KEY)
+                        header("Authorization", "Bearer $token")
+                        contentType(ContentType.Application.Json)
+                        setBody(payload)
+                    }
+                } catch (e: Exception) {
+                    Logger.w(TAG, "Sync analytics ping error: ${e.message}")
+                }
+
+                // 2. PULL Liked Songs from Cloud and save locally
+                try {
+                    val likedRes = client.get("$SUPABASE_URL/rest/v1/user_liked_songs?user_id=eq.$userId&select=*") {
+                        header("apikey", SUPABASE_KEY)
+                        header("Authorization", "Bearer $token")
+                    }
+                    if (likedRes.status.isSuccess()) {
+                        val body = likedRes.bodyAsText()
+                        val array = json.parseToJsonElement(body).jsonArray
+                        for (item in array) {
+                            val obj = item.jsonObject
+                            val songId = obj["song_id"]?.jsonPrimitive?.content ?: continue
+                            val songData = obj["song_data"]?.jsonObject
+                            val title = songData?.get("title")?.jsonPrimitive?.content ?: songId
+                            val artist = songData?.get("artist")?.jsonPrimitive?.content ?: ""
+                            val coverUrl = songData?.get("coverUrl")?.jsonPrimitive?.content
+                            val duration = songData?.get("duration")?.jsonPrimitive?.intOrNull ?: 0
+                            val songEntity = SongEntity(
+                                videoId = songId,
+                                title = title,
+                                artistName = if (artist.isNotBlank()) listOf(artist) else emptyList(),
+                                thumbnails = coverUrl,
+                                duration = "",
+                                durationSeconds = duration,
+                                isAvailable = true,
+                                isExplicit = false,
+                                likeStatus = "LIKE",
+                                videoType = "",
+                                category = null,
+                                resultType = null,
+                                liked = true,
+                            )
+                            songRepository.insertSong(songEntity).firstOrNull()
+                            songRepository.updateLikeStatus(songId, 1)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Logger.w(TAG, "Failed to pull liked songs: ${e.message}")
+                }
+
+                // 3. PULL Playlists from Cloud and save locally
+                try {
+                    val plRes = client.get("$SUPABASE_URL/rest/v1/user_playlists?user_id=eq.$userId&select=*") {
+                        header("apikey", SUPABASE_KEY)
+                        header("Authorization", "Bearer $token")
+                    }
+                    if (plRes.status.isSuccess()) {
+                        val body = plRes.bodyAsText()
+                        val array = json.parseToJsonElement(body).jsonArray
+                        val currentPlaylists = localPlaylistRepository.getAllLocalPlaylists().firstOrNull() ?: emptyList()
+                        for (item in array) {
+                            val obj = item.jsonObject
+                            val name = obj["name"]?.jsonPrimitive?.content ?: continue
+                            val songs = obj["songs"]?.jsonArray?.mapNotNull { it.jsonPrimitive.content } ?: emptyList()
+                            var localPl = currentPlaylists.firstOrNull { it.title.equals(name, ignoreCase = true) }
+                            if (localPl == null) {
+                                localPlaylistRepository.insertLocalPlaylist(
+                                    LocalPlaylistEntity(title = name),
+                                    "Synced",
+                                ).firstOrNull()
+                                localPl = localPlaylistRepository.getAllLocalPlaylists().firstOrNull()?.firstOrNull { it.title.equals(name, ignoreCase = true) }
+                            }
+                            localPl?.let {
+                                localPlaylistRepository.updateLocalPlaylistTracks(songs, it.id)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Logger.w(TAG, "Failed to pull playlists: ${e.message}")
+                }
+
+                // 4. PULL Listen History from Cloud and save locally
+                try {
+                    val histRes = client.get("$SUPABASE_URL/rest/v1/user_listen_history?user_id=eq.$userId&select=*") {
+                        header("apikey", SUPABASE_KEY)
+                        header("Authorization", "Bearer $token")
+                    }
+                    if (histRes.status.isSuccess()) {
+                        val body = histRes.bodyAsText()
+                        val array = json.parseToJsonElement(body).jsonArray
+                        for (item in array) {
+                            val obj = item.jsonObject
+                            val songId = obj["song_id"]?.jsonPrimitive?.content ?: continue
+                            val songData = obj["song_data"]?.jsonObject
+                            val title = songData?.get("title")?.jsonPrimitive?.content ?: songId
+                            val artist = songData?.get("artist")?.jsonPrimitive?.content ?: ""
+                            val coverUrl = songData?.get("coverUrl")?.jsonPrimitive?.content
+                            val songEntity = SongEntity(
+                                videoId = songId,
+                                title = title,
+                                artistName = if (artist.isNotBlank()) listOf(artist) else emptyList(),
+                                thumbnails = coverUrl,
+                                duration = "",
+                                durationSeconds = 0,
+                                isAvailable = true,
+                                isExplicit = false,
+                                likeStatus = "",
+                                videoType = "",
+                                category = null,
+                                resultType = null,
+                                liked = false,
+                            )
+                            songRepository.insertSong(songEntity).firstOrNull()
+                            songRepository.updateListenCount(songId)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Logger.w(TAG, "Failed to pull history: ${e.message}")
+                }
+
+                // 5. PULL Playback State from Cloud
+                try {
+                    val playbackRes = client.get("$SUPABASE_URL/rest/v1/user_playback_state?user_id=eq.$userId&select=*") {
+                        header("apikey", SUPABASE_KEY)
+                        header("Authorization", "Bearer $token")
+                    }
+                    if (playbackRes.status.isSuccess()) {
+                        val body = playbackRes.bodyAsText()
+                        val array = json.parseToJsonElement(body).jsonArray
+                        val latest = array.firstOrNull()?.jsonObject
+                        if (latest != null) {
+                            val songId = latest["song_id"]?.jsonPrimitive?.content
+                            val pos = latest["position_ms"]?.jsonPrimitive?.longOrNull ?: 0L
+                            val playlistName = latest["playlist_name"]?.jsonPrimitive?.content ?: ""
+                            if (!songId.isNullOrBlank()) {
+                                dataStoreManager.saveRecentSong(songId, pos)
+                                if (playlistName.isNotBlank()) {
+                                    dataStoreManager.setPlaylistFromSaved(playlistName)
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Logger.w(TAG, "Failed to pull playback state: ${e.message}")
+                }
+
+                // Return dummy response for performAuthenticatedRequest
+                client.get("$SUPABASE_URL/rest/v1/user_analytics?select=count") {
                     header("apikey", SUPABASE_KEY)
                     header("Authorization", "Bearer $token")
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
                 }
             }
             Unit

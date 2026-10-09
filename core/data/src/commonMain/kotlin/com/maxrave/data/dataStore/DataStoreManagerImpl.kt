@@ -1789,6 +1789,20 @@ internal class DataStoreManagerImpl(
         }
     }
 
+    override val pearlLavenderTheme: Flow<String>
+        get() =
+            settingsDataStore.data.map { preferences ->
+                preferences[PEARL_LAVENDER_THEME] ?: FALSE
+            }
+
+    override suspend fun setPearlLavenderTheme(enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[PEARL_LAVENDER_THEME] = if (enabled) TRUE else FALSE
+            }
+        }
+    }
+
     override val explicitContentEnabled: Flow<String> =
         settingsDataStore.data.map { preferences ->
             preferences[EXPLICIT_CONTENT_ENABLED] ?: TRUE
@@ -2107,6 +2121,7 @@ internal class DataStoreManagerImpl(
         val BACKUP_DOWNLOADED = stringPreferencesKey("backup_downloaded")
 
         val LIQUID_GLASS = stringPreferencesKey("liquid_glass")
+        val PEARL_LAVENDER_THEME = stringPreferencesKey("pearl_lavender_theme")
 
         val EXPLICIT_CONTENT_ENABLED = stringPreferencesKey("explicit_content_enabled")
 
