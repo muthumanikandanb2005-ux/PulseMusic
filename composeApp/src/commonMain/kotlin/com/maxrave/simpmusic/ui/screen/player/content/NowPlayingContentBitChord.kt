@@ -1,0 +1,1135 @@
+package com.maxrave.simpmusic.ui.screen.player.content
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import com.maxrave.domain.data.model.browse.album.Track
+import com.maxrave.domain.mediaservice.handler.RepeatState
+import com.maxrave.simpmusic.extension.formatDuration
+import com.maxrave.simpmusic.ui.component.rememberHolderPainter
+import com.maxrave.simpmusic.ui.icon.Favorite
+import com.maxrave.simpmusic.ui.icon.FavoriteBorder
+import com.maxrave.simpmusic.ui.icon.Info
+import com.maxrave.simpmusic.ui.icon.MoreVert
+import com.maxrave.simpmusic.ui.icon.Pause
+import com.maxrave.simpmusic.ui.icon.PlayArrow
+import com.maxrave.simpmusic.ui.icon.PlaylistAdd
+import com.maxrave.simpmusic.ui.icon.QueueMusic
+import com.maxrave.simpmusic.ui.icon.Repeat
+import com.maxrave.simpmusic.ui.icon.RepeatOne
+import com.maxrave.simpmusic.ui.icon.Shuffle
+import com.maxrave.simpmusic.ui.icon.SimpIcons
+import com.maxrave.simpmusic.ui.icon.SkipNext
+import com.maxrave.simpmusic.ui.icon.SkipPrevious
+import com.maxrave.simpmusic.ui.icon.Subtitles
+import com.maxrave.simpmusic.viewModel.UIEvent
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.maxrave.simpmusic.ui.theme.LocalIsPearlLavenderTheme
+
+internal val BitChordNeonAccent = Color(0xFF10B981)
+private val BitChordOledBlack = Color(0xFF000000)
+private val BitChordSurface = Color(0xFF0D0D10)
+
+/**
+ * BitChord-inspired sleek, ultra-smooth player UI for Pulse Music.
+ * Engineered for 60/120fps performance on low-end and flagship devices alike.
+ * Uses isolated timeline sub-recomposition, spring-animated artwork breathing,
+ * hairline capsule scrubbers, and AMOLED pure-black presentation.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun NowPlayingContentBitChord(
+    state: NowPlayingContentState,
+    actions: NowPlayingContentActions,
+    modifier: Modifier = Modifier,
+) {
+    val isPlaying = state.controllerState.isPlaying
+    val songTitle = state.screenData.nowPlayingTitle.ifEmpty { "Pulse Music" }
+    val artistName = state.screenData.artistName.ifEmpty { "Pulse Studio" }
+
+    val isLavender = LocalIsPearlLavenderTheme.current
+    val isDark = isSystemInDarkTheme()
+
+    val accentColor = remember(state.spotShadowColor) {
+        if (state.spotShadowColor != Color.Unspecified &&
+            state.spotShadowColor != Color.Black &&
+            state.spotShadowColor != Color.Transparent) {
+            state.spotShadowColor
+        } else {
+            BitChordNeonAccent
+        }
+    }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(if (isLavender) MaterialTheme.colorScheme.background else BitChordOledBlack),
+    ) {
+        val ambientColor = state.spotShadowColor
+
+        // Ambient radial glow behind artwork (hardware-accelerated drawBehind)
+        if (state.ambientModeEnabled) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = 0.28f }
+                    .drawBehind {
+                        val centerOffset = Offset(size.width / 2f, size.height * 0.38f)
+                        val radius = size.width * 0.75f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    ambientColor,
+                                    ambientColor.copy(alpha = 0.4f),
+                                    Color.Transparent,
+                                ),
+                                center = centerOffset,
+                                radius = radius,
+                            ),
+                            radius = radius,
+                            center = centerOffset,
+                        )
+                    },
+            )
+        }
+
+        // Pearl Lavender soft breathing ambient glow behind artwork
+        if (isLavender) {
+            val breatheTransition = rememberInfiniteTransition(label = "LavenderBreathe")
+            val breatheScale by breatheTransition.animateFloat(
+                initialValue = 0.95f,
+                targetValue = 1.08f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(4000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "BreatheScale",
+            )
+            val breatheAlpha by breatheTransition.animateFloat(
+                initialValue = 0.22f,
+                targetValue = 0.38f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(4000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "BreatheAlpha",
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(breatheScale)
+                    .graphicsLayer { alpha = breatheAlpha }
+                    .drawBehind {
+                        val centerOffset = Offset(size.width / 2f, size.height * 0.38f)
+                        val radius = size.width * 0.7f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFFA788FA),
+                                    if (isDark) Color(0xFFF288C6) else Color(0xFFF2B8C6),
+                                    Color.Transparent,
+                                ),
+                                center = centerOffset,
+                                radius = radius,
+                            ),
+                            radius = radius,
+                            center = centerOffset,
+                        )
+                    },
+            )
+        }
+
+        val isLandscape = maxWidth > maxHeight
+
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Left Column: Top Bar dismiss + Breathing Artwork Poster
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    // Mini Top Bar for left column
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick = { actions.onDismiss() },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = state.dismissIcon,
+                                contentDescription = "Dismiss",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        BitChordMiniVisualizer(isPlaying = isPlaying, color = accentColor)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "NOW PLAYING",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 1.6.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = accentColor,
+                        )
+                    }
+
+                    // Centered Breathing Artwork Poster (fits height in landscape)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BitChordArtworkHero(
+                            state = state,
+                            actions = actions,
+                            isPlaying = isPlaying,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .aspectRatio(1f, matchHeightConstraintsFirst = true),
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+                }
+
+                // Right Column: More Options + Track Info + Scrubber + Transport Controls + Action Dock
+                Column(
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .fillMaxHeight()
+                        .padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    // Top Bar for right column with track/playlist title and overflow
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val queueTrack = state.artworkQueue.getOrNull(state.currentOrderIndex)
+                        Text(
+                            text = queueTrack?.title ?: "Pulse Music",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Medium,
+                            ),
+                            color = Color.White.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Start,
+                        )
+                        IconButton(
+                            onClick = { actions.onShowMoreSheet() },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = SimpIcons.MoreVert,
+                                contentDescription = "More Options",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+
+                    // Track Info (Title, Clickable Artist, Codec badge & Heart toggle)
+                    BitChordTrackInfoRow(
+                        title = songTitle,
+                        artist = artistName,
+                        codec = state.audioCodecLabel ?: "HQ AUDIO",
+                        isLiked = state.likeStatus,
+                        onArtistClick = { actions.onNavigateToArtist() },
+                        onLikeClick = { actions.onAddToYouTubeLiked() },
+                        accentColor = accentColor,
+                    )
+
+                    // Isolated Hairline Scrubber (ThinSlider)
+                    BitChordIsolatedScrubber(
+                        state = state,
+                        actions = actions,
+                        accentColor = accentColor,
+                    )
+
+                    // Primary Transport Controls (Shuffle, Prev, Big Pulse Play/Pause, Next, Repeat)
+                    BitChordTransportRow(
+                        state = state,
+                        actions = actions,
+                        isPlaying = isPlaying,
+                        accentColor = accentColor,
+                    )
+
+                    // Bottom Action Dock (Lyrics, Pipeline/Info, Add to Playlist, Queue)
+                    BitChordActionDock(
+                        hasLyrics = state.screenData.lyricsData != null,
+                        actions = actions,
+                        accentColor = accentColor,
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp)
+                    .widthIn(max = 520.dp)
+                    .align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // 1. Top Bar: Dismiss, Header title, More options
+                BitChordTopBar(
+                    state = state,
+                    actions = actions,
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // 2. Centered Breathing Artwork Hero with swipe support
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BitChordArtworkHero(
+                        state = state,
+                        actions = actions,
+                        isPlaying = isPlaying,
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // 3. Track Info (Title, Clickable Artist, Codec badge & Heart toggle)
+                BitChordTrackInfoRow(
+                    title = songTitle,
+                    artist = artistName,
+                    codec = state.audioCodecLabel ?: "HQ AUDIO",
+                    isLiked = state.likeStatus,
+                    onArtistClick = { actions.onNavigateToArtist() },
+                    onLikeClick = { actions.onAddToYouTubeLiked() },
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(18.dp))
+
+                // 4. Isolated Hairline Scrubber (ThinSlider) — zero parent recomposition!
+                BitChordIsolatedScrubber(
+                    state = state,
+                    actions = actions,
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // 5. Primary Transport Controls (Shuffle, Prev, Big Pulse Play/Pause, Next, Repeat)
+                BitChordTransportRow(
+                    state = state,
+                    actions = actions,
+                    isPlaying = isPlaying,
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                // 6. Bottom Action Dock (Lyrics, Pipeline/Info, Add to Playlist, Queue)
+                BitChordActionDock(
+                    hasLyrics = state.screenData.lyricsData != null,
+                    actions = actions,
+                    accentColor = accentColor,
+                )
+
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+/** Top bar with chevron dismiss, centered "NOW PLAYING", and overflow menu. */
+@Composable
+private fun BitChordTopBar(
+    state: NowPlayingContentState,
+    actions: NowPlayingContentActions,
+    accentColor: Color,
+) {
+    val isLavender = LocalIsPearlLavenderTheme.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = { actions.onDismiss() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = state.dismissIcon,
+                contentDescription = "Dismiss",
+                tint = if (isLavender) MaterialTheme.colorScheme.onBackground else Color.White,
+                modifier = Modifier.size(26.dp),
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                BitChordMiniVisualizer(isPlaying = state.controllerState.isPlaying, color = accentColor)
+                Text(
+                    text = "PLAYING FROM PULSE",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 1.6.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = accentColor,
+                )
+                BitChordMiniVisualizer(isPlaying = state.controllerState.isPlaying, color = accentColor)
+            }
+            val queueTrack = state.artworkQueue.getOrNull(state.currentOrderIndex)
+            Text(
+                text = queueTrack?.title ?: "Pulse Music",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = if (isLavender) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 200.dp),
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        IconButton(
+            onClick = { actions.onShowMoreSheet() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.MoreVert,
+                contentDescription = "More Options",
+                tint = if (isLavender) MaterialTheme.colorScheme.onBackground else Color.White,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+/** Artwork Hero with breathing scale animation (1.0f play / 0.94f pause) and rounded corners. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BitChordArtworkHero(
+    state: NowPlayingContentState,
+    actions: NowPlayingContentActions,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (isPlaying) 1.0f else 0.94f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow,
+        ),
+        label = "ArtworkBreathingScale",
+    )
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = state.spotShadowColor.copy(alpha = 0.45f),
+                ambientColor = Color.Black,
+            )
+            .clip(RoundedCornerShape(24.dp))
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(24.dp),
+            )
+            .background(BitChordSurface),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (state.artworkQueue.isNotEmpty()) {
+            HorizontalPager(
+                state = state.artworkPagerState,
+                modifier = Modifier.fillMaxSize(),
+                beyondViewportPageCount = 1,
+            ) { page ->
+                val track: Track? = state.artworkQueue.getOrNull(page)
+                val artworkUrl = track?.thumbnails?.lastOrNull()?.url
+                    ?: state.screenData.thumbnailURL
+
+                AsyncImage(
+                    model = artworkUrl,
+                    contentDescription = track?.title ?: "Artwork",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    error = rememberHolderPainter(),
+                    placeholder = rememberHolderPainter(),
+                )
+            }
+        } else {
+            AsyncImage(
+                model = state.screenData.thumbnailURL,
+                contentDescription = "Artwork",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                error = rememberHolderPainter(),
+                placeholder = rememberHolderPainter(),
+            )
+        }
+    }
+}
+
+/** Title, Artist, Codec Badge, and Heart/Like Button. */
+@Composable
+internal fun BitChordTrackInfoRow(
+    title: String,
+    artist: String,
+    codec: String,
+    isLiked: Boolean,
+    onArtistClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val isLavender = LocalIsPearlLavenderTheme.current
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                ),
+                color = if (isLavender) MaterialTheme.colorScheme.onBackground else Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = artist,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 15.sp,
+                    ),
+                    color = if (isLavender) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.72f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clickable { onArtistClick() },
+                )
+
+                // Lossless/Hi-Res/Codec badge pill
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = codec,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = accentColor,
+                    )
+                }
+            }
+        }
+
+        IconButton(
+            onClick = onLikeClick,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(if (isLiked) accentColor.copy(alpha = 0.15f) else Color.Transparent),
+        ) {
+            Icon(
+                imageVector = if (isLiked) SimpIcons.Favorite else SimpIcons.FavoriteBorder,
+                contentDescription = "Like",
+                tint = if (isLiked) accentColor else Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+/**
+ * Isolated Scrubber collecting `state.timelineFlow` and `state.timelineState` locally.
+ * Prevents full NowPlaying screen recomposition during high-frequency audio position updates!
+ */
+@Composable
+private fun BitChordIsolatedScrubber(
+    state: NowPlayingContentState,
+    actions: NowPlayingContentActions,
+    accentColor: Color,
+) {
+    val isLavender = LocalIsPearlLavenderTheme.current
+    val timeline by state.timelineFlow.collectAsStateWithLifecycle()
+    var isDragging by remember { mutableStateOf(false) }
+    var dragProgress by remember { mutableFloatStateOf(0f) }
+
+    val rawTotal = timeline.total.takeIf { it > 1L }
+        ?: state.timelineState.total.takeIf { it > 1L }
+        ?: (state.artworkQueue.getOrNull(state.currentOrderIndex)?.durationSeconds?.toLong()?.let { it * 1000L })
+        ?: 1L
+
+    val totalMs = rawTotal.coerceAtLeast(1L)
+    val currentMs = when {
+        isDragging -> (dragProgress * totalMs).toLong()
+        timeline.current > 0L -> timeline.current
+        state.timelineState.current > 0L -> state.timelineState.current
+        state.sliderValue > 0f -> (totalMs * (state.sliderValue / 100f)).toLong()
+        else -> 0L
+    }.coerceIn(0L, totalMs)
+
+    val currentFraction = if (isDragging) {
+        dragProgress
+    } else if (totalMs > 1L) {
+        (currentMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
+    } else {
+        (state.sliderValue / 100f).coerceIn(0f, 1f)
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        BitChordThinSlider(
+            fraction = currentFraction,
+            onValueChange = { newFraction ->
+                isDragging = true
+                dragProgress = newFraction
+                actions.onSliderChange(newFraction * 100f)
+            },
+            onValueChangeFinished = {
+                isDragging = false
+                actions.onSliderChangeFinished()
+            },
+            idleHeight = 5.dp,
+            activeHeight = 11.dp,
+            activeColor = accentColor,
+            inactiveColor = if (isLavender) MaterialTheme.colorScheme.surfaceVariant else Color.White.copy(alpha = 0.2f),
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = formatDuration(currentMs),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = accentColor,
+            )
+
+            // Prominent Music Time Badge
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color.White.copy(alpha = 0.08f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
+            ) {
+                Text(
+                    text = "Time ${formatDuration(currentMs)} / ${formatDuration(totalMs)}",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
+
+            val remainingMs = (totalMs - currentMs).coerceAtLeast(0L)
+            Text(
+                text = "-${formatDuration(remainingMs)}",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = Color.White.copy(alpha = 0.65f),
+            )
+        }
+    }
+}
+
+/** BitChord's iconic Hairline Capsule scrubber that broadens smoothly under user contact. */
+@Composable
+private fun BitChordThinSlider(
+    fraction: Float,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+    idleHeight: Dp = 5.dp,
+    activeHeight: Dp = 11.dp,
+    activeColor: Color = BitChordNeonAccent,
+    inactiveColor: Color = Color.White.copy(alpha = 0.2f),
+) {
+    var isTouching by remember { mutableStateOf(false) }
+    val animatedHeight by animateDpAsState(
+        targetValue = if (isTouching) activeHeight else idleHeight,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "ThinSliderHeight",
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(activeHeight + 18.dp)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    isTouching = true
+                    onValueChange((down.position.x / size.width).coerceIn(0f, 1f))
+
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!pointer.pressed) {
+                            pointer.consume()
+                            break
+                        }
+                        onValueChange((pointer.position.x / size.width).coerceIn(0f, 1f))
+                        pointer.consume()
+                    }
+                    isTouching = false
+                    onValueChangeFinished()
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(animatedHeight),
+        ) {
+            val barWidth = size.width
+            val barHeight = size.height
+            val cornerRadius = CornerRadius(barHeight / 2f, barHeight / 2f)
+
+            // Inactive unplayed background bar
+            drawRoundRect(
+                color = inactiveColor,
+                topLeft = Offset(0f, 0f),
+                size = Size(barWidth, barHeight),
+                cornerRadius = cornerRadius,
+            )
+
+            // Active played highlight bar
+            val playedWidth = barWidth * fraction.coerceIn(0f, 1f)
+            if (playedWidth > 0f) {
+                drawRoundRect(
+                    color = activeColor,
+                    topLeft = Offset(0f, 0f),
+                    size = Size(playedWidth, barHeight),
+                    cornerRadius = cornerRadius,
+                )
+                // Visible playhead thumb for clear progressive timing indication
+                val thumbRadius = if (isTouching) 7.dp.toPx() else 4.5.dp.toPx()
+                val thumbCenter = Offset(
+                    x = playedWidth.coerceIn(thumbRadius, barWidth - thumbRadius),
+                    y = barHeight / 2f,
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = thumbRadius,
+                    center = thumbCenter,
+                )
+            }
+        }
+    }
+}
+
+/** Transport Row: Shuffle, SkipPrevious, Large Pulse Play/Pause, SkipNext, Repeat. */
+@Composable
+internal fun BitChordTransportRow(
+    state: NowPlayingContentState,
+    actions: NowPlayingContentActions,
+    isPlaying: Boolean,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val isLavender = LocalIsPearlLavenderTheme.current
+    val isShuffle = state.controllerState.isShuffle
+    val repeatState = state.controllerState.repeatState
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Shuffle Toggle
+        IconButton(
+            onClick = { actions.onUIEvent(UIEvent.Shuffle) },
+            modifier = Modifier.size(44.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.Shuffle,
+                contentDescription = "Shuffle",
+                tint = if (isShuffle) accentColor else Color.White.copy(alpha = 0.45f),
+                modifier = Modifier.size(24.dp),
+            )
+        }
+
+        // Previous
+        IconButton(
+            onClick = { actions.onUIEvent(UIEvent.Previous) },
+            modifier = Modifier.size(52.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.SkipPrevious,
+                contentDescription = "Previous",
+                tint = Color.White,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+
+        // Large Circular Pulse Play/Pause Button with Dynamic BitChord Breathing Halo
+        val infiniteTransition = rememberInfiniteTransition(label = "BitChordTransportPulse")
+        val pulseScale by infiniteTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = if (isPlaying) 1.24f else 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "PulseScale",
+        )
+        val pulseAlpha by infiniteTransition.animateFloat(
+            initialValue = 0.7f,
+            targetValue = if (isPlaying) 0.12f else 0.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "PulseAlpha",
+        )
+
+        Box(
+            modifier = Modifier.size(84.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .scale(pulseScale)
+                        .border(
+                            width = 2.dp,
+                            color = accentColor.copy(alpha = pulseAlpha),
+                            shape = CircleShape,
+                        ),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .shadow(
+                        elevation = 14.dp,
+                        shape = CircleShape,
+                        spotColor = accentColor.copy(alpha = 0.65f),
+                    )
+                    .clip(CircleShape)
+                    .background(if (isLavender) MaterialTheme.colorScheme.tertiary else accentColor)
+                    .clickable { actions.onUIEvent(UIEvent.PlayPause) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) SimpIcons.Pause else SimpIcons.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    tint = if (isLavender) MaterialTheme.colorScheme.onTertiary else if (accentColor == BitChordNeonAccent) Color.Black else Color.White,
+                    modifier = Modifier.size(38.dp),
+                )
+            }
+        }
+
+        // Next
+        IconButton(
+            onClick = { actions.onUIEvent(UIEvent.Next) },
+            modifier = Modifier.size(52.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.SkipNext,
+                contentDescription = "Next",
+                tint = Color.White,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+
+        // Repeat Toggle
+        IconButton(
+            onClick = { actions.onUIEvent(UIEvent.Repeat) },
+            modifier = Modifier.size(44.dp),
+        ) {
+            val repeatIcon = when (repeatState) {
+                RepeatState.One -> SimpIcons.RepeatOne
+                else -> SimpIcons.Repeat
+            }
+            val repeatTint = when (repeatState) {
+                RepeatState.None -> Color.White.copy(alpha = 0.45f)
+                else -> accentColor
+            }
+            Icon(
+                imageVector = repeatIcon,
+                contentDescription = "Repeat",
+                tint = repeatTint,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+/** Bottom Action Dock: Lyrics, Audio Info, Add to Playlist, Queue Sheet. */
+@Composable
+private fun BitChordActionDock(
+    hasLyrics: Boolean,
+    actions: NowPlayingContentActions,
+    accentColor: Color,
+) {
+    val isLavender = LocalIsPearlLavenderTheme.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isLavender) MaterialTheme.colorScheme.surface.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.06f))
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Lyrics button
+        IconButton(
+            onClick = { actions.onShowFullscreenLyrics() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.Subtitles,
+                contentDescription = "Lyrics",
+                tint = if (hasLyrics) accentColor else Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(22.dp),
+            )
+        }
+
+        // Pipeline / Equalizer / Audio Info
+        IconButton(
+            onClick = { actions.onShowInfo() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.Info,
+                contentDescription = "Audio Pipeline Info",
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(22.dp),
+            )
+        }
+
+        // Add to Playlist
+        IconButton(
+            onClick = { actions.onShowAddToPlaylist() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.PlaylistAdd,
+                contentDescription = "Add to Playlist",
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(24.dp),
+            )
+        }
+
+        // Queue
+        IconButton(
+            onClick = { actions.onShowQueue() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = SimpIcons.QueueMusic,
+                contentDescription = "Up Next Queue",
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}
+
+/** Animated mini visualizer with 3 jumping bars indicating active playback. */
+@Composable
+fun BitChordMiniVisualizer(
+    isPlaying: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "MiniVisualizer")
+    val h1 by transition.animateFloat(
+        initialValue = 4f,
+        targetValue = if (isPlaying) 14f else 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(450, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "Bar1",
+    )
+    val h2 by transition.animateFloat(
+        initialValue = 12f,
+        targetValue = if (isPlaying) 5f else 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(550, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "Bar2",
+    )
+    val h3 by transition.animateFloat(
+        initialValue = 6f,
+        targetValue = if (isPlaying) 15f else 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "Bar3",
+    )
+
+    Row(
+        modifier = modifier.height(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(h1.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(h2.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(h3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+    }
+}
