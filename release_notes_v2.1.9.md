@@ -1,0 +1,22 @@
+### Pulse Music v2.1.9 - Seamless Video Engine, BitChord Lyrics & Integrated Profile Hub
+
+- **Uninterrupted Video Playback & Audio Sync Fix**:
+  - Completely resolved the 7-12 second video playback freeze by eliminating synchronous blocking range chunk probes and preserving `cpn` session parameters across video/audio streams.
+  - Eliminated audio lag and A/V desync in video playback by automatically bypassing DSP filter buffers (`Echo`, `Reverb`, `Cinematic`, `DolbyAtmos`) during video track decoding.
+  - Increased ExoPlayer load control buffers (`45s` min / `120s` max) with hardware-accelerated decoder fallback and `C.VIDEO_SCALING_MODE_SCALE_TO_FIT`.
+- **BitChord Playback Animation & Fullscreen Lyrics (Android & Windows)**:
+  - Added authentic BitChord breathing halo rings around transport controls with dynamic audio frequency visualizer bars.
+  - Integrated BitChord styling, typography, track metadata pills, and transport controls into the Fullscreen Lyrics view across both Android and Windows desktop.
+- **Unified Profile, Sign-Up & Sign-In Hub**:
+  - Merged Sign-In, Sign-Up, and Profile screens into a single seamless hub with instant switching.
+  - Sign-Up directly requests Full Name, Age, Gender, and Language Preference during account creation.
+  - Interactive profile management with editable demographics, cloud sync indicators, and local persistence.
+- **Comprehensive Indian Languages Support**:
+  - Integrated dedicated Indian language picker supporting **Tamil, Telugu, Hindi, Malayalam, Kannada, Bengali, Marathi, Punjabi, Gujarati, Odia, Assamese, and English (India)**.
+- **Windows Desktop Spotify-Style Experience**:
+  - Automatic creation of desktop shortcut with high-resolution Pulse Music icon and native protocol registration (`pulsemusic://`).
+- **Author Attribution & Private App Integrity**:
+  - Owned & Developed by **Pulse Music Studio • Manikandan**.
+  - Advanced anti-decompilation integrity lock and R8 byte protection for private source distribution.
+- **Universal Dual APK Signing**:
+  - Fully signed with v1 (JAR Scheme) and v2/v3 (APK Scheme) for flawless installation on all Android devices.
