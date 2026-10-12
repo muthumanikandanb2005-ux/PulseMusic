@@ -32,9 +32,8 @@ internal class UpdateRepositoryImpl(
                 endpoints.add(formatted)
             }
 
-            // Always add high-availability primary and fallback endpoints
+            // GitHub endpoints only
             endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
-            endpoints.add("https://muthumanikandanb2005-ux.github.io/fdroid-repo/version.json")
             endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
 
             var lastError = "Failed to connect to update servers"

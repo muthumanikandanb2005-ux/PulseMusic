@@ -1037,7 +1037,12 @@ class SharedViewModel(
     val updateResponse: StateFlow<UpdateData?> = _updateResponse
 
     fun checkForUpdate() {
-        checkForAppUpdate(silent = true)
+        viewModelScope.launch(Dispatchers.IO) {
+            val enabled = dataStoreManager.autoCheckForUpdates.first() == TRUE
+            if (enabled) {
+                checkForAppUpdate(silent = true)
+            }
+        }
     }
 
     fun stopPlayer() {
@@ -2007,7 +2012,7 @@ class SharedViewModel(
         }
     }
 
-    fun shouldCheckForUpdate(): Boolean = runBlocking { dataStoreManager.autoCheckForUpdates.first() == TRUE }
+    fun shouldCheckForUpdate(): Boolean = true
 
     private var _downloadFileProgress = MutableStateFlow<DownloadProgress>(DownloadProgress.INIT)
     val downloadFileProgress: StateFlow<DownloadProgress> get() = _downloadFileProgress

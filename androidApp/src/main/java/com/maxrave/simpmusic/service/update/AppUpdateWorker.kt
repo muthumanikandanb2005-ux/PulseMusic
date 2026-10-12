@@ -53,8 +53,8 @@ class AppUpdateWorker(
                     }
                     endpoints.add(formatted)
                 }
+                // GitHub endpoints only
                 endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
-                endpoints.add("https://muthumanikandanb2005-ux.github.io/fdroid-repo/version.json")
                 endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
 
                 // Record check timestamp

@@ -622,22 +622,35 @@ fun SettingScreen(
             blurEnabled = true,
         )
 
-    val checkForUpdateSubtitle by remember {
-        derivedStateOf {
-            if (isCheckingUpdate) {
-                return@derivedStateOf runBlocking { getString(Res.string.checking) }
-            } else {
-                val lastCheckLong = lastCheckUpdate?.toLong() ?: 0L
-                return@derivedStateOf runBlocking {
-                    getString(
-                        Res.string.last_checked_at,
-                        DateTimeFormatter
-                            .ofPattern("yyyy-MM-dd HH:mm:ss")
-                            .withZone(ZoneId.systemDefault())
-                            .format(Instant.ofEpochMilli(lastCheckLong)),
-                    )
-                }
+    val checkingString = stringResource(Res.string.checking)
+    val lastCheckedTemplate = stringResource(Res.string.last_checked_at)
+    val lastCheckLong = remember(lastCheckUpdate) { lastCheckUpdate?.toLongOrNull() ?: 0L }
+    val formattedDate = remember(lastCheckLong) {
+        if (lastCheckLong > 0L) {
+            try {
+                DateTimeFormatter
+                    .ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(Instant.ofEpochMilli(lastCheckLong))
+            } catch (e: Exception) {
+                ""
             }
+        } else {
+            ""
+        }
+    }
+
+    val checkForUpdateSubtitle = remember(isCheckingUpdate, formattedDate, checkingString, lastCheckedTemplate) {
+        if (isCheckingUpdate) {
+            checkingString
+        } else if (formattedDate.isNotEmpty()) {
+            try {
+                lastCheckedTemplate.replace("%1\$s", formattedDate)
+            } catch (e: Exception) {
+                "Last checked: $formattedDate"
+            }
+        } else {
+            "Never checked"
         }
     }
     var showThirdPartyLibraries by rememberSaveable {
@@ -2651,8 +2664,13 @@ fun SettingScreen(
                             subtitle = stringResource(Res.string.background_updates_description),
                             switch = (autoCheckUpdate to { viewModel.setAutoCheckUpdate(it) }),
                         )
+                        val updateSourceUrlTitle = stringResource(Res.string.update_source_url)
+                        val enterUpdateSourceUrlMessage = stringResource(Res.string.enter_update_source_url)
+                        val changeText = stringResource(Res.string.change)
+                        val cancelText = stringResource(Res.string.cancel)
+
                         SettingItem(
-                            title = stringResource(Res.string.update_source_url),
+                            title = updateSourceUrlTitle,
                             subtitle =
                                 if (customUpdateEndpoint.isBlank()) {
                                     "GitHub: muthumanikandanb2005-ux/PulseMusic (Default)"
@@ -2662,19 +2680,19 @@ fun SettingScreen(
                             onClick = {
                                 viewModel.setAlertData(
                                     SettingAlertState(
-                                        title = runBlocking { getString(Res.string.update_source_url) },
-                                        message = runBlocking { getString(Res.string.enter_update_source_url) },
+                                        title = updateSourceUrlTitle,
+                                        message = enterUpdateSourceUrlMessage,
                                         textField =
                                             SettingAlertState.TextFieldData(
                                                 label = "URL or owner/repo",
                                                 value = customUpdateEndpoint,
                                             ),
                                         confirm =
-                                            runBlocking { getString(Res.string.change) } to { state ->
+                                            changeText to { state ->
                                                 val newEndpoint = state.textField?.value?.trim() ?: ""
                                                 viewModel.setCustomUpdateEndpoint(newEndpoint)
                                             },
-                                        dismiss = runBlocking { getString(Res.string.cancel) },
+                                        dismiss = cancelText,
                                     ),
                                 )
                             },
@@ -2684,7 +2702,7 @@ fun SettingScreen(
                             subtitle = checkForUpdateSubtitle,
                             onClick = {
                                 coroutineScope.launch {
-                                    sharedViewModel.makeToast(runBlocking { getString(Res.string.update_checking) })
+                                    sharedViewModel.makeToast("Checking for updates...")
                                     sharedViewModel.checkForAppUpdate(silent = false)
                                     viewModel.getLastCheckForUpdate()
                                 }
