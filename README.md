@@ -7,12 +7,14 @@
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest"><img src="https://img.shields.io/github/v/release/muthumanikandanb2005-ux/PulseMusic?style=flat-square&color=blue" alt="Latest Release" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases"><img src="https://img.shields.io/github/downloads/muthumanikandanb2005-ux/PulseMusic/total?style=flat-square&color=green" alt="Total Downloads" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-orange.svg?style=flat-square" alt="License: GPL-3.0" /></a>
+    <a href="https://muthumanikandanb2005-ux.github.io/fdroid-repo/"><img src="https://img.shields.io/badge/F--Droid-PulseMusic%20Repo-3DDC84?logo=f-droid&logoColor=white&style=flat-square" alt="F-Droid Repository" /></a>
     <a href="https://github.com/RookieEnough/Orion-Data/issues/1819"><img src="https://img.shields.io/badge/Orion%20Store-Approved-purple?style=flat-square" alt="Orion Store" /></a>
   </p>
 
   <h4>📥 Download Latest Build</h4>
   <p>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest"><img src="https://raw.githubusercontent.com/NeoApplications/Neo-Backup/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" width="190" alt="GitHub Releases" /></a>
+    <a href="https://muthumanikandanb2005-ux.github.io/fdroid-repo/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" width="190" alt="Get it on F-Droid" /></a>
   </p>
 </div>
 
