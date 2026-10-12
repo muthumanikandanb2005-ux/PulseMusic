@@ -230,7 +230,7 @@ compose.desktop {
             // by PipePipeExtractor, which broke :desktopApp:proguardReleaseJars. 7.8.x supports Java 25.
             version.set("7.8.1")
             optimize.set(false)
-            obfuscate.set(true)
+            obfuscate.set(false)
             configurationFiles.from(rootDir.resolve("composeApp/proguard-desktop-rules.pro"))
         }
     }
