@@ -49,7 +49,7 @@ Type: files; Name: "{app}\app\*.jar"
 Type: files; Name: "{app}\app\Pulse.cfg"
 
 [Files]
-Source: "..\desktopApp\build\compose\binaries\main-release\app\Pulse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\desktopApp\build\compose\binaries\main\app\Pulse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\desktopApp\PulseMusic.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
