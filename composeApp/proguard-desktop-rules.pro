@@ -9,8 +9,7 @@
 # release build. Known upstream bug, still unfixed as of ProGuard 7.9.1:
 # https://github.com/Guardsquare/proguard/issues/443 (Compose Desktop, same frames)
 # https://github.com/Guardsquare/proguard/issues/302 (inlining-induced verify errors)
-# Shrinking, obfuscation, class-merging and every other optimization stay on.
--optimizations !method/specialization/*,!code/allocation/variable,!method/inlining/*
+-dontoptimize
 
 -keepclasseswithmembers class * {
     native <methods>;
