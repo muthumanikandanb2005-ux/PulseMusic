@@ -1,0 +1,6 @@
+Pulse Music v3.1.0:
+- Seamless background Gemini AI translation & Musixmatch rich lyrics provider.
+- Instant zero-latency audio playback pipeline with optimized MPV demuxer and stream resolver.
+- Fixed desktop update download progress indicator.
+- Enforced clean audio square card formats across Home and Shelves.
+- Full offline caching, downloaded songs, and equalizer support.
