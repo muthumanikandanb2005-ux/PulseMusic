@@ -1,0 +1,40 @@
+Categories:
+  - Multimedia
+License: GPL-3.0-or-later
+AuthorName: Manikandan
+AuthorEmail: muthumanikandanb2005@gmail.com
+SourceCode: https://github.com/muthumanikandanb2005-ux/PulseMusic
+IssueTracker: https://github.com/muthumanikandanb2005-ux/PulseMusic/issues
+
+AutoName: Pulse Music
+Summary: Modern music player with real-time lyrics & seamless continuous playback
+Description: |-
+  Experience music like never before with Pulse Music.
+
+  Features:
+  * Ad-free streaming in background
+  * Continuous playback engine with zero freezes and rapid skipping
+  * Real-time synchronized lyrics (Musixmatch, LRCLIB, Spotify)
+  * Seamless background Gemini AI translation
+  * Offline caching and downloaded songs support
+  * Equalizer, spatial audio, and sound enhancements
+  * Home, Charts, Moods & Genres with high-speed browsing
+  * SponsorBlock & Return YouTube Dislike integration
+  * In-app OTA updates and trending music notifications
+  * Sleep timer and Android Auto support
+
+RepoType: git
+Repo: https://github.com/muthumanikandanb2005-ux/PulseMusic.git
+
+Builds:
+  - versionName: 3.1.0
+    versionCode: 78
+    commit: v3.1.0
+    subdir: androidApp
+    gradle:
+      - yes
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 3.1.0
+CurrentVersionCode: 78
