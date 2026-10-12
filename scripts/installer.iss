@@ -42,7 +42,11 @@ VersionInfoProductVersion=3.1.3.0
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+
+[InstallDelete]
+Type: files; Name: "{app}\app\*.jar"
+Type: files; Name: "{app}\app\Pulse.cfg"
 
 [Files]
 Source: "..\desktopApp\build\compose\binaries\main-release\app\Pulse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -69,3 +73,28 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyApp
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall
+
+[Code]
+function InitializeSetup(): Boolean;
+var
+  ErrorCode: Integer;
+begin
+  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Result := True;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ErrorCode: Integer;
+begin
+  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Result := '';
+end;
+
+function InitializeUninstall(): Boolean;
+var
+  ErrorCode: Integer;
+begin
+  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Result := True;
+end;
