@@ -41,21 +41,41 @@ class AppUpdateWorker(
                 }
 
                 val rawEndpoint = dataStoreManager.customUpdateEndpoint.first().trim()
-                val endpoint = when {
-                    rawEndpoint.isBlank() -> "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest"
-                    !rawEndpoint.startsWith("http://") && !rawEndpoint.startsWith("https://") && rawEndpoint.contains("/") ->
+                val endpoints = mutableListOf<String>()
+                if (rawEndpoint.isNotBlank() &&
+                    !rawEndpoint.contains("maxrave-dev", ignoreCase = true) &&
+                    !rawEndpoint.contains("simpmusic", ignoreCase = true)
+                ) {
+                    val formatted = if (!rawEndpoint.startsWith("http://") && !rawEndpoint.startsWith("https://") && rawEndpoint.contains("/")) {
                         "https://api.github.com/repos/$rawEndpoint/releases/latest"
-                    else -> rawEndpoint
+                    } else {
+                        rawEndpoint
+                    }
+                    endpoints.add(formatted)
                 }
+                endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
+                endpoints.add("https://muthumanikandanb2005-ux.github.io/fdroid-repo/version.json")
+                endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
 
                 // Record check timestamp
                 val nowMillis = System.currentTimeMillis()
                 dataStoreManager.putString("CheckForUpdateAt", nowMillis.toString())
 
-                Logger.i(TAG, "Fetching update metadata from: $endpoint")
-                val responseJsonStr = fetchString(endpoint)
+                var responseJsonStr = ""
+                for (endpoint in endpoints.distinct()) {
+                    try {
+                        Logger.i(TAG, "Fetching update metadata from: $endpoint")
+                        val str = fetchString(endpoint)
+                        if (str.isNotBlank()) {
+                            responseJsonStr = str
+                            break
+                        }
+                    } catch (e: Exception) {
+                        Logger.w(TAG, "Failed to fetch from $endpoint: ${e.message}")
+                    }
+                }
                 if (responseJsonStr.isBlank()) {
-                    Logger.w(TAG, "Empty response from update endpoint")
+                    Logger.w(TAG, "Empty response from all update endpoints")
                     return@withContext Result.success()
                 }
 

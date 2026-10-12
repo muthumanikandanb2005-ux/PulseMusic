@@ -113,6 +113,20 @@ class Ytmusic {
             // Note: Don't install Logging plugin for download client
         }.also { downloadClient = it }
 
+    private var updateClient: HttpClient? = null
+
+    private fun getUpdateClient(): HttpClient =
+        updateClient ?: HttpClient(getEngine()) {
+            expectSuccess = true
+            install(HttpRedirect) {
+                checkHttpMethod = false
+                allowHttpsDowngrade = true
+            }
+            install(ContentNegotiation) {
+                json(normalJson)
+            }
+        }.also { updateClient = it }
+
     var cookiePath: Path? = null
 
     var locale =
@@ -663,10 +677,9 @@ class Ytmusic {
 
     suspend fun checkForGithubReleaseUpdate(customUrl: String = ""): HttpResponse =
         if (customUrl.isNotBlank()) {
-            httpClient.get(customUrl) {
+            getUpdateClient().get(customUrl) {
                 header("User-Agent", "PulseMusicApp")
                 header("Accept", "application/vnd.github.v3+json")
-                contentType(ContentType.Application.Json)
             }
         } else {
             throw IllegalStateException("No update source configured")
