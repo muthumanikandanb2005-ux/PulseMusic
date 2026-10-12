@@ -2887,6 +2887,7 @@ class MpvPlayerAdapter(
         streamRepository.getNewFormat(videoId).lastOrNull()?.let { format ->
             val audioUrl = format.audioUrl
             val videoUrl = format.videoUrl
+            val notExpired = format.expiredTime > now()
             val isFresh = format.expiredTime > now().plusMinutes(15)
 
             if (shouldFindVideo && !videoUrl.isNullOrEmpty()) {
@@ -2909,7 +2910,12 @@ class MpvPlayerAdapter(
                     )
                 }
             } else if (!shouldFindVideo && !audioUrl.isNullOrEmpty()) {
-                val is403Url = if (isFresh) false else (streamRepository.is403Url(audioUrl).firstOrNull() != false)
+                // If not expired, use cached audio URL immediately for instant zero-latency playback
+                if (notExpired) {
+                    Logger.w("Stream", "Audio from format (instant non-expired)")
+                    return PlayableSource(isVideo = false, url = audioUrl)
+                }
+                val is403Url = streamRepository.is403Url(audioUrl).firstOrNull() != false
                 if (!is403Url) {
                     Logger.w("Stream", "Audio from format")
                     return PlayableSource(isVideo = false, url = audioUrl)

@@ -263,10 +263,13 @@ class MpvPlayer private constructor(
             // VLC "--network-caching=10000" / ":network-caching=15000".
             option("cache", "yes")
             option("cache-secs", networkCacheSeconds.toString())
+            // Low readahead and hysteresis ensure audio starts immediately without buffering delay
+            option("demuxer-readahead-secs", if (audioOnly) "5" else "10")
+            option("demuxer-hysteresis-secs", "1")
 
             // Sized to allow uninterrupted high bitrate audio and video without buffer stalls
-            val demuxerBytes = if (audioOnly) 64 * 1024 * 1024 else 192 * 1024 * 1024
-            val demuxerBackBytes = if (audioOnly) 16 * 1024 * 1024 else 32 * 1024 * 1024
+            val demuxerBytes = if (audioOnly) 16 * 1024 * 1024 else 192 * 1024 * 1024
+            val demuxerBackBytes = if (audioOnly) 8 * 1024 * 1024 else 32 * 1024 * 1024
             option("demuxer-max-bytes", demuxerBytes.toString())
             option("demuxer-max-back-bytes", demuxerBackBytes.toString())
 

@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -108,9 +109,12 @@ import simpmusic.composeapp.generated.resources.you
 @Composable
 fun HomeItem(
     homeViewModel: HomeViewModel = koinViewModel(),
+    dataStoreManager: com.maxrave.domain.manager.DataStoreManager = org.koin.compose.koinInject(),
     navController: NavController,
     data: HomeItem,
 ) {
+    val watchVideo by dataStoreManager.watchVideoInsteadOfPlayingAudio.collectAsStateWithLifecycle(initialValue = com.maxrave.domain.manager.DataStoreManager.FALSE)
+    val isVideoEnabled = watchVideo == com.maxrave.domain.manager.DataStoreManager.TRUE
     var bottomSheetShow by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
@@ -252,7 +256,7 @@ fun HomeItem(
                                 )
                             }, data = temp)
                         }
-                    } else if (temp.thumbnails.firstOrNull()?.width != temp.thumbnails.firstOrNull()?.height) {
+                    } else if (isVideoEnabled && temp.thumbnails.firstOrNull()?.width != temp.thumbnails.firstOrNull()?.height) {
                         HomeItemVideo(
                             onClick = {
                                 val firstQueue: Track = temp.toTrack()
