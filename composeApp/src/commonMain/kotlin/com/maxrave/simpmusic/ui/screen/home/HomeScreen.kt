@@ -450,14 +450,14 @@ fun HomeScreen(
                                     color = Color(0xFF10B981),
                                     trackColor = Color(0xFF333333),
                                 )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                val mbDownloaded = state.downloadedBytes / (1024f * 1024f)
-                                val mbTotal = state.totalBytes / (1024f * 1024f)
+                                val percent = (state.progress * 100).toInt()
+                                val mbDown = ((state.downloadedBytes * 10L) / (1024L * 1024L)).toFloat() / 10f
+                                val mbTot = ((state.totalBytes * 10L) / (1024L * 1024L)).toFloat() / 10f
                                 Text(
                                     text = if (state.totalBytes > 0) {
-                                        "Downloading: ${(state.progress * 100).toInt()}% (%.1f MB / %.1f MB)".format(mbDownloaded, mbTotal)
+                                        "Downloading: $percent% ($mbDown MB / $mbTot MB)"
                                     } else {
-                                        "Downloading: %.1f MB...".format(mbDownloaded)
+                                        "Downloading: $mbDown MB..."
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.LightGray,
@@ -1323,14 +1323,14 @@ fun HomeUpdateNotificationCard(
                             color = Color(0xFF10B981),
                             trackColor = Color(0xFF333333),
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        val mbDownloaded = downloadState.downloadedBytes / (1024f * 1024f)
-                        val mbTotal = downloadState.totalBytes / (1024f * 1024f)
+                        val percent = (downloadState.progress * 100).toInt()
+                        val mbDown = ((downloadState.downloadedBytes * 10L) / (1024L * 1024L)).toFloat() / 10f
+                        val mbTot = ((downloadState.totalBytes * 10L) / (1024L * 1024L)).toFloat() / 10f
                         Text(
                             text = if (downloadState.totalBytes > 0) {
-                                "Downloading: ${(downloadState.progress * 100).toInt()}% (%.1f MB / %.1f MB)".format(mbDownloaded, mbTotal)
+                                "Downloading: $percent% ($mbDown MB / $mbTot MB)"
                             } else {
-                                "Downloading: %.1f MB...".format(mbDownloaded)
+                                "Downloading: $mbDown MB..."
                             },
                             style = typo().bodySmall,
                             color = Color.LightGray,

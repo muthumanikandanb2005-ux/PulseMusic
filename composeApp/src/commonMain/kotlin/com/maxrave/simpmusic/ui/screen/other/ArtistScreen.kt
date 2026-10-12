@@ -911,8 +911,10 @@ private fun ArtistSections(
         }
 
         // Videos
+        val shouldShowVideos by sharedViewModel.getVideo.collectAsStateWithLifecycle()
         AnimatedVisibility(
-            state.data.video != null &&
+            shouldShowVideos &&
+                state.data.video != null &&
                 state.data.video!!
                     .video
                     .isNotEmpty(),
