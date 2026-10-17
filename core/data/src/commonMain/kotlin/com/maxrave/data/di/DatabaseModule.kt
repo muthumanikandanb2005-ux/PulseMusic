@@ -1,4 +1,4 @@
-package com.maxrave.data.di
+﻿package com.maxrave.data.di
 
 import DatabaseDao
 import androidx.datastore.core.DataStore
@@ -11,7 +11,7 @@ import com.maxrave.data.db.MusicDatabase
 import com.maxrave.data.db.datasource.AnalyticsDatasource
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.db.getDatabaseBuilder
-import com.maxrave.domain.manager.DataStoreManager
+import com.manikandan.domain.manager.DataStoreManager
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.spotify.Spotify
 import kotlinx.coroutines.Dispatchers

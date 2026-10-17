@@ -1,4 +1,4 @@
-package com.pulse.music.ui.screen.login
+﻿package com.pulse.music.ui.screen.login
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -67,13 +67,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.LocalPlaylistEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.LocalPlaylistRepository
-import com.maxrave.domain.repository.SongRepository
-import com.maxrave.domain.repository.SupabaseAuthRepository
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.LocalPlaylistRepository
+import com.manikandan.domain.repository.SongRepository
+import com.manikandan.domain.repository.SupabaseAuthRepository
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.icon.ArrowBackIosNew
 import com.maxrave.simpmusic.ui.icon.Check

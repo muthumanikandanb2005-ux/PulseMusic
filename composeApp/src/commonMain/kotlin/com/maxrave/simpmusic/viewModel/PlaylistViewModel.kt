@@ -1,31 +1,31 @@
-@file:Suppress("ktlint:standard:no-wildcard-imports")
+﻿@file:Suppress("ktlint:standard:no-wildcard-imports")
 
 package com.maxrave.simpmusic.viewModel
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.DownloadState.STATE_DOWNLOADED
-import com.maxrave.domain.data.entities.DownloadState.STATE_DOWNLOADING
-import com.maxrave.domain.data.entities.PlaylistEntity
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.browse.playlist.Author
-import com.maxrave.domain.data.model.browse.playlist.PlaylistBrowse
-import com.maxrave.domain.data.model.browse.playlist.PlaylistState
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.mediaservice.handler.DownloadHandler
-import com.maxrave.domain.mediaservice.handler.PlaylistType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.repository.LocalPlaylistRepository
-import com.maxrave.domain.repository.PlaylistRepository
-import com.maxrave.domain.repository.SongRepository
-import com.maxrave.domain.utils.Resource
-import com.maxrave.domain.utils.collectLatestResource
-import com.maxrave.domain.utils.isRadioPlaylistId
-import com.maxrave.domain.utils.toListVideoId
-import com.maxrave.domain.utils.toPlaylistEntity
-import com.maxrave.domain.utils.toSongEntity
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.DownloadState.STATE_DOWNLOADED
+import com.manikandan.domain.data.entities.DownloadState.STATE_DOWNLOADING
+import com.manikandan.domain.data.entities.PlaylistEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.browse.playlist.Author
+import com.manikandan.domain.data.model.browse.playlist.PlaylistBrowse
+import com.manikandan.domain.data.model.browse.playlist.PlaylistState
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.mediaservice.handler.DownloadHandler
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.repository.LocalPlaylistRepository
+import com.manikandan.domain.repository.PlaylistRepository
+import com.manikandan.domain.repository.SongRepository
+import com.manikandan.domain.utils.Resource
+import com.manikandan.domain.utils.collectLatestResource
+import com.manikandan.domain.utils.isRadioPlaylistId
+import com.manikandan.domain.utils.toListVideoId
+import com.manikandan.domain.utils.toPlaylistEntity
+import com.manikandan.domain.utils.toSongEntity
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.viewModel.PlaylistUIState.Error
 import com.maxrave.simpmusic.viewModel.PlaylistUIState.Loading

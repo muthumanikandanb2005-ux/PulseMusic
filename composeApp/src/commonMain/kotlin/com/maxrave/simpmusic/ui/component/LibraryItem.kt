@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.component
+﻿package com.maxrave.simpmusic.ui.component
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.MarqueeAnimationMode
@@ -41,20 +41,20 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.AlbumEntity
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.LocalPlaylistEntity
-import com.maxrave.domain.data.entities.PlaylistEntity
-import com.maxrave.domain.data.entities.PodcastsEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.searchResult.playlists.PlaylistsResult
-import com.maxrave.domain.data.type.LibraryType
-import com.maxrave.domain.data.type.PlaylistType
-import com.maxrave.domain.data.type.RecentlyType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.utils.connectArtists
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.AlbumEntity
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.entities.PlaylistEntity
+import com.manikandan.domain.data.entities.PodcastsEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
+import com.manikandan.domain.data.type.LibraryType
+import com.manikandan.domain.data.type.PlaylistType
+import com.manikandan.domain.data.type.RecentlyType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.utils.connectArtists
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.simpmusic.ui.component.selection.SongSelectionState
 import com.maxrave.simpmusic.ui.navigation.destination.list.AlbumDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
@@ -76,7 +76,7 @@ import simpmusic.composeapp.generated.resources.no_favorite_playlists
 import simpmusic.composeapp.generated.resources.no_playlists_downloaded
 import simpmusic.composeapp.generated.resources.radio
 import simpmusic.composeapp.generated.resources.recently_added
-import com.maxrave.domain.mediaservice.handler.PlaylistType as DomainPlaylistType
+import com.manikandan.domain.mediaservice.handler.PlaylistType as DomainPlaylistType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

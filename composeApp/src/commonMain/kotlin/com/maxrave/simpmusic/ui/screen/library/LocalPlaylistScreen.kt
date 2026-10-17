@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.library
+﻿package com.maxrave.simpmusic.ui.screen.library
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -109,12 +109,12 @@ import coil3.toBitmap
 import com.kyant.backdrop.highlight.Highlight
 import com.kmpalette.rememberPaletteState
 import com.maxrave.common.LOCAL_PLAYLIST_ID
-import com.maxrave.domain.data.entities.DownloadState
-import com.maxrave.domain.data.entities.LocalPlaylistEntity
-import com.maxrave.domain.data.entities.PairSongLocalPlaylist
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.utils.FilterState
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.DownloadState
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.entities.PairSongLocalPlaylist
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.utils.FilterState
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.layerBackdrop

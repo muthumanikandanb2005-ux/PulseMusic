@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home.wrapped.cards
+﻿package com.maxrave.simpmusic.ui.screen.home.wrapped.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +21,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.maxrave.domain.data.entities.SongEntity
+import com.manikandan.domain.data.entities.SongEntity
 import com.maxrave.simpmusic.ui.screen.home.analytics.monthShortName
 import com.maxrave.simpmusic.ui.screen.home.wrapped.WrappedTokens
 import com.maxrave.simpmusic.ui.screen.home.wrapped.formatCount

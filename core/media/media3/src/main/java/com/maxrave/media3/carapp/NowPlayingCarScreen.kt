@@ -1,4 +1,4 @@
-package com.maxrave.media3.carapp
+﻿package com.maxrave.media3.carapp
 
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
@@ -10,7 +10,7 @@ import androidx.car.app.model.Template
 import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
+import com.manikandan.domain.mediaservice.handler.MediaPlayerHandler
 import com.maxrave.media3.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

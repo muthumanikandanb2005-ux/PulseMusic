@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.expect.ui
+﻿package com.maxrave.simpmusic.expect.ui
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
@@ -7,8 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
-import com.maxrave.domain.data.model.metadata.Lyrics
-import com.maxrave.domain.data.model.streams.TimeLine
+import com.manikandan.domain.data.model.metadata.Lyrics
+import com.manikandan.domain.data.model.streams.TimeLine
 import com.maxrave.media3.ui.MediaPlayerView
 import com.maxrave.media3.ui.MediaPlayerViewWithSubtitle
 import com.maxrave.simpmusic.extension.findActivity

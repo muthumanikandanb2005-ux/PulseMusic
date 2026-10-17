@@ -1,4 +1,4 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.mapping.toDomainSearchSuggestions
@@ -8,15 +8,15 @@ import com.maxrave.data.parser.search.parseSearchArtist
 import com.maxrave.data.parser.search.parseSearchPlaylist
 import com.maxrave.data.parser.search.parseSearchSong
 import com.maxrave.data.parser.search.parseSearchVideo
-import com.maxrave.domain.data.entities.SearchHistory
-import com.maxrave.domain.data.model.searchResult.SearchSuggestions
-import com.maxrave.domain.data.model.searchResult.albums.AlbumsResult
-import com.maxrave.domain.data.model.searchResult.artists.ArtistsResult
-import com.maxrave.domain.data.model.searchResult.playlists.PlaylistsResult
-import com.maxrave.domain.data.model.searchResult.songs.SongsResult
-import com.maxrave.domain.data.model.searchResult.videos.VideosResult
-import com.maxrave.domain.repository.SearchRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.entities.SearchHistory
+import com.manikandan.domain.data.model.searchResult.SearchSuggestions
+import com.manikandan.domain.data.model.searchResult.albums.AlbumsResult
+import com.manikandan.domain.data.model.searchResult.artists.ArtistsResult
+import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
+import com.manikandan.domain.data.model.searchResult.songs.SongsResult
+import com.manikandan.domain.data.model.searchResult.videos.VideosResult
+import com.manikandan.domain.repository.SearchRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers

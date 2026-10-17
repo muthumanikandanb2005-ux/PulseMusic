@@ -1,12 +1,12 @@
-package com.maxrave.data.paging
+﻿package com.maxrave.data.paging
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.maxrave.data.db.Converters
 import com.maxrave.data.db.datasource.LocalDataSource
-import com.maxrave.domain.data.entities.PairSongLocalPlaylist
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.utils.FilterState
+import com.manikandan.domain.data.entities.PairSongLocalPlaylist
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.utils.FilterState
 import com.maxrave.logger.Logger
 
 internal class LocalPlaylistPagingSource(

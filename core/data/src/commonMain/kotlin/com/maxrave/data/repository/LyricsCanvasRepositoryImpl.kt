@@ -1,27 +1,27 @@
-@file:OptIn(ExperimentalTime::class)
+﻿@file:OptIn(ExperimentalTime::class)
 
 package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.mapping.toCanvasResult
 import com.maxrave.data.mapping.toLyrics
-import com.maxrave.domain.data.entities.LyricsEntity
-import com.maxrave.domain.data.entities.TranslatedLyricsEntity
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.browse.artist.ArtistLogo
-import com.maxrave.domain.data.model.canvas.CanvasResult
-import com.maxrave.domain.data.model.metadata.Lyrics
-import com.maxrave.domain.data.model.metadata.SimpMusicLyrics
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.LyricsCanvasRepository
-import com.maxrave.domain.utils.Resource
-import com.maxrave.domain.utils.connectArtists
-import com.maxrave.domain.utils.toListName
-import com.maxrave.domain.utils.toPlainLrcString
-import com.maxrave.domain.utils.toRichSyncLrcString
-import com.maxrave.domain.utils.toSyncedLrcString
-import com.maxrave.domain.utils.toSyncedLyrics
+import com.manikandan.domain.data.entities.LyricsEntity
+import com.manikandan.domain.data.entities.TranslatedLyricsEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.browse.artist.ArtistLogo
+import com.manikandan.domain.data.model.canvas.CanvasResult
+import com.manikandan.domain.data.model.metadata.Lyrics
+import com.manikandan.domain.data.model.metadata.SimpMusicLyrics
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.LyricsCanvasRepository
+import com.manikandan.domain.utils.Resource
+import com.manikandan.domain.utils.connectArtists
+import com.manikandan.domain.utils.toListName
+import com.manikandan.domain.utils.toPlainLrcString
+import com.manikandan.domain.utils.toRichSyncLrcString
+import com.manikandan.domain.utils.toSyncedLrcString
+import com.manikandan.domain.utils.toSyncedLyrics
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.logger.Logger
 import com.maxrave.spotify.Spotify

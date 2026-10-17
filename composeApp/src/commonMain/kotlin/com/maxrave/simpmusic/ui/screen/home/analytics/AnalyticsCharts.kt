@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home.analytics
+﻿package com.maxrave.simpmusic.ui.screen.home.analytics
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -26,8 +26,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.maxrave.domain.data.model.analytics.AnalyticsPeriodStats
-import com.maxrave.domain.data.model.analytics.ListeningFingerprint
+import com.manikandan.domain.data.model.analytics.AnalyticsPeriodStats
+import com.manikandan.domain.data.model.analytics.ListeningFingerprint
 import com.maxrave.simpmusic.ui.theme.seed
 import com.maxrave.simpmusic.ui.theme.typo
 import org.jetbrains.compose.resources.stringResource

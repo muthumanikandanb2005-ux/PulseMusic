@@ -1,15 +1,15 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.extension.getFullDataFromDB
 import com.maxrave.data.mapping.toAlbumsResult
 import com.maxrave.data.parser.parseAlbumData
-import com.maxrave.domain.data.entities.AlbumEntity
-import com.maxrave.domain.data.entities.FollowedArtistSingleAndAlbum
-import com.maxrave.domain.data.model.browse.album.AlbumBrowse
-import com.maxrave.domain.data.model.searchResult.albums.AlbumsResult
-import com.maxrave.domain.repository.AlbumRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.entities.AlbumEntity
+import com.manikandan.domain.data.entities.FollowedArtistSingleAndAlbum
+import com.manikandan.domain.data.model.browse.album.AlbumBrowse
+import com.manikandan.domain.data.model.searchResult.albums.AlbumsResult
+import com.manikandan.domain.repository.AlbumRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.kotlinytmusicscraper.models.AlbumItem
 import com.maxrave.logger.Logger

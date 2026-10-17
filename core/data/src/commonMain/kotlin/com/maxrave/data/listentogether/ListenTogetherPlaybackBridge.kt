@@ -1,14 +1,14 @@
-package com.maxrave.data.listentogether
+﻿package com.maxrave.data.listentogether
 
 import com.maxrave.common.MERGING_DATA_TYPE
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.listentogether.RoomTrack
-import com.maxrave.domain.data.player.GenericMediaItem
-import com.maxrave.domain.data.player.GenericMediaMetadata
-import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.mediaservice.handler.SimpleMediaState
-import com.maxrave.domain.repository.ListenTogetherRepository
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.listentogether.RoomTrack
+import com.manikandan.domain.data.player.GenericMediaItem
+import com.manikandan.domain.data.player.GenericMediaMetadata
+import com.manikandan.domain.mediaservice.handler.MediaPlayerHandler
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.mediaservice.handler.SimpleMediaState
+import com.manikandan.domain.repository.ListenTogetherRepository
 import com.maxrave.logger.Logger
 import kotlin.math.abs
 import kotlin.time.TimeSource

@@ -1,10 +1,10 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.mapping.toDomainAccountInfo
-import com.maxrave.domain.data.entities.GoogleAccountEntity
-import com.maxrave.domain.data.model.account.AccountInfo
-import com.maxrave.domain.repository.AccountRepository
+import com.manikandan.domain.data.entities.GoogleAccountEntity
+import com.manikandan.domain.data.model.account.AccountInfo
+import com.manikandan.domain.repository.AccountRepository
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers

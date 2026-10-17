@@ -1,15 +1,15 @@
-package com.maxrave.data.parser
+﻿package com.maxrave.data.parser
 
-import com.maxrave.domain.data.model.mood.genre.GenreObject
-import com.maxrave.domain.data.model.mood.genre.ItemsPlaylist
-import com.maxrave.domain.data.model.mood.genre.ItemsSong
-import com.maxrave.domain.data.model.mood.genre.Title
-import com.maxrave.domain.data.model.mood.moodmoments.Content
-import com.maxrave.domain.data.model.mood.moodmoments.Item
-import com.maxrave.domain.data.model.mood.moodmoments.MoodsMomentObject
-import com.maxrave.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.model.mood.genre.GenreObject
+import com.manikandan.domain.data.model.mood.genre.ItemsPlaylist
+import com.manikandan.domain.data.model.mood.genre.ItemsSong
+import com.manikandan.domain.data.model.mood.genre.Title
+import com.manikandan.domain.data.model.mood.moodmoments.Content
+import com.manikandan.domain.data.model.mood.moodmoments.Item
+import com.manikandan.domain.data.model.mood.moodmoments.MoodsMomentObject
+import com.manikandan.domain.data.model.searchResult.songs.Artist
 import com.maxrave.kotlinytmusicscraper.models.response.BrowseResponse
-import com.maxrave.domain.data.model.mood.genre.Content as GenreContent
+import com.manikandan.domain.data.model.mood.genre.Content as GenreContent
 
 internal fun parseMoodsMomentObject(data: BrowseResponse?): MoodsMomentObject? {
     if (data != null) {

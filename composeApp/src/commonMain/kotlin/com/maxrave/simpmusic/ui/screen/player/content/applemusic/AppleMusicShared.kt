@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.player.content.applemusic
+﻿package com.maxrave.simpmusic.ui.screen.player.content.applemusic
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearEasing
@@ -71,9 +71,9 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.maxrave.domain.data.player.GenericCastState
-import com.maxrave.domain.mediaservice.handler.ControlState
-import com.maxrave.domain.mediaservice.handler.RepeatState
+import com.manikandan.domain.data.player.GenericCastState
+import com.manikandan.domain.mediaservice.handler.ControlState
+import com.manikandan.domain.mediaservice.handler.RepeatState
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.DeviceVolumeController
 import com.maxrave.simpmusic.expect.ui.PlatformCastButton

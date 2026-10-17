@@ -1,4 +1,4 @@
-import com.android.build.gradle.internal.tasks.CompileArtProfileTask
+﻿import com.android.build.gradle.internal.tasks.CompileArtProfileTask
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -12,7 +12,7 @@ plugins {
 kotlin {
     jvmToolchain(21)
     android {
-        namespace = "com.maxrave.domain"
+        namespace = "com.manikandan.domain"
         compileSdk = 37
         minSdk = 26
     }

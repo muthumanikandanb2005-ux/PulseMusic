@@ -1,9 +1,9 @@
-package com.maxrave.media3.cast
+﻿package com.maxrave.media3.cast
 
 import com.maxrave.common.MERGING_DATA_TYPE
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.StreamRepository
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.StreamRepository
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.lastOrNull
 /**
  * Resolves a receiver-reachable stream URL for a Cast device.
  *
- * A [com.maxrave.domain.data.player.GenericMediaItem.uri] only carries the raw videoId —
+ * A [com.manikandan.domain.data.player.GenericMediaItem.uri] only carries the raw videoId —
  * the real HTTP URL is normally resolved lazily inside the local ExoPlayer pipeline
  * (ResolvingDataSource), which a remote receiver can never reach. This resolver runs the
  * same [StreamRepository] chain up-front so the receiver gets a self-contained URL.

@@ -1,16 +1,16 @@
-package com.maxrave.simpmusic.service.test.notification
+﻿package com.maxrave.simpmusic.service.test.notification
 
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.FollowedArtistSingleAndAlbum
-import com.maxrave.domain.data.entities.NotificationEntity
-import com.maxrave.domain.data.model.searchResult.albums.AlbumsResult
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.repository.AlbumRepository
-import com.maxrave.domain.repository.ArtistRepository
-import com.maxrave.domain.repository.CommonRepository
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.FollowedArtistSingleAndAlbum
+import com.manikandan.domain.data.entities.NotificationEntity
+import com.manikandan.domain.data.model.searchResult.albums.AlbumsResult
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.repository.AlbumRepository
+import com.manikandan.domain.repository.ArtistRepository
+import com.manikandan.domain.repository.CommonRepository
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.extension.symmetricDifference
 import com.maxrave.simpmusic.viewModel.MoreAlbumsViewModel

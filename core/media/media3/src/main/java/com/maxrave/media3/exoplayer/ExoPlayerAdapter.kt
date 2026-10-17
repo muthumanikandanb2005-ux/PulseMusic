@@ -1,4 +1,4 @@
-package com.maxrave.media3.exoplayer
+﻿package com.maxrave.media3.exoplayer
 
 import android.annotation.SuppressLint
 import androidx.core.net.toUri
@@ -11,14 +11,14 @@ import androidx.media3.common.Player
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import com.maxrave.domain.data.player.GenericMediaItem
-import com.maxrave.domain.data.player.GenericMediaMetadata
-import com.maxrave.domain.data.player.GenericPlaybackParameters
-import com.maxrave.domain.data.player.GenericTracks
-import com.maxrave.domain.data.player.PlayerConstants
-import com.maxrave.domain.data.player.PlayerError
-import com.maxrave.domain.mediaservice.player.MediaPlayerInterface
-import com.maxrave.domain.mediaservice.player.MediaPlayerListener
+import com.manikandan.domain.data.player.GenericMediaItem
+import com.manikandan.domain.data.player.GenericMediaMetadata
+import com.manikandan.domain.data.player.GenericPlaybackParameters
+import com.manikandan.domain.data.player.GenericTracks
+import com.manikandan.domain.data.player.PlayerConstants
+import com.manikandan.domain.data.player.PlayerError
+import com.manikandan.domain.mediaservice.player.MediaPlayerInterface
+import com.manikandan.domain.mediaservice.player.MediaPlayerListener
 import com.maxrave.logger.Logger
 import com.maxrave.media3.utils.BetterShuffleOrder
 

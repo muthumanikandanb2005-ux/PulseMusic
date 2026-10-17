@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home.wrapped.cards
+﻿package com.maxrave.simpmusic.ui.screen.home.wrapped.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.maxrave.domain.utils.connectArtists
+import com.manikandan.domain.utils.connectArtists
 import com.maxrave.simpmusic.ui.screen.home.wrapped.WrappedTokens
 import com.maxrave.simpmusic.ui.screen.home.wrapped.formatCount
 import com.maxrave.simpmusic.viewModel.WrappedTrack

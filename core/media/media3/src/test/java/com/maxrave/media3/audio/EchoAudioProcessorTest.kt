@@ -1,7 +1,7 @@
-package com.maxrave.media3.audio
+﻿package com.maxrave.media3.audio
 
-import com.maxrave.domain.data.player.AudioEffects
-import com.maxrave.domain.data.player.DelayEffect
+import com.manikandan.domain.data.player.AudioEffects
+import com.manikandan.domain.data.player.DelayEffect
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:no-wildcard-imports")
+﻿@file:Suppress("ktlint:standard:no-wildcard-imports")
 
 package com.maxrave.data.repository
 
@@ -14,23 +14,23 @@ import com.maxrave.data.mapping.toTrack
 import com.maxrave.data.paging.LocalPlaylistPagingSource
 import com.maxrave.data.paging.LocalPlaylistTimeBasedPagingSource
 import com.maxrave.data.parser.parseSetVideoId
-import com.maxrave.domain.data.entities.DownloadState
-import com.maxrave.domain.data.entities.LocalPlaylistEntity
-import com.maxrave.domain.data.entities.LocalPlaylistEntity.YouTubeSyncState.Synced
-import com.maxrave.domain.data.entities.LocalPlaylistEntity.YouTubeSyncState.Syncing
-import com.maxrave.domain.data.entities.PairSongLocalPlaylist
-import com.maxrave.domain.data.entities.SetVideoIdEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.browse.playlist.PlaylistState
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.repository.LocalPlaylistRepository
-import com.maxrave.domain.utils.FilterState
-import com.maxrave.domain.utils.LocalResource
-import com.maxrave.domain.utils.toListVideoId
-import com.maxrave.domain.utils.toSongEntity
-import com.maxrave.domain.utils.wrapDataResource
-import com.maxrave.domain.utils.wrapMessageResource
+import com.manikandan.domain.data.entities.DownloadState
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.entities.LocalPlaylistEntity.YouTubeSyncState.Synced
+import com.manikandan.domain.data.entities.LocalPlaylistEntity.YouTubeSyncState.Syncing
+import com.manikandan.domain.data.entities.PairSongLocalPlaylist
+import com.manikandan.domain.data.entities.SetVideoIdEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.browse.playlist.PlaylistState
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.repository.LocalPlaylistRepository
+import com.manikandan.domain.utils.FilterState
+import com.manikandan.domain.utils.LocalResource
+import com.manikandan.domain.utils.toListVideoId
+import com.manikandan.domain.utils.toSongEntity
+import com.manikandan.domain.utils.wrapDataResource
+import com.manikandan.domain.utils.wrapMessageResource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.kotlinytmusicscraper.extension.verifyYouTubePlaylistId
 import com.maxrave.kotlinytmusicscraper.models.MusicShelfRenderer

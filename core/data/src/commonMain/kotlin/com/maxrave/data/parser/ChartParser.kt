@@ -1,10 +1,10 @@
-package com.maxrave.data.parser
+﻿package com.maxrave.data.parser
 
-import com.maxrave.domain.data.model.browse.artist.ResultPlaylist
-import com.maxrave.domain.data.model.home.chart.Artists
-import com.maxrave.domain.data.model.home.chart.Chart
-import com.maxrave.domain.data.model.home.chart.ChartItemPlaylist
-import com.maxrave.domain.data.model.home.chart.ItemArtist
+import com.manikandan.domain.data.model.browse.artist.ResultPlaylist
+import com.manikandan.domain.data.model.home.chart.Artists
+import com.manikandan.domain.data.model.home.chart.Chart
+import com.manikandan.domain.data.model.home.chart.ChartItemPlaylist
+import com.manikandan.domain.data.model.home.chart.ItemArtist
 import com.maxrave.kotlinytmusicscraper.models.MusicCarouselShelfRenderer
 import com.maxrave.kotlinytmusicscraper.models.SectionListRenderer
 

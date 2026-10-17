@@ -1,7 +1,7 @@
-package com.maxrave.data.parser.search
+﻿package com.maxrave.data.parser.search
 
-import com.maxrave.domain.data.model.searchResult.artists.ArtistsResult
-import com.maxrave.domain.data.model.searchResult.songs.Thumbnail
+import com.manikandan.domain.data.model.searchResult.artists.ArtistsResult
+import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
 import com.maxrave.kotlinytmusicscraper.models.ArtistItem
 import com.maxrave.kotlinytmusicscraper.pages.SearchResult
 

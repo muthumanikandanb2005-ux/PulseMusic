@@ -1,4 +1,4 @@
-# ProGuard's return-type specialization narrows ActualParagraph()'s declared return type
+﻿# ProGuard's return-type specialization narrows ActualParagraph()'s declared return type
 # from the Paragraph interface down to its only impl (SkiaParagraph). The bytecode still
 # pushes a Paragraph-typed value, so JVM 21's verifier rejects it at runtime with
 # "VerifyError: Bad return type" the moment any Text() renders (androidx.compose.ui.text).
@@ -86,7 +86,7 @@
 -keep class org.jsoup.** { *; }
 -dontwarn org.jsoup.**
 
--keep class com.maxrave.domain.data.model.** { *; }
+-keep class com.manikandan.domain.data.model.** { *; }
 -keep class com.mohamedrejeb.ksoup.html.** { *; }
 -keep class org.schabi.newpipe.extractor.downloader.** { *; }
 -keep class dev.maxrave.pipepipe.extractor.downloader.** { *; }

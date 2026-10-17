@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.library
+﻿package com.maxrave.simpmusic.ui.screen.library
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -41,14 +41,14 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.mediaservice.handler.PlaylistType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.utils.LocalResource
-import com.maxrave.domain.utils.toArrayListTrack
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.utils.LocalResource
+import com.manikandan.domain.utils.toArrayListTrack
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.simpmusic.extension.getStringBlocking
 import com.maxrave.simpmusic.ui.component.SearchBarExit
 import com.maxrave.simpmusic.ui.component.SearchBarEnter

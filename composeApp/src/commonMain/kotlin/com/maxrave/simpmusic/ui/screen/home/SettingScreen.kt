@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home
+﻿package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -103,13 +103,13 @@ import com.maxrave.common.QUALITY
 import com.maxrave.common.SUPPORTED_LANGUAGE
 import com.maxrave.common.SUPPORTED_LOCATION
 import com.maxrave.common.VIDEO_QUALITY
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.data.model.lyrics.RomanizationDictionaryState
-import com.maxrave.domain.data.model.lyrics.RomanizationLanguage
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.manager.DataStoreManager.Values.TRUE
-import com.maxrave.domain.repository.ImportProgress
-import com.maxrave.domain.utils.LocalResource
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.data.model.lyrics.RomanizationDictionaryState
+import com.manikandan.domain.data.model.lyrics.RomanizationLanguage
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.manager.DataStoreManager.Values.TRUE
+import com.manikandan.domain.repository.ImportProgress
+import com.manikandan.domain.utils.LocalResource
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.fileSaverResult

@@ -1,4 +1,4 @@
-package com.maxrave.media3.carapp
+﻿package com.maxrave.media3.carapp
 
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
@@ -21,7 +21,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaBrowser
 import com.google.common.util.concurrent.ListenableFuture
-import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
+import com.manikandan.domain.mediaservice.handler.MediaPlayerHandler
 import com.maxrave.logger.Logger
 import com.maxrave.media3.R
 import com.maxrave.media3.service.callback.SimpleMediaSessionCallback

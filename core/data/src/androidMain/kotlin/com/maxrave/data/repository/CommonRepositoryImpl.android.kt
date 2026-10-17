@@ -1,9 +1,9 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteDatabase.OPEN_READONLY
 import android.webkit.CookieManager
-import com.maxrave.domain.data.model.cookie.CookieItem
+import com.manikandan.domain.data.model.cookie.CookieItem
 import java.io.File
 import java.net.Authenticator
 import java.net.PasswordAuthentication

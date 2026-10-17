@@ -1,11 +1,11 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import com.eygraber.uri.Uri
 import com.maxrave.common.DB_NAME
 import com.maxrave.common.SETTINGS_FILENAME
 import com.maxrave.data.io.getHomeFolderPath
-import com.maxrave.domain.repository.CacheRepository
-import com.maxrave.domain.repository.CommonRepository
+import com.manikandan.domain.repository.CacheRepository
+import com.manikandan.domain.repository.CommonRepository
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.extension.zipOutputStream
 import kotlinx.coroutines.Dispatchers

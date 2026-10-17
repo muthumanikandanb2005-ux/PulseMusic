@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.component
+﻿package com.maxrave.simpmusic.ui.component
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.Crossfade
@@ -68,17 +68,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.data.model.lyrics.RomanizationLanguage
-import com.maxrave.domain.repository.LyricsRomanizerRepository
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.data.model.lyrics.RomanizationLanguage
+import com.manikandan.domain.repository.LyricsRomanizerRepository
 import com.maxrave.simpmusic.expect.ui.isLyricsBlurSupported
-import com.maxrave.domain.data.model.metadata.Line
+import com.manikandan.domain.data.model.metadata.Line
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentActions
 import com.maxrave.simpmusic.ui.screen.player.content.NowPlayingContentState
 import com.maxrave.simpmusic.ui.screen.player.content.stripRichSyncTimestamps
 import org.koin.compose.koinInject
 import androidx.navigation.NavController
-import com.maxrave.domain.data.model.streams.TimeLine
+import com.manikandan.domain.data.model.streams.TimeLine
 import com.maxrave.simpmusic.extension.ParsedRichSyncLine
 import com.maxrave.simpmusic.extension.animateScrollAndAnchorItemTop
 import com.maxrave.simpmusic.extension.animateScrollAndCentralizeItem
@@ -357,8 +357,8 @@ internal fun List<TimedLineIndex>.activeIndexAt(nowMs: Long): Int {
  * Lines with invalid `startTimeMs` on either side are skipped.
  */
 private fun buildSyncedTranslatedWordsByLineIndex(
-    originalLines: List<com.maxrave.domain.data.model.metadata.Line>,
-    translatedLines: List<com.maxrave.domain.data.model.metadata.Line>,
+    originalLines: List<com.manikandan.domain.data.model.metadata.Line>,
+    translatedLines: List<com.manikandan.domain.data.model.metadata.Line>,
     thresholdMs: Long = 1000L,
 ): Map<Int, String> {
     if (originalLines.isEmpty() || translatedLines.isEmpty()) return emptyMap()

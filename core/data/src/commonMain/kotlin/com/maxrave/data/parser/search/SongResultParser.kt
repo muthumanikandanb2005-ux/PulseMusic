@@ -1,8 +1,8 @@
-package com.maxrave.data.parser.search
+﻿package com.maxrave.data.parser.search
 
-import com.maxrave.domain.data.model.searchResult.songs.Album
-import com.maxrave.domain.data.model.searchResult.songs.SongsResult
-import com.maxrave.domain.data.model.searchResult.songs.Thumbnail
+import com.manikandan.domain.data.model.searchResult.songs.Album
+import com.manikandan.domain.data.model.searchResult.songs.SongsResult
+import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
 import com.maxrave.kotlinytmusicscraper.models.SongItem
 import com.maxrave.kotlinytmusicscraper.pages.SearchResult
 
@@ -23,7 +23,7 @@ internal fun parseSearchSong(result: SearchResult): ArrayList<SongsResult> {
                     },
                 artists =
                     song.artists.map { artistItem ->
-                        com.maxrave.domain.data.model.searchResult.songs.Artist(
+                        com.manikandan.domain.data.model.searchResult.songs.Artist(
                             id = artistItem.id,
                             name = artistItem.name,
                         )

@@ -1,11 +1,11 @@
-package com.maxrave.simpmusic.extension
+﻿package com.maxrave.simpmusic.extension
 
 import androidx.compose.runtime.Composable
 import com.maxrave.common.SponsorBlockType
-import com.maxrave.domain.data.model.browse.artist.ArtistBrowse
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.utils.FilterState
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.model.browse.artist.ArtistBrowse
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.utils.FilterState
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.viewModel.ArtistScreenData
 import kotlinx.datetime.LocalDateTime

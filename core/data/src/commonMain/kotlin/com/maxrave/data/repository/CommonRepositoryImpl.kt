@@ -1,13 +1,13 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.data.db.MusicDatabase
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.io.fileSystem
-import com.maxrave.domain.data.entities.NotificationEntity
-import com.maxrave.domain.data.model.cookie.CookieItem
-import com.maxrave.domain.data.type.RecentlyType
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.CommonRepository
+import com.manikandan.domain.data.entities.NotificationEntity
+import com.manikandan.domain.data.model.cookie.CookieItem
+import com.manikandan.domain.data.type.RecentlyType
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.CommonRepository
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.kotlinytmusicscraper.models.YouTubeLocale
 import com.maxrave.logger.Logger

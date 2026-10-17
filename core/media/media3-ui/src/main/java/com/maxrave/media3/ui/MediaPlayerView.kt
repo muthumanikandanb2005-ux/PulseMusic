@@ -1,4 +1,4 @@
-package com.maxrave.media3.ui
+﻿package com.maxrave.media3.ui
 
 import android.app.PictureInPictureParams
 import android.content.Context
@@ -64,10 +64,10 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.maxrave.common.Config
-import com.maxrave.domain.data.model.metadata.Lyrics
-import com.maxrave.domain.data.model.streams.TimeLine
-import com.maxrave.domain.data.model.ui.ScreenSizeInfo
-import com.maxrave.domain.manager.DataStoreManager
+import com.manikandan.domain.data.model.metadata.Lyrics
+import com.manikandan.domain.data.model.streams.TimeLine
+import com.manikandan.domain.data.model.ui.ScreenSizeInfo
+import com.manikandan.domain.manager.DataStoreManager
 import com.maxrave.logger.Logger
 import com.maxrave.media3.ui.extension.KeepScreenOn
 import org.koin.compose.koinInject

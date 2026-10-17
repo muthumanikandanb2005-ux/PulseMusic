@@ -1,10 +1,10 @@
-package com.maxrave.simpmusic.expect.ui
+﻿package com.maxrave.simpmusic.expect.ui
 
 import androidx.compose.runtime.Composable
 
 /**
  * Handle onto the OS-level media volume (Android's `STREAM_MUSIC`). Distinct from the app's own
- * playback volume ([com.maxrave.domain.mediaservice.handler.ControlState.volume]) — this is the
+ * playback volume ([com.manikandan.domain.mediaservice.handler.ControlState.volume]) — this is the
  * device slider, used by the Apple Music Now Playing style's volume row.
  */
 interface DeviceVolumeController {

@@ -1,4 +1,4 @@
-package com.maxrave.data.db
+﻿package com.maxrave.data.db
 
 import android.content.Context
 import androidx.room.Room
@@ -7,8 +7,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import com.maxrave.common.DB_NAME
-import com.maxrave.domain.data.entities.PairSongLocalPlaylist
-import com.maxrave.domain.data.entities.SetVideoIdEntity
+import com.manikandan.domain.data.entities.PairSongLocalPlaylist
+import com.manikandan.domain.data.entities.SetVideoIdEntity
 import com.maxrave.logger.Logger
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant

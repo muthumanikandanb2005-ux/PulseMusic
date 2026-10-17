@@ -1,15 +1,15 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.AnalyticsDatasource
-import com.maxrave.domain.data.entities.analytics.PlaybackEventEntity
-import com.maxrave.domain.data.entities.analytics.query.TopPlayedAlbum
-import com.maxrave.domain.data.entities.analytics.query.TopPlayedArtist
-import com.maxrave.domain.data.entities.analytics.query.TopPlayedArtistTime
-import com.maxrave.domain.data.entities.analytics.query.TopPlayedTracks
-import com.maxrave.domain.data.model.analytics.AnalyticsPeriodStats
-import com.maxrave.domain.data.model.analytics.DecadePlays
-import com.maxrave.domain.data.model.analytics.ListeningFingerprint
-import com.maxrave.domain.repository.AnalyticsRepository
+import com.manikandan.domain.data.entities.analytics.PlaybackEventEntity
+import com.manikandan.domain.data.entities.analytics.query.TopPlayedAlbum
+import com.manikandan.domain.data.entities.analytics.query.TopPlayedArtist
+import com.manikandan.domain.data.entities.analytics.query.TopPlayedArtistTime
+import com.manikandan.domain.data.entities.analytics.query.TopPlayedTracks
+import com.manikandan.domain.data.model.analytics.AnalyticsPeriodStats
+import com.manikandan.domain.data.model.analytics.DecadePlays
+import com.manikandan.domain.data.model.analytics.ListeningFingerprint
+import com.manikandan.domain.repository.AnalyticsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow

@@ -1,12 +1,12 @@
-package com.maxrave.data.di
+﻿package com.maxrave.data.di
 
 import com.maxrave.common.AppIdentity
 import com.maxrave.common.Config
 import com.maxrave.data.listentogether.ListenTogetherPlaybackBridge
 import com.maxrave.data.listentogether.ListenTogetherPrefs
 import com.maxrave.data.listentogether.ListenTogetherRepositoryImpl
-import com.maxrave.domain.repository.ListenTogetherRepository
-import com.maxrave.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.ListenTogetherRepository
+import com.manikandan.domain.manager.DataStoreManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

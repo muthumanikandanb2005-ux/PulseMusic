@@ -1,4 +1,4 @@
-package com.maxrave.data.di
+﻿package com.maxrave.data.di
 
 import com.maxrave.common.Config.SERVICE_SCOPE
 import com.maxrave.data.io.fileDir
@@ -19,23 +19,23 @@ import com.maxrave.data.repository.SearchRepositoryImpl
 import com.maxrave.data.repository.SongRepositoryImpl
 import com.maxrave.data.repository.StreamRepositoryImpl
 import com.maxrave.data.repository.UpdateRepositoryImpl
-import com.maxrave.domain.repository.AccountRepository
-import com.maxrave.domain.repository.AlbumRepository
-import com.maxrave.domain.repository.AnalyticsRepository
-import com.maxrave.domain.repository.ArtistRepository
-import com.maxrave.domain.repository.AutoEqRepository
-import com.maxrave.domain.repository.LyricsRomanizerRepository
-import com.maxrave.domain.repository.CommonRepository
-import com.maxrave.domain.repository.HomeRepository
-import com.maxrave.domain.repository.ImportRepository
-import com.maxrave.domain.repository.LocalPlaylistRepository
-import com.maxrave.domain.repository.LyricsCanvasRepository
-import com.maxrave.domain.repository.PlaylistRepository
-import com.maxrave.domain.repository.PodcastRepository
-import com.maxrave.domain.repository.SearchRepository
-import com.maxrave.domain.repository.SongRepository
-import com.maxrave.domain.repository.StreamRepository
-import com.maxrave.domain.repository.UpdateRepository
+import com.manikandan.domain.repository.AccountRepository
+import com.manikandan.domain.repository.AlbumRepository
+import com.manikandan.domain.repository.AnalyticsRepository
+import com.manikandan.domain.repository.ArtistRepository
+import com.manikandan.domain.repository.AutoEqRepository
+import com.manikandan.domain.repository.LyricsRomanizerRepository
+import com.manikandan.domain.repository.CommonRepository
+import com.manikandan.domain.repository.HomeRepository
+import com.manikandan.domain.repository.ImportRepository
+import com.manikandan.domain.repository.LocalPlaylistRepository
+import com.manikandan.domain.repository.LyricsCanvasRepository
+import com.manikandan.domain.repository.PlaylistRepository
+import com.manikandan.domain.repository.PodcastRepository
+import com.manikandan.domain.repository.SearchRepository
+import com.manikandan.domain.repository.SongRepository
+import com.manikandan.domain.repository.StreamRepository
+import com.manikandan.domain.repository.UpdateRepository
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -117,7 +117,7 @@ val repositoryModule =
             AnalyticsRepositoryImpl(get())
         }
 
-        single<com.maxrave.domain.repository.SupabaseAuthRepository>(createdAtStart = true) {
+        single<com.manikandan.domain.repository.SupabaseAuthRepository>(createdAtStart = true) {
             com.maxrave.data.repository.SupabaseAuthRepositoryImpl(
                 dataStoreManager = get(),
                 songRepository = get(),

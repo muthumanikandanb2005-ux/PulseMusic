@@ -1,4 +1,4 @@
-package com.maxrave.media3.exoplayer
+﻿package com.maxrave.media3.exoplayer
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -19,17 +19,17 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
-import com.maxrave.domain.data.player.AudioEffects
-import com.maxrave.domain.data.player.GenericCastState
-import com.maxrave.domain.data.player.GenericMediaItem
-import com.maxrave.domain.data.player.GenericPlaybackParameters
-import com.maxrave.domain.data.player.PlayerConstants
-import com.maxrave.domain.data.player.PlayerError
-import com.maxrave.domain.extension.isVideo
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.mediaservice.player.MediaPlayerInterface
-import com.maxrave.domain.mediaservice.player.MediaPlayerListener
-import com.maxrave.domain.repository.StreamRepository
+import com.manikandan.domain.data.player.AudioEffects
+import com.manikandan.domain.data.player.GenericCastState
+import com.manikandan.domain.data.player.GenericMediaItem
+import com.manikandan.domain.data.player.GenericPlaybackParameters
+import com.manikandan.domain.data.player.PlayerConstants
+import com.manikandan.domain.data.player.PlayerError
+import com.manikandan.domain.extension.isVideo
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.mediaservice.player.MediaPlayerInterface
+import com.manikandan.domain.mediaservice.player.MediaPlayerListener
+import com.manikandan.domain.repository.StreamRepository
 import com.maxrave.logger.Logger
 import com.maxrave.media3.audio.BiquadFilter
 import com.maxrave.media3.audio.CinematicAudioProcessor

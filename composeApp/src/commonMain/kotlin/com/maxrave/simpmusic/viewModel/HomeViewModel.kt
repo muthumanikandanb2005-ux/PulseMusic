@@ -1,17 +1,17 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.viewModelScope
 import com.maxrave.common.SELECTED_LANGUAGE
 import com.maxrave.common.SUPPORTED_LANGUAGE
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.data.model.home.HomeDataCombine
-import com.maxrave.domain.data.model.home.HomeItem
-import com.maxrave.domain.data.model.home.chart.Chart
-import com.maxrave.domain.data.model.mood.Mood
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.manager.DataStoreManager.Values.TRUE
-import com.maxrave.domain.repository.HomeRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.data.model.home.HomeDataCombine
+import com.manikandan.domain.data.model.home.HomeItem
+import com.manikandan.domain.data.model.home.chart.Chart
+import com.manikandan.domain.data.model.mood.Mood
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.manager.DataStoreManager.Values.TRUE
+import com.manikandan.domain.repository.HomeRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import kotlinx.coroutines.Job
@@ -346,7 +346,7 @@ class HomeViewModel(
         }
     }
 
-    private fun isBollywoodOrVideo(content: com.maxrave.domain.data.model.home.Content?): Boolean {
+    private fun isBollywoodOrVideo(content: com.manikandan.domain.data.model.home.Content?): Boolean {
         if (content == null) return false
         val title = content.title.lowercase()
         val desc = content.description?.lowercase().orEmpty()

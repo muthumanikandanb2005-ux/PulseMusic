@@ -1,16 +1,16 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.viewModelScope
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.EpisodeEntity
-import com.maxrave.domain.data.entities.PodcastsEntity
-import com.maxrave.domain.data.model.podcast.PodcastBrowse
-import com.maxrave.domain.data.model.searchResult.songs.Artist
-import com.maxrave.domain.mediaservice.handler.PlaylistType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.repository.PodcastRepository
-import com.maxrave.domain.utils.Resource
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.EpisodeEntity
+import com.manikandan.domain.data.entities.PodcastsEntity
+import com.manikandan.domain.data.model.podcast.PodcastBrowse
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.repository.PodcastRepository
+import com.manikandan.domain.utils.Resource
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.simpmusic.expect.shareUrl
 import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

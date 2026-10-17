@@ -1,9 +1,9 @@
-package com.maxrave.simpmusic.expect
+﻿package com.maxrave.simpmusic.expect
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
-import com.maxrave.domain.data.model.update.UpdateData
+import com.manikandan.domain.data.model.update.UpdateData
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

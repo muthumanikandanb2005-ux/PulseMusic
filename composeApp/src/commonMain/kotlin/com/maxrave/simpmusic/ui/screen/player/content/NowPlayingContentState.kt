@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.player.content
+﻿package com.maxrave.simpmusic.ui.screen.player.content
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector4D
@@ -9,10 +9,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.maxrave.common.ITAG
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.streams.TimeLine
-import com.maxrave.domain.data.player.GenericCastState
-import com.maxrave.domain.mediaservice.handler.ControlState
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.streams.TimeLine
+import com.manikandan.domain.data.player.GenericCastState
+import com.manikandan.domain.mediaservice.handler.ControlState
 import com.maxrave.simpmusic.extension.GradientOffset
 import com.maxrave.simpmusic.viewModel.LyricsProvider
 import com.maxrave.simpmusic.viewModel.NowPlayingScreenData

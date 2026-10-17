@@ -1,9 +1,9 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
-import com.maxrave.domain.data.model.update.UpdateData
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.UpdateRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.model.update.UpdateData
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.UpdateRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -46,7 +46,7 @@ internal class UpdateRepositoryImpl(
                             val url = asset?.browserDownloadUrl ?: return@mapNotNull null
                             val name = asset.name ?: ""
                             val size = asset.size?.toLong() ?: 0L
-                            com.maxrave.domain.data.model.update.UpdateAsset(
+                            com.manikandan.domain.data.model.update.UpdateAsset(
                                 name = name,
                                 downloadUrl = url,
                                 size = size,
