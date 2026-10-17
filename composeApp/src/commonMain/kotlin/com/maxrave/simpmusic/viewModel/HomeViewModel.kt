@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -199,6 +200,11 @@ class HomeViewModel(
                     ),
                 ) { home, exploreMood, exploreChart, newRelease ->
                     HomeDataCombine(home, exploreMood, exploreChart, newRelease)
+                }.catch { e ->
+                    Logger.e("HomeViewModel", "getHomeItemList failed: ${e.message}")
+                    loading.value = false
+                    _homeListState.value = ListState.IDLE
+                    showSnackBarErrorState.emit(e.message ?: "Network error")
                 }.collect { result ->
                     val home = result.home
                     Logger.d("home size", "${home.data?.second?.size}")
@@ -320,7 +326,10 @@ class HomeViewModel(
             homeRepository
                 .getChartData(
                     region,
-                ).collect { values ->
+                ).catch { e ->
+                    Logger.e("HomeViewModel", "exploreChart failed: ${e.message}")
+                    loadingChart.value = false
+                }.collect { values ->
                     regionCodeChart.value = region
                     dataStoreManager.setChartKey(region)
                     when (values) {

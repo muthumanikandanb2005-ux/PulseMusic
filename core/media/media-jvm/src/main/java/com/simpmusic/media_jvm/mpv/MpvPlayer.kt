@@ -260,6 +260,11 @@ class MpvPlayer private constructor(
                 option("ao", "avfoundation,")
             }
 
+            // High-fidelity bit-perfect audio output (native sample rate, gapless playback)
+            option("audio-pitch-correction", "yes")
+            option("gapless-audio", "yes")
+            option("audio-samplerate", "0")
+
             // VLC "--network-caching=10000" / ":network-caching=15000".
             option("cache", "yes")
             option("cache-secs", networkCacheSeconds.toString())

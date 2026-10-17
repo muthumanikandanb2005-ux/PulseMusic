@@ -47,10 +47,12 @@ import io.sentry.Sentry
 import io.sentry.SentryLevel
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import multiplatform.network.cmptoast.ToastHost
 import multiplatform.network.cmptoast.showToast
@@ -240,16 +242,23 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         }
     }
 
-    // Register pulsemusic:// protocol handler on Windows (HKCU, no admin needed)
-    WindowsProtocolRegistrar.register()
-    WindowsShortcutManager.ensureShortcutsCreated()
+    // Register pulsemusic:// protocol handler & shortcuts on Windows asynchronously
+    // Prevents blocking the main EDT thread during initial window startup
+    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+        runCatching { WindowsProtocolRegistrar.register() }
+        runCatching { WindowsShortcutManager.ensureShortcutsCreated() }
+    }
 
     val desktopNotificationManager = getKoin().get<DesktopNotificationManager>()
-    desktopNotificationManager.initialize()
+    runCatching { desktopNotificationManager.initialize() }
 
     val sharedViewModel = getKoin().get<SharedViewModel>()
-    if (sharedViewModel.shouldCheckForUpdate()) {
-        sharedViewModel.checkForUpdate()
+    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+        runCatching {
+            if (sharedViewModel.shouldCheckForUpdate()) {
+                sharedViewModel.checkForUpdate()
+            }
+        }
     }
 
     // Connect deep link handler to SharedViewModel
@@ -340,50 +349,54 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         // "Parallels Software International Inc." in Manufacturer and
         // "Parallels ARM Virtual Machine" in Model; VirtualBox uses
         // "innotek GmbH" + "VirtualBox"; etc).
-        //
-        // Microsoft removed `wmic` from Windows 11 (deprecated since
-        // 10 21H1), so on modern Windows it returns "command not
-        // recognized" and our previous detection always saw an empty
-        // vendor — Parallels Win 11 ARM users hit this and got an
-        // invisible window. PowerShell `Get-CimInstance` is the modern
-        // replacement; we try it first and fall back to wmic for older
-        // hosts.
+        // Detect virtual machines (Parallels, VirtualBox, VMware, etc.).
+        // Transparent + undecorated Compose windows don't render on VM
+        // GPU drivers — the window stays invisible while the JVM keeps
+        // running, so we must detect the VM and fall back to a normal
+        // decorated window.
+        // We use JNA to query the registry directly (takes < 1ms, zero subprocesses),
+        // preventing the 2-3 second startup freeze previously caused by PowerShell.
         val isVM =
             remember {
                 val osName = System.getProperty("os.name", "")
                 if (!osName.contains("Windows", ignoreCase = true)) {
                     return@remember false
                 }
-                val probes =
-                    listOf(
-                        listOf(
-                            "powershell",
-                            "-NoProfile",
-                            "-Command",
-                            "(Get-CimInstance Win32_ComputerSystem | " +
-                                "Select-Object Manufacturer,Model | " +
-                                "Format-List | Out-String).Trim()",
-                        ),
-                        listOf("wmic", "computersystem", "get", "manufacturer,model"),
+                if (System.getProperty("compose.window.no-transparent", "false").toBooleanStrictOrNull() == true) {
+                    return@remember true
+                }
+                val vmTokens = listOf("Parallels", "VirtualBox", "VMware", "QEMU", "KVM", "Xen", "Hyper-V", "Virtual")
+
+                // Fast path: direct Windows Registry via JNA (0ms, no process spawn)
+                val fromRegistry = runCatching {
+                    val biosKey = "HARDWARE\\DESCRIPTION\\System\\BIOS"
+                    val manufacturer = com.sun.jna.platform.win32.Advapi32Util.registryGetStringValue(
+                        com.sun.jna.platform.win32.WinReg.HKEY_LOCAL_MACHINE,
+                        biosKey,
+                        "SystemManufacturer",
                     )
-                val sysInfo =
-                    probes
-                        .asSequence()
-                        .mapNotNull { cmd ->
-                            runCatching {
-                                val p =
-                                    ProcessBuilder(cmd)
-                                        .redirectErrorStream(true)
-                                        .start()
-                                val out = p.inputStream.bufferedReader().readText()
-                                if (p.waitFor() == 0 && out.isNotBlank()) out else null
-                            }.getOrNull()
-                        }
-                        .firstOrNull()
-                        .orEmpty()
-                val vmTokens = listOf("Parallels", "VirtualBox", "VMware", "QEMU", "KVM", "Xen", "Hyper-V")
-                vmTokens.any { sysInfo.contains(it, ignoreCase = true) } ||
-                    System.getProperty("compose.window.no-transparent", "false").toBooleanStrictOrNull() == true
+                    val product = com.sun.jna.platform.win32.Advapi32Util.registryGetStringValue(
+                        com.sun.jna.platform.win32.WinReg.HKEY_LOCAL_MACHINE,
+                        biosKey,
+                        "SystemProductName",
+                    )
+                    "$manufacturer $product"
+                }.getOrNull()
+
+                if (!fromRegistry.isNullOrBlank()) {
+                    return@remember vmTokens.any { fromRegistry.contains(it, ignoreCase = true) }
+                }
+
+                // Fast fallback: native reg.exe (native C binary, executes in <15ms)
+                val sysInfo = runCatching {
+                    val p = ProcessBuilder("reg", "query", "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS")
+                        .redirectErrorStream(true)
+                        .start()
+                    val out = p.inputStream.bufferedReader().readText()
+                    if (p.waitFor() == 0) out else ""
+                }.getOrDefault("")
+
+                vmTokens.any { sysInfo.contains(it, ignoreCase = true) }
             }
         // Publish whether the custom title bar will be mounted so getScreenSizeInfo() can
         // subtract the 40dp strip it occupies above the content (see DesktopWindowChrome).

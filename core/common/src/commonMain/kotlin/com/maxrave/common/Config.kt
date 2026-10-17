@@ -249,19 +249,25 @@ object SUPPORTED_LANGUAGE {
  * is the same stream the quality setting three modules away is supposed to produce.
  */
 object ITAG {
-    /** Opus, adaptive audio — what the "Low" audio-quality setting selects. */
+    /** Opus, adaptive audio — what the "Low" audio-quality setting selects (~66 kbps). */
     const val AUDIO_OPUS_LOW: Int = 250
 
-    /** Opus, adaptive audio — what the "Medium" audio-quality setting selects. */
-    const val AUDIO_OPUS_MEDIUM: Int = 251
+    /** AAC, adaptive audio — what the "Standard" audio-quality setting selects (~128 kbps). */
+    const val AUDIO_AAC_STANDARD: Int = 140
 
-    /** Opus 256 kbps, adaptive audio — the "High" setting. YouTube serves it to Premium accounts only. */
-    const val AUDIO_OPUS_HIGH: Int = 774
+    /** Opus, adaptive audio — what the "High" audio-quality setting selects (~160 kbps). */
+    const val AUDIO_OPUS_HIGH: Int = 251
+
+    /** Opus 256 kbps, adaptive audio — "Very High" setting. YouTube serves it to Premium accounts only. */
+    const val AUDIO_OPUS_VERY_HIGH: Int = 774
 
     /**
-     * AAC 256 kbps, adaptive audio — the AAC twin of [AUDIO_OPUS_HIGH]. An account entitled to
-     * high-quality audio is given one family or the other, so this is the fallback when 774 is absent.
+     * AAC 256 kbps, adaptive audio — "Lossless (Apple Music Quality)" setting (Apple Music standard 256k AAC / Lossless master).
      */
+    const val AUDIO_AAC_VERY_HIGH: Int = 141
+
+    /** Legacy alias for backwards compatibility. */
+    const val AUDIO_OPUS_MEDIUM: Int = 251
     const val AUDIO_AAC_HIGH: Int = 141
 
     /** H.264 360p, adaptive video — what the "360p" video-quality setting selects. */
@@ -277,23 +283,20 @@ object ITAG {
     const val MUXED_360P: Int = 18
 
     /** Every adaptive audio itag the app knows how to play. */
-    val AUDIO: Set<Int> = setOf(AUDIO_OPUS_LOW, AUDIO_OPUS_MEDIUM, AUDIO_OPUS_HIGH, AUDIO_AAC_HIGH)
+    val AUDIO: Set<Int> = setOf(AUDIO_OPUS_LOW, AUDIO_AAC_STANDARD, AUDIO_OPUS_HIGH, AUDIO_OPUS_VERY_HIGH, AUDIO_AAC_VERY_HIGH)
 
     /** Every adaptive video itag the app knows how to play. */
     val VIDEO: Set<Int> = setOf(VIDEO_1080P, VIDEO_720P, VIDEO_360P)
 
     /**
-     * The other 256 kbps rendition of the same audio, or null for an itag that has no twin.
-     *
-     * YouTube hands a high-quality account ONE of the two families, so the one the user picked can
-     * simply be absent from a response that still carries its counterpart. Asking for the twin is
-     * therefore a better fallback than dropping to "any audio stream", which would silently serve
-     * a 70 kbps one instead.
+     * The other high-bitrate rendition of the same audio, or null for an itag that has no twin.
      */
     fun highQualityTwinOf(itag: Int?): Int? =
         when (itag) {
-            AUDIO_OPUS_HIGH -> AUDIO_AAC_HIGH
-            AUDIO_AAC_HIGH -> AUDIO_OPUS_HIGH
+            AUDIO_OPUS_VERY_HIGH -> AUDIO_AAC_VERY_HIGH
+            AUDIO_AAC_VERY_HIGH -> AUDIO_OPUS_VERY_HIGH
+            AUDIO_OPUS_HIGH -> AUDIO_AAC_STANDARD
+            AUDIO_AAC_STANDARD -> AUDIO_OPUS_HIGH
             else -> null
         }
 }
@@ -301,49 +304,71 @@ object ITAG {
 object QUALITY {
     val items: Array<CharSequence> =
         arrayOf(
-            "Low - 66kps",
-            "Medium - 129kps",
-            "High Opus - 256kps (YT Premium)",
-            "High AAC - 256kps (YT Premium)",
+            "Low (66 kbps)",
+            "Standard (128 kbps)",
+            "High (160 kbps)",
+            "Very High (256-320 kbps)",
+            "Lossless (Apple Music Quality)",
         )
 
     /** Parallel to [items]: an index into one is an index into the other, so the order is load-bearing. */
     val itags: Array<Int> =
         arrayOf(
             ITAG.AUDIO_OPUS_LOW,
-            ITAG.AUDIO_OPUS_MEDIUM,
+            ITAG.AUDIO_AAC_STANDARD,
             ITAG.AUDIO_OPUS_HIGH,
-            ITAG.AUDIO_AAC_HIGH,
+            ITAG.AUDIO_OPUS_VERY_HIGH,
+            ITAG.AUDIO_AAC_VERY_HIGH,
         )
+
+    val DEFAULT_ITEM: String = items[2].toString() // "High (160 kbps)" default
 
     /**
      * Labels written by older builds, mapped to the item that replaced them.
-     *
-     * The setting is persisted as the label STRING, not as an index, so renaming an entry orphans
-     * every device that already stored the old text. Without this map such a device falls through
-     * to [items]`[0]` — silently dropping a Premium account from 256 kbps to 66 kbps.
      */
     private val LEGACY_ITEMS: Map<String, String> =
         mapOf(
-            // Split into the Opus and AAC families; the plain "High" was always the Opus one.
-            "High - 256kps (YT Premium)" to items[2].toString(),
+            "Low" to items[0].toString(),
+            "Low - 66kps" to items[0].toString(),
+            "Standard" to items[1].toString(),
+            "Medium" to items[1].toString(),
+            "Medium - 129kps" to items[1].toString(),
+            "High" to items[2].toString(),
+            "Very High" to items[3].toString(),
+            "High Opus - 256kps (YT Premium)" to items[3].toString(),
+            "High - 256kps (YT Premium)" to items[3].toString(),
+            "High AAC - 256kps (YT Premium)" to items[4].toString(),
+            "Lossless" to items[4].toString(),
+            "Lossless (Apple Music Quality)" to items[4].toString(),
         )
 
     /**
      * The stored label as a currently-valid one: itself when still valid, its replacement when it
-     * is a known older label, and [items]`[0]` for anything unrecognised.
-     *
-     * Migration is lazy on purpose — nothing rewrites the stored value, so a read never races a
-     * write. The stored text is replaced the next time the user picks an entry themselves.
+     * is a known older label, and [DEFAULT_ITEM] for anything unrecognised.
      */
     fun normalize(saved: String?): String {
-        val label = saved ?: return items[0].toString()
-        if (items.any { it.toString() == label }) return label
-        return LEGACY_ITEMS[label] ?: items[0].toString()
+        val label = saved ?: return DEFAULT_ITEM
+        if (items.any { it.toString().equals(label, ignoreCase = true) }) {
+            return items.first { it.toString().equals(label, ignoreCase = true) }.toString()
+        }
+        LEGACY_ITEMS[label]?.let { return it }
+        val lower = label.lowercase()
+        return when {
+            lower.contains("lossless") || lower.contains("apple") -> items[4].toString()
+            lower.contains("very high") || (lower.contains("256") && lower.contains("opus")) -> items[3].toString()
+            lower.contains("medium") || lower.contains("standard") || lower.contains("128") || lower.contains("129") -> items[1].toString()
+            lower.contains("low") || lower.contains("66") -> items[0].toString()
+            lower.contains("high") -> items[2].toString()
+            else -> DEFAULT_ITEM
+        }
     }
 
     /** The itag a stored label selects. Goes through [normalize], so older labels still resolve. */
-    fun itagOf(saved: String?): Int = itags[items.indexOfFirst { it.toString() == normalize(saved) }]
+    fun itagOf(saved: String?): Int {
+        val normalized = normalize(saved)
+        val idx = items.indexOfFirst { it.toString() == normalized }
+        return if (idx >= 0) itags[idx] else ITAG.AUDIO_OPUS_HIGH
+    }
 }
 
 object VIDEO_QUALITY {

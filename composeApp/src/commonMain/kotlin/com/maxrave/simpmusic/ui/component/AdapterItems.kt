@@ -221,6 +221,14 @@ fun HomeItem(
                                     ),
                                 )
                             }, data = temp)
+                        } else if (playlistId.startsWith("OLAK") || playlistId.startsWith("VLOLAK")) {
+                            HomeItemContentPlaylist(onClick = {
+                                navController.navigate(
+                                    AlbumDestination(
+                                        browseId = playlistId.removePrefix("VL"),
+                                    ),
+                                )
+                            }, data = temp)
                         } else {
                             HomeItemContentPlaylist(onClick = {
                                 navController.navigate(
@@ -251,7 +259,7 @@ fun HomeItem(
                             HomeItemContentPlaylist(onClick = {
                                 navController.navigate(
                                     AlbumDestination(
-                                        browseId = browseId,
+                                        browseId = browseId.removePrefix("VL"),
                                     ),
                                 )
                             }, data = temp)

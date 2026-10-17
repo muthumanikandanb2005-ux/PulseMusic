@@ -129,8 +129,10 @@ import simpmusic.composeapp.generated.resources.album_length
 import simpmusic.composeapp.generated.resources.baseline_downloaded
 import simpmusic.composeapp.generated.resources.downloaded
 import simpmusic.composeapp.generated.resources.downloading
+import simpmusic.composeapp.generated.resources.error
 import simpmusic.composeapp.generated.resources.no_description
 import simpmusic.composeapp.generated.resources.other_version
+import simpmusic.composeapp.generated.resources.retry
 import simpmusic.composeapp.generated.resources.year_and_category
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1065,7 +1067,52 @@ fun AlbumScreen(
             }
 
             LocalPlaylistState.PlaylistLoadState.Error -> {
-                navController.navigateUp()
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(mutedPaletteBg)
+                            .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.error),
+                            style = typo().titleMedium,
+                            color = Color.White,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            androidx.compose.material3.Button(
+                                onClick = { navController.navigateUp() },
+                                colors =
+                                    androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = Color.White.copy(alpha = 0.2f),
+                                        contentColor = Color.White,
+                                    ),
+                            ) {
+                                Icon(
+                                    imageVector = SimpIcons.ArrowBackIosNew,
+                                    contentDescription = "Back",
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            androidx.compose.material3.Button(
+                                onClick = { viewModel.updateBrowseId(browseId) },
+                                colors =
+                                    androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color.Black,
+                                    ),
+                            ) {
+                                Text(stringResource(Res.string.retry))
+                            }
+                        }
+                    }
+                }
             }
 
             LocalPlaylistState.PlaylistLoadState.Loading -> {

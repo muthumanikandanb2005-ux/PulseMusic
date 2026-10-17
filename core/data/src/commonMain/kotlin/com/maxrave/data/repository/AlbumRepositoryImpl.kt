@@ -104,14 +104,18 @@ internal class AlbumRepositoryImpl(
     override fun getAlbumData(browseId: String): Flow<Resource<AlbumBrowse>> =
         flow {
             runCatching {
+                val cleanBrowseId = browseId.removePrefix("VL")
                 youTube
-                    .album(browseId, withSongs = true)
+                    .album(cleanBrowseId, withSongs = true)
                     .onSuccess { result ->
                         emit(Resource.Success(parseAlbumData(result)))
                     }.onFailure { e ->
                         Logger.d(TAG, "getAlbumData -> error: ${e.message}")
                         emit(Resource.Error(e.message.toString()))
                     }
+            }.onFailure { e ->
+                Logger.e(TAG, "getAlbumData exception: ${e.message}")
+                emit(Resource.Error(e.message ?: "Failed to load album"))
             }
         }.flowOn(Dispatchers.IO)
 

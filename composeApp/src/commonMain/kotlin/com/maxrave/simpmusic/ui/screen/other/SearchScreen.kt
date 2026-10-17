@@ -878,7 +878,7 @@ fun SearchScreen(
                                                                         onClickListener = {
                                                                             navController.navigate(
                                                                                 AlbumDestination(
-                                                                                    result.browseId,
+                                                                                    result.browseId.removePrefix("VL"),
                                                                                 ),
                                                                             )
                                                                         },
@@ -1152,7 +1152,22 @@ fun SearchScreen(
                                 isSelected = isSelected,
                                 text = stringResource(id.toStringRes()),
                             ) {
-                                searchViewModel.setSearchType(id)
+                                if (id != searchScreenState.searchType) {
+                                    searchViewModel.setSearchType(id)
+                                    val query = searchText.trim()
+                                    if (query.isNotEmpty()) {
+                                        when (id) {
+                                            SearchType.ALL -> searchViewModel.searchAll(query)
+                                            SearchType.SONGS -> searchViewModel.searchSongs(query)
+                                            SearchType.VIDEOS -> searchViewModel.searchVideos(query)
+                                            SearchType.ALBUMS -> searchViewModel.searchAlbums(query)
+                                            SearchType.ARTISTS -> searchViewModel.searchArtists(query)
+                                            SearchType.PLAYLISTS -> searchViewModel.searchPlaylists(query)
+                                            SearchType.FEATURED_PLAYLISTS -> searchViewModel.searchFeaturedPlaylist(query)
+                                            SearchType.PODCASTS -> searchViewModel.searchPodcast(query)
+                                        }
+                                    }
+                                }
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                         }

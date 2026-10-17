@@ -154,8 +154,34 @@ internal class StreamRepositoryImpl(
                     val audioFormat =
                         formatList.find { it.itag == itag }
                             ?: (if (audioTwinItag != null) formatList.find { it.itag == audioTwinItag } else null)
-                            ?: formatList.find { it.isAudio && it.url.isNullOrEmpty().not() }
-                            ?: formatList.filter { it.isAudio }.maxByOrNull { it.bitrate ?: 0 }
+                            ?: when (itag) {
+                                ITAG.AUDIO_AAC_VERY_HIGH, ITAG.AUDIO_OPUS_VERY_HIGH -> {
+                                    formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }
+                                        .maxByOrNull { it.bitrate ?: 0 }
+                                }
+                                ITAG.AUDIO_OPUS_HIGH -> {
+                                    formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }
+                                        .filter { (it.bitrate ?: 0) >= 150000 }
+                                        .minByOrNull { it.bitrate ?: 0 }
+                                        ?: formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }
+                                            .maxByOrNull { it.bitrate ?: 0 }
+                                }
+                                ITAG.AUDIO_AAC_STANDARD -> {
+                                    formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }
+                                        .minByOrNull { kotlin.math.abs((it.bitrate ?: 0) - 128000) }
+                                        ?: formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }
+                                            .maxByOrNull { it.bitrate ?: 0 }
+                                }
+                                ITAG.AUDIO_OPUS_LOW -> {
+                                    formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }
+                                        .minByOrNull { it.bitrate ?: Int.MAX_VALUE }
+                                }
+                                else -> {
+                                    formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }
+                                        .maxByOrNull { it.bitrate ?: 0 }
+                                }
+                            }
+                            ?: formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }.maxByOrNull { it.bitrate ?: 0 }
                     var format =
                         if (isVideo) {
                             videoFormat
@@ -167,7 +193,7 @@ internal class StreamRepositoryImpl(
                             formatList.firstOrNull { !it.isAudio && it.url.isNullOrEmpty().not() }
                                 ?: formatList.firstOrNull { it.url.isNullOrEmpty().not() }
                         } else {
-                            formatList.firstOrNull { it.isAudio && it.url.isNullOrEmpty().not() }
+                            formatList.filter { it.isAudio && it.url.isNullOrEmpty().not() }.maxByOrNull { it.bitrate ?: 0 }
                                 ?: formatList.firstOrNull { it.url.isNullOrEmpty().not() }
                         }
                     }
