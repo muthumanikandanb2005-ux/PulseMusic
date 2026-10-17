@@ -46,9 +46,10 @@ class AlbumViewModel(
     private var collectDownloadStateJob: Job? = null
 
     fun updateBrowseId(browseId: String) {
+        val cleanBrowseId = browseId.removePrefix("VL")
         viewModelScope.launch {
-            _uiState.update { it.copy(browseId = browseId) }
-            albumRepository.getAlbumData(browseId).collectLatest { res ->
+            _uiState.update { it.copy(browseId = cleanBrowseId, loadState = LocalPlaylistState.PlaylistLoadState.Loading) }
+            albumRepository.getAlbumData(cleanBrowseId).collectLatest { res ->
                 when (res) {
                     is Resource.Success -> {
                         val data = res.data

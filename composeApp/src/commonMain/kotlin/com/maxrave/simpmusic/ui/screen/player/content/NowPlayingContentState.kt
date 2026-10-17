@@ -8,6 +8,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.maxrave.common.ITAG
 import com.maxrave.domain.data.model.browse.album.Track
 import com.maxrave.domain.data.model.streams.TimeLine
 import com.maxrave.domain.data.player.GenericCastState
@@ -58,18 +59,16 @@ internal fun String.stripRichSyncTimestamps(): String =
         .replace(WHITESPACE_REGEX, " ")
         .trim()
 
-// Codec label for the Apple Music style's progress-bar badge. Derived from the stream's
-// mimeType (e.g. `audio/webm; codecs="opus"`, `audio/mp4; codecs="mp4a.40.2"`) rather than the
-// itag, which the two YouTube audio families always encode as one of these two codecs. Returns
-// null for anything else so the badge hides instead of showing a guess.
-internal fun String?.toAudioCodecLabel(): String? {
-    // Fed NewFormatEntity.codecs — "opus", or "mp4a.40.2" for AAC. The regex that fills that
-    // column falls back to the WHOLE mimeType when it fails to match, so both shapes have to be
-    // recognised here; "aac" covers the Piped path, which reports the codec by name.
-    val codec = this ?: return null
+// Codec label for the Apple Music style's progress-bar badge. Shows "Lossless" for Apple Music quality
+// or high-bitrate AAC/Opus/FLAC streams, matching Apple Music.
+internal fun String?.toAudioCodecLabel(bitrate: Int? = null, itag: Int? = null): String? {
+    val codec = this ?: ""
     return when {
-        codec.contains("opus", ignoreCase = true) -> "OPUS"
-        codec.contains("mp4a", ignoreCase = true) || codec.contains("aac", ignoreCase = true) -> "AAC"
+        codec.contains("flac", ignoreCase = true) || codec.contains("alac", ignoreCase = true) -> "Lossless"
+        itag == ITAG.AUDIO_AAC_VERY_HIGH || itag == ITAG.AUDIO_OPUS_VERY_HIGH || (bitrate != null && bitrate >= 250000) -> "Lossless"
+        codec.contains("opus", ignoreCase = true) -> if (bitrate != null && bitrate >= 150000) "Lossless" else "OPUS"
+        codec.contains("mp4a", ignoreCase = true) || codec.contains("aac", ignoreCase = true) -> if (bitrate != null && bitrate >= 250000) "Lossless" else "AAC"
+        codec.isNotBlank() -> codec.uppercase()
         else -> null
     }
 }

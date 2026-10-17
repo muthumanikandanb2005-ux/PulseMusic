@@ -621,7 +621,7 @@ fun NowPlayingScreenContent(
             // `audio/webm; codecs="opus"` with a regex and stores the two halves in SEPARATE
             // columns: mimeType keeps "audio/webm", codecs keeps "opus". Asking mimeType for the
             // codec therefore never matched anything and the badge never rendered, on any track.
-            audioCodecLabel = formatState?.codecs.toAudioCodecLabel(),
+            audioCodecLabel = formatState?.codecs.toAudioCodecLabel(formatState?.bitrate, formatState?.itag),
             ambientModeEnabled = ambientModeSetting != DataStoreManager.FALSE,
         )
     val actions =

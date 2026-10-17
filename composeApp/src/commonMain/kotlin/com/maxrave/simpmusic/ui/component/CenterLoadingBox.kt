@@ -46,10 +46,10 @@ fun CenterLoadingBox(modifier: Modifier) {
             ContainedLoadingIndicator(
                 modifier =
                     Modifier
-                        .size(56.dp),
+                        .size(60.dp),
                 polygons = LoadingIndicatorDefaults.IndeterminateIndicatorPolygons,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                indicatorColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                indicatorColor = MaterialTheme.colorScheme.primary,
                 containerShape = shape.toShape(),
             )
         }

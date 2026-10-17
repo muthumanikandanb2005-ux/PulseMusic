@@ -117,28 +117,29 @@ fun NowPlayingContentBitChord(
     actions: NowPlayingContentActions,
     modifier: Modifier = Modifier,
 ) {
-    val isPlaying = state.controllerState.isPlaying
-    val songTitle = state.screenData.nowPlayingTitle.ifEmpty { "Pulse Music" }
-    val artistName = state.screenData.artistName.ifEmpty { "Pulse Studio" }
+    NowPlayingExpressiveTheme(state = state) {
+        val isPlaying = state.controllerState.isPlaying
+        val songTitle = state.screenData.nowPlayingTitle.ifEmpty { "Pulse Music" }
+        val artistName = state.screenData.artistName.ifEmpty { "Pulse Studio" }
 
-    val isLavender = LocalIsPearlLavenderTheme.current
-    val isDark = isSystemInDarkTheme()
+        val isLavender = LocalIsPearlLavenderTheme.current
+        val isDark = isSystemInDarkTheme()
 
-    val accentColor = remember(state.spotShadowColor) {
-        if (state.spotShadowColor != Color.Unspecified &&
-            state.spotShadowColor != Color.Black &&
-            state.spotShadowColor != Color.Transparent) {
-            state.spotShadowColor
-        } else {
-            BitChordNeonAccent
+        val accentColor = remember(state.spotShadowColor) {
+            if (state.spotShadowColor != Color.Unspecified &&
+                state.spotShadowColor != Color.Black &&
+                state.spotShadowColor != Color.Transparent) {
+                state.spotShadowColor
+            } else {
+                BitChordNeonAccent
+            }
         }
-    }
 
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize()
-            .background(if (isLavender) MaterialTheme.colorScheme.background else BitChordOledBlack),
-    ) {
+        BoxWithConstraints(
+            modifier = modifier
+                .fillMaxSize()
+                .background(if (isLavender) MaterialTheme.colorScheme.background else BitChordOledBlack),
+        ) {
         val ambientColor = state.spotShadowColor
 
         // Ambient radial glow behind artwork (hardware-accelerated drawBehind)
@@ -437,6 +438,7 @@ fun NowPlayingContentBitChord(
                 Spacer(Modifier.height(24.dp))
             }
         }
+    }
     }
 }
 

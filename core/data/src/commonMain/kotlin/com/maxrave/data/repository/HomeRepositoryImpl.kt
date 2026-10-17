@@ -170,41 +170,13 @@ internal class HomeRepositoryImpl(
                                 songString,
                             ),
                         )
-//                        var count = 0
-//                        while (count < limit && continueParam != null) {
-//                            youTube
-//                                .customQuery(browseId = "", continuation = continueParam)
-//                                .onSuccess { response ->
-//                                    continueParam =
-//                                        response.continuationContents
-//                                            ?.sectionListContinuation
-//                                            ?.continuations
-//                                            ?.get(
-//                                                0,
-//                                            )?.nextContinuationData
-//                                            ?.continuation
-//                                    Logger.d("Repository", "continueParam: $continueParam")
-//                                    val dataContinue =
-//                                        response.continuationContents?.sectionListContinuation?.contents
-//                                    list.addAll(
-//                                        parseMixedContent(
-//                                            dataContinue,
-//                                            viewString,
-//                                            songString,
-//                                        ),
-//                                    )
-//                                    count++
-//                                    Logger.d("Repository", "count: $count")
-//                                }.onFailure {
-//                                    Logger.e("Repository", "Error: ${it.message}")
-//                                    count++
-//                                }
-//                        }
                         Logger.d("Repository", "List size: ${list.size}")
                         emit(Resource.Success(continueParam to list.toList()))
                     }.onFailure { error ->
                         emit(Resource.Error<Pair<String?, List<HomeItem>>>(error.message.toString()))
                     }
+            }.onFailure { e ->
+                emit(Resource.Error<Pair<String?, List<HomeItem>>>(e.message ?: "Network error"))
             }
         }.flowOn(Dispatchers.IO)
 
@@ -213,30 +185,34 @@ internal class HomeRepositoryImpl(
         viewString: String,
         songString: String
     ): Flow<Resource<Pair<String?, List<HomeItem>>>> = flow {
-        youTube
-            .customQuery(browseId = "", continuation = continueParam)
-            .onSuccess { response ->
-                val newContinueParam =
-                    response.continuationContents
-                        ?.sectionListContinuation
-                        ?.continuations
-                        ?.get(
-                            0,
-                        )?.nextContinuationData
-                        ?.continuation
-                Logger.d("Repository", "continueParam: $continueParam")
-                val dataContinue =
-                    response.continuationContents?.sectionListContinuation?.contents
-                val list =
-                    parseMixedContent(
-                        dataContinue,
-                        viewString,
-                        songString,
-                    )
-                emit(Resource.Success(newContinueParam to list))
-            }.onFailure {
-                emit(Resource.Error<Pair<String?, List<HomeItem>>>(it.message.toString()))
-            }
+        runCatching {
+            youTube
+                .customQuery(browseId = "", continuation = continueParam)
+                .onSuccess { response ->
+                    val newContinueParam =
+                        response.continuationContents
+                            ?.sectionListContinuation
+                            ?.continuations
+                            ?.get(
+                                0,
+                            )?.nextContinuationData
+                            ?.continuation
+                    Logger.d("Repository", "continueParam: $continueParam")
+                    val dataContinue =
+                        response.continuationContents?.sectionListContinuation?.contents
+                    val list =
+                        parseMixedContent(
+                            dataContinue,
+                            viewString,
+                            songString,
+                        )
+                    emit(Resource.Success(newContinueParam to list))
+                }.onFailure {
+                    emit(Resource.Error<Pair<String?, List<HomeItem>>>(it.message.toString()))
+                }
+        }.onFailure { e ->
+            emit(Resource.Error<Pair<String?, List<HomeItem>>>(e.message ?: "Network error"))
+        }
     }.flowOn(Dispatchers.IO)
 
     override fun getNewRelease(
@@ -244,13 +220,17 @@ internal class HomeRepositoryImpl(
         musicVideoString: String,
     ): Flow<Resource<List<HomeItem>>> =
         flow {
-            youTube
-                .newRelease()
-                .onSuccess { result ->
-                    emit(Resource.Success<List<HomeItem>>(parseNewRelease(result, newReleaseString, musicVideoString)))
-                }.onFailure { error ->
-                    emit(Resource.Error<List<HomeItem>>(error.message.toString()))
-                }
+            runCatching {
+                youTube
+                    .newRelease()
+                    .onSuccess { result ->
+                        emit(Resource.Success<List<HomeItem>>(parseNewRelease(result, newReleaseString, musicVideoString)))
+                    }.onFailure { error ->
+                        emit(Resource.Error<List<HomeItem>>(error.message.toString()))
+                    }
+            }.onFailure { e ->
+                emit(Resource.Error<List<HomeItem>>(e.message ?: "Network error"))
+            }
         }.flowOn(Dispatchers.IO)
 
     override fun getChartData(countryCode: String): Flow<Resource<Chart>> =
@@ -277,6 +257,8 @@ internal class HomeRepositoryImpl(
                     }.onFailure { error ->
                         emit(Resource.Error<Chart>(error.message.toString()))
                     }
+            }.onFailure { e ->
+                emit(Resource.Error<Chart>(e.message ?: "Network error"))
             }
         }.flowOn(Dispatchers.IO)
 
@@ -323,6 +305,10 @@ internal class HomeRepositoryImpl(
                             emit(Resource.Error<Mood>(e.message.toString()))
                         }
                     }
+            }.onFailure { e ->
+                if (cached == null) {
+                    emit(Resource.Error<Mood>(e.message ?: "Network error"))
+                }
             }
         }.flowOn(Dispatchers.IO)
 
@@ -335,17 +321,19 @@ internal class HomeRepositoryImpl(
                 return@flow
             }
             val resolved =
-                youTube
-                    .customQuery(
-                        browseId = "FEmusic_moods_and_genres_category",
-                        params = params,
-                    ).getOrNull()
-                    ?.let { parseMoodsMomentObject(it) }
-                    ?.items
-                    ?.firstNotNullOfOrNull { section ->
-                        section.contents
-                            .firstNotNullOfOrNull { it.thumbnails?.lastOrNull()?.url }
-                    }
+                runCatching {
+                    youTube
+                        .customQuery(
+                            browseId = "FEmusic_moods_and_genres_category",
+                            params = params,
+                        ).getOrNull()
+                        ?.let { parseMoodsMomentObject(it) }
+                        ?.items
+                        ?.firstNotNullOfOrNull { section ->
+                            section.contents
+                                .firstNotNullOfOrNull { it.thumbnails?.lastOrNull()?.url }
+                        }
+                }.getOrNull()
             emit(resolved)
             if (resolved != null) {
                 dataStoreManager.setMoodArtworkCache(
@@ -379,6 +367,8 @@ internal class HomeRepositoryImpl(
                     }.onFailure { e ->
                         emit(Resource.Error<MoodsMomentObject>(e.message.toString()))
                     }
+            }.onFailure { e ->
+                emit(Resource.Error<MoodsMomentObject>(e.message ?: "Network error"))
             }
         }.flowOn(Dispatchers.IO)
 
@@ -399,6 +389,8 @@ internal class HomeRepositoryImpl(
                     }.onFailure { e ->
                         emit(Resource.Error<GenreObject>(e.message.toString()))
                     }
+            }.onFailure { e ->
+                emit(Resource.Error<GenreObject>(e.message ?: "Network error"))
             }
         }.flowOn(Dispatchers.IO)
 }
