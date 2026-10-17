@@ -1,5 +1,5 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "3.1.3"
+#define MyAppVersion "3.1.4"
 #define MyAppPublisher "Pulse Music Studio (Muthumanikandan B)"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"
@@ -32,11 +32,11 @@ SignTool=signtool
 SignedUninstaller=yes
 VersionInfoCompany=Pulse Music Studio
 VersionInfoDescription=Pulse Music Desktop Setup
-VersionInfoVersion=3.1.3.0
-VersionInfoTextVersion=3.1.3
+VersionInfoVersion=3.1.4.0
+VersionInfoTextVersion=3.1.4
 VersionInfoCopyright=Copyright (C) 2026 Pulse Music Studio
 VersionInfoProductName=Pulse Music
-VersionInfoProductVersion=3.1.3.0
+VersionInfoProductVersion=3.1.4.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

@@ -87,13 +87,20 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     override fun onStart() {
         super.onStart()
-        startMusicService()
+        if (!mBound) {
+            startMusicService()
+        }
     }
 
     override fun onStop() {
         super.onStop()
-        if (shouldUnbind) {
-            unbindService(serviceConnection)
+        if (mBound && shouldUnbind) {
+            try {
+                unbindService(serviceConnection)
+            } catch (e: Exception) {
+                Logger.w("MainActivity", "Error unbinding service: ${e.message}")
+            }
+            mBound = false
         }
     }
 
@@ -121,9 +128,6 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             },
         )
         VersionManager.initialize()
-        // Recreate view model to fix the issue of view model not getting data from the service
-        unloadKoinModules(viewModelModule)
-        loadKoinModules(viewModelModule)
         checkForUpdate()
         if (viewModel.recreateActivity.value || viewModel.isServiceRunning) {
             viewModel.activityRecreateDone()
@@ -337,18 +341,23 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         val shouldStopMusicService = viewModel.shouldStopMusicService()
         Logger.w("MainActivity", "onDestroy: Should stop service $shouldStopMusicService")
 
-        // Always unbind service if it was bound to prevent MusicBinder leak
-        if (shouldStopMusicService && shouldUnbind && isFinishing) {
+        if (mBound && shouldUnbind) {
+            try {
+                unbindService(serviceConnection)
+            } catch (e: Exception) {
+                Logger.w("MainActivity", "Error unbinding service: ${e.message}")
+            }
+            mBound = false
+        }
+        if (shouldStopMusicService && isFinishing) {
             viewModel.isServiceRunning = false
         }
-        unloadKoinModules(viewModelModule)
         super.onDestroy()
         Logger.d("MainActivity", "onDestroy: ")
     }
 
     override fun onRestart() {
         super.onRestart()
-        viewModel.activityRecreate()
     }
 
     private fun startMusicService() {
@@ -468,6 +477,5 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        viewModel.activityRecreate()
     }
 }
