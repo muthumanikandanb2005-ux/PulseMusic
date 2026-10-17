@@ -251,7 +251,7 @@ internal class CrossfadeExoPlayerAdapter(
 
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                     // Temporary loss (e.g. an incoming call): pause and remember to resume.
-                    resumeOnFocusGain = internalState == InternalState.PLAYING
+                    resumeOnFocusGain = internalPlayWhenReady || internalState == InternalState.PLAYING || internalState == InternalState.READY || internalState == InternalState.PREPARING
                     pause()
                 }
 

@@ -11,9 +11,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+import android.net.wifi.WifiManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.content.getSystemService
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -68,6 +70,44 @@ internal class SimpleMediaService :
 
     private var pauseTimeoutJob: Job? = null
     private val pauseGracePeriodMs = 120_000L // 2 minutes (120 seconds) grace period before releasing foreground / stopping
+
+    private val powerManager by lazy { getSystemService<PowerManager>() }
+    private val wifiManager by lazy { applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager }
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+
+    private fun acquireLocks() {
+        try {
+            if (wakeLock == null) {
+                wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PulseMusic:PlaybackWakeLock")?.apply {
+                    setReferenceCounted(false)
+                }
+            }
+            if (wakeLock?.isHeld == false) {
+                wakeLock?.acquire(3600_000L)
+            }
+            if (wifiLock == null) {
+                @Suppress("DEPRECATION")
+                wifiLock = wifiManager?.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "PulseMusic:PlaybackWifiLock")?.apply {
+                    setReferenceCounted(false)
+                }
+            }
+            if (wifiLock?.isHeld == false) {
+                wifiLock?.acquire()
+            }
+        } catch (e: Exception) {
+            Logger.w("Service", "Error acquiring locks: ${e.message}")
+        }
+    }
+
+    private fun releaseLocks() {
+        try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+            if (wifiLock?.isHeld == true) wifiLock?.release()
+        } catch (e: Exception) {
+            Logger.w("Service", "Error releasing locks: ${e.message}")
+        }
+    }
 
     inner class MusicBinder : Binder() {
         val service: SimpleMediaService
@@ -158,17 +198,11 @@ internal class SimpleMediaService :
                                 notification: Notification,
                                 ongoing: Boolean,
                             ) {
-                                fun startFg() {
+                                if (ongoing) {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         startForeground(notificationId, notification, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
                                     } else {
                                         startForeground(notificationId, notification)
-                                    }
-                                }
-                                coroutineScope.launch {
-                                    while (coroutineScope.isActive) {
-                                        startFg()
-                                        delay(30.seconds)
                                     }
                                 }
                             }
@@ -195,7 +229,8 @@ internal class SimpleMediaService :
         startId: Int,
     ): Int {
         Logger.w("Service", "Simple Media Service Received Action: ${intent?.action}")
-        return super.onStartCommand(intent, flags, startId)
+        super.onStartCommand(intent, flags, startId)
+        return START_STICKY
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
@@ -210,6 +245,7 @@ internal class SimpleMediaService :
             session.player.playbackState != Player.STATE_ENDED
 
         if (isPlaying) {
+            acquireLocks()
             // Actively playing: cancel pause timeout and maintain active foreground notification
             pauseTimeoutJob?.cancel()
             pauseTimeoutJob = null
@@ -225,6 +261,7 @@ internal class SimpleMediaService :
                         delay(pauseGracePeriodMs)
                         Logger.d("Service", "2-minute pause grace period elapsed. Releasing foreground status.")
                         pauseTimeoutJob = null
+                        releaseLocks()
                         if (!session.player.playWhenReady) {
                             try {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -243,6 +280,7 @@ internal class SimpleMediaService :
                 val keepForeground = pauseTimeoutJob?.isActive == true
                 super.onUpdateNotification(session, keepForeground)
             } else {
+                releaseLocks()
                 super.onUpdateNotification(session, startInForegroundRequired)
             }
         }
@@ -252,6 +290,7 @@ internal class SimpleMediaService :
     fun release() {
         pauseTimeoutJob?.cancel()
         pauseTimeoutJob = null
+        releaseLocks()
         Logger.w("Service", "Starting release process")
         runBlocking {
             try {
@@ -276,6 +315,7 @@ internal class SimpleMediaService :
     override fun onDestroy() {
         pauseTimeoutJob?.cancel()
         pauseTimeoutJob = null
+        releaseLocks()
         super.onDestroy()
         Logger.w("Service", "Simple Media Service Destroyed")
         if (simpleMediaServiceHandler.shouldReleaseOnTaskRemoved()) {

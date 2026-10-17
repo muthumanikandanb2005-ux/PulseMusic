@@ -71,9 +71,20 @@ cd PulseMusic
 ./gradlew :desktopApp:run
 ```
 
+## Author & Developer
+
+<div align="center">
+  <a href="https://github.com/muthumanikandanb2005-ux">
+    <img src="https://avatars.githubusercontent.com/u/192257257?v=4" width="120" height="120" style="border-radius: 50%;" alt="Muthumanikandan B" />
+  </a>
+  <h3><a href="https://github.com/muthumanikandanb2005-ux">Muthumanikandan B</a></h3>
+  <p><strong>Owner, Creator & Sole Lead Developer</strong></p>
+  <p><em>Pulse Music Studio</em></p>
+</div>
+
 ## Contributing
 
-Issues, bug reports, and improvements are welcome. Please open an issue in this repository to discuss a bug or proposed change before submitting a pull request.
+Contributions, bug reports, and suggestions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, development workflows, and how to submit pull requests.
 
 ## License
 
@@ -84,3 +95,4 @@ This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**
 - **Source code:** https://github.com/muthumanikandanb2005-ux/PulseMusic
 - **Latest release:** https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest
 - **F-Droid repository:** https://muthumanikandanb2005-ux.github.io/fdroid-repo/
+- **Developer Profile:** https://github.com/muthumanikandanb2005-ux
