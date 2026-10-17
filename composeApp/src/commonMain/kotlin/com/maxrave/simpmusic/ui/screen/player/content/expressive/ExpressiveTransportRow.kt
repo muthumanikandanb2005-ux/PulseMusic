@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.player.content.expressive
+﻿package com.maxrave.simpmusic.ui.screen.player.content.expressive
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
@@ -28,8 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.maxrave.domain.mediaservice.handler.ControlState
-import com.maxrave.domain.mediaservice.handler.RepeatState
+import com.manikandan.domain.mediaservice.handler.ControlState
+import com.manikandan.domain.mediaservice.handler.RepeatState
 import com.maxrave.simpmusic.ui.icon.Pause
 import com.maxrave.simpmusic.ui.icon.PlayArrow
 import com.maxrave.simpmusic.ui.icon.Repeat

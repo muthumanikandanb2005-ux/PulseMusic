@@ -1,9 +1,9 @@
-package com.maxrave.data.parser
+﻿package com.maxrave.data.parser
 
-import com.maxrave.domain.data.model.home.Content
-import com.maxrave.domain.data.model.home.HomeItem
-import com.maxrave.domain.data.model.searchResult.songs.Album
-import com.maxrave.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.model.home.Content
+import com.manikandan.domain.data.model.home.HomeItem
+import com.manikandan.domain.data.model.searchResult.songs.Album
+import com.manikandan.domain.data.model.searchResult.songs.Artist
 import com.maxrave.kotlinytmusicscraper.models.ArtistItem
 import com.maxrave.kotlinytmusicscraper.models.MusicResponsiveListItemRenderer
 import com.maxrave.kotlinytmusicscraper.models.MusicTwoRowItemRenderer
@@ -720,15 +720,15 @@ internal fun parseSongArtistsRuns(runs: List<Run>): List<Artist> {
     return artists
 }
 
-fun Thumbnail.toThumbnail(): com.maxrave.domain.data.model.searchResult.songs.Thumbnail =
-    com.maxrave.domain.data.model.searchResult.songs.Thumbnail(
+fun Thumbnail.toThumbnail(): com.manikandan.domain.data.model.searchResult.songs.Thumbnail =
+    com.manikandan.domain.data.model.searchResult.songs.Thumbnail(
         height = this.height ?: 0,
         url = this.url,
         width = this.width ?: 0,
     )
 
-fun List<Thumbnail>.toListThumbnail(): List<com.maxrave.domain.data.model.searchResult.songs.Thumbnail> {
-    val list = mutableListOf<com.maxrave.domain.data.model.searchResult.songs.Thumbnail>()
+fun List<Thumbnail>.toListThumbnail(): List<com.manikandan.domain.data.model.searchResult.songs.Thumbnail> {
+    val list = mutableListOf<com.manikandan.domain.data.model.searchResult.songs.Thumbnail>()
     this.forEach {
         list.add(it.toThumbnail())
     }
@@ -761,7 +761,7 @@ internal fun parseNewRelease(
                         browseId = it.browseId,
                         thumbnails =
                             listOf(
-                                com.maxrave.domain.data.model.searchResult.songs.Thumbnail(
+                                com.manikandan.domain.data.model.searchResult.songs.Thumbnail(
                                     522,
                                     it.thumbnail,
                                     522,
@@ -816,7 +816,7 @@ internal fun parseNewRelease(
                         browseId = null,
                         thumbnails =
                             listOf(
-                                com.maxrave.domain.data.model.searchResult.songs.Thumbnail(
+                                com.manikandan.domain.data.model.searchResult.songs.Thumbnail(
                                     522,
                                     videoItem.thumbnail,
                                     1080,

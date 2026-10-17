@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home
+﻿package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,13 +28,13 @@ import androidx.navigation.NavController
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.AlbumEntity
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.PlaylistEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.mediaservice.handler.PlaylistType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.AlbumEntity
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.PlaylistEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.simpmusic.ui.component.AddToPlaylistModalBottomSheet
 import com.maxrave.simpmusic.ui.component.ArtistFullWidthItems
 import com.maxrave.simpmusic.ui.component.CenterLoadingBox

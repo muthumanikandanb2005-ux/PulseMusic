@@ -1,4 +1,4 @@
-package com.maxrave.media3.cast
+﻿package com.maxrave.media3.cast
 
 import androidx.media3.common.DeviceInfo
 import androidx.media3.common.MediaItem
@@ -6,7 +6,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import com.maxrave.domain.data.player.GenericMediaItem
+import com.manikandan.domain.data.player.GenericMediaItem
 import com.maxrave.logger.Logger
 import com.maxrave.media3.exoplayer.CrossfadeExoPlayerAdapter
 import com.maxrave.media3.exoplayer.toMedia3MediaItem

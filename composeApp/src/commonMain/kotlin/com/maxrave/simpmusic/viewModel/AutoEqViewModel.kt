@@ -1,9 +1,9 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.viewModelScope
-import com.maxrave.domain.data.entities.AutoEqEntryEntity
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.AutoEqRepository
+import com.manikandan.domain.data.entities.AutoEqEntryEntity
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.AutoEqRepository
 import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

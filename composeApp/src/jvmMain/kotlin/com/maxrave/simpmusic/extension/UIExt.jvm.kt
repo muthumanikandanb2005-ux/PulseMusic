@@ -1,10 +1,10 @@
-package com.maxrave.simpmusic.extension
+﻿package com.maxrave.simpmusic.extension
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
-import com.maxrave.domain.data.model.ui.ScreenSizeInfo
+import com.manikandan.domain.data.model.ui.ScreenSizeInfo
 import kotlin.math.roundToInt
 
 /**

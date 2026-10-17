@@ -1,8 +1,8 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.viewModelScope
-import com.maxrave.domain.data.entities.NotificationEntity
-import com.maxrave.domain.repository.CommonRepository
+import com.manikandan.domain.data.entities.NotificationEntity
+import com.manikandan.domain.repository.CommonRepository
 import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

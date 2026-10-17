@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home
+﻿package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
@@ -61,7 +61,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.maxrave.domain.data.entities.NotificationEntity
+import com.manikandan.domain.data.entities.NotificationEntity
 import com.maxrave.simpmusic.extension.formatTimeAgo
 import com.maxrave.simpmusic.ui.component.AmbientThemeGlow
 import com.maxrave.simpmusic.ui.component.CenterLoadingBox

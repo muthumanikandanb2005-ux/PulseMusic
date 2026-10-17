@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.component
+﻿package com.maxrave.simpmusic.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -57,32 +57,32 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.AlbumEntity
-import com.maxrave.domain.data.entities.LocalPlaylistEntity
-import com.maxrave.domain.data.entities.PlaylistEntity
-import com.maxrave.domain.data.entities.PodcastsEntity
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.browse.artist.ResultAlbum
-import com.maxrave.domain.data.model.browse.artist.ResultPlaylist
-import com.maxrave.domain.data.model.browse.artist.ResultSingle
-import com.maxrave.domain.data.model.home.Content
-import com.maxrave.domain.data.model.home.HomeItem
-import com.maxrave.domain.data.model.home.chart.ItemArtist
-import com.maxrave.domain.data.model.home.chart.ItemVideo
-import com.maxrave.domain.data.model.mood.genre.ItemsPlaylist
-import com.maxrave.domain.data.model.mood.moodmoments.Item
-import com.maxrave.domain.data.model.searchResult.albums.AlbumsResult
-import com.maxrave.domain.data.model.searchResult.playlists.PlaylistsResult
-import com.maxrave.domain.data.model.searchResult.songs.Artist
-import com.maxrave.domain.data.type.ChartItem
-import com.maxrave.domain.data.type.HomeContentType
-import com.maxrave.domain.data.type.MonthlyRecapItem
-import com.maxrave.domain.mediaservice.handler.PlaylistType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.utils.connectArtists
-import com.maxrave.domain.utils.toListName
-import com.maxrave.domain.utils.toSongEntity
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.AlbumEntity
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.entities.PlaylistEntity
+import com.manikandan.domain.data.entities.PodcastsEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.browse.artist.ResultAlbum
+import com.manikandan.domain.data.model.browse.artist.ResultPlaylist
+import com.manikandan.domain.data.model.browse.artist.ResultSingle
+import com.manikandan.domain.data.model.home.Content
+import com.manikandan.domain.data.model.home.HomeItem
+import com.manikandan.domain.data.model.home.chart.ItemArtist
+import com.manikandan.domain.data.model.home.chart.ItemVideo
+import com.manikandan.domain.data.model.mood.genre.ItemsPlaylist
+import com.manikandan.domain.data.model.mood.moodmoments.Item
+import com.manikandan.domain.data.model.searchResult.albums.AlbumsResult
+import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.type.ChartItem
+import com.manikandan.domain.data.type.HomeContentType
+import com.manikandan.domain.data.type.MonthlyRecapItem
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.utils.connectArtists
+import com.manikandan.domain.utils.toListName
+import com.manikandan.domain.utils.toSongEntity
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.HorizontalScrollBar
@@ -109,12 +109,12 @@ import simpmusic.composeapp.generated.resources.you
 @Composable
 fun HomeItem(
     homeViewModel: HomeViewModel = koinViewModel(),
-    dataStoreManager: com.maxrave.domain.manager.DataStoreManager = org.koin.compose.koinInject(),
+    dataStoreManager: com.manikandan.domain.manager.DataStoreManager = org.koin.compose.koinInject(),
     navController: NavController,
     data: HomeItem,
 ) {
-    val watchVideo by dataStoreManager.watchVideoInsteadOfPlayingAudio.collectAsStateWithLifecycle(initialValue = com.maxrave.domain.manager.DataStoreManager.FALSE)
-    val isVideoEnabled = watchVideo == com.maxrave.domain.manager.DataStoreManager.TRUE
+    val watchVideo by dataStoreManager.watchVideoInsteadOfPlayingAudio.collectAsStateWithLifecycle(initialValue = com.manikandan.domain.manager.DataStoreManager.FALSE)
+    val isVideoEnabled = watchVideo == com.manikandan.domain.manager.DataStoreManager.TRUE
     var bottomSheetShow by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
@@ -356,8 +356,8 @@ fun HomeItemContentPlaylist(
             val thumb =
                 when (data) {
                     is Content -> data.thumbnails.lastOrNull()?.url
-                    is com.maxrave.domain.data.model.mood.genre.Content -> data.thumbnail?.lastOrNull()?.url
-                    is com.maxrave.domain.data.model.mood.moodmoments.Content -> data.thumbnails?.lastOrNull()?.url
+                    is com.manikandan.domain.data.model.mood.genre.Content -> data.thumbnail?.lastOrNull()?.url
+                    is com.manikandan.domain.data.model.mood.moodmoments.Content -> data.thumbnails?.lastOrNull()?.url
                     is LocalPlaylistEntity -> data.thumbnail
                     is ChartItem -> null
                     is PlaylistsResult -> data.thumbnails.lastOrNull()?.url
@@ -469,8 +469,8 @@ fun HomeItemContentPlaylist(
                 text =
                     when (data) {
                         is Content -> data.title
-                        is com.maxrave.domain.data.model.mood.genre.Content -> data.title.title
-                        is com.maxrave.domain.data.model.mood.moodmoments.Content -> data.title
+                        is com.manikandan.domain.data.model.mood.genre.Content -> data.title.title
+                        is com.manikandan.domain.data.model.mood.moodmoments.Content -> data.title
                         is LocalPlaylistEntity -> data.title
                         is ChartItem -> data.name
                         is PlaylistsResult -> data.title
@@ -514,11 +514,11 @@ fun HomeItemContentPlaylist(
                                 }
                         }
 
-                        is com.maxrave.domain.data.model.mood.genre.Content -> {
+                        is com.manikandan.domain.data.model.mood.genre.Content -> {
                             data.title.subtitle
                         }
 
-                        is com.maxrave.domain.data.model.mood.moodmoments.Content -> {
+                        is com.manikandan.domain.data.model.mood.moodmoments.Content -> {
                             data.subtitle
                         }
 
@@ -1330,7 +1330,7 @@ fun MoodAndGenresContentItem(
                 HomeItemContentPlaylist(onClick = {
                     // The "Songs" shelf mixes tracks into a list that is otherwise all playlists,
                     // so route by videoId: a track starts its radio, everything else opens a page.
-                    val moodSong = item as? com.maxrave.domain.data.model.mood.moodmoments.Content
+                    val moodSong = item as? com.manikandan.domain.data.model.mood.moodmoments.Content
                     val songVideoId = moodSong?.videoId
                     if (moodSong != null && songVideoId != null) {
                         val track =
@@ -1365,10 +1365,10 @@ fun MoodAndGenresContentItem(
                         navController.navigate(
                             PlaylistDestination(
                                 playlistId =
-                                    if (item is com.maxrave.domain.data.model.mood.genre.Content) {
+                                    if (item is com.manikandan.domain.data.model.mood.genre.Content) {
                                         item.playlistBrowseId
                                     } else {
-                                        (item as com.maxrave.domain.data.model.mood.moodmoments.Content).playlistBrowseId
+                                        (item as com.manikandan.domain.data.model.mood.moodmoments.Content).playlistBrowseId
                                     },
                             ),
                         )

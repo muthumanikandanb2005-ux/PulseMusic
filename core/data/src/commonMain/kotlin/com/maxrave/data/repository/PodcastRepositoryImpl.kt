@@ -1,18 +1,18 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.extension.getFullDataFromDB
 import com.maxrave.data.parser.parsePodcastContinueData
 import com.maxrave.data.parser.parsePodcastData
 import com.maxrave.data.parser.toListThumbnail
-import com.maxrave.domain.data.entities.EpisodeEntity
-import com.maxrave.domain.data.entities.PodcastWithEpisodes
-import com.maxrave.domain.data.entities.PodcastsEntity
-import com.maxrave.domain.data.model.podcast.PodcastBrowse
-import com.maxrave.domain.data.model.searchResult.songs.Artist
-import com.maxrave.domain.data.model.searchResult.songs.Thumbnail
-import com.maxrave.domain.repository.PodcastRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.entities.EpisodeEntity
+import com.manikandan.domain.data.entities.PodcastWithEpisodes
+import com.manikandan.domain.data.entities.PodcastsEntity
+import com.manikandan.domain.data.model.podcast.PodcastBrowse
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
+import com.manikandan.domain.repository.PodcastRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers

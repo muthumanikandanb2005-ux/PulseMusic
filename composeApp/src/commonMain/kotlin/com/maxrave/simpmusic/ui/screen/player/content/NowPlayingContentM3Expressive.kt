@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.player.content
+﻿package com.maxrave.simpmusic.ui.screen.player.content
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -84,7 +84,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
-import com.maxrave.domain.mediaservice.handler.RepeatState
+import com.manikandan.domain.mediaservice.handler.RepeatState
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.PlatformCastButton
 import com.maxrave.simpmusic.expect.ui.isPlatformCastAvailable

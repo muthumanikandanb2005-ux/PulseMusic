@@ -1,6 +1,6 @@
-package com.maxrave.simpmusic.expect
+﻿package com.maxrave.simpmusic.expect
 
-import com.maxrave.domain.data.model.update.UpdateData
+import com.manikandan.domain.data.model.update.UpdateData
 
 expect suspend fun downloadAndInstallAppUpdate(
     update: UpdateData,

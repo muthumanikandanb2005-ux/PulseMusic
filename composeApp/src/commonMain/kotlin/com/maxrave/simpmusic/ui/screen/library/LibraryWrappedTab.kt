@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.library
+﻿package com.maxrave.simpmusic.ui.screen.library
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,8 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.maxrave.domain.data.type.MonthlyRecapItem
-import com.maxrave.domain.utils.LocalResource
+import com.manikandan.domain.data.type.MonthlyRecapItem
+import com.manikandan.domain.utils.LocalResource
 import com.maxrave.simpmusic.ui.component.GridLibraryPlaylist
 import com.maxrave.simpmusic.ui.component.WrappedEntryCard
 import com.maxrave.simpmusic.ui.navigation.destination.home.WrappedDestination

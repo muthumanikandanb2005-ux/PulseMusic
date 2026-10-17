@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.widget
+﻿package com.maxrave.simpmusic.ui.widget
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -51,9 +51,9 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.kmpalette.rememberPaletteState
 import com.maxrave.common.Config
-import com.maxrave.domain.repository.AnalyticsRepository
-import com.maxrave.domain.repository.ArtistRepository
-import com.maxrave.domain.repository.SongRepository
+import com.manikandan.domain.repository.AnalyticsRepository
+import com.manikandan.domain.repository.ArtistRepository
+import com.manikandan.domain.repository.SongRepository
 import com.maxrave.simpmusic.MainActivity
 import com.maxrave.simpmusic.R
 import com.maxrave.simpmusic.extension.getColorFromPalette

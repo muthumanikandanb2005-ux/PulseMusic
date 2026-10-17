@@ -1,6 +1,6 @@
-package com.maxrave.simpmusic.expect
+﻿package com.maxrave.simpmusic.expect
 
-import com.maxrave.domain.data.model.update.UpdateData
+import com.manikandan.domain.data.model.update.UpdateData
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

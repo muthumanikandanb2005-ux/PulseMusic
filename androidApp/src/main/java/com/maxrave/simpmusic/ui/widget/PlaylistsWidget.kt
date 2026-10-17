@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.widget
+﻿package com.maxrave.simpmusic.ui.widget
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -58,13 +58,13 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.kmpalette.rememberPaletteState
 import com.maxrave.common.Config
-import com.maxrave.domain.data.entities.AlbumEntity
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.PlaylistEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.data.type.RecentlyType
-import com.maxrave.domain.repository.CommonRepository
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.AlbumEntity
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.PlaylistEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.data.type.RecentlyType
+import com.manikandan.domain.repository.CommonRepository
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.simpmusic.MainActivity
 import com.maxrave.simpmusic.R
 import com.maxrave.simpmusic.extension.getColorFromPalette

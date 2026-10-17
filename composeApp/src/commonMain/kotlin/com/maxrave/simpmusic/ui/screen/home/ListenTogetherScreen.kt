@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home
+﻿package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -77,11 +77,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.maxrave.domain.data.model.listentogether.ListenTogetherRoom
-import com.maxrave.domain.data.model.listentogether.RoomConnection
-import com.maxrave.domain.data.model.listentogether.RoomJoinRequest
-import com.maxrave.domain.data.model.listentogether.RoomMember
-import com.maxrave.domain.data.model.listentogether.RoomSuggestion
+import com.manikandan.domain.data.model.listentogether.ListenTogetherRoom
+import com.manikandan.domain.data.model.listentogether.RoomConnection
+import com.manikandan.domain.data.model.listentogether.RoomJoinRequest
+import com.manikandan.domain.data.model.listentogether.RoomMember
+import com.manikandan.domain.data.model.listentogether.RoomSuggestion
 import com.maxrave.simpmusic.expect.shareUrl
 import com.maxrave.simpmusic.expect.ui.PlatformBackdrop
 import com.maxrave.simpmusic.expect.ui.layerBackdrop

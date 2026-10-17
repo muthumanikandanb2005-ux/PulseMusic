@@ -1,7 +1,7 @@
-package com.maxrave.media3.audio
+﻿package com.maxrave.media3.audio
 
-import com.maxrave.domain.data.player.AudioEffects
-import com.maxrave.domain.data.player.CinematicAudioEffect
+import com.manikandan.domain.data.player.AudioEffects
+import com.manikandan.domain.data.player.CinematicAudioEffect
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin

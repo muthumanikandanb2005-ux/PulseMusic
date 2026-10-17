@@ -1,4 +1,4 @@
-package com.maxrave.media3.service.download
+﻿package com.maxrave.media3.service.download
 
 import android.content.Context
 import androidx.core.net.toUri
@@ -19,12 +19,12 @@ import coil3.ImageLoader
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import com.maxrave.common.MERGING_DATA_TYPE
-import com.maxrave.domain.data.entities.DownloadState
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.mediaservice.handler.DownloadHandler
-import com.maxrave.domain.repository.SongRepository
-import com.maxrave.domain.repository.StreamRepository
+import com.manikandan.domain.data.entities.DownloadState
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.mediaservice.handler.DownloadHandler
+import com.manikandan.domain.repository.SongRepository
+import com.manikandan.domain.repository.StreamRepository
 import com.maxrave.logger.Logger
 import com.maxrave.media3.extension.isFullyCached
 import kotlinx.coroutines.CoroutineScope

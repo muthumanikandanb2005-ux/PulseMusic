@@ -1,8 +1,8 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.viewModelScope
-import com.maxrave.domain.repository.ImportProgress
-import com.maxrave.domain.repository.ImportRepository
+import com.manikandan.domain.repository.ImportProgress
+import com.manikandan.domain.repository.ImportRepository
 import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import com.mohamedrejeb.calf.core.PlatformContext
 import com.mohamedrejeb.calf.io.KmpFile

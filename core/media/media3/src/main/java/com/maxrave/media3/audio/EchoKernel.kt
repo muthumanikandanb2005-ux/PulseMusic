@@ -1,7 +1,7 @@
-package com.maxrave.media3.audio
+﻿package com.maxrave.media3.audio
 
-import com.maxrave.domain.data.player.AudioEffects
-import com.maxrave.domain.data.player.DelayEffect
+import com.manikandan.domain.data.player.AudioEffects
+import com.manikandan.domain.data.player.DelayEffect
 
 private const val ECHO_PCM16_MIN = -32_768.0
 private const val ECHO_PCM16_MAX = 32_767.0

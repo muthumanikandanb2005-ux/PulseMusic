@@ -1,6 +1,6 @@
-package com.maxrave.kotlinytmusicscraper
+﻿package com.maxrave.kotlinytmusicscraper
 
-import com.maxrave.domain.extension.now
+import com.manikandan.domain.extension.now
 import com.maxrave.kotlinytmusicscraper.extractor.Extractor
 import com.maxrave.kotlinytmusicscraper.models.Context
 import com.maxrave.kotlinytmusicscraper.models.SongItem

@@ -1,12 +1,12 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.maxrave.data.listentogether.ListenTogetherPlaybackBridge
 import com.maxrave.data.listentogether.ListenTogetherPrefs
-import com.maxrave.domain.data.model.listentogether.ListenTogetherRoom
-import com.maxrave.domain.repository.ListenTogetherRepository
-import com.maxrave.domain.manager.DataStoreManager
+import com.manikandan.domain.data.model.listentogether.ListenTogetherRoom
+import com.manikandan.domain.repository.ListenTogetherRepository
+import com.manikandan.domain.manager.DataStoreManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow

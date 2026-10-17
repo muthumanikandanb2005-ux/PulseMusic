@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen
+﻿package com.maxrave.simpmusic.ui.screen
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.AnimatedContent
@@ -108,9 +108,9 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.kmpalette.rememberPaletteState
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.utils.connectArtists
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.utils.connectArtists
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.toggleMiniPlayer

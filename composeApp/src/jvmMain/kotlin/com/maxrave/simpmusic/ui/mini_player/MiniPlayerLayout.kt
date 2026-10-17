@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.mini_player
+﻿package com.maxrave.simpmusic.ui.mini_player
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -59,9 +59,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.maxrave.domain.data.model.streams.TimeLine
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.mediaservice.handler.ControlState
+import com.manikandan.domain.data.model.streams.TimeLine
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.mediaservice.handler.ControlState
 import com.maxrave.simpmusic.ui.component.rememberHolderPainter
 import com.maxrave.simpmusic.extension.parseRichSyncWords
 import com.maxrave.simpmusic.ui.component.PlayPauseButton

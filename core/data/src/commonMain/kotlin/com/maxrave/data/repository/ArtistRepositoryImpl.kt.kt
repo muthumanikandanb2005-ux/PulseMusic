@@ -1,17 +1,17 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.extension.getFullDataFromDB
 import com.maxrave.data.parser.parseArtistData
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.model.browse.artist.ArtistBrowse
-import com.maxrave.domain.repository.ArtistRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.model.browse.artist.ArtistBrowse
+import com.manikandan.domain.repository.ArtistRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import com.maxrave.domain.manager.DataStoreManager
+import com.manikandan.domain.manager.DataStoreManager
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

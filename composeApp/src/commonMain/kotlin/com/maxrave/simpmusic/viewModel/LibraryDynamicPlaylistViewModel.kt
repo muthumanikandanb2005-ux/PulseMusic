@@ -1,18 +1,18 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.viewModelScope
 import com.maxrave.common.Config
 import com.maxrave.common.Config.REMOVED_SONG_DATE_TIME
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.mediaservice.handler.PlaylistType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.repository.AnalyticsRepository
-import com.maxrave.domain.repository.ArtistRepository
-import com.maxrave.domain.repository.SongRepository
-import com.maxrave.domain.utils.toArrayListTrack
-import com.maxrave.domain.utils.toTrack
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.repository.AnalyticsRepository
+import com.manikandan.domain.repository.ArtistRepository
+import com.manikandan.domain.repository.SongRepository
+import com.manikandan.domain.utils.toArrayListTrack
+import com.manikandan.domain.utils.toTrack
 import com.maxrave.simpmusic.ui.screen.home.analytics.monthFullNameResource
 import com.maxrave.simpmusic.ui.screen.library.LibraryDynamicPlaylistType
 import com.maxrave.simpmusic.viewModel.base.BaseViewModel
@@ -120,7 +120,7 @@ class LibraryDynamicPlaylistViewModel(
      * One calendar month's top songs, newest ranking first.
      *
      * Same two steps the Analytics screen's top-tracks list takes — the ranking from
-     * [com.maxrave.domain.repository.AnalyticsRepository], then each row's `videoId` paired with
+     * [com.manikandan.domain.repository.AnalyticsRepository], then each row's `videoId` paired with
      * its stored [SongEntity] — so a recap and the Analytics list can never disagree about what
      * was played.
      *

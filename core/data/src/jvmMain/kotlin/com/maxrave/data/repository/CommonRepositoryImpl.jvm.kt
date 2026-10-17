@@ -1,6 +1,6 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
-import com.maxrave.domain.data.model.cookie.CookieItem
+import com.manikandan.domain.data.model.cookie.CookieItem
 import java.net.Authenticator
 import java.net.PasswordAuthentication
 

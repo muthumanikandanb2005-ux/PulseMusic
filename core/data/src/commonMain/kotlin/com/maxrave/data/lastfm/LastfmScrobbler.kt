@@ -1,7 +1,7 @@
-package com.maxrave.data.lastfm
+﻿package com.maxrave.data.lastfm
 
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.manager.DataStoreManager
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.manager.DataStoreManager
 import com.maxrave.logger.Logger
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex

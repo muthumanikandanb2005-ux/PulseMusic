@@ -1,20 +1,20 @@
-package com.maxrave.data.mapping
+﻿package com.maxrave.data.mapping
 
 import com.maxrave.data.parser.toListThumbnail
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.canvas.CanvasResult
-import com.maxrave.domain.data.model.mediaService.SponsorSkipSegments
-import com.maxrave.domain.data.model.metadata.Line
-import com.maxrave.domain.data.model.metadata.Lyrics
-import com.maxrave.domain.data.model.searchResult.albums.AlbumsResult
-import com.maxrave.domain.data.model.searchResult.artists.ArtistsResult
-import com.maxrave.domain.data.model.searchResult.playlists.PlaylistsResult
-import com.maxrave.domain.data.model.searchResult.songs.Album
-import com.maxrave.domain.data.model.searchResult.songs.Artist
-import com.maxrave.domain.data.model.searchResult.songs.SongsResult
-import com.maxrave.domain.data.model.searchResult.songs.Thumbnail
-import com.maxrave.domain.data.model.searchResult.videos.VideosResult
-import com.maxrave.domain.data.model.streams.YouTubeWatchEndpoint
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.canvas.CanvasResult
+import com.manikandan.domain.data.model.mediaService.SponsorSkipSegments
+import com.manikandan.domain.data.model.metadata.Line
+import com.manikandan.domain.data.model.metadata.Lyrics
+import com.manikandan.domain.data.model.searchResult.albums.AlbumsResult
+import com.manikandan.domain.data.model.searchResult.artists.ArtistsResult
+import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
+import com.manikandan.domain.data.model.searchResult.songs.Album
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.model.searchResult.songs.SongsResult
+import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
+import com.manikandan.domain.data.model.searchResult.videos.VideosResult
+import com.manikandan.domain.data.model.streams.YouTubeWatchEndpoint
 import com.maxrave.kotlinytmusicscraper.models.AccountInfo
 import com.maxrave.kotlinytmusicscraper.models.AlbumItem
 import com.maxrave.kotlinytmusicscraper.models.ArtistItem
@@ -323,8 +323,8 @@ internal fun LyricsResponse.toLyrics(): Lyrics? =
 
 internal fun TranslatedLyricsResponse.toLyrics(): Lyrics = parseSyncedLyrics(this.translatedLyric).toLyrics()
 
-internal fun SearchSuggestions.toDomainSearchSuggestions(): com.maxrave.domain.data.model.searchResult.SearchSuggestions =
-    com.maxrave.domain.data.model.searchResult.SearchSuggestions(
+internal fun SearchSuggestions.toDomainSearchSuggestions(): com.manikandan.domain.data.model.searchResult.SearchSuggestions =
+    com.manikandan.domain.data.model.searchResult.SearchSuggestions(
         queries = this.queries,
         recommendedItems =
             this.recommendedItems.map {
@@ -521,8 +521,8 @@ internal fun SkipSegments.toSponsorSkipSegments(): SponsorSkipSegments =
         votes = this.votes,
     )
 
-internal fun AccountInfo.toDomainAccountInfo(): com.maxrave.domain.data.model.account.AccountInfo =
-    com.maxrave.domain.data.model.account.AccountInfo(
+internal fun AccountInfo.toDomainAccountInfo(): com.manikandan.domain.data.model.account.AccountInfo =
+    com.manikandan.domain.data.model.account.AccountInfo(
         name = this.name,
         email = this.email,
         pageId = this.pageId,

@@ -1,10 +1,10 @@
-package com.maxrave.media3.audio
+﻿package com.maxrave.media3.audio
 
 /**
  * One channel of uniform partitioned convolution, streaming.
  *
  * This is the Android half of the reverb: the impulse response comes from
- * `com.maxrave.domain.data.player.ReverbImpulseResponse`, desktop hands the same samples to ffmpeg's
+ * `com.manikandan.domain.data.player.ReverbImpulseResponse`, desktop hands the same samples to ffmpeg's
  * `afir`, and this class has to answer with the same numbers. It does, to within 1e-7 of full scale
  * — measured against `afir` on a checked-in reference (see `PartitionedConvolverTest`).
  *

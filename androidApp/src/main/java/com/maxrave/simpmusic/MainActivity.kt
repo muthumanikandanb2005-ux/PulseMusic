@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic
+﻿package com.maxrave.simpmusic
 
 import android.Manifest
 import android.content.ComponentName
@@ -33,10 +33,10 @@ import com.maxrave.common.SELECTED_LANGUAGE
 import com.maxrave.common.STATUS_DONE
 import com.maxrave.common.SUPPORTED_LANGUAGE
 import com.maxrave.common.SUPPORTED_LOCATION
-import com.maxrave.domain.data.model.intent.GenericIntent
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
-import com.maxrave.domain.mediaservice.handler.ToastType
+import com.manikandan.domain.data.model.intent.GenericIntent
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.mediaservice.handler.MediaPlayerHandler
+import com.manikandan.domain.mediaservice.handler.ToastType
 import com.maxrave.logger.Logger
 import com.maxrave.media3.di.setServiceActivitySession
 import com.maxrave.simpmusic.di.viewModelModule

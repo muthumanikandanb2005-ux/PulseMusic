@@ -1,7 +1,7 @@
-package com.maxrave.simpmusic
+﻿package com.maxrave.simpmusic
 
 import com.eygraber.uri.Uri
-import com.maxrave.domain.data.model.intent.GenericIntent
+import com.manikandan.domain.data.model.intent.GenericIntent
 import com.maxrave.logger.Logger
 import java.io.File
 

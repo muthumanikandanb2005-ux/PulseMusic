@@ -1,11 +1,11 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
-import com.maxrave.domain.data.entities.LocalPlaylistEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.LocalPlaylistRepository
-import com.maxrave.domain.repository.SongRepository
-import com.maxrave.domain.repository.SupabaseAuthRepository
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.LocalPlaylistRepository
+import com.manikandan.domain.repository.SongRepository
+import com.manikandan.domain.repository.SupabaseAuthRepository
 import com.maxrave.ktorext.getEngine
 import com.maxrave.logger.Logger
 import io.ktor.client.HttpClient

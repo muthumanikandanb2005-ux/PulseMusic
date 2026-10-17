@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import android.app.usage.StorageStatsManager
 import android.content.Context
@@ -16,8 +16,8 @@ import com.maxrave.common.DB_NAME
 import com.maxrave.common.DOWNLOAD_EXOPLAYER_FOLDER
 import com.maxrave.common.EXOPLAYER_DB_NAME
 import com.maxrave.common.SETTINGS_FILENAME
-import com.maxrave.domain.repository.CacheRepository
-import com.maxrave.domain.repository.CommonRepository
+import com.manikandan.domain.repository.CacheRepository
+import com.manikandan.domain.repository.CommonRepository
 import com.maxrave.logger.Logger
 import com.maxrave.media3.di.stopService
 import com.maxrave.simpmusic.extension.bytesToMB

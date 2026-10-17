@@ -1,8 +1,8 @@
-package org.simpmusic.crashlytics
+﻿package org.simpmusic.crashlytics
 
 import android.content.Context
 import android.util.Log
-import com.maxrave.domain.data.player.PlayerError
+import com.manikandan.domain.data.player.PlayerError
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 

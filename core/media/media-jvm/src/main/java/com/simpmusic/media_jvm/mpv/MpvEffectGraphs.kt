@@ -1,6 +1,6 @@
-package com.simpmusic.media_jvm.mpv
+﻿package com.simpmusic.media_jvm.mpv
 
-import com.maxrave.domain.data.player.DelayTaps
+import com.manikandan.domain.data.player.DelayTaps
 
 // The `lavfi` graph bodies behind the two audio effects, deliberately kept out of MpvPlayer.
 //

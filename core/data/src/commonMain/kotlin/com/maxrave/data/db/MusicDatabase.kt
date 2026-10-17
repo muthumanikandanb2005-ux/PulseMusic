@@ -1,4 +1,4 @@
-package com.maxrave.data.db
+﻿package com.maxrave.data.db
 
 import DatabaseDao
 import androidx.room.AutoMigration
@@ -7,30 +7,30 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.execSQL
 import androidx.room.useWriterConnection
-import com.maxrave.domain.data.entities.AlbumEntity
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.AutoEqCurveEntity
-import com.maxrave.domain.data.entities.AutoEqEntryEntity
-import com.maxrave.domain.data.entities.AutoEqIndexMetaEntity
-import com.maxrave.domain.data.entities.EpisodeEntity
-import com.maxrave.domain.data.entities.FollowedArtistSingleAndAlbum
-import com.maxrave.domain.data.entities.GoogleAccountEntity
-import com.maxrave.domain.data.entities.LocalPlaylistEntity
-import com.maxrave.domain.data.entities.LyricsEntity
-import com.maxrave.domain.data.entities.NewFormatEntity
-import com.maxrave.domain.data.entities.NotificationEntity
-import com.maxrave.domain.data.entities.PairSongLocalPlaylist
-import com.maxrave.domain.data.entities.PlaylistEntity
-import com.maxrave.domain.data.entities.PodcastsEntity
-import com.maxrave.domain.data.entities.QueueEntity
-import com.maxrave.domain.data.entities.SearchHistory
-import com.maxrave.domain.data.entities.SetVideoIdEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.data.entities.SongInfoEntity
-import com.maxrave.domain.data.entities.TranslatedLyricsEntity
-import com.maxrave.domain.data.entities.YourYouTubePlaylistList
-import com.maxrave.domain.data.entities.analytics.EventArtistEntity
-import com.maxrave.domain.data.entities.analytics.PlaybackEventEntity
+import com.manikandan.domain.data.entities.AlbumEntity
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.AutoEqCurveEntity
+import com.manikandan.domain.data.entities.AutoEqEntryEntity
+import com.manikandan.domain.data.entities.AutoEqIndexMetaEntity
+import com.manikandan.domain.data.entities.EpisodeEntity
+import com.manikandan.domain.data.entities.FollowedArtistSingleAndAlbum
+import com.manikandan.domain.data.entities.GoogleAccountEntity
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.entities.LyricsEntity
+import com.manikandan.domain.data.entities.NewFormatEntity
+import com.manikandan.domain.data.entities.NotificationEntity
+import com.manikandan.domain.data.entities.PairSongLocalPlaylist
+import com.manikandan.domain.data.entities.PlaylistEntity
+import com.manikandan.domain.data.entities.PodcastsEntity
+import com.manikandan.domain.data.entities.QueueEntity
+import com.manikandan.domain.data.entities.SearchHistory
+import com.manikandan.domain.data.entities.SetVideoIdEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.data.entities.SongInfoEntity
+import com.manikandan.domain.data.entities.TranslatedLyricsEntity
+import com.manikandan.domain.data.entities.YourYouTubePlaylistList
+import com.manikandan.domain.data.entities.analytics.EventArtistEntity
+import com.manikandan.domain.data.entities.analytics.PlaybackEventEntity
 
 @Database(
     entities = [

@@ -1,8 +1,8 @@
-package com.maxrave.data.lyrics
+﻿package com.maxrave.data.lyrics
 
-import com.maxrave.domain.data.model.lyrics.RomanizationDictionaryState
-import com.maxrave.domain.data.model.lyrics.RomanizationLanguage
-import com.maxrave.domain.repository.LyricsRomanizerRepository
+import com.manikandan.domain.data.model.lyrics.RomanizationDictionaryState
+import com.manikandan.domain.data.model.lyrics.RomanizationLanguage
+import com.manikandan.domain.repository.LyricsRomanizerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

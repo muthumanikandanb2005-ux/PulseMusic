@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.player
+﻿package com.maxrave.simpmusic.ui.screen.player
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.MarqueeAnimationMode
@@ -63,7 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.maxrave.common.Config.MAIN_PLAYER
-import com.maxrave.domain.manager.DataStoreManager
+import com.manikandan.domain.manager.DataStoreManager
 import com.maxrave.simpmusic.expect.ui.MediaPlayerViewWithSubtitle
 import com.maxrave.simpmusic.extension.artworkScrimBrush
 import com.maxrave.simpmusic.extension.formatDuration

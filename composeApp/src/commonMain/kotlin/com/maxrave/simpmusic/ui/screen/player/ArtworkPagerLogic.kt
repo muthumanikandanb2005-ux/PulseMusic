@@ -1,6 +1,6 @@
-package com.maxrave.simpmusic.ui.screen.player
+﻿package com.maxrave.simpmusic.ui.screen.player
 
-import com.maxrave.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.browse.album.Track
 
 /**
  * Pure helpers for the Spotify-style artwork pager on [NowPlayingScreen].

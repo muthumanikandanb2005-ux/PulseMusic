@@ -1,9 +1,9 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
-import com.maxrave.domain.data.entities.AlbumEntity
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.data.model.analytics.AnalyticsPeriodStats
+import com.manikandan.domain.data.entities.AlbumEntity
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.data.model.analytics.AnalyticsPeriodStats
 import kotlinx.datetime.LocalDate
 
 /**
@@ -169,7 +169,7 @@ enum class WrappedListeningBand(
 /**
  * One archetype per fingerprint axis, chosen by whichever axis reads highest.
  *
- * Deliberately a straight argmax over [com.maxrave.domain.data.model.analytics.ListeningFingerprint.axes]
+ * Deliberately a straight argmax over [com.manikandan.domain.data.model.analytics.ListeningFingerprint.axes]
  * with ties broken by declaration order, so the same year always yields the same name. Every axis
  * is already bounded 0..1 by construction, which is what makes them comparable at all.
  */

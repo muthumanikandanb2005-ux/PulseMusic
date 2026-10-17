@@ -1,4 +1,4 @@
-package com.maxrave.media_jvm_ui.ui
+﻿package com.maxrave.media_jvm_ui.ui
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
@@ -38,10 +38,10 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.maxrave.domain.data.model.metadata.Lyrics
-import com.maxrave.domain.data.model.streams.TimeLine
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.mediaservice.handler.MediaPlayerHandler
+import com.manikandan.domain.data.model.metadata.Lyrics
+import com.manikandan.domain.data.model.streams.TimeLine
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.mediaservice.handler.MediaPlayerHandler
 import com.simpmusic.media_jvm.mpv.MpvPlayer
 import com.simpmusic.media_jvm.mpv.MpvPlayerAdapter
 import com.simpmusic.media_jvm.mpv.MpvVideoFrameSource

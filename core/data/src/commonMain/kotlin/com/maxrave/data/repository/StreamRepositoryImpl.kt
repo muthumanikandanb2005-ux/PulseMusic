@@ -1,4 +1,4 @@
-package com.maxrave.data.repository
+﻿package com.maxrave.data.repository
 
 import com.maxrave.common.ITAG
 import com.maxrave.common.MERGING_DATA_TYPE
@@ -7,15 +7,15 @@ import com.maxrave.common.VIDEO_QUALITY
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.mapping.toSponsorSkipSegments
 import com.maxrave.data.mapping.toTrack
-import com.maxrave.domain.data.entities.NewFormatEntity
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.mediaService.SponsorSkipSegments
-import com.maxrave.domain.extension.isBefore
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.extension.plusSeconds
-import com.maxrave.domain.manager.DataStoreManager
-import com.maxrave.domain.repository.StreamRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.entities.NewFormatEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.mediaService.SponsorSkipSegments
+import com.manikandan.domain.extension.isBefore
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.extension.plusSeconds
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.StreamRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.kotlinytmusicscraper.models.MediaType
 import com.maxrave.kotlinytmusicscraper.models.response.PlayerResponse

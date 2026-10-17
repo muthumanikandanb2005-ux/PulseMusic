@@ -1,15 +1,15 @@
-package com.maxrave.simpmusic.viewModel
+﻿package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.viewModelScope
-import com.maxrave.domain.data.entities.ArtistEntity
-import com.maxrave.domain.data.model.analytics.AnalyticsPeriodStats
-import com.maxrave.domain.data.model.analytics.ListeningFingerprint
-import com.maxrave.domain.extension.now
-import com.maxrave.domain.repository.AlbumRepository
-import com.maxrave.domain.repository.AnalyticsRepository
-import com.maxrave.domain.repository.ArtistRepository
-import com.maxrave.domain.repository.SongRepository
-import com.maxrave.domain.utils.Resource
+import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.model.analytics.AnalyticsPeriodStats
+import com.manikandan.domain.data.model.analytics.ListeningFingerprint
+import com.manikandan.domain.extension.now
+import com.manikandan.domain.repository.AlbumRepository
+import com.manikandan.domain.repository.AnalyticsRepository
+import com.manikandan.domain.repository.ArtistRepository
+import com.manikandan.domain.repository.SongRepository
+import com.manikandan.domain.utils.Resource
 import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

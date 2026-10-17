@@ -1,6 +1,6 @@
-package com.maxrave.data.parser
+﻿package com.maxrave.data.parser
 
-import com.maxrave.domain.data.model.searchResult.playlists.PlaylistsResult
+import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
 import com.maxrave.kotlinytmusicscraper.models.GridRenderer
 import com.maxrave.kotlinytmusicscraper.models.MusicTwoRowItemRenderer
 

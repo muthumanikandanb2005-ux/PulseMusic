@@ -1,4 +1,4 @@
-package com.maxrave.media3.extension
+﻿package com.maxrave.media3.extension
 
 import android.content.Context
 import android.os.Bundle
@@ -12,12 +12,12 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.SessionCommand
 import com.maxrave.common.MEDIA_CUSTOM_COMMAND
 import com.maxrave.common.MERGING_DATA_TYPE
-import com.maxrave.domain.data.entities.SongEntity
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.player.GenericCommandButton
-import com.maxrave.domain.mediaservice.handler.RepeatState
-import com.maxrave.domain.utils.connectArtists
-import com.maxrave.domain.utils.toListName
+import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.player.GenericCommandButton
+import com.manikandan.domain.mediaservice.handler.RepeatState
+import com.manikandan.domain.utils.connectArtists
+import com.manikandan.domain.utils.toListName
 import com.maxrave.media3.R
 
 fun MediaItem?.toSongEntity(): SongEntity? =

@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.player.content
+﻿package com.maxrave.simpmusic.ui.screen.player.content
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -76,8 +76,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.mediaservice.handler.RepeatState
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.mediaservice.handler.RepeatState
 import com.maxrave.simpmusic.extension.formatDuration
 import com.maxrave.simpmusic.ui.component.rememberHolderPainter
 import com.maxrave.simpmusic.ui.icon.Favorite

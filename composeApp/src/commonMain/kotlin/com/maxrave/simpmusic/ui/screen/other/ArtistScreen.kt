@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.other
+﻿package com.maxrave.simpmusic.ui.screen.other
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -74,12 +74,12 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.kyant.backdrop.highlight.Highlight
 import com.maxrave.common.Config
-import com.maxrave.domain.data.model.browse.album.Track
-import com.maxrave.domain.data.model.home.Content
-import com.maxrave.domain.data.model.searchResult.songs.Artist
-import com.maxrave.domain.mediaservice.handler.PlaylistType
-import com.maxrave.domain.mediaservice.handler.QueueData
-import com.maxrave.domain.utils.toSongEntity
+import com.manikandan.domain.data.model.browse.album.Track
+import com.manikandan.domain.data.model.home.Content
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.utils.toSongEntity
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.MediaPlayerView
 import com.maxrave.simpmusic.expect.ui.layerBackdrop

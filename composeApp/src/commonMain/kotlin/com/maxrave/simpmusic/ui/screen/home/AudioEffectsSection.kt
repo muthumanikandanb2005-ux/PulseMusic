@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.ui.screen.home
+﻿package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,9 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.maxrave.domain.data.player.DelayEffect
-import com.maxrave.domain.data.player.DolbyAtmosProfile
-import com.maxrave.domain.data.player.ReverbPreset
+import com.manikandan.domain.data.player.DelayEffect
+import com.manikandan.domain.data.player.DolbyAtmosProfile
+import com.manikandan.domain.data.player.ReverbPreset
 import com.maxrave.simpmusic.ui.component.Chip
 import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.icon.Help
