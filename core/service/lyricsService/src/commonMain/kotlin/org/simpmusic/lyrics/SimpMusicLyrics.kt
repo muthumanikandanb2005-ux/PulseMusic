@@ -460,6 +460,22 @@ class SimpMusicLyrics {
                         return lrc
                     }
                 }
+
+                val lyricsResp = httpClient.get("https://apic-desktop.musixmatch.com/ws/1.1/track.lyrics.get") {
+                    parameter("app_id", "web-desktop-app-v1.0")
+                    parameter("track_id", trackId)
+                    parameter("usertoken", token)
+                    header("Cookie", "AWSELBCORS=0; AWSELB=0;")
+                }
+                if (lyricsResp.status.value in 200..299) {
+                    val lyricsJson = Json.parseToJsonElement(lyricsResp.bodyAsText()).jsonObject
+                    val body = lyricsJson["message"]?.jsonObject?.get("body")?.jsonObject
+                        ?.get("lyrics")?.jsonObject?.get("lyrics_body")?.jsonPrimitive?.contentOrNull
+                    if (!body.isNullOrBlank()) {
+                        val cleanedBody = body.substringBefore("******* This Lyrics is NOT for Commercial use").trim()
+                        return cleanedBody.ifBlank { body }
+                    }
+                }
             }
 
             // 2. Alternative method: macro.subtitles.get

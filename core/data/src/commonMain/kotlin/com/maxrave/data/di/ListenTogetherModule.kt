@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.di
+package com.maxrave.data.di
 
 import com.maxrave.common.AppIdentity
 import com.maxrave.common.Config
@@ -9,6 +9,7 @@ import com.manikandan.domain.repository.ListenTogetherRepository
 import com.manikandan.domain.manager.DataStoreManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -25,12 +26,20 @@ import org.simpmusic.listentogether.ListenTogetherSession
 val listenTogetherModule =
     module {
         single {
+            val dataStore = get<DataStoreManager>()
+            val serviceScope = get<CoroutineScope>(named(Config.SERVICE_SCOPE))
+            var cachedServerUrl = ""
+            serviceScope.launch {
+                dataStore.getString(ListenTogetherPrefs.SERVER_URL).collect { url ->
+                    cachedServerUrl = url.orEmpty()
+                }
+            }
             ListenTogetherClient(
                 clientVersion = "Pulse",
                 userAgent = "okhttp/4.12.0",
-                // Read per connection attempt, so a server changed in settings applies next time.
+                // Read per connection attempt without blocking threads
                 serverUrl = {
-                    runBlocking { get<DataStoreManager>().getString(ListenTogetherPrefs.SERVER_URL).first().orEmpty() }
+                    cachedServerUrl
                 },
             )
         }

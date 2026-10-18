@@ -391,8 +391,6 @@ class SharedViewModel(
                                         ?.data
                                         ?.playlistName ?: "",
                             )
-                        // Instantly check local database for cached lyrics so lyrics display immediately
-                        getSavedLyrics(track.toTrack())
                     }
                     state.mediaItem.let { now ->
                         _canvas.value = null
@@ -1451,20 +1449,12 @@ class SharedViewModel(
                     }
 
                     else -> {
-                        if (fallbackToSaved) {
-                            getSavedLyrics(
-                                song.toTrack().copy(
-                                    durationSeconds = duration,
-                                ),
-                            )
-                        } else {
-                            getSimpMusicLyrics(
-                                videoId,
-                                song,
-                                (artist ?: ""),
-                                duration,
-                            )
-                        }
+                        getSimpMusicLyrics(
+                            videoId,
+                            song,
+                            (artist ?: ""),
+                            duration,
+                        )
                     }
                 }
             }
@@ -1474,6 +1464,7 @@ class SharedViewModel(
         song: SongEntity,
         artist: String,
         duration: Int,
+        fallbackToMusixMatch: Boolean = true,
     ) {
         viewModelScope.launch {
             lyricsCanvasRepository
@@ -1484,8 +1475,8 @@ class SharedViewModel(
                 ).collectLatest { res ->
                     val data = res.data
                     when (res) {
-                        is Resource.Success if (data != null) -> {
-                            Logger.d(tag, "Get Lyrics Data Success")
+                        is Resource.Success if (data != null && !data.lines.isNullOrEmpty()) -> {
+                            Logger.d(tag, "Get LRCLIB Lyrics Success")
                             updateLyrics(
                                 song.videoId,
                                 duration,
@@ -1505,14 +1496,24 @@ class SharedViewModel(
                         }
 
                         else -> {
-                            // Resilient waterfall fallback: LRCLIB -> YouTube Captions -> Saved Offline
-                            getYouTubeCaption(
-                                song.videoId,
-                                song,
-                                artist,
-                                duration,
-                                fallbackToSaved = true,
-                            )
+                            if (fallbackToMusixMatch) {
+                                Logger.d(tag, "LRCLIB yielded no lyrics, falling back to MusixMatch online")
+                                getMusixMatchLyrics(
+                                    song,
+                                    artist,
+                                    duration,
+                                    fallbackToLrclib = false,
+                                )
+                            } else {
+                                Logger.d(tag, "LRCLIB and MusixMatch completed, falling back to YouTube captions")
+                                getYouTubeCaption(
+                                    song.videoId,
+                                    song,
+                                    artist,
+                                    duration,
+                                    fallbackToSaved = false,
+                                )
+                            }
                         }
                     }
                 }
@@ -1523,6 +1524,7 @@ class SharedViewModel(
         song: SongEntity,
         artist: String,
         duration: Int,
+        fallbackToLrclib: Boolean = true,
     ) {
         viewModelScope.launch {
             lyricsCanvasRepository
@@ -1533,8 +1535,8 @@ class SharedViewModel(
                 ).collectLatest { res ->
                     val data = res.data
                     when (res) {
-                        is Resource.Success if (data != null) -> {
-                            Logger.d(tag, "Get MusixMatch Lyrics Data Success")
+                        is Resource.Success if (data != null && !data.lines.isNullOrEmpty()) -> {
+                            Logger.d(tag, "Get MusixMatch Lyrics Success")
                             updateLyrics(
                                 song.videoId,
                                 duration,
@@ -1554,13 +1556,24 @@ class SharedViewModel(
                         }
 
                         else -> {
-                            // Resilient waterfall fallback: MusixMatch -> SimpMusic -> LRCLIB -> YouTube
-                            getSimpMusicLyrics(
-                                song.videoId,
-                                song,
-                                artist,
-                                duration,
-                            )
+                            if (fallbackToLrclib) {
+                                Logger.d(tag, "MusixMatch yielded no lyrics, falling back to LRCLIB online")
+                                getLrclibLyrics(
+                                    song,
+                                    artist,
+                                    duration,
+                                    fallbackToMusixMatch = false,
+                                )
+                            } else {
+                                Logger.d(tag, "MusixMatch and LRCLIB completed, falling back to YouTube captions")
+                                getYouTubeCaption(
+                                    song.videoId,
+                                    song,
+                                    artist,
+                                    duration,
+                                    fallbackToSaved = false,
+                                )
+                            }
                         }
                     }
                 }

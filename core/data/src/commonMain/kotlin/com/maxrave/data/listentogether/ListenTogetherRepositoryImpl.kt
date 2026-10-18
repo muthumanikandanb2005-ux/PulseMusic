@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.listentogether
+package com.maxrave.data.listentogether
 
 import com.manikandan.domain.data.model.listentogether.ListenTogetherRoom
 import com.manikandan.domain.data.model.listentogether.RoomConnection
@@ -62,7 +62,7 @@ class ListenTogetherRepositoryImpl(
         }
     }
 
-    override fun connect() = session.connect()
+    override fun connect(force: Boolean) = session.connect(force = force)
 
     override fun disconnect() = session.disconnect()
 

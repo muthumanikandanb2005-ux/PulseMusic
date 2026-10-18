@@ -1,37 +1,51 @@
-﻿package org.simpmusic.lyrics.parser
+package org.simpmusic.lyrics.parser
 
 import com.manikandan.domain.extension.decodeHtmlEntities
 import org.simpmusic.lyrics.domain.Lyrics
 
 fun parseSyncedLyrics(data: String): Lyrics {
-    val regex = Regex("\\[(\\d{1,2}):(\\d{2})[.:](\\d{2,3})\\]\\s*(.*)")
+    val timestampRegex = Regex("\\[(\\d{1,2}):(\\d{2})[.:](\\d{2,3})\\]")
     val lines = data.lines()
     val linesLyrics = ArrayList<Lyrics.LyricsX.Line>()
     lines.forEach { line ->
         val trimmed = line.trim()
-        val matchResult = regex.matchEntire(trimmed)
-        if (matchResult != null) {
-            val minutes = matchResult.groupValues[1].toLong()
-            val seconds = matchResult.groupValues[2].toLong()
-            val milliStr = matchResult.groupValues[3]
-            val milliseconds = if (milliStr.length == 2) {
-                milliStr.toLong() * 10L
-            } else {
-                milliStr.toLong()
+        if (trimmed.startsWith("[ti:") || trimmed.startsWith("[ar:") ||
+            trimmed.startsWith("[al:") || trimmed.startsWith("[by:") ||
+            trimmed.startsWith("[offset:") || trimmed.startsWith("[re:") ||
+            trimmed.startsWith("[ve:") || trimmed.startsWith("[length:")
+        ) {
+            return@forEach
+        }
+        val matches = timestampRegex.findAll(trimmed).toList()
+        if (matches.isNotEmpty()) {
+            val rawContent = timestampRegex.replace(trimmed, "").trim()
+            val content = if (rawContent.isBlank()) "♫" else rawContent
+            val decoded = decodeHtmlEntities(content)
+            for (match in matches) {
+                val minutes = match.groupValues[1].toLongOrNull() ?: 0L
+                val seconds = match.groupValues[2].toLongOrNull() ?: 0L
+                val milliStr = match.groupValues[3]
+                val milliseconds = if (milliStr.length == 2) {
+                    (milliStr.toLongOrNull() ?: 0L) * 10L
+                } else {
+                    milliStr.toLongOrNull() ?: 0L
+                }
+                val timeInMillis = minutes * 60_000L + seconds * 1000L + milliseconds
+                linesLyrics.add(
+                    Lyrics.LyricsX.Line(
+                        endTimeMs = "0",
+                        startTimeMs = timeInMillis.toString(),
+                        syllables = listOf(),
+                        words = decoded,
+                    ),
+                )
             }
-            val timeInMillis = minutes * 60_000L + seconds * 1000L + milliseconds
-            val rawContent = matchResult.groupValues[4]
-            val content = if (rawContent.isBlank()) "♫" else rawContent.trimStart()
-            linesLyrics.add(
-                Lyrics.LyricsX.Line(
-                    endTimeMs = "0",
-                    startTimeMs = timeInMillis.toString(),
-                    syllables = listOf(),
-                    words = decodeHtmlEntities(content),
-                ),
-            )
         }
     }
+    if (linesLyrics.isEmpty()) {
+        return parseUnsyncedLyrics(data)
+    }
+    linesLyrics.sortBy { it.startTimeMs.toLongOrNull() ?: 0L }
     for (i in linesLyrics.indices) {
         val current = linesLyrics[i]
         val startMs = current.startTimeMs.toLongOrNull() ?: 0L

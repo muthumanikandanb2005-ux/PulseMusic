@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration
@@ -154,17 +155,16 @@ class ListenTogetherClient(
 
     /**
      * Opens the connection, or does nothing if one is already open or opening.
-     *
-     * Reconnection is automatic from here on; callers do not call this again after a drop.
+     * When [force] is true, any pending sleeping reconnect delay is cancelled and reconnect is started immediately.
      */
-    fun connect() {
-        // A deliberate start by the user, so the attempt budget begins again. The retry path
-        // deliberately calls [startConnection] instead of this: routing a retry through here would
-        // reset the counter every time and [MAX_RECONNECT_ATTEMPTS] would never be reached — the
-        // limit would look implemented and quietly never fire.
+    fun connect(force: Boolean = true) {
         reconnectAttempts = 0
         reconnectDelay = INITIAL_RECONNECT_DELAY
         fatal = false
+        if (force && !isConnected) {
+            connectionJob?.cancel()
+            connectionJob = null
+        }
         startConnection()
     }
 
@@ -227,9 +227,12 @@ class ListenTogetherClient(
     }
 
     private suspend fun openAndRun() {
-        val url = serverUrl().ifBlank { DEFAULT_SERVER_URL }
+        val rawUrl = serverUrl().trim()
+        val url = formatServerUrl(rawUrl)
         Logger.i(TAG, "Connecting to $url")
-        val live = client.webSocketSession(url)
+        val live: DefaultClientWebSocketSession = withTimeout(CONNECT_TIMEOUT) {
+            client.webSocketSession(url)
+        }
         session = live
         serverClock.reset()
         val pending = CompletableDeferred<ServerCapabilities>()
@@ -428,10 +431,28 @@ class ListenTogetherClient(
          */
         const val DEFAULT_SERVER_URL = "wss://metroserverx.meowery.eu/ws"
 
+        fun formatServerUrl(raw: String): String {
+            var url = raw.trim()
+            if (url.isBlank()) return DEFAULT_SERVER_URL
+            if (url.startsWith("http://", ignoreCase = true)) {
+                url = "ws://" + url.substring(7)
+            } else if (url.startsWith("https://", ignoreCase = true)) {
+                url = "wss://" + url.substring(8)
+            } else if (!url.startsWith("ws://", ignoreCase = true) && !url.startsWith("wss://", ignoreCase = true)) {
+                url = "wss://$url"
+            }
+            val uriWithoutProtocol = url.substringAfter("://")
+            if (!uriWithoutProtocol.contains("/")) {
+                url = "$url/ws"
+            }
+            return url
+        }
+
         /** Anchors the default monotonic source; see [elapsedRealtime]. */
         private val PROCESS_START = TimeSource.Monotonic.markNow()
 
-        private val HANDSHAKE_TIMEOUT = 10.seconds
+        private val CONNECT_TIMEOUT = 12.seconds
+        private val HANDSHAKE_TIMEOUT = 12.seconds
 
         /** metroserver `client.go`: the read deadline is 60s and any inbound message refreshes it. */
         private val PING_INTERVAL = 15.seconds
@@ -439,18 +460,14 @@ class ListenTogetherClient(
         private const val CALIBRATION_PINGS = 3
 
         private val INITIAL_RECONNECT_DELAY: Duration = 1.seconds
-        private val MAX_RECONNECT_DELAY: Duration = 60.seconds
+        private val MAX_RECONNECT_DELAY: Duration = 10.seconds
 
         /**
-         * How many times a dropped connection is retried before the user is told, in so many words,
-         * that it failed. The delay doubles each time — 1s, 2s, 4s, 8s, 16s — so five attempts span
-         * a little over half a minute of genuinely bad network before giving up rather than
-         * retrying into a flat battery.
-         *
-         * Counted attempts, not elapsed time: the budget refills only on a COMPLETED handshake, so
-         * a server that accepts the socket and then goes quiet still exhausts it.
+         * How many times a dropped connection is retried before the user is told that it failed.
+         * Using a 10s maximum delay cap across 30 attempts gives ~5 minutes of continuous resilience
+         * during transient Wi-Fi/cellular handoffs without losing the session token.
          */
-        private const val MAX_RECONNECT_ATTEMPTS = 5
+        private const val MAX_RECONNECT_ATTEMPTS = 30
 
         /**
          * Errors where reconnecting repeats the same rejection. Everything else the server sends —
