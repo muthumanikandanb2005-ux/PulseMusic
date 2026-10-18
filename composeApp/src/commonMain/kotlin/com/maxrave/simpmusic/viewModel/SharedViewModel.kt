@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.viewModel
+package com.maxrave.simpmusic.viewModel
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.viewModelScope
@@ -391,6 +391,8 @@ class SharedViewModel(
                                         ?.data
                                         ?.playlistName ?: "",
                             )
+                        // Instantly check local database for cached lyrics so lyrics display immediately
+                        getSavedLyrics(track.toTrack())
                     }
                     state.mediaItem.let { now ->
                         _canvas.value = null
@@ -1413,6 +1415,7 @@ class SharedViewModel(
         song: SongEntity,
         artist: String?,
         duration: Int,
+        fallbackToSaved: Boolean = false,
     ) {
         lyricsCanvasRepository
             .getYouTubeCaption(dataStoreManager.youtubeSubtitleLanguage.first(), videoId)
@@ -1448,12 +1451,20 @@ class SharedViewModel(
                     }
 
                     else -> {
-                        getSimpMusicLyrics(
-                            videoId,
-                            song,
-                            (artist ?: ""),
-                            duration,
-                        )
+                        if (fallbackToSaved) {
+                            getSavedLyrics(
+                                song.toTrack().copy(
+                                    durationSeconds = duration,
+                                ),
+                            )
+                        } else {
+                            getSimpMusicLyrics(
+                                videoId,
+                                song,
+                                (artist ?: ""),
+                                duration,
+                            )
+                        }
                     }
                 }
             }
@@ -1494,10 +1505,13 @@ class SharedViewModel(
                         }
 
                         else -> {
-                            getSavedLyrics(
-                                song.toTrack().copy(
-                                    durationSeconds = duration,
-                                ),
+                            // Resilient waterfall fallback: LRCLIB -> YouTube Captions -> Saved Offline
+                            getYouTubeCaption(
+                                song.videoId,
+                                song,
+                                artist,
+                                duration,
+                                fallbackToSaved = true,
                             )
                         }
                     }
@@ -1540,10 +1554,12 @@ class SharedViewModel(
                         }
 
                         else -> {
-                            getSavedLyrics(
-                                song.toTrack().copy(
-                                    durationSeconds = duration,
-                                ),
+                            // Resilient waterfall fallback: MusixMatch -> SimpMusic -> LRCLIB -> YouTube
+                            getSimpMusicLyrics(
+                                song.videoId,
+                                song,
+                                artist,
+                                duration,
                             )
                         }
                     }

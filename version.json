@@ -1,33 +1,33 @@
 {
-  "tag_name": "v3.1.4",
-  "name": "Pulse Music v3.1.4",
-  "published_at": "2026-10-17T22:40:00Z",
-  "body": "Pulse Music v3.1.4 OTA Update: Uninterrupted smooth background audio playback across app switching and app closing, Apple Music Lossless & High-Fidelity streaming options, instant offline Windows startup, and Material Expressive UI polish.",
+  "tag_name": "v3.1.5",
+  "name": "Pulse Music v3.1.5",
+  "published_at": "2026-10-18T10:30:00Z",
+  "body": "Pulse Music v3.1.5 OTA Update: Fix Windows DataStore atomic storage and multiple instance locking, instant cached lyrics loading, smart track sanitization and multi-provider waterfall fallback (SimpMusic -> LRCLIB -> YouTube Captions), responsive zero-delay glowing neon lyrics animation, and improved lyrics synchronization across all songs and languages.",
   "assets": [
     {
-      "name": "PulseMusic-v3.1.4-Universal.apk",
-      "size": 61057081,
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.4/PulseMusic-v3.1.4-Universal.apk"
+      "name": "PulseMusic-v3.1.5-Universal.apk",
+      "size": 61056904,
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.5/PulseMusic-v3.1.5-Universal.apk"
     },
     {
-      "name": "PulseMusic-v3.1.4-arm64-v8a.apk",
-      "size": 33188056,
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.4/PulseMusic-v3.1.4-arm64-v8a.apk"
+      "name": "PulseMusic-v3.1.5-arm64-v8a.apk",
+      "size": 33187876,
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.5/PulseMusic-v3.1.5-arm64-v8a.apk"
     },
     {
-      "name": "PulseMusic-v3.1.4-armeabi-v7a.apk",
-      "size": 33152203,
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.4/PulseMusic-v3.1.4-armeabi-v7a.apk"
+      "name": "PulseMusic-v3.1.5-armeabi-v7a.apk",
+      "size": 33152024,
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.5/PulseMusic-v3.1.5-armeabi-v7a.apk"
     },
     {
-      "name": "PulseMusic-v3.1.4-x86_64.apk",
-      "size": 34653524,
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.4/PulseMusic-v3.1.4-x86_64.apk"
+      "name": "PulseMusic-v3.1.5-x86_64.apk",
+      "size": 34653343,
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.5/PulseMusic-v3.1.5-x86_64.apk"
     },
     {
-      "name": "PulseMusic-v3.1.4-windows-x64-Setup.exe",
-      "size": 183150096,
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.4/PulseMusic-v3.1.4-windows-x64-Setup.exe"
+      "name": "PulseMusic-v3.1.5-windows-x64-Setup.exe",
+      "size": 183162784,
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.5/PulseMusic-v3.1.5-windows-x64-Setup.exe"
     }
   ]
 }

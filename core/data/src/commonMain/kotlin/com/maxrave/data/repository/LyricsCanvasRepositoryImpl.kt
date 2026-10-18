@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class)
 
 package com.maxrave.data.repository
 
@@ -494,6 +494,30 @@ internal class LyricsCanvasRepositoryImpl(
             }
         }.flowOn(Dispatchers.IO)
 
+    private fun cleanTrackTitleForLyrics(title: String): String {
+        val cleaned = title
+            .replace(Regex("(?i)\\[[^\\]]*(?:official|audio|video|lyric|visualizer|remaster|hd|4k|mv|music video|full song)[^\\]]*\\]"), "")
+            .replace(Regex("(?i)\\([^\\)]*(?:official|audio|video|lyric|visualizer|remaster|hd|4k|mv|music video|full song)[^\\)]*\\)"), "")
+            .replace(Regex("(?i)\\|.*$"), "")
+            .replace(Regex("(?i)-\\s*(?:official|audio|video|lyric|visualizer|remaster|hd|4k|mv).*$"), "")
+            .replace(Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: )[^)]*\\)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("( và | & | и | e | und |, |和| dan)"), " ")
+            .replace(Regex("[\"'\\[\\]()]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        return cleaned.ifBlank { title.trim() }
+    }
+
+    private fun cleanArtistForLyrics(artist: String): String {
+        val cleaned = artist
+            .replace(Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: )[^)]*\\)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("( và | & | и | e | und |, |和| dan)"), " ")
+            .replace(Regex("[\"'\\[\\]()]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        return cleaned.ifBlank { artist.trim() }
+    }
+
     override fun getLrclibLyricsData(
         sartist: String,
         strack: String,
@@ -509,28 +533,8 @@ internal class LyricsCanvasRepositoryImpl(
                 } catch (_: Exception) {
                     DataStoreManager.DEFAULT_LRCLIB_CLIENT_ID
                 }
-            val qartist =
-                sartist
-                    .replace(
-                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                        " ",
-                    ).replace(
-                        Regex("( và | & | и | e | und |, |和| dan)"),
-                        " ",
-                    ).replace("  ", " ")
-                    .replace(Regex("([()])"), "")
-                    .replace(".", " ")
-            val qtrack =
-                strack
-                    .replace(
-                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                        " ",
-                    ).replace(
-                        Regex("( và | & | и | e | und |, |和| dan)"),
-                        " ",
-                    ).replace("  ", " ")
-                    .replace(Regex("([()])"), "")
-                    .replace(".", " ")
+            val qartist = cleanArtistForLyrics(sartist)
+            val qtrack = cleanTrackTitleForLyrics(strack)
             simpMusicLyrics
                 .searchLrclibLyrics(
                     q_track = qtrack,
@@ -557,28 +561,8 @@ internal class LyricsCanvasRepositoryImpl(
     ): Flow<Resource<Lyrics>> =
         flow {
             Logger.w("Lyrics", "getMusixMatchLyricsData: $sartist $strack $duration")
-            val qartist =
-                sartist
-                    .replace(
-                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                        " ",
-                    ).replace(
-                        Regex("( và | & | и | e | und |, |和| dan)"),
-                        " ",
-                    ).replace("  ", " ")
-                    .replace(Regex("([()])"), "")
-                    .replace(".", " ")
-            val qtrack =
-                strack
-                    .replace(
-                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                        " ",
-                    ).replace(
-                        Regex("( và | & | и | e | und |, |和| dan)"),
-                        " ",
-                    ).replace("  ", " ")
-                    .replace(Regex("([()])"), "")
-                    .replace(".", " ")
+            val qartist = cleanArtistForLyrics(sartist)
+            val qtrack = cleanTrackTitleForLyrics(strack)
             simpMusicLyrics
                 .searchMusixMatchLyrics(
                     q_track = qtrack,
@@ -604,28 +588,8 @@ internal class LyricsCanvasRepositoryImpl(
     ): Flow<Resource<Lyrics>> =
         flow {
             Logger.w("Lyrics", "getBetterLyrics: $artist $track")
-            val qartist =
-                artist
-                    .replace(
-                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                        " ",
-                    ).replace(
-                        Regex("( và | & | и | e | und |, |和| dan)"),
-                        " ",
-                    ).replace("  ", " ")
-                    .replace(Regex("([()])"), "")
-                    .replace(".", " ")
-            val qtrack =
-                track
-                    .replace(
-                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                        " ",
-                    ).replace(
-                        Regex("( và | & | и | e | und |, |和| dan)"),
-                        " ",
-                    ).replace("  ", " ")
-                    .replace(Regex("([()])"), "")
-                    .replace(".", " ")
+            val qartist = cleanArtistForLyrics(artist)
+            val qtrack = cleanTrackTitleForLyrics(track)
             simpMusicLyrics
                 .searchBetterLyrics(qtrack, qartist, duration)
                 .onSuccess { ttml ->

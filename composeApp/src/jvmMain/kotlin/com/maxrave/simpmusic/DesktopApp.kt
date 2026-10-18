@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic
+package com.maxrave.simpmusic
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -182,6 +182,17 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         // Second instance: forward the deep link (if any) to the running instance,
         // then exit. Nothing has touched the DataStore file yet.
         deepLinkArg?.let { DesktopDeepLinkHandler.writePendingUri(it) }
+        return
+    }
+
+    // Native file lock guard to guarantee single instance and prevent multiple processes accessing DataStore
+    val lockFile = java.io.File(System.getProperty("user.home"), ".simpmusic/pulse.lock")
+    lockFile.parentFile?.mkdirs()
+    val lockChannel = runCatching { java.io.RandomAccessFile(lockFile, "rw").channel }.getOrNull()
+    val fileLock = runCatching { lockChannel?.tryLock() }.getOrNull()
+    if (fileLock == null && lockChannel != null) {
+        deepLinkArg?.let { DesktopDeepLinkHandler.writePendingUri(it) }
+        DesktopRestoreSignal.request()
         return
     }
 
