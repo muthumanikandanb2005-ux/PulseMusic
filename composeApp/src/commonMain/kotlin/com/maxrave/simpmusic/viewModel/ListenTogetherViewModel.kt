@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.viewModel
+package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -85,7 +85,7 @@ class ListenTogetherViewModel(
             codeToUse.uppercase().filter { it.isLetterOrDigit() }.take(ROOM_CODE_LENGTH)
     }
 
-    fun connect() = repository.connect()
+    fun connect(force: Boolean = true) = repository.connect(force = force)
 
     fun disconnect() = repository.disconnect()
 

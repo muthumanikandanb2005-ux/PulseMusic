@@ -501,8 +501,7 @@ internal class LyricsCanvasRepositoryImpl(
             .replace(Regex("(?i)\\|.*$"), "")
             .replace(Regex("(?i)-\\s*(?:official|audio|video|lyric|visualizer|remaster|hd|4k|mv).*$"), "")
             .replace(Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: )[^)]*\\)", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("( và | & | и | e | und |, |和| dan)"), " ")
-            .replace(Regex("[\"'\\[\\]()]"), " ")
+            .replace(Regex("\\[(feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: )[^\\]]*\\]", RegexOption.IGNORE_CASE), "")
             .replace(Regex("\\s+"), " ")
             .trim()
         return cleaned.ifBlank { title.trim() }
@@ -511,8 +510,8 @@ internal class LyricsCanvasRepositoryImpl(
     private fun cleanArtistForLyrics(artist: String): String {
         val cleaned = artist
             .replace(Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: )[^)]*\\)", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("( và | & | и | e | und |, |和| dan)"), " ")
-            .replace(Regex("[\"'\\[\\]()]"), " ")
+            .replace(Regex("\\[(feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: )[^\\]]*\\]", RegexOption.IGNORE_CASE), "")
+            .replace(Regex(" - Topic$", RegexOption.IGNORE_CASE), "")
             .replace(Regex("\\s+"), " ")
             .trim()
         return cleaned.ifBlank { artist.trim() }
@@ -535,23 +534,28 @@ internal class LyricsCanvasRepositoryImpl(
                 }
             val qartist = cleanArtistForLyrics(sartist)
             val qtrack = cleanTrackTitleForLyrics(strack)
-            simpMusicLyrics
-                .searchLrclibLyrics(
-                    q_track = qtrack,
-                    q_artist = qartist,
+            var result = simpMusicLyrics.searchLrclibLyrics(
+                q_track = qtrack,
+                q_artist = qartist,
+                duration = duration,
+                clientId = clientId,
+            ).getOrNull()
+
+            // If cleaned search didn't match, try raw title/artist
+            if (result == null && (qtrack != strack.trim() || qartist != sartist.trim())) {
+                result = simpMusicLyrics.searchLrclibLyrics(
+                    q_track = strack.trim(),
+                    q_artist = sartist.trim(),
                     duration = duration,
                     clientId = clientId,
-                )
-                .onSuccess {
-                    if (it != null) {
-                        emit(Resource.Success<Lyrics>(it.toLyrics()))
-                    } else {
-                        emit(Resource.Error<Lyrics>("Not found"))
-                    }
-                }.onFailure {
-                    it.printStackTrace()
-                    emit(Resource.Error<Lyrics>("Not found"))
-                }
+                ).getOrNull()
+            }
+
+            if (result != null) {
+                emit(Resource.Success<Lyrics>(result.toLyrics()))
+            } else {
+                emit(Resource.Error<Lyrics>("Not found"))
+            }
         }.flowOn(Dispatchers.IO)
 
     override fun getMusixMatchLyricsData(
@@ -563,22 +567,26 @@ internal class LyricsCanvasRepositoryImpl(
             Logger.w("Lyrics", "getMusixMatchLyricsData: $sartist $strack $duration")
             val qartist = cleanArtistForLyrics(sartist)
             val qtrack = cleanTrackTitleForLyrics(strack)
-            simpMusicLyrics
-                .searchMusixMatchLyrics(
-                    q_track = qtrack,
-                    q_artist = qartist,
+            var result = simpMusicLyrics.searchMusixMatchLyrics(
+                q_track = qtrack,
+                q_artist = qartist,
+                durationSeconds = duration,
+            ).getOrNull()
+
+            // If cleaned search didn't match, try raw title/artist
+            if (result == null && (qtrack != strack.trim() || qartist != sartist.trim())) {
+                result = simpMusicLyrics.searchMusixMatchLyrics(
+                    q_track = strack.trim(),
+                    q_artist = sartist.trim(),
                     durationSeconds = duration,
-                )
-                .onSuccess {
-                    if (it != null) {
-                        emit(Resource.Success<Lyrics>(it.toLyrics()))
-                    } else {
-                        emit(Resource.Error<Lyrics>("Not found"))
-                    }
-                }.onFailure {
-                    it.printStackTrace()
-                    emit(Resource.Error<Lyrics>("Not found"))
-                }
+                ).getOrNull()
+            }
+
+            if (result != null) {
+                emit(Resource.Success<Lyrics>(result.toLyrics()))
+            } else {
+                emit(Resource.Error<Lyrics>("Not found"))
+            }
         }.flowOn(Dispatchers.IO)
 
     override fun getBetterLyrics(

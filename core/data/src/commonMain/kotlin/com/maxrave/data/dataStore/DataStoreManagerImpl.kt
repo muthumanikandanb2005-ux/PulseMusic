@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.dataStore
+package com.maxrave.data.dataStore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -25,6 +25,8 @@ import com.manikandan.domain.manager.DataStoreManager.Values.PROXY_TYPE_SOCKS
 import com.manikandan.domain.manager.DataStoreManager.Values.REPEAT_ALL
 import com.manikandan.domain.manager.DataStoreManager.Values.REPEAT_MODE_OFF
 import com.manikandan.domain.manager.DataStoreManager.Values.REPEAT_ONE
+import com.manikandan.domain.data.model.lyrics.RomanizationLanguage
+import com.manikandan.domain.manager.DataStoreManager.Values.LRCLIB
 import com.manikandan.domain.manager.DataStoreManager.Values.SIMPMUSIC
 import com.manikandan.domain.manager.DataStoreManager.Values.TRUE
 import com.maxrave.logger.Logger
@@ -511,7 +513,7 @@ internal class DataStoreManagerImpl(
 
     override val lyricsProvider =
         settingsDataStore.data.map { preferences ->
-            preferences[LYRICS_PROVIDER] ?: SIMPMUSIC
+            preferences[LYRICS_PROVIDER] ?: LRCLIB
         }
 
     override suspend fun setLyricsProvider(provider: String) {
@@ -1155,7 +1157,8 @@ internal class DataStoreManagerImpl(
 
     override val romanizationLanguages =
         settingsDataStore.data.map { preferences ->
-            preferences[ROMANIZATION_LANGUAGES] ?: ""
+            preferences[ROMANIZATION_LANGUAGES]
+                ?: RomanizationLanguage.entries.joinToString(",") { it.name }
         }
 
     override suspend fun setRomanizationLanguages(languages: String) {

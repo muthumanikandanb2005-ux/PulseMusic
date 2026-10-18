@@ -1,4 +1,4 @@
-﻿package com.manikandan.domain.repository
+package com.manikandan.domain.repository
 
 import com.manikandan.domain.data.model.listentogether.ListenTogetherRoom
 import com.manikandan.domain.data.model.listentogether.RoomTrack
@@ -18,7 +18,7 @@ interface ListenTogetherRepository {
     var autoApproveJoins: Boolean
     var autoApproveSuggestions: Boolean
 
-    fun connect()
+    fun connect(force: Boolean = true)
 
     fun disconnect()
 

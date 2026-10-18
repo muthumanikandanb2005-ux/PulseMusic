@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.ui.screen.home
+package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -192,7 +192,7 @@ fun ListenTogetherScreen(
     var managing by remember { mutableStateOf<RoomMember?>(null) }
 
     LaunchedEffect(Unit) {
-        if (!state.isConnected && state.connection !is RoomConnection.Connecting) {
+        if (!state.isConnected) {
             viewModel.connect()
         }
     }

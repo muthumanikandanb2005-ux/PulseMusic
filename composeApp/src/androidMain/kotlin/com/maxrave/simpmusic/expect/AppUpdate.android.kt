@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.expect
+package com.maxrave.simpmusic.expect
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -26,11 +26,14 @@ actual suspend fun downloadAndInstallAppUpdate(
         val context: AppCompatActivity = getKoin().get()
         val asset = update.getAndroidApkAsset()
         val downloadUrl = asset?.downloadUrl
-            ?: "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/${update.tagName}/PulseMusic-Universal.apk"
+            ?: "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/${update.tagName}/PulseMusic-${update.tagName}-Universal.apk"
         val totalSize = asset?.size ?: 0L
 
         Logger.i(TAG, "Starting Android update download from: $downloadUrl")
-        val updateDir = File(context.cacheDir, "updates")
+        val baseDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+            ?: context.externalCacheDir
+            ?: File(context.cacheDir, "updates")
+        val updateDir = File(baseDir, "updates")
         if (!updateDir.exists()) updateDir.mkdirs()
 
         val apkFile = File(updateDir, "PulseMusic-${update.tagName}.apk")
@@ -49,6 +52,7 @@ actual suspend fun downloadAndInstallAppUpdate(
             partFile.copyTo(apkFile, overwrite = true)
             partFile.delete()
         }
+        apkFile.setReadable(true, false)
 
         onReadyToInstall()
 
@@ -63,6 +67,14 @@ actual suspend fun downloadAndInstallAppUpdate(
                     setDataAndType(uri, "application/vnd.android.package-archive")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                val resInfoList = context.packageManager.queryIntentActivities(
+                    installIntent,
+                    android.content.pm.PackageManager.MATCH_DEFAULT_ONLY,
+                )
+                for (resolveInfo in resInfoList) {
+                    val packageName = resolveInfo.activityInfo.packageName
+                    context.grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 context.startActivity(installIntent)
             } catch (e: Exception) {

@@ -116,13 +116,24 @@ class ListenTogetherSession(
     var autoApproveJoins: Boolean = true
     var autoApproveSuggestions: Boolean = false
 
-    /** Opens the socket. Joining a room is a separate, later step. */
-    fun connect() {
+    /** Opens the socket. When [force] is true, cancels any waiting reconnect backoff to connect immediately. */
+    fun connect(force: Boolean = true) {
         if (pump == null) {
             pump = launch { client.events.collect(::onEvent) }
         }
         _state.update { it.copy(connection = ConnectionState.Connecting, error = null) }
-        client.connect()
+        client.connect(force = force)
+    }
+
+    suspend fun awaitConnected(timeoutMs: Long = 15_000L): Boolean {
+        if (client.isConnected) return true
+        connect(force = true)
+        return withTimeoutOrNull(timeoutMs) {
+            while (!client.isConnected) {
+                delay(50L)
+            }
+            true
+        } ?: false
     }
 
     fun disconnect() {
@@ -132,43 +143,46 @@ class ListenTogetherSession(
 
     fun createRoom(username: String) =
         launch {
-            pendingUsername = username.trim()
-            if (!client.isConnected) {
-                connect()
-                val connected = withTimeoutOrNull(5_000L) {
-                    while (!client.isConnected) {
-                        delay(100L)
-                    }
-                    true
-                } ?: false
-                if (!connected) {
-                    _state.update { it.copy(error = "Failed to connect to server. Please check internet connection.") }
-                    return@launch
+            val name = username.trim().ifBlank { "Pulse User" }
+            pendingUsername = name
+            _state.update { it.copy(connection = ConnectionState.Connecting, error = null) }
+            val connected = awaitConnected(15_000L)
+            if (!connected) {
+                _state.update {
+                    it.copy(
+                        connection = ConnectionState.Failed("Connection timed out. Please check your internet connection."),
+                        error = "Failed to connect to server. Please check internet connection.",
+                    )
                 }
+                return@launch
             }
-            client.send(MessageTypes.CREATE_ROOM, CreateRoomPayload(username = pendingUsername))
+            val sent = client.send(MessageTypes.CREATE_ROOM, CreateRoomPayload(username = pendingUsername))
+            if (!sent) {
+                _state.update { it.copy(error = "Could not send room creation request. Please try again.") }
+            }
         }
 
     fun joinRoom(
         roomCode: String,
         username: String,
     ) = launch {
-        pendingUsername = username.trim()
+        val name = username.trim().ifBlank { "Pulse User" }
+        pendingUsername = name
         val code = roomCode.trim().uppercase()
-        _state.update { it.copy(pendingJoinCode = code, error = null) }
+        if (code.isBlank()) return@launch
 
-        if (!client.isConnected) {
-            connect()
-            val connected = withTimeoutOrNull(5_000L) {
-                while (!client.isConnected) {
-                    delay(100L)
-                }
-                true
-            } ?: false
-            if (!connected) {
-                _state.update { it.copy(pendingJoinCode = null, error = "Failed to connect to server. Please check internet connection.") }
-                return@launch
+        _state.update { it.copy(pendingJoinCode = code, error = null, connection = ConnectionState.Connecting) }
+
+        val connected = awaitConnected(15_000L)
+        if (!connected) {
+            _state.update {
+                it.copy(
+                    pendingJoinCode = null,
+                    connection = ConnectionState.Failed("Connection timed out. Please check your internet connection."),
+                    error = "Failed to connect to server. Please check internet connection.",
+                )
             }
+            return@launch
         }
 
         val sent = client.send(MessageTypes.JOIN_ROOM, JoinRoomPayload(roomCode = code, username = pendingUsername))
@@ -325,9 +339,10 @@ class ListenTogetherSession(
                     if (event.willRetry) {
                         it.copy(connection = ConnectionState.Connecting)
                     } else {
-                        // Losing the socket loses the room with it; leaving the room UI up would
-                        // offer controls that silently do nothing.
-                        ListenTogetherState(connection = ConnectionState.Failed(event.reason ?: "Disconnected"))
+                        it.copy(
+                            connection = ConnectionState.Failed(event.reason ?: "Disconnected"),
+                            error = event.reason,
+                        )
                     }
                 }
 
@@ -359,13 +374,17 @@ class ListenTogetherSession(
                 // Ask for the current state explicitly: JoinApproved carries whatever the server
                 // last heard, which is nothing at all if the host has not issued a command yet.
                 launch { client.send(MessageTypes.REQUEST_SYNC, null) }
+                val initialMembers = p.state?.users.orEmpty().map { u -> u.toMember() }.toMutableList()
+                if (initialMembers.none { it.userId == p.userId }) {
+                    initialMembers.add(RoomMember(p.userId, pendingUsername, isHost = false, isConnected = true))
+                }
                 _state.update {
                     it.copy(
                         roomCode = p.roomCode,
                         selfUserId = p.userId,
                         isHost = false,
                         pendingJoinCode = null,
-                        members = p.state?.users.orEmpty().map { u -> u.toMember() },
+                        members = initialMembers,
                         queue = p.state?.queue.orEmpty(),
                         currentTrack = p.state?.currentTrack,
                         isPlaying = p.state?.isPlaying ?: false,
