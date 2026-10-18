@@ -72,14 +72,14 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyApp
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"; Flags: uninsdeletekey
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 function InitializeSetup(): Boolean;
 var
   ErrorCode: Integer;
 begin
-  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   Result := True;
 end;
 
@@ -87,7 +87,7 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ErrorCode: Integer;
 begin
-  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   Result := '';
 end;
 
@@ -95,6 +95,6 @@ function InitializeUninstall(): Boolean;
 var
   ErrorCode: Integer;
 begin
-  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   Result := True;
 end;

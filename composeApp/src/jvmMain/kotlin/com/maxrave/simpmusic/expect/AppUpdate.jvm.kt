@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.expect
+package com.maxrave.simpmusic.expect
 
 import com.manikandan.domain.data.model.update.UpdateData
 import com.maxrave.logger.Logger
@@ -52,16 +52,35 @@ actual suspend fun downloadAndInstallAppUpdate(
 
         val isWindows = System.getProperty("os.name", "").contains("Windows", ignoreCase = true)
         if (isWindows) {
-            Logger.i(TAG, "Launching Windows installer: ${setupFile.absolutePath}")
+            Logger.i(TAG, "Preparing detached update runner for Windows installer: ${setupFile.absolutePath}")
+            val runnerFile = File(tempDir, "pulse_update_runner.bat")
+            val batchScript = buildString {
+                appendLine("@echo off")
+                appendLine("timeout /t 2 /nobreak >nul")
+                appendLine("taskkill /F /IM Pulse.exe >nul 2>&1")
+                appendLine("timeout /t 1 /nobreak >nul")
+                appendLine("\"${setupFile.absolutePath}\" /SP- /SILENT /FORCECLOSEAPPLICATIONS")
+                appendLine("timeout /t 2 /nobreak >nul")
+                appendLine("set \"PULSE_EXE=%LOCALAPPDATA%\\Programs\\Pulse Music\\Pulse.exe\"")
+                appendLine("if exist \"%PULSE_EXE%\" (")
+                appendLine("    start \"\" \"%PULSE_EXE%\"")
+                appendLine(")")
+                appendLine("exit")
+            }
+            runnerFile.writeText(batchScript)
+
+            Logger.i(TAG, "Launching Windows update runner detached: ${runnerFile.absolutePath}")
             val pb = ProcessBuilder(
-                setupFile.absolutePath,
-                "/SILENT",
-                "/CLOSEAPPLICATIONS",
-                "/RESTARTAPPLICATIONS",
+                "cmd.exe",
+                "/c",
+                "start",
+                "\"PulseMusicUpdater\"",
+                "/min",
+                runnerFile.absolutePath
             )
             pb.directory(tempDir)
             pb.start()
-            delay(1000)
+            delay(500)
             exitProcess(0)
         } else {
             openUrl(downloadUrl)
