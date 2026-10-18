@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.ui.component
+package com.maxrave.simpmusic.ui.component
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.Crossfade
@@ -156,14 +156,8 @@ private const val FLARE_REACH_CHARS = 3.5f
 //
 // Roughly one sung word long. Much shorter and the hand-over is not visible; much longer and half
 // the line glows at once, which is a smear rather than a light.
-private const val FLARE_FADE_MS = 2_500
-
-// ...and how long it takes to come UP, which must be its own number. One tween served both
-// directions until the release was lengthened for the wake, and that silently made the attack just
-// as long: a word starting to be sung took two and a half seconds to reach full brightness, so the
-// glow arrived long after the character had finished rising. Neighbouring words sat at different
-// points on that slow climb, which is what read as flicker rather than one travelling light.
-private const val FLARE_ATTACK_MS = 500
+private const val FLARE_FADE_MS = 800
+private const val FLARE_ATTACK_MS = 60
 
 // Distance, in characters, over which the wake behind the playhead falls to about a third of full
 // brightness. The decay is EXPONENTIAL, not linear, and that distinction is the whole point: a long
@@ -1517,11 +1511,12 @@ private fun AnimatedWord(
                 // character has finished rising, which is exactly what makes the line ripple
                 // instead of stepping. Its own animation, on its own clock, so a word sung faster
                 // than the rise still completes.
-                val charRise by animateFloatAsState(
-                    targetValue = if (glow != null && charProgress > 0f) 1f else 0f,
-                    animationSpec = tween(CHAR_RISE_MS, easing = FastOutSlowInEasing),
-                    label = "charRise",
-                )
+                val charRise =
+                    if (glow != null && (charPast || charProgress > 0f)) {
+                        FastOutSlowInEasing.transform(if (charPast) 1f else charProgress)
+                    } else {
+                        0f
+                    }
                 val restingColor = pendingColorOverride ?: DimRichPendingColor
                 Box(
                     modifier =
