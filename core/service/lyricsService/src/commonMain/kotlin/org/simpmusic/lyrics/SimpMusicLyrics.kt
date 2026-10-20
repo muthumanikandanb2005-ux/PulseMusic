@@ -196,10 +196,12 @@ class SimpMusicLyrics {
         buildDefaultHeaders()
         header("Lrclib-Client", clientId)
         header("X-Client-Id", clientId)
-        header("User-Agent", "SimpMusic/1.0 ($clientId)")
+        header("User-Agent", "PulseMusic/3.1.7 ($clientId)")
         parameter("track_name", trackName)
         parameter("artist_name", artistName)
-        duration?.let { parameter("duration", it) }
+        if (duration != null && duration > 0) {
+            parameter("duration", duration)
+        }
         albumName?.let { parameter("album_name", it) }
     }
 
@@ -211,8 +213,10 @@ class SimpMusicLyrics {
         buildDefaultHeaders()
         header("Lrclib-Client", clientId)
         header("X-Client-Id", clientId)
-        header("User-Agent", "SimpMusic/1.0 ($clientId)")
-        parameter("q", "$q_artist $q_track")
+        header("User-Agent", "PulseMusic/3.1.7 ($clientId)")
+        if (q_track.isNotBlank()) parameter("track_name", q_track)
+        if (q_artist.isNotBlank()) parameter("artist_name", q_artist)
+        parameter("q", "$q_artist $q_track".trim())
     }
 
     suspend fun searchBetterLyrics(

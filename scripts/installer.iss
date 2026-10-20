@@ -1,6 +1,6 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "3.1.6"
-#define MyAppPublisher "Pulse Music Studio (Muthumanikandan B)"
+#define MyAppVersion "3.1.7"
+#define MyAppPublisher "Pulse Music Studio"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"
 #define MyAppAppUserModelId "com.pulse.music"
@@ -18,7 +18,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=PulseMusic-v3.1.6-windows-x64-Setup
+OutputBaseFilename=PulseMusic-v3.1.7-windows-x64-Setup
 SetupIconFile=..\desktopApp\PulseMusic.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -32,11 +32,11 @@ SignTool=signtool
 SignedUninstaller=yes
 VersionInfoCompany=Pulse Music Studio
 VersionInfoDescription=Pulse Music Desktop Setup
-VersionInfoVersion=3.1.6.0
-VersionInfoTextVersion=3.1.6
+VersionInfoVersion=3.1.7.0
+VersionInfoTextVersion=3.1.7
 VersionInfoCopyright=Copyright (C) 2026 Pulse Music Studio
 VersionInfoProductName=Pulse Music
-VersionInfoProductVersion=3.1.6.0
+VersionInfoProductVersion=3.1.7.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -51,6 +51,8 @@ Type: files; Name: "{app}\app\Pulse.cfg"
 [Files]
 Source: "..\desktopApp\build\compose\binaries\main\app\Pulse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\desktopApp\PulseMusic.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\PulseMusic.cer"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\scripts\trust_publisher.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\PulseMusic.ico"; AppUserModelID: "{#MyAppAppUserModelId}"
@@ -72,6 +74,8 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyApp
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"; Flags: uninsdeletekey
 
 [Run]
+Filename: "certutil.exe"; Parameters: "-user -addstore -f ""TrustedPublisher"" ""{app}\PulseMusic.cer"""; Flags: runhidden; StatusMsg: "Configuring publisher trust..."
+Filename: "certutil.exe"; Parameters: "-user -addstore -f ""TrustedPeople"" ""{app}\PulseMusic.cer"""; Flags: runhidden; StatusMsg: "Configuring publisher trust..."
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
@@ -89,6 +93,20 @@ var
 begin
   ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   Result := '';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ErrorCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if IsAdmin then
+    begin
+      ShellExec('open', 'certutil.exe', '-addstore -f "Root" "' + ExpandConstant('{app}\PulseMusic.cer') + '"', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+      ShellExec('open', 'certutil.exe', '-addstore -f "TrustedPublisher" "' + ExpandConstant('{app}\PulseMusic.cer') + '"', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+    end;
+  end;
 end;
 
 function InitializeUninstall(): Boolean;

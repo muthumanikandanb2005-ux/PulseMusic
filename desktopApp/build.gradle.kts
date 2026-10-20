@@ -168,6 +168,9 @@ compose.desktop {
             targetFormats(*listTarget.toTypedArray())
             modules("jdk.unsupported")
             packageName = "Pulse"
+            vendor = "Pulse Music Studio"
+            copyright = "Copyright (C) 2026 Pulse Music Studio"
+            description = "Pulse Music"
             macOS {
                 val formatedDate =
                     Instant.now().let {

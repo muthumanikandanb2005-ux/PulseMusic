@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.mediaservice
+package com.maxrave.data.mediaservice
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
@@ -225,6 +225,8 @@ internal class MediaServiceHandlerImpl(
 
     @Volatile
     private var isEndlessQueueCached: Boolean = false
+    @Volatile
+    private var isExplicitContentEnabledCached: Boolean = true
 
     private val supabaseSyncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var lastSupabaseSyncVideoId: String? = null
@@ -462,8 +464,11 @@ internal class MediaServiceHandlerImpl(
                 .distinctUntilChanged()
                 .collect { effects -> player.setAudioEffects(effects) }
         }
-        normalizeVolume =
-            runBlocking { dataStoreManager.normalizeVolume.first() == TRUE }
+        coroutineScope.launch {
+            dataStoreManager.normalizeVolume.collect { value ->
+                normalizeVolume = (value == TRUE)
+            }
+        }
         _nowPlaying.value = player.currentMediaItem
         if (runBlocking { dataStoreManager.saveStateOfPlayback.first() } == TRUE) {
             Logger.d(TAG, "SaveStateOfPlayback TRUE")
@@ -496,6 +501,11 @@ internal class MediaServiceHandlerImpl(
         coroutineScope.launch {
             dataStoreManager.endlessQueue.collect {
                 isEndlessQueueCached = (it == TRUE)
+            }
+        }
+        coroutineScope.launch {
+            dataStoreManager.explicitContentEnabled.collect {
+                isExplicitContentEnabledCached = (it != FALSE)
             }
         }
         coroutineScope.launch {
@@ -669,10 +679,12 @@ internal class MediaServiceHandlerImpl(
         val track =
             queueData.value.data.listTracks
                 .find { it.videoId == videoId }
+        val immediateSongEntity = track?.toSongEntity() ?: mediaItem.toSongEntity()
         _nowPlayingState.update {
             it.copy(
                 mediaItem = mediaItem,
                 track = track,
+                songEntity = immediateSongEntity,
             )
         }
         _format.value = null
@@ -1010,10 +1022,8 @@ internal class MediaServiceHandlerImpl(
                 // still restores the correct position instead of restarting the track from
                 // the beginning (#2152). The position is otherwise only saved on pause /
                 // track change / release, which misses uninterrupted background playback.
-                val positionPersistIntervalMs = 5_000L
-                // Named so the persist counter below cannot drift out of step with it, which is
-                // what a second hardcoded copy of the number did.
-                val tickIntervalMs = 50L
+                val positionPersistIntervalMs = 20_000L
+                val tickIntervalMs = 100L
                 var sinceLastPositionSaveMs = 0L
                 while (true) {
                     delay(tickIntervalMs)
@@ -1662,7 +1672,7 @@ internal class MediaServiceHandlerImpl(
                                             ),
                                     )
                                 }
-                                if (runBlocking { dataStoreManager.endlessQueue.first() } == TRUE) {
+                                if (isEndlessQueueCached) {
                                     Logger.w(TAG, "loadMore: Endless Queue")
                                     val lastTrack =
                                         queueData.value.data.listTracks
@@ -1689,7 +1699,7 @@ internal class MediaServiceHandlerImpl(
                         }
                 }
             }
-        } else if (runBlocking { dataStoreManager.endlessQueue.first() } == TRUE) {
+        } else if (isEndlessQueueCached) {
             Logger.w(TAG, "loadMore: Endless Queue")
             val lastTrack =
                 queueData.value.data.listTracks
@@ -2324,17 +2334,19 @@ internal class MediaServiceHandlerImpl(
                 is SongEntity -> anyTrack.toTrack()
                 else -> return
             }
-        if (track.isExplicit && dataStoreManager.explicitContentEnabled.first() == FALSE) {
+        if (track.isExplicit && !isExplicitContentEnabledCached) {
             showToast(ToastType.ExplicitContent)
             return
         }
-        songRepository.insertSong(track.toSongEntity()).singleOrNull()?.let {
-            Logger.d(TAG, "Inserted song: ${track.title}")
+        coroutineScope.launch(Dispatchers.IO) {
+            songRepository.insertSong(track.toSongEntity()).singleOrNull()?.let {
+                Logger.d(TAG, "Inserted song: ${track.title}")
+            }
+            track.durationSeconds?.let {
+                songRepository.updateDurationSeconds(it, track.videoId)
+            }
         }
         clearMediaItems()
-        track.durationSeconds?.let {
-            songRepository.updateDurationSeconds(it, track.videoId)
-        }
         addMediaItem(track.toGenericMediaItem(), playWhenReady = type != RECOVER_TRACK_QUEUE)
         when (type) {
             SONG_CLICK, VIDEO_CLICK, SHARE -> {
@@ -2406,9 +2418,6 @@ internal class MediaServiceHandlerImpl(
     }
 
     override fun mayBeNormalizeVolume() {
-        runBlocking {
-            normalizeVolume = dataStoreManager.normalizeVolume.first() == TRUE
-        }
         if (!normalizeVolume) {
             loudnessEnhancer?.enabled = false
             loudnessEnhancer?.release()
@@ -2491,8 +2500,8 @@ internal class MediaServiceHandlerImpl(
     }
 
     override fun mayBeSavePlaybackState() {
-        if (runBlocking { dataStoreManager.saveStateOfPlayback.first() } == TRUE) {
-            runBlocking {
+        coroutineScope.launch {
+            if (dataStoreManager.saveStateOfPlayback.first() == TRUE) {
                 dataStoreManager.recoverShuffleAndRepeatKey(
                     player.shuffleModeEnabled,
                     player.repeatMode,

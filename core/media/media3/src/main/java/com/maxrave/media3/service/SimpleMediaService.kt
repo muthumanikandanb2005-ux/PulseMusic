@@ -66,8 +66,6 @@ internal class SimpleMediaService :
 
     private val binder = MusicBinder()
 
-    private lateinit var playerNotificationManager: PlayerNotificationManager
-
     private var pauseTimeoutJob: Job? = null
     private val pauseGracePeriodMs = 120_000L // 2 minutes (120 seconds) grace period before releasing foreground / stopping
 
@@ -84,11 +82,16 @@ internal class SimpleMediaService :
                 }
             }
             if (wakeLock?.isHeld == false) {
-                wakeLock?.acquire(3600_000L)
+                wakeLock?.acquire()
             }
             if (wifiLock == null) {
-                @Suppress("DEPRECATION")
-                wifiLock = wifiManager?.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "PulseMusic:PlaybackWifiLock")?.apply {
+                val wifiMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+                } else {
+                    @Suppress("DEPRECATION")
+                    WifiManager.WIFI_MODE_FULL_HIGH_PERF
+                }
+                wifiLock = wifiManager?.createWifiLock(wifiMode, "PulseMusic:PlaybackWifiLock")?.apply {
                     setReferenceCounted(false)
                 }
             }
@@ -169,50 +172,9 @@ internal class SimpleMediaService :
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
 
-        // Read off the service-creation path. When a media button starts this service the
-        // system is already counting down to the foreground-start deadline, and a blocking
-        // DataStore read on the main thread spends part of that budget on disk I/O.
-        coroutineScope.launch {
-            if (dataStoreManager.keepServiceAlive.first() != DataStoreManager.TRUE) return@launch
-            val notificationManager = getSystemService<NotificationManager>()
-            notificationManager?.run {
-                createNotificationChannel(
-                    NotificationChannel(
-                        "media_playback_channel",
-                        "Now playing",
-                        NotificationManager.IMPORTANCE_LOW,
-                    ).apply {
-                        setSound(null, null)
-                        enableLights(false)
-                        enableVibration(false)
-                    },
-                )
-            }
-            playerNotificationManager =
-                PlayerNotificationManager
-                    .Builder(this@SimpleMediaService, 2026, "media_playback_channel")
-                    .setNotificationListener(
-                        object : PlayerNotificationManager.NotificationListener {
-                            override fun onNotificationPosted(
-                                notificationId: Int,
-                                notification: Notification,
-                                ongoing: Boolean,
-                            ) {
-                                if (ongoing) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                        startForeground(notificationId, notification, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-                                    } else {
-                                        startForeground(notificationId, notification)
-                                    }
-                                }
-                            }
-                        },
-                    ).setMediaDescriptionAdapter(DefaultMediaDescriptionAdapter(mediaSession?.sessionActivity))
-                    .build()
-            playerNotificationManager.setPlayer(player)
-            playerNotificationManager.setSmallIcon(R.drawable.mono)
-            mediaSession?.platformToken?.let { playerNotificationManager.setMediaSessionToken(it) }
-        }
+        // Foreground service notification is exclusively managed by MediaLibraryService via
+        // DefaultMediaNotificationProvider registered above, ensuring Android 14/15/16 compliance
+        // without dual-notification conflicts.
 
         simpleMediaServiceHandler.onUpdateNotification = { list ->
             val commandButtonList = list.map { it.toCommandButton(this) }

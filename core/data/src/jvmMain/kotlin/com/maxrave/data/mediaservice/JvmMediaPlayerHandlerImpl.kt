@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.mediaservice
+package com.maxrave.data.mediaservice
 
 import com.maxrave.common.ASC
 import com.maxrave.common.CUSTOM_ORDER
@@ -202,6 +202,8 @@ class JvmMediaPlayerHandlerImpl(
 
     @Volatile
     private var isEndlessQueueCached: Boolean = false
+    @Volatile
+    private var isExplicitContentEnabledCached: Boolean = true
 
     private val supabaseSyncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var lastSupabaseSyncVideoId: String? = null
@@ -556,6 +558,11 @@ class JvmMediaPlayerHandlerImpl(
             }
         }
         coroutineScope.launch {
+            dataStoreManager.explicitContentEnabled.collect {
+                isExplicitContentEnabledCached = (it != FALSE)
+            }
+        }
+        coroutineScope.launch {
             val controlStateJob =
                 launch {
                     controlState.collectLatest {
@@ -726,10 +733,12 @@ class JvmMediaPlayerHandlerImpl(
         val track =
             queueData.value.data.listTracks
                 ?.find { it.videoId == videoId }
+        val immediateSongEntity = track?.toSongEntity() ?: mediaItem.toSongEntity()
         _nowPlayingState.update {
             it.copy(
                 mediaItem = mediaItem,
                 track = track,
+                songEntity = immediateSongEntity,
             )
         }
         _format.value = null
@@ -2354,17 +2363,19 @@ class JvmMediaPlayerHandlerImpl(
                 is SongEntity -> anyTrack.toTrack()
                 else -> return
             }
-        if (track.isExplicit && runBlocking { dataStoreManager.explicitContentEnabled.first() } == FALSE) {
+        if (track.isExplicit && !isExplicitContentEnabledCached) {
             showToast(ToastType.ExplicitContent)
             return
         }
-        songRepository.insertSong(track.toSongEntity()).singleOrNull()?.let {
-            Logger.d(TAG, "Inserted song: ${track.title}")
+        coroutineScope.launch(Dispatchers.IO) {
+            songRepository.insertSong(track.toSongEntity()).singleOrNull()?.let {
+                Logger.d(TAG, "Inserted song: ${track.title}")
+            }
+            track.durationSeconds?.let {
+                songRepository.updateDurationSeconds(it, track.videoId)
+            }
         }
         clearMediaItems()
-        track.durationSeconds?.let {
-            songRepository.updateDurationSeconds(it, track.videoId)
-        }
         addMediaItem(track.toGenericMediaItem(), playWhenReady = type != RECOVER_TRACK_QUEUE)
         when (type) {
             SONG_CLICK, VIDEO_CLICK, SHARE -> {
@@ -2510,8 +2521,8 @@ class JvmMediaPlayerHandlerImpl(
     }
 
     override fun mayBeSavePlaybackState() {
-        if (runBlocking { dataStoreManager.saveStateOfPlayback.first() } == TRUE) {
-            runBlocking {
+        coroutineScope.launch {
+            if (dataStoreManager.saveStateOfPlayback.first() == TRUE) {
                 dataStoreManager.recoverShuffleAndRepeatKey(
                     player.shuffleModeEnabled,
                     player.repeatMode,

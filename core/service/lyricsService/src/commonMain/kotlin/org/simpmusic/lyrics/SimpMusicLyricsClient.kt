@@ -125,7 +125,8 @@ class SimpMusicLyricsClient {
         duration: Int?,
         clientId: String = "Q577SzaQFl01aTiReKY9NKgkcENPwiaHVceaOk4p8JQ",
     ) = runCatching {
-        val exactObj: LrclibObject? = try {
+        // 1. Try exact lookup with duration
+        var exactObj: LrclibObject? = try {
             val resp =
                 lyricsService.getLrclibLyricsExact(
                     trackName = q_track,
@@ -142,21 +143,58 @@ class SimpMusicLyricsClient {
             null
         }
 
+        // 2. If exact with duration failed, try exact WITHOUT duration (handles YouTube vs Album length drifts)
+        if (exactObj == null && duration != null && duration > 0) {
+            exactObj = try {
+                val resp =
+                    lyricsService.getLrclibLyricsExact(
+                        trackName = q_track,
+                        artistName = q_artist,
+                        duration = null,
+                        clientId = clientId,
+                    )
+                if (resp.status.value in 200..299) {
+                    resp.body<LrclibObject>()
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        // 3. Fallback to search endpoint if exact lookup wasn't found
         val lrclibObject: LrclibObject? =
             if (exactObj != null) {
                 exactObj
             } else {
                 val rs =
-                    lyricsService
-                        .searchLrclibLyrics(
-                            q_track = q_track,
-                            q_artist = q_artist,
-                            clientId = clientId,
-                        ).body<List<LrclibObject>>()
-                if (duration != null) {
-                    rs.find { abs(it.duration.toInt() - duration) <= 10 } ?: rs.firstOrNull()
+                    try {
+                        lyricsService
+                            .searchLrclibLyrics(
+                                q_track = q_track,
+                                q_artist = q_artist,
+                                clientId = clientId,
+                            ).body<List<LrclibObject>>()
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                if (duration != null && duration > 0) {
+                    rs.find {
+                        val tName = it.trackName ?: it.name
+                        (tName.contains(q_track, ignoreCase = true) || q_track.contains(tName, ignoreCase = true)) &&
+                            abs(it.duration.toInt() - duration) <= 15
+                    } ?: rs.find { abs(it.duration.toInt() - duration) <= 10 }
+                        ?: rs.find {
+                            val tName = it.trackName ?: it.name
+                            tName.contains(q_track, ignoreCase = true) || q_track.contains(tName, ignoreCase = true)
+                        }
+                        ?: rs.firstOrNull()
                 } else {
-                    rs.firstOrNull()
+                    rs.find {
+                        val tName = it.trackName ?: it.name
+                        tName.contains(q_track, ignoreCase = true) || q_track.contains(tName, ignoreCase = true)
+                    } ?: rs.firstOrNull()
                 }
             }
         if (lrclibObject != null) {

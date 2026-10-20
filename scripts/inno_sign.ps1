@@ -15,7 +15,7 @@ if (-not $cert) {
 }
 
 Write-Host "Signing $FileToSign with cert $($cert.Thumbprint)..."
-$sig = Set-AuthenticodeSignature -Certificate $cert -FilePath $FileToSign -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com"
+$sig = Set-AuthenticodeSignature -Certificate $cert -FilePath $FileToSign -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -IncludeChain All
 Write-Host "Result: $($sig.Status)"
 if ($sig.Status -eq "Valid" -or $sig.Status -eq "UnknownError") {
     exit 0

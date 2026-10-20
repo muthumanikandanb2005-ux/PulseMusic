@@ -295,37 +295,62 @@ class SearchViewModel(
             job7.join()
 
             try {
-                if (artist.size >= 3) {
-                    for (i in 0..2) {
-                        temp += artist[i]
+                val distinctArtists = artist.distinctBy { it.browseId }
+                val distinctSongs = song.distinctBy { it.videoId }
+                val distinctVideos = video.distinctBy { it.videoId }
+                val distinctAlbums = album.distinctBy { it.browseId }
+                val distinctPlaylists = playlist.distinctBy { it.browseId }
+                val distinctFeaturedPlaylist = featuredPlaylist.distinctBy { it.browseId }
+                val distinctPodcast = podcast.distinctBy { it.browseId }
+
+                val seenKeys = mutableSetOf<String>()
+                val temp = arrayListOf<SearchResultType>()
+
+                fun addDistinct(items: List<SearchResultType>) {
+                    for (item in items) {
+                        val key = when (item) {
+                            is SongsResult -> "song_${item.videoId}"
+                            is VideosResult -> "video_${item.videoId}"
+                            is AlbumsResult -> "album_${item.browseId}"
+                            is ArtistsResult -> "artist_${item.browseId}"
+                            is PlaylistsResult -> "playlist_${item.browseId}"
+                            else -> item.hashCode().toString()
+                        }
+                        if (seenKeys.add(key)) {
+                            temp.add(item)
+                        }
                     }
-                    temp.addAll(song)
-                    temp.addAll(video)
-                    temp.addAll(album)
-                    temp.addAll(playlist)
-                    temp.addAll(featuredPlaylist)
-                    temp.addAll(podcast)
+                }
+
+                if (distinctArtists.size >= 3) {
+                    addDistinct(distinctArtists.take(3))
+                    addDistinct(distinctSongs)
+                    addDistinct(distinctVideos)
+                    addDistinct(distinctAlbums)
+                    addDistinct(distinctPlaylists)
+                    addDistinct(distinctFeaturedPlaylist)
+                    addDistinct(distinctPodcast)
                 } else {
-                    temp.addAll(artist)
-                    temp.addAll(song)
-                    temp.addAll(video)
-                    temp.addAll(album)
-                    temp.addAll(playlist)
-                    temp.addAll(featuredPlaylist)
-                    temp.addAll(podcast)
+                    addDistinct(distinctArtists)
+                    addDistinct(distinctSongs)
+                    addDistinct(distinctVideos)
+                    addDistinct(distinctAlbums)
+                    addDistinct(distinctPlaylists)
+                    addDistinct(distinctFeaturedPlaylist)
+                    addDistinct(distinctPodcast)
                 }
 
                 _searchScreenState.update { state ->
                     state.copy(
                         searchType = SearchType.ALL,
                         searchAllResult = temp,
-                        searchSongsResult = song,
-                        searchArtistsResult = artist,
-                        searchAlbumsResult = album,
-                        searchPlaylistsResult = playlist,
-                        searchVideosResult = video,
-                        searchFeaturedPlaylistsResult = featuredPlaylist,
-                        searchPodcastsResult = podcast,
+                        searchSongsResult = distinctSongs,
+                        searchArtistsResult = distinctArtists,
+                        searchAlbumsResult = distinctAlbums,
+                        searchPlaylistsResult = distinctPlaylists,
+                        searchVideosResult = distinctVideos,
+                        searchFeaturedPlaylistsResult = distinctFeaturedPlaylist,
+                        searchPodcastsResult = distinctPodcast,
                     )
                 }
                 _searchScreenUIState.value = SearchScreenUIState.Success
@@ -344,8 +369,17 @@ class SearchViewModel(
                         values.data?.let { suggestData ->
                             _searchScreenState.update { state ->
                                 state.copy(
-                                    suggestQueries = suggestData.queries,
-                                    suggestYTItems = suggestData.recommendedItems,
+                                    suggestQueries = suggestData.queries.distinct(),
+                                    suggestYTItems = suggestData.recommendedItems.distinctBy { item ->
+                                        when (item) {
+                                            is SongsResult -> "yt_s_${item.videoId}"
+                                            is VideosResult -> "yt_v_${item.videoId}"
+                                            is AlbumsResult -> "yt_al_${item.browseId}"
+                                            is ArtistsResult -> "yt_ar_${item.browseId}"
+                                            is PlaylistsResult -> "yt_pl_${item.browseId}"
+                                            else -> item.hashCode().toString()
+                                        }
+                                    },
                                 )
                             }
                         }
