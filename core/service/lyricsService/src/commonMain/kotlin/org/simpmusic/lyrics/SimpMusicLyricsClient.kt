@@ -179,23 +179,35 @@ class SimpMusicLyricsClient {
                     } catch (_: Exception) {
                         emptyList()
                     }
-                if (duration != null && duration > 0) {
-                    rs.find {
-                        val tName = it.trackName ?: it.name
-                        (tName.contains(q_track, ignoreCase = true) || q_track.contains(tName, ignoreCase = true)) &&
-                            abs(it.duration.toInt() - duration) <= 15
-                    } ?: rs.find { abs(it.duration.toInt() - duration) <= 10 }
-                        ?: rs.find {
-                            val tName = it.trackName ?: it.name
-                            tName.contains(q_track, ignoreCase = true) || q_track.contains(tName, ignoreCase = true)
-                        }
-                        ?: rs.firstOrNull()
+                val candidates = rs.filter { !it.instrumental && (!it.syncedLyrics.isNullOrBlank() || !it.plainLyrics.isNullOrBlank()) }
+                val matched = if (duration != null && duration > 0) {
+                    candidates.find {
+                        val tName = (it.trackName ?: it.name).orEmpty()
+                        val aName = it.artistName.orEmpty()
+                        isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName) && abs(it.duration.toInt() - duration) <= 15
+                    } ?: candidates.find {
+                        val tName = (it.trackName ?: it.name).orEmpty()
+                        val aName = it.artistName.orEmpty()
+                        isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName) && abs(it.duration.toInt() - duration) <= 30
+                    } ?: candidates.find {
+                        val tName = (it.trackName ?: it.name).orEmpty()
+                        val aName = it.artistName.orEmpty()
+                        isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName)
+                    } ?: candidates.find {
+                        val tName = (it.trackName ?: it.name).orEmpty()
+                        isTrackExactMatch(q_track, tName) && abs(it.duration.toInt() - duration) <= 15
+                    }
                 } else {
-                    rs.find {
-                        val tName = it.trackName ?: it.name
-                        tName.contains(q_track, ignoreCase = true) || q_track.contains(tName, ignoreCase = true)
-                    } ?: rs.firstOrNull()
+                    candidates.find {
+                        val tName = (it.trackName ?: it.name).orEmpty()
+                        val aName = it.artistName.orEmpty()
+                        isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName)
+                    } ?: candidates.find {
+                        val tName = (it.trackName ?: it.name).orEmpty()
+                        isTrackExactMatch(q_track, tName)
+                    }
                 }
+                matched
             }
         if (lrclibObject != null) {
             val syncedLyrics = lrclibObject.syncedLyrics
@@ -434,5 +446,60 @@ class SimpMusicLyricsClient {
         } catch (e: Exception) {
             throw e
         }
+    }
+
+    internal fun cleanTitle(title: String): String {
+        return title.lowercase()
+            .replace(Regex("""\s*[\(\[][^\)\]]*[\)\]]"""), " ")
+            .replace(Regex("""\s*-\s*(official|audio|video|lyric|lyrics|remaster|remastered|visualizer|live|acoustic|instrumental).*$""", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("""[^\p{L}\p{N}\s]"""), " ")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+    }
+
+    internal fun isTrackExactMatch(queryTrack: String, candidateTrack: String): Boolean {
+        val qClean = cleanTitle(queryTrack)
+        val cClean = cleanTitle(candidateTrack)
+        if (qClean.isBlank() || cClean.isBlank()) return false
+        return qClean == cClean
+    }
+
+    internal fun isTrackMatch(queryTrack: String, candidateTrack: String): Boolean {
+        val qClean = cleanTitle(queryTrack)
+        val cClean = cleanTitle(candidateTrack)
+        if (qClean.isBlank() || cClean.isBlank()) return false
+        if (qClean == cClean) return true
+
+        val qTokens = qClean.split(" ").filter { it.isNotBlank() }
+        val cTokens = cClean.split(" ").filter { it.isNotBlank() }
+        if (qTokens.isEmpty() || cTokens.isEmpty()) return false
+
+        // For single-word titles (e.g. "Stay", "Run", "One"), require exact match to prevent
+        // matching unrelated songs that share a single common word prefix (e.g. "Runaway", "Someone").
+        if (qTokens.size == 1 || cTokens.size == 1) {
+            return qClean == cClean
+        }
+
+        // For multi-word titles, allow prefix matching if the title overlap is high (>= 70%)
+        // and starts at a word boundary.
+        val shorter = if (qClean.length <= cClean.length) qClean else cClean
+        val longer = if (qClean.length > cClean.length) qClean else cClean
+        val ratio = shorter.length.toDouble() / longer.length.toDouble()
+        if (ratio >= 0.70 && longer.startsWith(shorter)) {
+            return true
+        }
+
+        return false
+    }
+
+    internal fun isArtistMatch(queryArtist: String, candidateArtist: String): Boolean {
+        val q = queryArtist.lowercase().replace(Regex("""[^\p{L}\p{N}\s]"""), " ").replace(Regex("""\s+"""), " ").trim()
+        val c = candidateArtist.lowercase().replace(Regex("""[^\p{L}\p{N}\s]"""), " ").replace(Regex("""\s+"""), " ").trim()
+        if (q.isBlank() || c.isBlank()) return true
+        if (q == c) return true
+        if (q.contains(c) || c.contains(q)) return true
+        val qWords = q.split(" ").filter { it.length >= 3 }
+        val cWords = c.split(" ").filter { it.length >= 3 }
+        return qWords.any { it in cWords }
     }
 }

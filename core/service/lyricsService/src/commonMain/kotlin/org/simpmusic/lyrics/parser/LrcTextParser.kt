@@ -4,6 +4,15 @@ import com.manikandan.domain.extension.decodeHtmlEntities
 import org.simpmusic.lyrics.domain.Lyrics
 
 fun parseSyncedLyrics(data: String): Lyrics {
+    if (data.isBlank()) {
+        return Lyrics(
+            lyrics =
+                Lyrics.LyricsX(
+                    lines = emptyList(),
+                    syncType = "LINE_SYNCED",
+                ),
+        )
+    }
     val timestampRegex = Regex("\\[(\\d{1,2}):(\\d{2})[.:](\\d{2,3})\\]")
     val lines = data.lines()
     val linesLyrics = ArrayList<Lyrics.LyricsX.Line>()
@@ -271,18 +280,32 @@ private fun formatMsToLrc(ms: Long): String {
 }
 
 fun parseUnsyncedLyrics(data: String): Lyrics {
-    val lines = data.lines()
-    val linesLyrics = ArrayList<Lyrics.LyricsX.Line>()
-    lines.map { line ->
-        linesLyrics.add(
+    if (data.isBlank()) {
+        return Lyrics(
+            lyrics =
+                Lyrics.LyricsX(
+                    lines = emptyList(),
+                    syncType = "UNSYNCED",
+                ),
+        )
+    }
+    val metadataTags = listOf("[ti:", "[ar:", "[al:", "[by:", "[offset:", "[re:", "[ve:", "[length:")
+    val timestampOnlyRegex = Regex("""^\[\d{1,2}:\d{2}[.:]\d{2,3}\]$""")
+    val linesLyrics = data.lines()
+        .map { it.trim() }
+        .filter { line ->
+            line.isNotEmpty() &&
+                metadataTags.none { tag -> line.startsWith(tag, ignoreCase = true) } &&
+                !timestampOnlyRegex.matches(line)
+        }
+        .map { line ->
             Lyrics.LyricsX.Line(
                 endTimeMs = "0",
                 startTimeMs = "0",
                 syllables = listOf(),
-                words = line,
-            ),
-        )
-    }
+                words = decodeHtmlEntities(line),
+            )
+        }
     return Lyrics(
         lyrics =
             Lyrics.LyricsX(

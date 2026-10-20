@@ -1,10 +1,11 @@
-﻿package com.maxrave.data.repository
+package com.maxrave.data.repository
 
 import com.manikandan.domain.data.model.update.UpdateData
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.repository.UpdateRepository
 import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
+import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -20,6 +21,12 @@ internal class UpdateRepositoryImpl(
             val rawEndpoint = dataStoreManager.customUpdateEndpoint.first().trim()
             val endpoints = mutableListOf<String>()
 
+            // 1. Primary fast CDN endpoint (never rate limits)
+            endpoints.add("https://cdn.jsdelivr.net/gh/muthumanikandanb2005-ux/PulseMusic@main/version.json")
+            // 2. Secondary raw GitHub endpoint
+            endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
+
+            // 3. Custom endpoint if configured
             if (rawEndpoint.isNotBlank() &&
                 !rawEndpoint.contains("maxrave-dev", ignoreCase = true) &&
                 !rawEndpoint.contains("simpmusic", ignoreCase = true)
@@ -32,11 +39,10 @@ internal class UpdateRepositoryImpl(
                 endpoints.add(formatted)
             }
 
-            // GitHub endpoints only
+            // 4. Fallback GitHub API endpoint
             endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
-            endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
 
-            var lastError = "Failed to connect to update servers"
+            var lastError = "Unable to check for updates. Please try again later."
             for (endpoint in endpoints.distinct()) {
                 val res = youTube.checkForGithubReleaseUpdate(endpoint)
                 if (res.isSuccess) {
@@ -45,7 +51,7 @@ internal class UpdateRepositoryImpl(
                         val updateAssets = response.assets?.mapNotNull { asset ->
                             val url = asset?.browserDownloadUrl ?: return@mapNotNull null
                             val name = asset.name ?: ""
-                            val size = asset.size?.toLong() ?: 0L
+                            val size = asset.size ?: 0L
                             com.manikandan.domain.data.model.update.UpdateAsset(
                                 name = name,
                                 downloadUrl = url,
@@ -66,10 +72,10 @@ internal class UpdateRepositoryImpl(
                         return@flow
                     }
                 } else {
-                    lastError = res.exceptionOrNull()?.localizedMessage ?: lastError
+                    Logger.w("UpdateRepository", "Endpoint failed: $endpoint - ${res.exceptionOrNull()?.message}")
                 }
             }
-            emit(Resource.Error<UpdateData>(lastError))
+            emit(Resource.Error<UpdateData>("Unable to check for updates. Please try again later."))
         }.flowOn(Dispatchers.IO)
 
     override fun checkForFdroidUpdate(): Flow<Resource<UpdateData>> =

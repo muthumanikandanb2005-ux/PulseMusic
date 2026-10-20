@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.service.update
+package com.maxrave.simpmusic.service.update
 
 import android.content.Context
 import androidx.work.CoroutineWorker
@@ -42,6 +42,12 @@ class AppUpdateWorker(
 
                 val rawEndpoint = dataStoreManager.customUpdateEndpoint.first().trim()
                 val endpoints = mutableListOf<String>()
+
+                // Primary fast CDN endpoint (never rate limits)
+                endpoints.add("https://cdn.jsdelivr.net/gh/muthumanikandanb2005-ux/PulseMusic@main/version.json")
+                // Secondary raw GitHub endpoint
+                endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
+
                 if (rawEndpoint.isNotBlank() &&
                     !rawEndpoint.contains("maxrave-dev", ignoreCase = true) &&
                     !rawEndpoint.contains("simpmusic", ignoreCase = true)
@@ -53,9 +59,9 @@ class AppUpdateWorker(
                     }
                     endpoints.add(formatted)
                 }
-                // GitHub endpoints only
+
+                // Fallback GitHub API endpoint
                 endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
-                endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
 
                 // Record check timestamp
                 val nowMillis = System.currentTimeMillis()
@@ -167,7 +173,14 @@ class AppUpdateWorker(
         conn.readTimeout = 15000
         conn.instanceFollowRedirects = true
         conn.setRequestProperty("User-Agent", "PulseMusicApp")
+        conn.setRequestProperty("Accept", "application/json, text/plain, */*")
         conn.connect()
+
+        val code = conn.responseCode
+        if (code !in 200..299) {
+            conn.disconnect()
+            throw IOException("HTTP error $code from $urlStr")
+        }
 
         return conn.inputStream.use { input ->
             BufferedReader(InputStreamReader(input)).use { reader ->
@@ -216,8 +229,8 @@ class AppUpdateWorker(
         private const val TAG = "PulseAppUpdateWorker"
 
         fun isNewerVersion(remote: String, current: String): Boolean {
-            val cleanRemote = remote.trim().removePrefix("v").substringBefore("-")
-            val cleanCurrent = current.trim().removePrefix("v").substringBefore("-")
+            val cleanRemote = remote.trim().removePrefix("v").removePrefix("V").substringBefore("-")
+            val cleanCurrent = current.trim().removePrefix("v").removePrefix("V").substringBefore("-")
             val remoteParts = cleanRemote.split(".").mapNotNull { it.toIntOrNull() }
             val currentParts = cleanCurrent.split(".").mapNotNull { it.toIntOrNull() }
             val maxLen = maxOf(remoteParts.size, currentParts.size)

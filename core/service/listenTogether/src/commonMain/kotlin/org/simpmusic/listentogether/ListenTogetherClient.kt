@@ -162,8 +162,15 @@ class ListenTogetherClient(
         reconnectDelay = INITIAL_RECONNECT_DELAY
         fatal = false
         if (force && !isConnected) {
-            connectionJob?.cancel()
+            val oldJob = connectionJob
             connectionJob = null
+            oldJob?.cancel()
+            val oldSession = session
+            session = null
+            handshake = null
+            launch {
+                runCatching { oldSession?.close() }
+            }
         }
         startConnection()
     }
@@ -185,6 +192,11 @@ class ListenTogetherClient(
                 // Reached on every close, clean or not — openAndRun returns when the reader stops.
                 scheduleReconnect()
             }
+    }
+
+    /** Clears stored session token so reconnect doesn't replay a left/abandoned room. */
+    fun clearSessionToken() {
+        sessionToken = null
     }
 
     /**
@@ -211,11 +223,14 @@ class ListenTogetherClient(
         Logger.i(TAG, "Disconnecting by request")
         sessionToken = null
         reconnectAttempts = 0
-        connectionJob?.cancel()
+        val currentJob = connectionJob
         connectionJob = null
+        currentJob?.cancel()
+        val currentSession = session
+        session = null
+        handshake = null
         launch {
-            runCatching { session?.close() }
-            session = null
+            runCatching { currentSession?.close() }
         }
     }
 
@@ -283,13 +298,17 @@ class ListenTogetherClient(
                     ),
                 )
 
-                val pinger = launch { pingLoop() }
+                val pinger = launch { pingLoop(live) }
                 reader.join()
                 pinger.cancel()
             }
         } finally {
-            handshake = null
-            session = null
+            if (handshake === pending) {
+                handshake = null
+            }
+            if (session === live) {
+                session = null
+            }
             // NonCancellable because this runs on the disconnect() path too, where the job has
             // already been cancelled — and close() is itself a suspend call, so without this it
             // would abort immediately and the close frame would never be sent.
@@ -379,7 +398,7 @@ class ListenTogetherClient(
      * the interval opens up — the server's read deadline is 60s and any message refreshes it, so
      * [PING_INTERVAL] is also what keeps an idle room's socket alive.
      */
-    private suspend fun pingLoop() {
+    private suspend fun pingLoop(live: DefaultClientWebSocketSession) {
         var sent = 0
         while (true) {
             val ok =
@@ -387,7 +406,11 @@ class ListenTogetherClient(
                     MessageTypes.PING,
                     PingPayload(clientTime = elapsedRealtime(), sequence = ++pingSequence),
                 )
-            if (!ok) return
+            if (!ok) {
+                Logger.w(TAG, "Ping failed; terminating dead session to unblock reader")
+                runCatching { live.cancel(CancellationException("Ping failed")) }
+                return
+            }
             sent++
             delay(if (sent < CALIBRATION_PINGS) CALIBRATION_PING_INTERVAL else PING_INTERVAL)
         }
@@ -401,9 +424,6 @@ class ListenTogetherClient(
 
         if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
             Logger.w(TAG, "Gave up after $MAX_RECONNECT_ATTEMPTS reconnection attempts")
-            // The token is dropped with the attempts: a later connect() is a fresh join, not a
-            // resume, and replaying a token the server may already have expired would be answered
-            // with an error rather than a room.
             sessionToken = null
             _events.emit(
                 ListenTogetherEvent.Disconnected(
@@ -414,10 +434,22 @@ class ListenTogetherClient(
             return
         }
 
+        val myJob = coroutineContext[Job]
+        if (myJob?.isActive != true || connectionJob !== myJob) {
+            Logger.d(TAG, "Reconnection aborted: job superseded or cancelled")
+            return
+        }
+
         reconnectAttempts++
         Logger.i(TAG, "Reconnecting in $reconnectDelay (attempt $reconnectAttempts of $MAX_RECONNECT_ATTEMPTS)")
         _events.emit(ListenTogetherEvent.Disconnected("Connection lost", willRetry = true))
         delay(reconnectDelay)
+
+        if (myJob.isActive != true || connectionJob !== myJob) {
+            Logger.d(TAG, "Reconnection aborted after delay: connectionJob was superseded")
+            return
+        }
+
         reconnectDelay = (reconnectDelay * 2).coerceAtMost(MAX_RECONNECT_DELAY)
         connectionJob = null
         startConnection()
@@ -451,8 +483,8 @@ class ListenTogetherClient(
         /** Anchors the default monotonic source; see [elapsedRealtime]. */
         private val PROCESS_START = TimeSource.Monotonic.markNow()
 
-        private val CONNECT_TIMEOUT = 12.seconds
-        private val HANDSHAKE_TIMEOUT = 12.seconds
+        private val CONNECT_TIMEOUT = 5.seconds
+        private val HANDSHAKE_TIMEOUT = 5.seconds
 
         /** metroserver `client.go`: the read deadline is 60s and any inbound message refreshes it. */
         private val PING_INTERVAL = 15.seconds

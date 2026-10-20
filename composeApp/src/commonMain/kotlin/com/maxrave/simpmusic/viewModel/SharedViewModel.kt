@@ -1085,11 +1085,14 @@ class SharedViewModel(
             return
         }
 
-        if (inputLyrics == null) {
-            _nowPlayingScreenData.update {
-                it.copy(
-                    lyricsData = null,
-                )
+        val hasNonBlankLines = inputLyrics?.lines?.any { !it.words.isNullOrBlank() } == true
+        if (inputLyrics == null || (!isTranslatedLyrics && !hasNonBlankLines)) {
+            if (!isTranslatedLyrics) {
+                _nowPlayingScreenData.update {
+                    it.copy(
+                        lyricsData = null,
+                    )
+                }
             }
             return
         }
@@ -1999,8 +2002,8 @@ class SharedViewModel(
 
     private fun isNewerVersion(remote: String, current: String): Boolean {
         if (current.isBlank()) return true
-        val cleanRemote = remote.trim().removePrefix("v").substringBefore("-")
-        val cleanCurrent = current.trim().removePrefix("v").substringBefore("-")
+        val cleanRemote = remote.trim().removePrefix("v").removePrefix("V").substringBefore("-")
+        val cleanCurrent = current.trim().removePrefix("v").removePrefix("V").substringBefore("-")
         val remoteParts = cleanRemote.split(".").mapNotNull { it.toIntOrNull() }
         val currentParts = cleanCurrent.split(".").mapNotNull { it.toIntOrNull() }
         val maxLen = maxOf(remoteParts.size, currentParts.size)
@@ -2026,6 +2029,9 @@ class SharedViewModel(
                                 val remote = update.tagName.trim().removePrefix("v").removePrefix("V")
                                 if (remote.isNotEmpty() && isNewerVersion(remote, current)) {
                                     _availableUpdate.value = update
+                                    if (!silent) {
+                                        makeToast("Update available: v$remote")
+                                    }
                                 } else if (!silent) {
                                     makeToast("Pulse Music is up to date (v$current)")
                                 }
@@ -2033,13 +2039,16 @@ class SharedViewModel(
                         }
                         is Resource.Error -> {
                             if (!silent) {
-                                makeToast(res.message ?: "Failed to check for updates")
+                                makeToast("Unable to check for updates. Please try again later.")
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
                 Logger.e(tag, "checkForAppUpdate error: ${e.message}")
+                if (!silent) {
+                    makeToast("Unable to check for updates. Please try again later.")
+                }
             }
         }
     }

@@ -569,7 +569,7 @@ internal fun ExpressiveBelowTheFold(
     Column(Modifier.padding(horizontal = 20.dp)) {
         // Lyrics card
         AnimatedVisibility(
-            visible = state.screenData.lyricsData != null,
+            visible = state.screenData.lyricsData?.lyrics?.lines?.any { !it.words.isNullOrBlank() } == true,
             modifier = Modifier.padding(top = 10.dp),
         ) {
             Surface(
