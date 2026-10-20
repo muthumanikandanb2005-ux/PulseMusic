@@ -1,0 +1,13 @@
+{
+  "id": "com.pulse.music",
+  "url": "https://github.com/muthumanikandanb2005-ux/PulseMusic",
+  "author": "Pulse Music Studio",
+  "name": "Pulse Music",
+  "package": "com.pulse.music",
+  "versionExtraction": "v([0-9.]+)",
+  "filterBy": "PulseMusic-v.*-Universal.apk",
+  "preferredApkIndex": 0,
+  "matchGroupToUse": "1",
+  "versionDetection": "release_tag",
+  "additionalSettings": "{\"includePrereleases\":false,\"fallbackToOlderReleases\":true,\"filterBy\":\"PulseMusic-v.*-Universal.apk\"}"
+}

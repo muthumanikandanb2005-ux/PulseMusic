@@ -1,0 +1,5 @@
+Pulse Music v3.1.3 (Build 81) OTA Update:
+- Fixed app freezing when checking for updates (removed UI thread blocking)
+- Pure audio playback mode with instantaneous startup
+- High-performance direct GitHub OTA update delivery
+- Owned & Maintained by Manikandan (Pulse Music Studio)
