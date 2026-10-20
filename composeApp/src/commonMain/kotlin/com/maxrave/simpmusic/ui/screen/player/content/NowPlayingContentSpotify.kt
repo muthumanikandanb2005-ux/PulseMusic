@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.maxrave.simpmusic.ui.screen.player.content
 
@@ -1237,7 +1237,7 @@ fun NowPlayingContentSpotify(
                     Column(Modifier.padding(horizontal = 20.dp)) {
                         // Lyrics Layout
                         AnimatedVisibility(
-                            visible = state.screenData.lyricsData != null,
+                            visible = state.screenData.lyricsData?.lyrics?.lines?.any { !it.words.isNullOrBlank() } == true,
                             modifier = Modifier.padding(top = 10.dp),
                         ) {
                             ElevatedCard(

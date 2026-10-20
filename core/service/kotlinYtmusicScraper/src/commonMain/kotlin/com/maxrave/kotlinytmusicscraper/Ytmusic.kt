@@ -1,4 +1,4 @@
-﻿package com.maxrave.kotlinytmusicscraper
+package com.maxrave.kotlinytmusicscraper
 
 import com.manikandan.domain.extension.now
 import com.maxrave.kotlinytmusicscraper.extractor.Extractor
@@ -98,13 +98,15 @@ class Ytmusic {
             ignoreUnknownKeys = true
             explicitNulls = false
             encodeDefaults = true
+            isLenient = true
+            coerceInputValues = true
         }
     private var httpClient = createClient()
     private var downloadClient: HttpClient? = null
 
     private fun getDownloadClient(): HttpClient =
         downloadClient ?: HttpClient(getEngine()) {
-            expectSuccess = true
+            expectSuccess = false
             install(HttpRedirect) {
                 checkHttpMethod = false
                 allowHttpsDowngrade = true
@@ -117,13 +119,15 @@ class Ytmusic {
 
     private fun getUpdateClient(): HttpClient =
         updateClient ?: HttpClient(getEngine()) {
-            expectSuccess = true
+            expectSuccess = false
             install(HttpRedirect) {
                 checkHttpMethod = false
                 allowHttpsDowngrade = true
             }
             install(ContentNegotiation) {
-                json(normalJson)
+                json(normalJson, ContentType.Application.Json)
+                json(normalJson, ContentType.Text.Plain)
+                json(normalJson, ContentType.Any)
             }
         }.also { updateClient = it }
 
@@ -177,7 +181,7 @@ class Ytmusic {
     @OptIn(ExperimentalSerializationApi::class)
     private fun createClient() =
         HttpClient(getEngine()) {
-            expectSuccess = true
+            expectSuccess = false
             install(CurlLogger) {
                 logger = { Logger.d(TAG, it) }
             }
@@ -679,7 +683,7 @@ class Ytmusic {
         if (customUrl.isNotBlank()) {
             getUpdateClient().get(customUrl) {
                 header("User-Agent", "PulseMusicApp")
-                header("Accept", "application/vnd.github.v3+json")
+                header("Accept", "application/vnd.github.v3+json, application/json, text/plain, */*")
             }
         } else {
             throw IllegalStateException("No update source configured")

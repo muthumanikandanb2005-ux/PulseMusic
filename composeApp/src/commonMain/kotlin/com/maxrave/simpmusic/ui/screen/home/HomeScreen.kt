@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.ui.screen.home
+package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -418,6 +418,17 @@ fun HomeScreen(
     }
 
     var showUpdateDialog by rememberSaveable { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        sharedViewModel.checkForAppUpdate(silent = true)
+    }
+
+    LaunchedEffect(availableUpdate) {
+        if (availableUpdate != null) {
+            showUpdateDialog = true
+        }
+    }
+
     if (availableUpdate != null && showUpdateDialog) {
         val isDownloading = updateDownloadState is SharedViewModel.UpdateDownloadState.Downloading
         val isReady = updateDownloadState is SharedViewModel.UpdateDownloadState.ReadyToInstall

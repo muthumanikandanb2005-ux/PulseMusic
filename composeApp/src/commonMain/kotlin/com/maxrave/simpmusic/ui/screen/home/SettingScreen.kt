@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.ui.screen.home
+package com.maxrave.simpmusic.ui.screen.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -605,6 +605,8 @@ fun SettingScreen(
     val castState by viewModel.castState.collectAsStateWithLifecycle()
 
     val isCheckingUpdate by sharedViewModel.isCheckingUpdate.collectAsStateWithLifecycle()
+    val availableUpdate by sharedViewModel.availableUpdate.collectAsStateWithLifecycle()
+    val updateDownloadState by sharedViewModel.updateDownloadState.collectAsStateWithLifecycle()
 
     val dataStoreManager: DataStoreManager = koinInject()
     val supabaseEmail by dataStoreManager.supabaseUserEmail.collectAsStateWithLifecycle(initialValue = null)
@@ -2680,6 +2682,28 @@ fun SettingScreen(
                                 }
                             },
                         )
+                        if (availableUpdate != null) {
+                            val state = updateDownloadState
+                            val isDownloading = state is SharedViewModel.UpdateDownloadState.Downloading
+                            val isReady = state is SharedViewModel.UpdateDownloadState.ReadyToInstall
+                            val isError = state is SharedViewModel.UpdateDownloadState.Error
+                            val updateSubtitle = when {
+                                isDownloading -> {
+                                    val percent = ((state as SharedViewModel.UpdateDownloadState.Downloading).progress * 100).toInt()
+                                    "Downloading update: $percent%"
+                                }
+                                isReady -> "Update downloaded! Tap to install and restart"
+                                isError -> "Download error: ${(state as SharedViewModel.UpdateDownloadState.Error).message}. Tap to retry."
+                                else -> "Tap to download and install version ${availableUpdate?.tagName ?: ""} now"
+                            }
+                            SettingItem(
+                                title = "⚡ Install Update (${availableUpdate?.tagName ?: ""})",
+                                subtitle = updateSubtitle,
+                                onClick = {
+                                    sharedViewModel.downloadAndInstallUpdate(availableUpdate!!)
+                                },
+                            )
+                        }
                     }
                 }
             }

@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic
+package com.maxrave.simpmusic
 
 import android.Manifest
 import android.content.ComponentName
@@ -326,6 +326,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             }
         }
         viewModel.getLocation()
+        viewModel.checkForAppUpdate(silent = true)
 
         setContent {
             App(viewModel)

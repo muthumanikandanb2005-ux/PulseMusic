@@ -125,7 +125,7 @@ class ListenTogetherSession(
         client.connect(force = force)
     }
 
-    suspend fun awaitConnected(timeoutMs: Long = 15_000L): Boolean {
+    suspend fun awaitConnected(timeoutMs: Long = 8_000L): Boolean {
         if (client.isConnected) return true
         connect(force = true)
         return withTimeoutOrNull(timeoutMs) {
@@ -145,8 +145,9 @@ class ListenTogetherSession(
         launch {
             val name = username.trim().ifBlank { "Pulse User" }
             pendingUsername = name
+            client.clearSessionToken()
             _state.update { it.copy(connection = ConnectionState.Connecting, error = null) }
-            val connected = awaitConnected(15_000L)
+            val connected = awaitConnected(8_000L)
             if (!connected) {
                 _state.update {
                     it.copy(
@@ -159,6 +160,7 @@ class ListenTogetherSession(
             val sent = client.send(MessageTypes.CREATE_ROOM, CreateRoomPayload(username = pendingUsername))
             if (!sent) {
                 _state.update { it.copy(error = "Could not send room creation request. Please try again.") }
+                client.connect(force = true)
             }
         }
 
@@ -171,9 +173,10 @@ class ListenTogetherSession(
         val code = roomCode.trim().uppercase()
         if (code.isBlank()) return@launch
 
+        client.clearSessionToken()
         _state.update { it.copy(pendingJoinCode = code, error = null, connection = ConnectionState.Connecting) }
 
-        val connected = awaitConnected(15_000L)
+        val connected = awaitConnected(8_000L)
         if (!connected) {
             _state.update {
                 it.copy(
@@ -188,6 +191,7 @@ class ListenTogetherSession(
         val sent = client.send(MessageTypes.JOIN_ROOM, JoinRoomPayload(roomCode = code, username = pendingUsername))
         if (!sent) {
             _state.update { it.copy(pendingJoinCode = null, error = "Could not send join request. Please try again.") }
+            client.connect(force = true)
         }
     }
 
@@ -197,10 +201,13 @@ class ListenTogetherSession(
     fun leaveRoom() =
         launch {
             client.send(MessageTypes.LEAVE_ROOM, LeaveRoomPayload())
+            client.clearSessionToken()
             // The server sends nothing back for leave_room, so the local state is cleared here —
             // waiting for a confirmation that never arrives would leave the room UI on screen.
             _state.update {
                 it.copy(
+                    selfUserId = "",
+                    pendingJoinCode = null,
                     roomCode = null,
                     isHost = false,
                     members = emptyList(),
@@ -208,6 +215,9 @@ class ListenTogetherSession(
                     suggestions = emptyList(),
                     currentTrack = null,
                     waitingFor = emptyList(),
+                    queue = emptyList(),
+                    isPlaying = false,
+                    position = 0L,
                 )
             }
         }

@@ -196,7 +196,7 @@ class SimpMusicLyrics {
         buildDefaultHeaders()
         header("Lrclib-Client", clientId)
         header("X-Client-Id", clientId)
-        header("User-Agent", "PulseMusic/3.1.7 ($clientId)")
+        header("User-Agent", "PulseMusic/3.1.8 ($clientId)")
         parameter("track_name", trackName)
         parameter("artist_name", artistName)
         if (duration != null && duration > 0) {
@@ -213,7 +213,7 @@ class SimpMusicLyrics {
         buildDefaultHeaders()
         header("Lrclib-Client", clientId)
         header("X-Client-Id", clientId)
-        header("User-Agent", "PulseMusic/3.1.7 ($clientId)")
+        header("User-Agent", "PulseMusic/3.1.8 ($clientId)")
         if (q_track.isNotBlank()) parameter("track_name", q_track)
         if (q_artist.isNotBlank()) parameter("artist_name", q_artist)
         parameter("q", "$q_artist $q_track".trim())

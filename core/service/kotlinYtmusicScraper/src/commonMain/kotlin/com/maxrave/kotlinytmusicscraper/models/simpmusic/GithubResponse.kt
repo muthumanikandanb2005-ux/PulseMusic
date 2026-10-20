@@ -6,41 +6,41 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GithubResponse(
     @SerialName("assets")
-    val assets: List<Asset?>?,
+    val assets: List<Asset?>? = null,
     @SerialName("assets_url")
-    val assetsUrl: String?,
+    val assetsUrl: String? = null,
     @SerialName("author")
-    val author: Author?,
+    val author: Author? = null,
     @SerialName("body")
-    val body: String?,
+    val body: String? = null,
     @SerialName("created_at")
-    val createdAt: String?,
+    val createdAt: String? = null,
     @SerialName("draft")
-    val draft: Boolean?,
+    val draft: Boolean? = null,
     @SerialName("html_url")
-    val htmlUrl: String?,
+    val htmlUrl: String? = null,
     @SerialName("id")
-    val id: Int?,
+    val id: Long? = null,
     @SerialName("name")
-    val name: String?,
+    val name: String? = null,
     @SerialName("node_id")
-    val nodeId: String?,
+    val nodeId: String? = null,
     @SerialName("prerelease")
-    val prerelease: Boolean?,
+    val prerelease: Boolean? = null,
     @SerialName("published_at")
-    val publishedAt: String?,
+    val publishedAt: String? = null,
     @SerialName("reactions")
-    val reactions: Reactions?,
+    val reactions: Reactions? = null,
     @SerialName("tag_name")
-    val tagName: String?,
+    val tagName: String? = null,
     @SerialName("tarball_url")
-    val tarballUrl: String?,
+    val tarballUrl: String? = null,
     @SerialName("target_commitish")
-    val targetCommitish: String?,
+    val targetCommitish: String? = null,
     @SerialName("upload_url")
-    val uploadUrl: String?,
+    val uploadUrl: String? = null,
     @SerialName("url")
-    val url: String?,
+    val url: String? = null,
     @SerialName("zipball_url")
-    val zipballUrl: String?,
+    val zipballUrl: String? = null,
 )

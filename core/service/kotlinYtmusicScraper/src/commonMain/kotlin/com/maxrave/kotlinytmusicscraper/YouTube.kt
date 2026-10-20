@@ -105,6 +105,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
@@ -877,7 +878,20 @@ class YouTube {
 
     suspend fun checkForGithubReleaseUpdate(customUrl: String = ""): Result<GithubResponse> =
         runCatching {
-            ytMusic.checkForGithubReleaseUpdate(customUrl).body<GithubResponse>()
+            val response = ytMusic.checkForGithubReleaseUpdate(customUrl)
+            if (response.status.value !in 200..299) {
+                error("HTTP ${response.status.value}: ${response.status.description}")
+            }
+            val text = response.bodyAsText()
+            if (text.isBlank()) {
+                error("Empty response from $customUrl")
+            }
+            try {
+                ytMusic.normalJson.decodeFromString<GithubResponse>(text)
+            } catch (e: SerializationException) {
+                Logger.e(TAG, "Failed to decode GithubResponse from $customUrl: ${e.message}")
+                throw e
+            }
         }
 
     suspend fun checkForFdroidUpdate(): Result<FdroidResponse> =
