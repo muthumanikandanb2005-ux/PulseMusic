@@ -1748,16 +1748,7 @@ fun SettingScreen(
                 )
                 SettingItem(
                     title = stringResource(Res.string.main_lyrics_provider),
-                    subtitle =
-                        when (mainLyricsProvider) {
-                            DataStoreManager.SIMPMUSIC -> stringResource(Res.string.simpmusic_lyrics)
-                            DataStoreManager.SPOTIFY -> stringResource(Res.string.spotify)
-                            DataStoreManager.YOUTUBE -> stringResource(Res.string.youtube_transcript)
-                            DataStoreManager.LRCLIB -> stringResource(Res.string.lrclib)
-                            DataStoreManager.BETTER_LYRICS -> stringResource(Res.string.better_lyrics)
-                            DataStoreManager.MUSIXMATCH -> "Musixmatch"
-                            else -> stringResource(Res.string.unknown)
-                        },
+                    subtitle = stringResource(Res.string.lrclib),
                     onClick = {
                         viewModel.setAlertData(
                             SettingAlertState(
@@ -1766,31 +1757,12 @@ fun SettingScreen(
                                     SettingAlertState.SelectData(
                                         listSelect =
                                             listOf(
-                                                (mainLyricsProvider == DataStoreManager.SIMPMUSIC) to
-                                                    runBlocking { getString(Res.string.simpmusic_lyrics) },
-                                                (mainLyricsProvider == DataStoreManager.SPOTIFY) to
-                                                    runBlocking { getString(Res.string.spotify) },
-                                                (mainLyricsProvider == DataStoreManager.YOUTUBE) to
-                                                    runBlocking { getString(Res.string.youtube_transcript) },
-                                                (mainLyricsProvider == DataStoreManager.LRCLIB) to runBlocking { getString(Res.string.lrclib) },
-                                                (mainLyricsProvider == DataStoreManager.BETTER_LYRICS) to
-                                                    runBlocking { getString(Res.string.better_lyrics) },
-                                                (mainLyricsProvider == DataStoreManager.MUSIXMATCH) to "Musixmatch",
+                                                true to runBlocking { getString(Res.string.lrclib) },
                                             ),
                                     ),
                                 confirm =
-                                    runBlocking { getString(Res.string.change) } to { state ->
-                                        viewModel.setLyricsProvider(
-                                            when (state.selectOne?.getSelected()) {
-                                                runBlocking { getString(Res.string.simpmusic_lyrics) } -> DataStoreManager.SIMPMUSIC
-                                                runBlocking { getString(Res.string.spotify) } -> DataStoreManager.SPOTIFY
-                                                runBlocking { getString(Res.string.youtube_transcript) } -> DataStoreManager.YOUTUBE
-                                                runBlocking { getString(Res.string.lrclib) } -> DataStoreManager.LRCLIB
-                                                runBlocking { getString(Res.string.better_lyrics) } -> DataStoreManager.BETTER_LYRICS
-                                                "Musixmatch" -> DataStoreManager.MUSIXMATCH
-                                                else -> DataStoreManager.SIMPMUSIC
-                                            },
-                                        )
+                                    runBlocking { getString(Res.string.change) } to { _ ->
+                                        viewModel.setLyricsProvider(DataStoreManager.LRCLIB)
                                     },
                                 dismiss = runBlocking { getString(Res.string.cancel) },
                             ),

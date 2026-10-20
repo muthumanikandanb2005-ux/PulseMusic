@@ -551,6 +551,19 @@ internal class LyricsCanvasRepositoryImpl(
                 ).getOrNull()
             }
 
+            // Also try with primary artist if artist contains multiple names separated by comma or &
+            if (result == null && (sartist.contains(",") || sartist.contains("&"))) {
+                val primaryArtist = cleanArtistForLyrics(sartist.split(",", "&").first().trim())
+                if (primaryArtist.isNotEmpty() && primaryArtist != qartist) {
+                    result = simpMusicLyrics.searchLrclibLyrics(
+                        q_track = qtrack,
+                        q_artist = primaryArtist,
+                        duration = duration,
+                        clientId = clientId,
+                    ).getOrNull()
+                }
+            }
+
             if (result != null) {
                 emit(Resource.Success<Lyrics>(result.toLyrics()))
             } else {

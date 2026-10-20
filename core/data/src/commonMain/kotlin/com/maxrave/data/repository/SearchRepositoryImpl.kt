@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.repository
+package com.maxrave.data.repository
 
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.mapping.toDomainSearchSuggestions
@@ -72,7 +72,7 @@ internal class SearchRepositoryImpl(
                                 }
                         }
 
-                        emit(Resource.Success<ArrayList<SongsResult>>(listSongs))
+                        emit(Resource.Success<ArrayList<SongsResult>>(ArrayList(listSongs.distinctBy { it.videoId })))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<SongsResult>>(e.message.toString()))
@@ -108,7 +108,7 @@ internal class SearchRepositoryImpl(
                                 }
                         }
 
-                        emit(Resource.Success<ArrayList<VideosResult>>(listSongs))
+                        emit(Resource.Success<ArrayList<VideosResult>>(ArrayList(listSongs.distinctBy { it.videoId })))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<VideosResult>>(e.message.toString()))
@@ -145,7 +145,7 @@ internal class SearchRepositoryImpl(
                                     count++
                                 }
                         }
-                        emit(Resource.Success<ArrayList<PlaylistsResult>>(listPlaylist))
+                        emit(Resource.Success<ArrayList<PlaylistsResult>>(ArrayList(listPlaylist.distinctBy { it.browseId })))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<PlaylistsResult>>(e.message.toString()))
@@ -180,7 +180,7 @@ internal class SearchRepositoryImpl(
                                     count++
                                 }
                         }
-                        emit(Resource.Success<ArrayList<PlaylistsResult>>(listPlaylist))
+                        emit(Resource.Success<ArrayList<PlaylistsResult>>(ArrayList(listPlaylist.distinctBy { it.browseId })))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<PlaylistsResult>>(e.message.toString()))
@@ -215,7 +215,7 @@ internal class SearchRepositoryImpl(
                                     count++
                                 }
                         }
-                        emit(Resource.Success<ArrayList<ArtistsResult>>(listArtist))
+                        emit(Resource.Success<ArrayList<ArtistsResult>>(ArrayList(listArtist.distinctBy { it.browseId })))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<ArtistsResult>>(e.message.toString()))
@@ -250,7 +250,7 @@ internal class SearchRepositoryImpl(
                                     count++
                                 }
                         }
-                        emit(Resource.Success<ArrayList<AlbumsResult>>(listAlbum))
+                        emit(Resource.Success<ArrayList<AlbumsResult>>(ArrayList(listAlbum.distinctBy { it.browseId })))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<AlbumsResult>>(e.message.toString()))
@@ -285,7 +285,7 @@ internal class SearchRepositoryImpl(
                                     count++
                                 }
                         }
-                        emit(Resource.Success<ArrayList<PlaylistsResult>>(listPlaylist))
+                        emit(Resource.Success<ArrayList<PlaylistsResult>>(ArrayList(listPlaylist.distinctBy { it.browseId })))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<PlaylistsResult>>(e.message.toString()))

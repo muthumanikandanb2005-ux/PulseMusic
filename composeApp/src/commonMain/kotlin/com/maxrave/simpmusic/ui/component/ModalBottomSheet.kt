@@ -1543,16 +1543,7 @@ fun NowPlayingBottomSheet(
 
     if (mainLyricsProvider) {
         var selected by remember {
-            mutableIntStateOf(
-                when (uiState.mainLyricsProvider) {
-                    DataStoreManager.SIMPMUSIC -> 0
-                    DataStoreManager.LRCLIB -> 1
-                    DataStoreManager.YOUTUBE -> 2
-                    DataStoreManager.BETTER_LYRICS -> 3
-                    DataStoreManager.SPOTIFY -> 4
-                    else -> 0
-                },
-            )
+            mutableIntStateOf(1)
         }
 
         AlertDialog(
@@ -1571,60 +1562,12 @@ fun NowPlayingBottomSheet(
                             Modifier
                                 .padding(horizontal = 4.dp)
                                 .fillMaxWidth()
-                                .clickable { selected = 0 },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == 0, onClick = { selected = 0 })
-                        Spacer(modifier = Modifier.size(10.dp))
-                        Text(text = stringResource(Res.string.simpmusic_lyrics), style = typo().labelSmall)
-                    }
-                    Row(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 4.dp)
-                                .fillMaxWidth()
-                                .clickable { selected = 4 },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == 4, onClick = { selected = 4 })
-                        Spacer(modifier = Modifier.size(10.dp))
-                        Text(text = stringResource(Res.string.spotify), style = typo().labelSmall)
-                    }
-                    Row(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 4.dp)
-                                .fillMaxWidth()
                                 .clickable { selected = 1 },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected = selected == 1, onClick = { selected = 1 })
+                        RadioButton(selected = true, onClick = { selected = 1 })
                         Spacer(modifier = Modifier.size(10.dp))
                         Text(text = stringResource(Res.string.lrclib), style = typo().labelSmall)
-                    }
-                    Row(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 4.dp)
-                                .fillMaxWidth()
-                                .clickable { selected = 2 },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == 2, onClick = { selected = 2 })
-                        Spacer(modifier = Modifier.size(10.dp))
-                        Text(text = stringResource(Res.string.youtube_transcript), style = typo().labelSmall)
-                    }
-                    Row(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 4.dp)
-                                .fillMaxWidth()
-                                .clickable { selected = 3 },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == 3, onClick = { selected = 3 })
-                        Spacer(modifier = Modifier.size(10.dp))
-                        Text(text = stringResource(Res.string.better_lyrics), style = typo().labelSmall)
                     }
                 }
             },
@@ -1632,16 +1575,7 @@ fun NowPlayingBottomSheet(
                 TextButton(
                     onClick = {
                         viewModel.onUIEvent(
-                            NowPlayingBottomSheetUIEvent.ChangeLyricsProvider(
-                                when (selected) {
-                                    0 -> DataStoreManager.SIMPMUSIC
-                                    1 -> DataStoreManager.LRCLIB
-                                    2 -> DataStoreManager.YOUTUBE
-                                    3 -> DataStoreManager.BETTER_LYRICS
-                                    4 -> DataStoreManager.SPOTIFY
-                                    else -> DataStoreManager.SIMPMUSIC
-                                },
-                            ),
+                            NowPlayingBottomSheetUIEvent.ChangeLyricsProvider(DataStoreManager.LRCLIB),
                         )
                         mainLyricsProvider = false
                     },

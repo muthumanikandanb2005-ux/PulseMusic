@@ -94,14 +94,9 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     override fun onStop() {
         super.onStop()
-        if (mBound && shouldUnbind) {
-            try {
-                unbindService(serviceConnection)
-            } catch (e: Exception) {
-                Logger.w("MainActivity", "Error unbinding service: ${e.message}")
-            }
-            mBound = false
-        }
+        // Do not unbind the media service on stop (e.g. screen lock, switching apps).
+        // Maintaining the binding preserves process priority across lock/unlock and app switching.
+        // The service will be cleanly unbound in onDestroy().
     }
 
     override fun onNewIntent(intent: Intent) {

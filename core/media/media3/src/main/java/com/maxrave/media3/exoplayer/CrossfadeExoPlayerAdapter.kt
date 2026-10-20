@@ -18,6 +18,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import com.manikandan.domain.data.player.AudioEffects
 import com.manikandan.domain.data.player.GenericCastState
@@ -363,6 +364,38 @@ internal class CrossfadeExoPlayerAdapter(
     private var retryVideoId: String? = null
     private val maxRetryCount = 2
 
+    // ========== Pause Stale Detection & Buffering Watchdog ==========
+    @Volatile
+    private var lastPauseTimeMs: Long = 0L
+    private var bufferingWatchdogJob: Job? = null
+
+    private fun startBufferingWatchdog(player: ExoPlayer) {
+        if (bufferingWatchdogJob?.isActive == true) return
+        bufferingWatchdogJob = coroutineScope.launch {
+            delay(4_000L)
+            if (isActive && player == currentPlayer && internalPlayWhenReady && player.playbackState == Player.STATE_BUFFERING) {
+                val currentVideoId = playlist.getOrNull(localCurrentMediaItemIndex)?.mediaId
+                if (currentVideoId != null) {
+                    Logger.w(TAG, "Buffering watchdog: Playback stalled in STATE_BUFFERING for > 4s, recovering track $currentVideoId at $cachedPosition ms")
+                    try {
+                        streamRepository.invalidateFormat(currentVideoId)
+                        streamRepository.invalidateFormat("${com.maxrave.common.MERGING_DATA_TYPE.VIDEO}$currentVideoId")
+                        precachedPlayers.remove(currentVideoId)?.player?.release()
+                        loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition.coerceAtLeast(0L), shouldPlay = true)
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.e(TAG, "Buffering watchdog recovery failed: ${e.message}", e)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun cancelBufferingWatchdog() {
+        bufferingWatchdogJob?.cancel()
+        bufferingWatchdogJob = null
+    }
+
     // ========== AutoMix Metadata Cache ==========
     // videoId -> audio analysis data from Tidal (populated externally when 320kbps stream is fetched)
     private val audioMetaCache = ConcurrentHashMap<String, SongAudioMeta>()
@@ -544,6 +577,11 @@ internal class CrossfadeExoPlayerAdapter(
                         .Builder(context)
                         .setEnableFloatOutput(enableFloatOutput)
                         .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
+                        .setAudioTrackBufferSizeProvider(
+                            DefaultAudioTrackBufferSizeProvider.Builder()
+                                .setPcmBufferMultiplicationFactor(4)
+                                .build()
+                        )
                         .setAudioProcessorChain(
                             DefaultAudioSink.DefaultAudioProcessorChain(
                                 // Equalizer first, matching the desktop graph, where the ten
@@ -614,22 +652,28 @@ internal class CrossfadeExoPlayerAdapter(
             when (internalState) {
                 InternalState.READY, InternalState.ENDED, InternalState.PAUSED -> {
                     currentPlayer?.let { player ->
-                        if (player.playbackState == Player.STATE_IDLE || player.playerError != null) {
-                            Logger.w(TAG, "CurrentPlayer is in STATE_IDLE or error, reloading track to recover")
+                        val pauseDuration = if (lastPauseTimeMs > 0L) System.currentTimeMillis() - lastPauseTimeMs else 0L
+                        val isStalePause = pauseDuration >= 45_000L
+                        if (isStalePause || player.playbackState == Player.STATE_IDLE || player.playerError != null) {
+                            Logger.w(TAG, "CurrentPlayer is in STATE_IDLE, error, or stale pause (${pauseDuration}ms), reloading track to recover fresh stream")
                             internalPlayWhenReady = true
                             if (localCurrentMediaItemIndex in playlist.indices) {
-                                loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition, true)
+                                val currentVideoId = playlist.getOrNull(localCurrentMediaItemIndex)?.mediaId
+                                if (currentVideoId != null && isStalePause) {
+                                    streamRepository.invalidateFormat(currentVideoId)
+                                    streamRepository.invalidateFormat("${com.maxrave.common.MERGING_DATA_TYPE.VIDEO}$currentVideoId")
+                                    precachedPlayers.remove(currentVideoId)?.player?.release()
+                                }
+                                loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition.coerceAtLeast(0L), true)
                                 return@launch
                             }
                         }
                         requestAudioFocusInternal()
-                        // At the end of the queue `play()` only sets playWhenReady, which does
-                        // nothing while the player sits in STATE_ENDED — the press would look
-                        // ignored. Rewind first so the last track replays.
                         if (internalState == InternalState.ENDED) {
                             Logger.d(TAG, "Play: replaying from the start after end of queue")
                             player.seekTo(0L)
                         }
+                        lastPauseTimeMs = 0L
                         player.play()
                         transitionToState(InternalState.PLAYING)
                         internalPlayWhenReady = true
@@ -690,6 +734,8 @@ internal class CrossfadeExoPlayerAdapter(
                     commitIncomingAsCurrentInternal()
                 }
 
+                lastPauseTimeMs = System.currentTimeMillis()
+                cancelBufferingWatchdog()
                 internalPlayWhenReady = false
                 currentPlayer?.pause()
 
@@ -728,6 +774,8 @@ internal class CrossfadeExoPlayerAdapter(
         }
         coroutineScope.launch {
             forwardingPlayer.suppressPlaybackEnded = false
+            cancelBufferingWatchdog()
+            lastPauseTimeMs = 0L
             currentPlayer?.let { player ->
                 Logger.d(TAG, "Stop called")
                 player.stop()
@@ -1527,6 +1575,8 @@ internal class CrossfadeExoPlayerAdapter(
             return
         }
 
+        lastPauseTimeMs = 0L
+        cancelBufferingWatchdog()
         // Cancel previous load
         currentLoadJob?.cancel()
 
@@ -1714,6 +1764,7 @@ internal class CrossfadeExoPlayerAdapter(
                         }
 
                         Player.STATE_READY -> {
+                            cancelBufferingWatchdog()
                             // Always clear loading state when ExoPlayer is ready
                             // (handles both initial load AND mid-playback rebuffer)
                             if (cachedIsLoading && player == currentPlayer) {
@@ -1729,7 +1780,9 @@ internal class CrossfadeExoPlayerAdapter(
                         }
 
                         Player.STATE_BUFFERING -> {
-                            // Playback is stalled waiting for data — report buffering
+                            if (player == currentPlayer && internalPlayWhenReady) {
+                                startBufferingWatchdog(player)
+                            }
                         }
                     }
                 }
@@ -1740,6 +1793,7 @@ internal class CrossfadeExoPlayerAdapter(
                         return
                     }
                     if (isPlaying) {
+                        cancelBufferingWatchdog()
                         if (internalState != InternalState.PLAYING) {
                             transitionToState(InternalState.PLAYING)
                             notifyEqualizerIntent(true)
@@ -1834,6 +1888,11 @@ internal class CrossfadeExoPlayerAdapter(
                     val isPlaybackStalled = isLoading && player.playbackState == Player.STATE_BUFFERING && player.playWhenReady
                     val isCurrentPlayer = player == currentPlayer
                     Logger.d(TAG, "onIsLoadingChanged: isLoading=$isLoading, isPlaybackStalled=$isPlaybackStalled, isCurrentPlayer=$isCurrentPlayer")
+                    if (isPlaybackStalled && isCurrentPlayer) {
+                        startBufferingWatchdog(player)
+                    } else if (!isPlaybackStalled && isCurrentPlayer) {
+                        cancelBufferingWatchdog()
+                    }
                     if (cachedIsLoading != isPlaybackStalled && isCurrentPlayer) {
                         cachedIsLoading = isPlaybackStalled
                         listeners.forEach { it.onIsLoadingChanged(isPlaybackStalled) }
@@ -1897,6 +1956,7 @@ internal class CrossfadeExoPlayerAdapter(
      * During crossfade the listener is on secondaryPlayer, not currentPlayer.
      */
     private fun cleanupPlayerListenerInternal() {
+        cancelBufferingWatchdog()
         activePlayerListener?.let { listener ->
             currentPlayer?.removeListener(listener)
             secondaryPlayer?.removeListener(listener)

@@ -266,6 +266,38 @@ class MpvPlayerAdapter(
     // Loading management
     private var currentLoadJob: Job? = null
 
+    // ========== Pause Stale Detection & Buffering Watchdog ==========
+    @Volatile
+    private var lastPauseTimeMs: Long = 0L
+    private var bufferingWatchdogJob: Job? = null
+
+    private fun startBufferingWatchdog(player: MpvPlayer) {
+        if (bufferingWatchdogJob?.isActive == true) return
+        bufferingWatchdogJob = coroutineScope.launch {
+            delay(4_000L)
+            if (isActive && player == currentPlayer && internalPlayWhenReady) {
+                val currentVideoId = playlist.getOrNull(localCurrentMediaItemIndex)?.mediaId
+                if (currentVideoId != null) {
+                    Logger.w(TAG, "Buffering watchdog: MPV playback stalled for > 4s, recovering track $currentVideoId at $cachedPosition ms")
+                    try {
+                        streamRepository.invalidateFormat(currentVideoId)
+                        streamRepository.invalidateFormat("${com.maxrave.common.MERGING_DATA_TYPE.VIDEO}$currentVideoId")
+                        precachedPlayers.remove(currentVideoId)?.player?.release()
+                        loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition.coerceAtLeast(0L), shouldPlay = true)
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.e(TAG, "Buffering watchdog recovery failed: ${e.message}", e)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun cancelBufferingWatchdog() {
+        bufferingWatchdogJob?.cancel()
+        bufferingWatchdogJob = null
+    }
+
     fun getCurrentPlayer(): MpvPlayer? = currentPlayer
 
     // Video surface state - UI collects this to display video.
@@ -289,14 +321,28 @@ class MpvPlayerAdapter(
             when (internalState) {
                 InternalState.READY, InternalState.ENDED, InternalState.PAUSED -> {
                     currentPlayer?.let { player ->
-                        // At the end of the queue the handle is parked at EOF, and telling mpv to
-                        // play there does nothing — the press would look ignored. Rewind first so
-                        // the last track replays, which is what the Play button is offering.
+                        val pauseDuration = if (lastPauseTimeMs > 0L) System.currentTimeMillis() - lastPauseTimeMs else 0L
+                        val isStalePause = pauseDuration >= 45_000L
+                        if (isStalePause) {
+                            Logger.w(TAG, "Play called after stale pause (${pauseDuration}ms), reloading track to recover fresh stream")
+                            internalPlayWhenReady = true
+                            if (localCurrentMediaItemIndex in playlist.indices) {
+                                val currentVideoId = playlist.getOrNull(localCurrentMediaItemIndex)?.mediaId
+                                if (currentVideoId != null) {
+                                    streamRepository.invalidateFormat(currentVideoId)
+                                    streamRepository.invalidateFormat("${com.maxrave.common.MERGING_DATA_TYPE.VIDEO}$currentVideoId")
+                                    precachedPlayers.remove(currentVideoId)?.player?.release()
+                                }
+                                loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition.coerceAtLeast(0L), true)
+                                return@launch
+                            }
+                        }
                         if (internalState == InternalState.ENDED) {
                             Logger.d(TAG, "Play: replaying from the start after end of queue")
                             player.seekTo(0L)
                             cachedPosition = 0L
                         }
+                        lastPauseTimeMs = 0L
                         Logger.d(TAG, "Play: calling mpv play")
                         player.play()
                         transitionToState(InternalState.PLAYING)
@@ -340,6 +386,8 @@ class MpvPlayerAdapter(
 
     override fun pause() {
         Logger.d(TAG, "pause() called (current state: $internalState)")
+        lastPauseTimeMs = System.currentTimeMillis()
+        cancelBufferingWatchdog()
         coroutineScope.launch {
             try {
                 // Pausing mid-crossfade stays on A+1 — the track the UI already shows — and freezes
@@ -387,6 +435,8 @@ class MpvPlayerAdapter(
     }
 
     override fun stop() {
+        lastPauseTimeMs = 0L
+        cancelBufferingWatchdog()
         coroutineScope.launch {
             currentPlayer?.let { player ->
                 Logger.d(TAG, "Stop called")
@@ -1311,6 +1361,8 @@ class MpvPlayerAdapter(
         val mediaItem = playlist[index]
         val videoId = mediaItem.mediaId
 
+        lastPauseTimeMs = 0L
+        cancelBufferingWatchdog()
         currentLoadJob?.cancel()
 
         currentLoadJob =
@@ -1553,6 +1605,7 @@ class MpvPlayerAdapter(
                 }
 
                 override fun playing(player: MpvPlayer) {
+                    cancelBufferingWatchdog()
                     coroutineScope.launch {
                         if (currentPlayer !== player) return@launch
                         if (internalState != InternalState.PLAYING) {
@@ -1610,6 +1663,11 @@ class MpvPlayerAdapter(
                     // AND the player intends to play. Ignore buffering while paused
                     // to avoid showing a loading spinner when user has explicitly paused.
                     val isStalled = newCache < 100f && cachedBufferedPosition <= cachedPosition && internalPlayWhenReady
+                    if (isStalled) {
+                        startBufferingWatchdog(player)
+                    } else {
+                        cancelBufferingWatchdog()
+                    }
                     if (isStalled != cachedIsLoading) {
                         Logger.w(TAG, "isLoading changed: $cachedIsLoading -> $isStalled")
                         cachedIsLoading = isStalled
@@ -1629,6 +1687,7 @@ class MpvPlayerAdapter(
      * Clean up event listener from current player
      */
     private fun cleanupEventListenerInternal() {
+        cancelBufferingWatchdog()
         currentPlayer?.setEventListener(null)
     }
 

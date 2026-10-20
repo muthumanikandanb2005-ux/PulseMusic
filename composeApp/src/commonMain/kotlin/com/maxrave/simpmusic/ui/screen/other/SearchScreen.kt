@@ -35,8 +35,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -389,10 +391,10 @@ fun SearchScreen(
                         state = suggestionsState,
                         contentPadding = PaddingValues(top = searchBarHeight, bottom = 10.dp),
                     ) {
-                        items(
+                        itemsIndexed(
                             items = searchScreenState.suggestYTItems,
-                            key = { item ->
-                                when (item) {
+                            key = { index, item ->
+                                val prefix = when (item) {
                                     is SongsResult -> "yt_song_${item.videoId}"
                                     is VideosResult -> "yt_video_${item.videoId}"
                                     is AlbumsResult -> "yt_album_${item.browseId}"
@@ -400,9 +402,10 @@ fun SearchScreen(
                                     is PlaylistsResult -> "yt_playlist_${item.browseId}"
                                     else -> item.hashCode().toString()
                                 }
+                                "${prefix}_$index"
                             },
-                            contentType = { it::class.simpleName },
-                        ) { item ->
+                            contentType = { _, item -> item::class.simpleName },
+                        ) { _, item ->
                             SuggestItemRow(
                                 searchResult = item,
                                 onItemClick = { item ->
@@ -445,10 +448,10 @@ fun SearchScreen(
                                 },
                             )
                         }
-                        items(
+                        itemsIndexed(
                             items = searchScreenState.suggestQueries,
-                            key = { "query_$it" },
-                        ) { suggestion ->
+                            key = { index, it -> "query_${index}_$it" },
+                        ) { _, suggestion ->
                             Row(
                                 modifier =
                                     Modifier
@@ -538,10 +541,10 @@ fun SearchScreen(
                                     }
                                 }
                             }
-                            items(
+                            itemsIndexed(
                                 items = searchHistory,
-                                key = { "history_$it" },
-                            ) { historyItem ->
+                                key = { index, it -> "history_${index}_$it" },
+                            ) { _, historyItem ->
                                 Row(
                                     modifier =
                                         Modifier
@@ -779,10 +782,10 @@ fun SearchScreen(
                                                             ),
                                                         state = resultsState,
                                                     ) {
-                                                        items(
+                                                        itemsIndexed(
                                                             items = currentResults,
-                                                            key = { result ->
-                                                                when (result) {
+                                                            key = { index, result ->
+                                                                val prefix = when (result) {
                                                                     is SongsResult -> "res_song_${result.videoId}"
                                                                     is VideosResult -> "res_video_${result.videoId}"
                                                                     is AlbumsResult -> "res_album_${result.browseId}"
@@ -790,9 +793,10 @@ fun SearchScreen(
                                                                     is PlaylistsResult -> "res_playlist_${result.browseId}"
                                                                     else -> result.hashCode().toString()
                                                                 }
+                                                                "${prefix}_$index"
                                                             },
-                                                            contentType = { it::class.simpleName },
-                                                        ) { result ->
+                                                            contentType = { _, result -> result::class.simpleName },
+                                                        ) { _, result ->
                                                             when (result) {
                                                                 is SongsResult -> {
                                                                     SongFullWidthItems(

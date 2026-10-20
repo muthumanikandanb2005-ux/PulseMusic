@@ -535,6 +535,9 @@ fun LyricsView(
                 thresholdMs = 1000L,
             )
         }
+    LaunchedEffect(lyricsData.lyrics) {
+        listState.scrollToItem(0)
+    }
     LaunchedEffect(currentLineIndex, lyricsData.lyrics.syncType, appleStyle) {
         if (currentLineIndex > -1 &&
             (lyricsData.lyrics.syncType == "LINE_SYNCED" || lyricsData.lyrics.syncType == "RICH_SYNCED")

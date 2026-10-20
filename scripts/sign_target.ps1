@@ -13,6 +13,6 @@ if (-not $cert) {
 Write-Host "Using Certificate: $($cert.Thumbprint)"
 Write-Host "Target: $TargetFile"
 
-$sig = Set-AuthenticodeSignature -Certificate $cert -FilePath $TargetFile -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com"
+$sig = Set-AuthenticodeSignature -Certificate $cert -FilePath $TargetFile -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -IncludeChain All
 Write-Host "Signature result: $($sig.Status)"
 Get-AuthenticodeSignature $TargetFile
