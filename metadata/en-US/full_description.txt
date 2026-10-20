@@ -1,0 +1,13 @@
+Experience music like never before with Pulse Music.
+
+<br><b>Features:</b>
+
+- Ad-free YouTube Music and YouTube streaming in background
+- Continuous playback engine with zero freezes and rapid skipping
+- Real-time Apple Music and Spotify hybrid styled synchronized lyrics
+- Offline caching and downloaded songs support
+- Equalizer, spatial audio, and sound enhancements
+- Home, Charts, Moods & Genres with high-speed browsing
+- SponsorBlock & Return YouTube Dislike integration
+- In-app OTA updates and trending music notification drawer delivery
+- Sleep timer and Android Auto support

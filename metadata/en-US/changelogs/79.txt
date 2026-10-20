@@ -1,0 +1,6 @@
+Pulse Music v3.1.1 (Build 79) OTA Update:
+- Fast continuous music streaming with zero delay audio engine
+- Pure audio mode default on Home Screen and Album cards (video toggle in settings)
+- Fixed Windows desktop progress string formatting issue
+- Fully optimized OTA update pipeline for Android, Desktop, Orion Store, and F-Droid
+- Owned & Maintained by Manikandan (Pulse Music Studio)
