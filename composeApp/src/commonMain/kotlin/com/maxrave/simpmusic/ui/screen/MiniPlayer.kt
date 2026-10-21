@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.ui.screen
+package com.maxrave.simpmusic.ui.screen
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.AnimatedContent
@@ -26,6 +26,14 @@ import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.window.Dialog
+import com.maxrave.simpmusic.ui.icon.SkipNext
+import com.maxrave.simpmusic.ui.icon.SkipPrevious
+import com.maxrave.simpmusic.ui.screen.player.content.toAudioCodecLabel
+import com.manikandan.domain.data.model.streams.TimeLine
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -243,6 +251,30 @@ fun MiniPlayer(
             mutableStateOf(false)
         }
 
+    val formatState by sharedViewModel.format.collectAsStateWithLifecycle(null)
+    val audioQualityLabel = remember(formatState) {
+        formatState?.codecs.toAudioCodecLabel(formatState?.bitrate, formatState?.itag) ?: "HQ"
+    }
+    val nowPlayingScreenData by sharedViewModel.nowPlayingScreenData.collectAsStateWithLifecycle()
+    val lyrics = nowPlayingScreenData.lyricsData?.lyrics
+    val lines = lyrics?.lines
+    val currentLyricText = remember(lines, timelineState.current) {
+        if (lines.isNullOrEmpty()) null
+        else {
+            val currMs = timelineState.current
+            lines.findLast { line ->
+                val start = line.startTimeMs.toLongOrNull() ?: 0L
+                val end = line.endTimeMs.toLongOrNull() ?: Long.MAX_VALUE
+                currMs in start..end
+            }?.words ?: lines.findLast { line ->
+                val start = line.startTimeMs.toLongOrNull() ?: 0L
+                start <= currMs
+            }?.words
+        }
+    }
+    var isIslandExpanded by rememberSaveable { mutableStateOf(false) }
+    var showLyricsTicker by rememberSaveable { mutableStateOf(true) }
+
     val coroutineScope = rememberCoroutineScope()
 
     val animatedProgress by animateFloatAsState(
@@ -344,8 +376,11 @@ fun MiniPlayer(
                         Modifier
                             .clip(miniPlayerShape)
                             .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                            .clickable(
+                            .combinedClickable(
                                 onClick = onClick,
+                                onLongClick = {
+                                    isIslandExpanded = true
+                                },
                             ).pointerInput(Unit) {
                                 detectVerticalDragGestures(
                                     onDragStart = {
@@ -492,39 +527,18 @@ fun MiniPlayer(
                                             .wrapContentHeight()
                                             .align(Alignment.CenterVertically),
                                     ) {
-                                        Text(
-                                            text = (songEntity?.title ?: "").toString(),
-                                            style = typo().labelSmall,
-                                            color = textColor,
-                                            maxLines = 1,
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .wrapContentHeight(
-                                                        align = Alignment.CenterVertically,
-                                                    ).basicMarquee(
-                                                        iterations = Int.MAX_VALUE,
-                                                        animationMode = MarqueeAnimationMode.Immediately,
-                                                    ).focusable(),
-                                        )
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            androidx.compose.animation.AnimatedVisibility(visible = songEntity?.isExplicit == true) {
-                                                ExplicitBadge(
-                                                    modifier =
-                                                        Modifier
-                                                            .size(20.dp)
-                                                            .padding(end = 4.dp)
-                                                            .weight(1f),
-                                                )
-                                            }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
                                             Text(
-                                                text = (songEntity?.artistName?.connectArtists() ?: ""),
-                                                style = typo().bodySmall,
-                                                maxLines = 1,
+                                                text = (songEntity?.title ?: "").toString(),
+                                                style = typo().labelSmall,
                                                 color = textColor,
+                                                maxLines = 1,
                                                 modifier =
                                                     Modifier
-                                                        .weight(1f)
+                                                        .weight(1f, fill = false)
                                                         .wrapContentHeight(
                                                             align = Alignment.CenterVertically,
                                                         ).basicMarquee(
@@ -532,6 +546,66 @@ fun MiniPlayer(
                                                             animationMode = MarqueeAnimationMode.Immediately,
                                                         ).focusable(),
                                             )
+                                            Spacer(Modifier.width(6.dp))
+                                            MiniLiveEqualizer(isPlaying = isPlaying, tint = textColor)
+                                            if (audioQualityLabel != null) {
+                                                Spacer(Modifier.width(6.dp))
+                                                QualityBadge(label = audioQualityLabel, tint = textColor)
+                                            }
+                                        }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    if (!currentLyricText.isNullOrBlank()) {
+                                                        showLyricsTicker = !showLyricsTicker
+                                                    }
+                                                },
+                                        ) {
+                                            androidx.compose.animation.AnimatedVisibility(visible = songEntity?.isExplicit == true) {
+                                                ExplicitBadge(
+                                                    modifier =
+                                                        Modifier
+                                                            .size(16.dp)
+                                                            .padding(end = 4.dp),
+                                                )
+                                            }
+                                            if (showLyricsTicker && !currentLyricText.isNullOrBlank()) {
+                                                Text(
+                                                    text = "♫ $currentLyricText",
+                                                    style = typo().bodySmall.copy(fontWeight = FontWeight.Medium),
+                                                    maxLines = 1,
+                                                    color = if (isDarkTheme) Color(0xFF64B5F6) else MaterialTheme.colorScheme.primary,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier =
+                                                        Modifier
+                                                            .weight(1f)
+                                                            .wrapContentHeight(
+                                                                align = Alignment.CenterVertically,
+                                                            ).basicMarquee(
+                                                                iterations = Int.MAX_VALUE,
+                                                                animationMode = MarqueeAnimationMode.Immediately,
+                                                            ).focusable(),
+                                                )
+                                            } else {
+                                                Text(
+                                                    text = (songEntity?.artistName?.connectArtists() ?: ""),
+                                                    style = typo().bodySmall,
+                                                    maxLines = 1,
+                                                    color = textColor.copy(alpha = 0.75f),
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier =
+                                                        Modifier
+                                                            .weight(1f)
+                                                            .wrapContentHeight(
+                                                                align = Alignment.CenterVertically,
+                                                            ).basicMarquee(
+                                                                iterations = Int.MAX_VALUE,
+                                                                animationMode = MarqueeAnimationMode.Immediately,
+                                                            ).focusable(),
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -637,6 +711,20 @@ fun MiniPlayer(
                 },
             )
         }
+        if (isIslandExpanded) {
+            DynamicIslandOverlay(
+                songEntity = songEntity,
+                isPlaying = isPlaying,
+                liked = liked,
+                timelineState = timelineState,
+                volume = controllerState.volume,
+                audioQualityLabel = audioQualityLabel,
+                currentLyricText = currentLyricText,
+                sharedViewModel = sharedViewModel,
+                onOpenFullPlayer = onClick,
+                onDismiss = { isIslandExpanded = false },
+            )
+        }
         // Apple Music-style floating capsule: transport on the left, the track and its slim
         // progress slider in the middle, the action cluster on the right. Size and placement come
         // from the caller (App.kt), so the capsule keeps a fixed width and floats over content.
@@ -648,9 +736,12 @@ fun MiniPlayer(
             modifier
                 .liquidGlass(backdrop, layer, luminanceAnimation.value, capsuleShape, blurScale = 1.2f)
                 .clip(capsuleShape)
-                .clickable {
-                    onClick()
-                },
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        isIslandExpanded = true
+                    },
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Row(
@@ -763,24 +854,42 @@ fun MiniPlayer(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(
-                                text = (songEntity?.title ?: "").toString(),
-                                // labelSmall is 14sp — oversized against a 40dp artwork; keep its
-                                // weight, drop the size a notch.
-                                style = typo().labelSmall.copy(fontSize = 12.sp),
-                                color = textColor,
-                                maxLines = 1,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .wrapContentHeight(
-                                            align = Alignment.CenterVertically,
-                                        ).basicMarquee(
-                                            iterations = Int.MAX_VALUE,
-                                            animationMode = MarqueeAnimationMode.Immediately,
-                                        ).focusable(),
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = (songEntity?.title ?: "").toString(),
+                                    style = typo().labelSmall.copy(fontSize = 12.sp),
+                                    color = textColor,
+                                    maxLines = 1,
+                                    modifier =
+                                        Modifier
+                                            .weight(1f, fill = false)
+                                            .wrapContentHeight(
+                                                align = Alignment.CenterVertically,
+                                            ).basicMarquee(
+                                                iterations = Int.MAX_VALUE,
+                                                animationMode = MarqueeAnimationMode.Immediately,
+                                            ).focusable(),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                MiniLiveEqualizer(isPlaying = controllerState.isPlaying, tint = textColor)
+                                if (audioQualityLabel != null) {
+                                    Spacer(Modifier.width(6.dp))
+                                    QualityBadge(label = audioQualityLabel, tint = textColor)
+                                }
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (!currentLyricText.isNullOrBlank()) {
+                                            showLyricsTicker = !showLyricsTicker
+                                        }
+                                    },
+                            ) {
                                 androidx.compose.animation.AnimatedVisibility(visible = songEntity?.isExplicit == true) {
                                     ExplicitBadge(
                                         modifier =
@@ -789,16 +898,25 @@ fun MiniPlayer(
                                                 .padding(end = 4.dp),
                                     )
                                 }
-                                Text(
-                                    text = (songEntity?.artistName?.connectArtists() ?: ""),
-                                    style = typo().bodySmall,
-                                    color = textColor.copy(alpha = 0.7f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    // fill = false so the artist name gives the label room instead
-                                    // of claiming the whole row and pushing it out of view.
-                                    modifier = Modifier.weight(1f, fill = false),
-                                )
+                                if (showLyricsTicker && !currentLyricText.isNullOrBlank()) {
+                                    Text(
+                                        text = "♫ $currentLyricText",
+                                        style = typo().bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        maxLines = 1,
+                                        color = if (isDarkTheme) Color(0xFF64B5F6) else MaterialTheme.colorScheme.primary,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                } else {
+                                    Text(
+                                        text = (songEntity?.artistName?.connectArtists() ?: ""),
+                                        style = typo().bodySmall,
+                                        color = textColor.copy(alpha = 0.7f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                }
                                 // On the artist line rather than with the timestamps: that row
                                 // rides `alpha = 1f - infoAlpha`, so it only exists while the
                                 // pointer is over the capsule — a crossfade cue nobody sees
@@ -1221,6 +1339,361 @@ private fun CapsuleProgress(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun MiniLiveEqualizer(
+    isPlaying: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "miniEqualizer")
+    val h1 by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.95f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(420, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "eqBar1",
+    )
+    val h2 by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 0.3f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(330, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "eqBar2",
+    )
+    val h3 by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(510, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "eqBar3",
+    )
+
+    Row(
+        modifier = modifier.height(13.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        val bar1Height = if (isPlaying) (h1 * 13).coerceAtLeast(3f).dp else 3.dp
+        val bar2Height = if (isPlaying) (h2 * 13).coerceAtLeast(3f).dp else 3.dp
+        val bar3Height = if (isPlaying) (h3 * 13).coerceAtLeast(3f).dp else 3.dp
+
+        Box(Modifier.width(2.5.dp).height(bar1Height).clip(RoundedCornerShape(1.dp)).background(tint))
+        Box(Modifier.width(2.5.dp).height(bar2Height).clip(RoundedCornerShape(1.dp)).background(tint))
+        Box(Modifier.width(2.5.dp).height(bar3Height).clip(RoundedCornerShape(1.dp)).background(tint))
+    }
+}
+
+@Composable
+fun QualityBadge(
+    label: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(tint.copy(alpha = 0.15f))
+                .padding(horizontal = 4.dp, vertical = 1.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = typo().labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+            color = tint,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun DynamicIslandOverlay(
+    songEntity: SongEntity?,
+    isPlaying: Boolean,
+    liked: Boolean,
+    timelineState: TimeLine,
+    volume: Float,
+    audioQualityLabel: String?,
+    currentLyricText: String?,
+    sharedViewModel: SharedViewModel,
+    onOpenFullPlayer: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        val isDarkTheme = LocalIsDarkTheme.current
+        val cardBg = if (isDarkTheme) Color(0xFF1E1E1E).copy(alpha = 0.96f) else Color(0xFFF7F7F7).copy(alpha = 0.96f)
+        val contentColor = if (isDarkTheme) Color.White else Color.Black
+        var isIslandSliding by remember { mutableStateOf(false) }
+        var islandSliderValue by remember { mutableFloatStateOf(0f) }
+        var islandVolumeValue by remember { mutableFloatStateOf(volume) }
+
+        LaunchedEffect(timelineState, isIslandSliding) {
+            if (!isIslandSliding) {
+                islandSliderValue =
+                    if (timelineState.total > 0L) {
+                        (timelineState.current.toFloat() * 100f / timelineState.total.toFloat()).coerceIn(0f, 100f)
+                    } else {
+                        0f
+                    }
+            }
+        }
+
+        LaunchedEffect(volume) {
+            islandVolumeValue = volume
+        }
+
+        Column(
+            modifier =
+                Modifier
+                    .width(360.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(cardBg)
+                    .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // 1. Top Island Pill Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MiniLiveEqualizer(isPlaying = isPlaying, tint = if (isDarkTheme) Color(0xFF64B5F6) else MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "DYNAMIC ISLAND",
+                        style = typo().labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                        color = contentColor.copy(alpha = 0.8f),
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (audioQualityLabel != null) {
+                        QualityBadge(label = audioQualityLabel, tint = if (isDarkTheme) Color(0xFF81C784) else Color(0xFF2E7D32))
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = SimpIcons.Close,
+                            contentDescription = "Close Island",
+                            tint = contentColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // 2. Artwork & Track Metadata (Tap to open full player)
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable {
+                            onOpenFullPlayer()
+                            onDismiss()
+                        }.padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AsyncImage(
+                    model =
+                        ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(songEntity?.thumbnails)
+                            .crossfade(400)
+                            .build(),
+                    placeholder = rememberHolderPainter(),
+                    error = rememberHolderPainter(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier =
+                        Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(14.dp)),
+                )
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = (songEntity?.title ?: "").toString(),
+                        style = typo().titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = contentColor,
+                        maxLines = 1,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .basicMarquee(iterations = Int.MAX_VALUE),
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = (songEntity?.artistName?.connectArtists() ?: ""),
+                        style = typo().bodyMedium,
+                        color = contentColor.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            // 3. Live Synced Lyrics Ticker Box
+            if (!currentLyricText.isNullOrBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(contentColor.copy(alpha = 0.08f))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "♫  ",
+                            style = typo().bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = currentLyricText,
+                            style = typo().bodyMedium.copy(fontStyle = FontStyle.Italic, fontWeight = FontWeight.SemiBold),
+                            color = contentColor,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // 4. Progress Scrubber with Timestamps
+            Slider(
+                value = islandSliderValue / 100f,
+                onValueChange = {
+                    isIslandSliding = true
+                    islandSliderValue = it * 100f
+                },
+                onValueChangeFinished = {
+                    isIslandSliding = false
+                    sharedViewModel.onUIEvent(UIEvent.UpdateProgress(islandSliderValue))
+                },
+                modifier = Modifier.fillMaxWidth().height(20.dp),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = formatDuration((timelineState.total * (islandSliderValue / 100f)).roundToLong()),
+                    style = typo().bodySmall,
+                    color = contentColor.copy(alpha = 0.6f),
+                )
+                Text(
+                    text = "−" + formatDuration((timelineState.total * (1f - islandSliderValue / 100f)).roundToLong()),
+                    style = typo().bodySmall,
+                    color = contentColor.copy(alpha = 0.6f),
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // 5. Interactive Playback Transport Controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = { sharedViewModel.onUIEvent(UIEvent.Previous) },
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = SimpIcons.SkipPrevious,
+                        contentDescription = "Previous",
+                        tint = contentColor,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+                PlayPauseButton(
+                    isPlaying = isPlaying,
+                    modifier = Modifier.size(54.dp),
+                    tint = contentColor,
+                ) {
+                    sharedViewModel.onUIEvent(UIEvent.PlayPause)
+                }
+                IconButton(
+                    onClick = { sharedViewModel.onUIEvent(UIEvent.Next) },
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = SimpIcons.SkipNext,
+                        contentDescription = "Next",
+                        tint = contentColor,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+                HeartCheckBox(
+                    checked = liked,
+                    size = 32,
+                    tint = contentColor,
+                ) {
+                    sharedViewModel.onUIEvent(UIEvent.ToggleLike)
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // 6. Quick Volume Slider
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = {
+                        val newVol = if (islandVolumeValue > 0f) 0f else 1f
+                        islandVolumeValue = newVol
+                        sharedViewModel.onUIEvent(UIEvent.UpdateVolume(newVol))
+                    },
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = if (islandVolumeValue > 0f) SimpIcons.VolumeUp else SimpIcons.VolumeOff,
+                        contentDescription = "Volume",
+                        tint = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Slider(
+                    value = islandVolumeValue,
+                    onValueChange = {
+                        islandVolumeValue = it
+                        sharedViewModel.onUIEvent(UIEvent.UpdateVolume(it))
+                    },
+                    modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                )
+                Text(
+                    text = "${(islandVolumeValue * 100).roundToInt()}%",
+                    style = typo().bodySmall,
+                    color = contentColor.copy(alpha = 0.7f),
+                )
             }
         }
     }
