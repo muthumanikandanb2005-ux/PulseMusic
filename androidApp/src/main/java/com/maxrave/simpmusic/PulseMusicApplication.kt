@@ -98,11 +98,13 @@ class PulseMusicApplication :
             .restartActivity(MainActivity::class.java) // default: null (your app's launch activity)
             .apply()
 
-        @SuppressLint("DiscouragedPrivateApi")
-        val field: Field = CursorWindow::class.java.getDeclaredField("sCursorWindowSize")
-        field.isAccessible = true
-        val expectSize = 100 * 1024 * 1024
-        field.set(null, expectSize)
+        runCatching {
+            @SuppressLint("DiscouragedPrivateApi")
+            val field: Field = CursorWindow::class.java.getDeclaredField("sCursorWindowSize")
+            field.isAccessible = true
+            val expectSize = 100 * 1024 * 1024
+            field.set(null, expectSize)
+        }
 
         AppContext.apply {
             set(applicationContext)

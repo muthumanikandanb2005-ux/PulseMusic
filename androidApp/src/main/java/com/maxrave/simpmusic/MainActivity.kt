@@ -123,7 +123,6 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             },
         )
         VersionManager.initialize()
-        checkForUpdate()
         if (viewModel.recreateActivity.value || viewModel.isServiceRunning) {
             viewModel.activityRecreateDone()
         } else {
@@ -229,18 +228,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             trendingPeriodic,
         )
 
-        val trendingImmediate =
-            OneTimeWorkRequestBuilder<TrendingMusicNotificationWorker>()
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build(),
-                ).build()
-        WorkManager.getInstance(this).enqueueUniqueWork(
-            "Pulse Trending Music Immediate",
-            ExistingWorkPolicy.REPLACE,
-            trendingImmediate,
-        )
+
 
         val artistRequest =
             PeriodicWorkRequestBuilder<NotifyWork>(
@@ -282,19 +270,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                         updateRequest,
                     )
 
-                    val updateImmediate =
-                        OneTimeWorkRequestBuilder<AppUpdateWorker>()
-                            .setConstraints(
-                                Constraints
-                                    .Builder()
-                                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                                    .build(),
-                            ).build()
-                    WorkManager.getInstance(this@MainActivity).enqueueUniqueWork(
-                        "Pulse App Update Immediate",
-                        ExistingWorkPolicy.REPLACE,
-                        updateImmediate,
-                    )
+
                 } else {
                     WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Pulse App Update Worker")
                 }
@@ -326,7 +302,6 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             }
         }
         viewModel.getLocation()
-        viewModel.checkForAppUpdate(silent = true)
 
         setContent {
             App(viewModel)

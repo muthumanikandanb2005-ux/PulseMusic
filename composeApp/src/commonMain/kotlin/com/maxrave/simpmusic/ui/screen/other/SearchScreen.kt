@@ -409,6 +409,7 @@ fun SearchScreen(
                             SuggestItemRow(
                                 searchResult = item,
                                 onItemClick = { item ->
+                                    focusManager.clearFocus()
                                     when (item) {
                                         is SongsResult, is VideosResult -> {
                                             val firstTrack: Track = (item as? SongsResult)?.toTrack() ?: (item as VideosResult).toTrack()
@@ -755,7 +756,10 @@ fun SearchScreen(
                                     }
 
                                     is SearchScreenUIState.Success -> {
-                                        // Success state with results
+                                        // Auto-clear search focus when results arrive so single-tap immediately plays songs
+                                        LaunchedEffect(Unit) {
+                                            focusManager.clearFocus()
+                                        }
                                         Column(modifier = Modifier.fillMaxSize()) {
                                             // Search Results List
                                             val currentResults =
@@ -807,6 +811,7 @@ fun SearchScreen(
                                                                             onMoreClick(result.toTrack().toSongEntity())
                                                                         },
                                                                         onClickListener = {
+                                                                            focusManager.clearFocus()
                                                                             val firstTrack = result.toTrack()
                                                                             searchViewModel.setQueueData(
                                                                                 QueueData.Data(
@@ -846,6 +851,7 @@ fun SearchScreen(
                                                                             onMoreClick(result.toTrack().toSongEntity())
                                                                         },
                                                                         onClickListener = {
+                                                                            focusManager.clearFocus()
                                                                             val firstTrack = result.toTrack()
                                                                             searchViewModel.setQueueData(
                                                                                 QueueData.Data(

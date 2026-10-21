@@ -94,22 +94,22 @@ class AppUpdateWorker(
                     remoteVersion = json.getString("tag_name").trim()
                     if (json.has("assets")) {
                         val assets = json.getJSONArray("assets")
-                        var fallbackApkUrl = ""
+                        val apkList = mutableListOf<Pair<String, String>>()
                         for (i in 0 until assets.length()) {
                             val asset = assets.getJSONObject(i)
                             val name = asset.optString("name", "")
                             val assetUrl = asset.optString("browser_download_url", "")
                             if (name.endsWith(".apk", ignoreCase = true) || assetUrl.endsWith(".apk", ignoreCase = true)) {
-                                if (fallbackApkUrl.isEmpty()) fallbackApkUrl = assetUrl
-                                if (name.contains("universal", ignoreCase = true)) {
-                                    downloadUrl = assetUrl
-                                    break
-                                }
+                                apkList.add(name to assetUrl)
                             }
                         }
-                        if (downloadUrl.isEmpty()) {
-                            downloadUrl = fallbackApkUrl
-                        }
+                        // Prioritize native 64-bit ARM architecture (33MB vs 61MB Universal)
+                        val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
+                        downloadUrl = apkList.firstOrNull { it.first.contains(primaryAbi, ignoreCase = true) }?.second
+                            ?: apkList.firstOrNull { it.first.contains("arm64-v8a", ignoreCase = true) }?.second
+                            ?: apkList.firstOrNull { it.first.contains("armeabi-v7a", ignoreCase = true) }?.second
+                            ?: apkList.firstOrNull { it.first.contains("universal", ignoreCase = true) }?.second
+                            ?: apkList.firstOrNull()?.second ?: ""
                     }
                 } else if (json.has("version")) {
                     // Custom JSON format: {"version": "1.0.1", "downloadUrl": "..."}
@@ -172,7 +172,9 @@ class AppUpdateWorker(
         conn.connectTimeout = 15000
         conn.readTimeout = 15000
         conn.instanceFollowRedirects = true
-        conn.setRequestProperty("User-Agent", "PulseMusicApp")
+        conn.setRequestProperty("User-Agent", "PulseMusicFastDownloader")
+            conn.setRequestProperty("Accept-Encoding", "identity")
+            conn.setRequestProperty("Connection", "Keep-Alive")
         conn.setRequestProperty("Accept", "application/json, text/plain, */*")
         conn.connect()
 
@@ -198,7 +200,9 @@ class AppUpdateWorker(
             conn.connectTimeout = 30000
             conn.readTimeout = 60000
             conn.instanceFollowRedirects = false
-            conn.setRequestProperty("User-Agent", "PulseMusicApp")
+            conn.setRequestProperty("User-Agent", "PulseMusicFastDownloader")
+            conn.setRequestProperty("Accept-Encoding", "identity")
+            conn.setRequestProperty("Connection", "Keep-Alive")
             conn.connect()
 
             val status = conn.responseCode
@@ -210,9 +214,14 @@ class AppUpdateWorker(
                 conn.disconnect()
                 continue
             } else if (status in 200..299) {
-                conn.inputStream.use { input ->
-                    destination.outputStream().use { output ->
-                        input.copyTo(output)
+                java.io.BufferedInputStream(conn.inputStream, 256 * 1024).use { input ->
+                    java.io.BufferedOutputStream(destination.outputStream(), 256 * 1024).use { output ->
+                        val buffer = ByteArray(256 * 1024)
+                        var bytesRead: Int
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                        }
+                        output.flush()
                     }
                 }
                 conn.disconnect()

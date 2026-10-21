@@ -141,7 +141,6 @@ import com.maxrave.simpmusic.ui.navigation.destination.login.DiscordLoginDestina
 import com.maxrave.simpmusic.ui.navigation.destination.login.LastfmLoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.LoginDestination
 import com.maxrave.simpmusic.ui.navigation.destination.login.SpotifyLoginDestination
-import com.pulse.music.ui.navigation.destination.login.PulseMusicLoginDestination
 import com.maxrave.simpmusic.ui.theme.md_theme_dark_primary
 import com.maxrave.simpmusic.ui.theme.parseThemeColorHex
 import com.maxrave.simpmusic.ui.theme.typo
@@ -609,7 +608,6 @@ fun SettingScreen(
     val updateDownloadState by sharedViewModel.updateDownloadState.collectAsStateWithLifecycle()
 
     val dataStoreManager: DataStoreManager = koinInject()
-    val supabaseEmail by dataStoreManager.supabaseUserEmail.collectAsStateWithLifecycle(initialValue = null)
     val ytAccountName by remember { dataStoreManager.getString("AccountName") }.collectAsStateWithLifecycle(initialValue = null)
     val ytCookie by remember { dataStoreManager.cookie }.collectAsStateWithLifecycle(initialValue = "")
 
@@ -712,7 +710,7 @@ fun SettingScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF0C140F))
                         .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                        .clickable { navController.navigate(PulseMusicLoginDestination) }
+                        .clickable { showProfileDialog = true }
                         .padding(16.dp),
                 ) {
                     Row(
@@ -762,55 +760,6 @@ fun SettingScreen(
                         )
                     }
                 }
-            }
-        }
-        item(key = "accounts_section") {
-            Column {
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = "Account & Cloud Sync",
-                    style = typo().labelMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Spacer(Modifier.height(8.dp))
-                // Pulse Music Cloud Account (BitChord Themed Card)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF0C140F))
-                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-                        .padding(vertical = 4.dp),
-                ) {
-                    SettingItem(
-                        title = "Pulse Music Cloud Account",
-                        subtitle = if (!supabaseEmail.isNullOrBlank()) {
-                            "Signed in as $supabaseEmail • Real-time Sync Active"
-                        } else {
-                            "Sign in or register for Pulse Music cloud sync & backup"
-                        },
-                        onClick = {
-                            if (!supabaseEmail.isNullOrBlank()) {
-                                viewModel.setBasicAlertData(
-                                    SettingBasicAlertState(
-                                        title = "Pulse Music Cloud Account",
-                                        message = "Signed in as: $supabaseEmail\n\nYour liked songs, playlists, and listening history are synced in real time.",
-                                        confirm = "Sign Out" to {
-                                            coroutineScope.launch {
-                                                dataStoreManager.setSupabaseAuth(null, null, null, null)
-                                                sharedViewModel.makeToast("Signed out of Pulse Music Cloud")
-                                            }
-                                        },
-                                        dismiss = runBlocking { getString(Res.string.cancel) },
-                                    ),
-                                )
-                            } else {
-                                navController.navigate(PulseMusicLoginDestination)
-                            }
-                        },
-                    )
-                }
-
             }
         }
         item(key = "user_interface") {
