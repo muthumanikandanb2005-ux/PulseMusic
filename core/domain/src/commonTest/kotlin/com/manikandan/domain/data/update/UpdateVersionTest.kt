@@ -1,4 +1,4 @@
-package com.manikandan.domain.data.update
+﻿package com.manikandan.domain.data.update
 
 import com.manikandan.domain.data.model.update.UpdateAsset
 import com.manikandan.domain.data.model.update.UpdateData
@@ -29,6 +29,13 @@ class UpdateVersionTest {
 
     @Test
     fun testVersionComparison() {
+        // v3.1.9 is newer than 3.1.8, 3.1.7, and 3.1.6
+        assertTrue(isNewerVersion("v3.1.9", "3.1.8"))
+        assertTrue(isNewerVersion("3.1.9", "3.1.8"))
+        assertTrue(isNewerVersion("3.1.9", "3.1.7"))
+        assertFalse(isNewerVersion("3.1.8", "3.1.9"))
+        assertFalse(isNewerVersion("v3.1.9", "3.1.9"))
+
         // v3.1.8 is newer than 3.1.7 and 3.1.6
         assertTrue(isNewerVersion("v3.1.8", "3.1.7"))
         assertTrue(isNewerVersion("V3.1.8", "3.1.7"))
