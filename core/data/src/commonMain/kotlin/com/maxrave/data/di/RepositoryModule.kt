@@ -117,11 +117,4 @@ val repositoryModule =
             AnalyticsRepositoryImpl(get())
         }
 
-        single<com.manikandan.domain.repository.SupabaseAuthRepository>(createdAtStart = true) {
-            com.maxrave.data.repository.SupabaseAuthRepositoryImpl(
-                dataStoreManager = get(),
-                songRepository = get(),
-                localPlaylistRepository = get(),
-            )
-        }
     }

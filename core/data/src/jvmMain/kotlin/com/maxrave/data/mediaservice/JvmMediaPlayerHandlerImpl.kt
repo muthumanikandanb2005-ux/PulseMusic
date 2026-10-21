@@ -205,27 +205,6 @@ class JvmMediaPlayerHandlerImpl(
     @Volatile
     private var isExplicitContentEnabledCached: Boolean = true
 
-    private val supabaseSyncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private var lastSupabaseSyncVideoId: String? = null
-    private var lastSupabaseSyncTimeMs: Long = 0L
-
-    private fun syncSupabaseDetached(videoId: String, positionMs: Long, playlistName: String) {
-        val now = System.currentTimeMillis()
-        if (videoId == lastSupabaseSyncVideoId && now - lastSupabaseSyncTimeMs < 5000L) {
-            return
-        }
-        lastSupabaseSyncVideoId = videoId
-        lastSupabaseSyncTimeMs = now
-        supabaseSyncScope.launch {
-            try {
-                org.koin.mp.KoinPlatform.getKoin().getOrNull<com.manikandan.domain.repository.SupabaseAuthRepository>()
-                    ?.syncPlaybackState(videoId, positionMs, playlistName)
-            } catch (e: Exception) {
-                Logger.d(TAG, "Detached Supabase sync ignored: ${e.message}")
-            }
-        }
-    }
-
     private val macOSMediaIntegration: MacOSMediaIntegration? by lazy {
         if (MacOSMediaIntegration.isSupported()) {
             MacOSMediaIntegration.getInstance()
@@ -2408,7 +2387,6 @@ class JvmMediaPlayerHandlerImpl(
                         pos,
                     )
                     dataStoreManager.setPlaylistFromSaved(plName)
-                    syncSupabaseDetached(videoId, pos, plName)
                     Logger.d(
                         "Check saved",
                         player.currentMediaItem
@@ -2442,7 +2420,6 @@ class JvmMediaPlayerHandlerImpl(
             val pos = player.contentPosition
             val plName = queueData.value.data.playlistName ?: ""
             dataStoreManager.saveRecentSong(videoId, pos)
-            syncSupabaseDetached(videoId, pos, plName)
         }
     }
 

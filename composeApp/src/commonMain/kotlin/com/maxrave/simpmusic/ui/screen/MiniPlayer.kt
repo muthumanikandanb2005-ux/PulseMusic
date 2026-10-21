@@ -24,6 +24,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -672,17 +677,7 @@ fun MiniPlayer(
         // Head of the highlight that travels through the "Crossfading" label, 0..1. Runs
         // unconditionally: putting it behind the crossfade check would restart the animation from
         // zero each time the label appears, so the sweep would jump rather than continue.
-        val sweepTransition = rememberInfiniteTransition(label = "miniPlayerCrossfadeSweep")
-        val crossfadeSweep by sweepTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(3200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart,
-                ),
-            label = "miniPlayerSweepHead",
-        )
+
         val progressColor = textColor
 
         var isSliding by rememberSaveable {
@@ -926,30 +921,7 @@ fun MiniPlayer(
                                     enter = fadeIn(),
                                     exit = fadeOut(),
                                 ) {
-                                    // The label is what travels: a highlight sweeping left to
-                                    // right through the glyphs. TextStyle takes a brush directly,
-                                    // so the gradient paints the text itself — no overlay, no
-                                    // clipping, and it keeps working whatever the label's width.
-                                    val shimmerSpan = 140f
-                                    val shimmerHead = crossfadeSweep * (shimmerSpan * 3f) - shimmerSpan
-                                    Text(
-                                        text = " · " + stringResource(Res.string.crossfading),
-                                        style =
-                                            typo().bodySmall.copy(
-                                                brush =
-                                                    Brush.horizontalGradient(
-                                                        0f to textColor.copy(alpha = 0.45f),
-                                                        // The sweep head is PURE white, not the resting label colour — the label
-                                                        // colour is an adaptive grey, and a grey gleam reads as no gleam at all.
-                                                        0.5f to Color.White,
-                                                        1f to textColor.copy(alpha = 0.45f),
-                                                        startX = shimmerHead,
-                                                        endX = shimmerHead + shimmerSpan,
-                                                        tileMode = TileMode.Clamp,
-                                                    ),
-                                            ),
-                                        maxLines = 1,
-                                    )
+                                    CrossfadingShimmerLabel(textColor = textColor)
                                 }
                             }
                         }
@@ -1345,11 +1317,67 @@ private fun CapsuleProgress(
 }
 
 @Composable
+private fun CrossfadingShimmerLabel(
+    textColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val sweepTransition = rememberInfiniteTransition(label = "miniPlayerCrossfadeSweep")
+    val crossfadeSweep by sweepTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(3200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "miniPlayerSweepHead",
+    )
+    val shimmerSpan = 140f
+    val shimmerHead = crossfadeSweep * (shimmerSpan * 3f) - shimmerSpan
+    Text(
+        text = " · " + stringResource(Res.string.crossfading),
+        style =
+            typo().bodySmall.copy(
+                brush =
+                    Brush.horizontalGradient(
+                        0f to textColor.copy(alpha = 0.45f),
+                        0.5f to Color.White,
+                        1f to textColor.copy(alpha = 0.45f),
+                        startX = shimmerHead,
+                        endX = shimmerHead + shimmerSpan,
+                        tileMode = TileMode.Clamp,
+                    ),
+            ),
+        maxLines = 1,
+        modifier = modifier,
+    )
+}
+
+@Composable
 fun MiniLiveEqualizer(
     isPlaying: Boolean,
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
+    if (!isPlaying) {
+        Canvas(modifier = modifier.size(13.dp, 13.dp)) {
+            val barW = 2.5.dp.toPx()
+            val space = 2.dp.toPx()
+            val corner = CornerRadius(1.dp.toPx(), 1.dp.toPx())
+            val staticH = 3.dp.toPx()
+            for (i in 0..2) {
+                val x = i * (barW + space)
+                drawRoundRect(
+                    color = tint,
+                    topLeft = Offset(x, size.height - staticH),
+                    size = Size(barW, staticH),
+                    cornerRadius = corner,
+                )
+            }
+        }
+        return
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "miniEqualizer")
     val h1 by infiniteTransition.animateFloat(
         initialValue = 0.25f,
@@ -1382,18 +1410,26 @@ fun MiniLiveEqualizer(
         label = "eqBar3",
     )
 
-    Row(
-        modifier = modifier.height(13.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        val bar1Height = if (isPlaying) (h1 * 13).coerceAtLeast(3f).dp else 3.dp
-        val bar2Height = if (isPlaying) (h2 * 13).coerceAtLeast(3f).dp else 3.dp
-        val bar3Height = if (isPlaying) (h3 * 13).coerceAtLeast(3f).dp else 3.dp
-
-        Box(Modifier.width(2.5.dp).height(bar1Height).clip(RoundedCornerShape(1.dp)).background(tint))
-        Box(Modifier.width(2.5.dp).height(bar2Height).clip(RoundedCornerShape(1.dp)).background(tint))
-        Box(Modifier.width(2.5.dp).height(bar3Height).clip(RoundedCornerShape(1.dp)).background(tint))
+    Canvas(modifier = modifier.size(13.dp, 13.dp)) {
+        val barW = 2.5.dp.toPx()
+        val space = 2.dp.toPx()
+        val corner = CornerRadius(1.dp.toPx(), 1.dp.toPx())
+        val minH = 3.dp.toPx()
+        val heights = floatArrayOf(
+            (h1 * size.height).coerceAtLeast(minH),
+            (h2 * size.height).coerceAtLeast(minH),
+            (h3 * size.height).coerceAtLeast(minH),
+        )
+        for (i in 0..2) {
+            val x = i * (barW + space)
+            val barH = heights[i]
+            drawRoundRect(
+                color = tint,
+                topLeft = Offset(x, size.height - barH),
+                size = Size(barW, barH),
+                cornerRadius = corner,
+            )
+        }
     }
 }
 

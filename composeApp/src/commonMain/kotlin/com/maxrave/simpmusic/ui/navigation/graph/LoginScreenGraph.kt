@@ -55,12 +55,4 @@ fun NavGraphBuilder.loginScreenGraph(
         )
     }
 
-    composable<com.pulse.music.ui.navigation.destination.login.PulseMusicLoginDestination> {
-        com.pulse.music.ui.screen.login.PulseMusicLoginScreen(
-            innerPadding = innerPadding,
-            navController = navController,
-            hideBottomNavigation = hideBottomBar,
-            showBottomNavigation = showBottomBar,
-        )
-    }
 }

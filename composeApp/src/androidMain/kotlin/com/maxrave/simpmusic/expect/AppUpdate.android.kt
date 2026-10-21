@@ -8,6 +8,8 @@ import com.maxrave.logger.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.mp.KoinPlatform.getKoin
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -24,12 +26,13 @@ actual suspend fun downloadAndInstallAppUpdate(
 ) = withContext(Dispatchers.IO) {
     try {
         val context: AppCompatActivity = getKoin().get()
-        val asset = update.getAndroidApkAsset()
+        val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
+        val asset = update.getAndroidApkAsset(primaryAbi)
         val downloadUrl = asset?.downloadUrl
-            ?: "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/${update.tagName}/PulseMusic-${update.tagName}-Universal.apk"
+            ?: "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/${update.tagName}/PulseMusic-${update.tagName}-arm64-v8a.apk"
         val totalSize = asset?.size ?: 0L
 
-        Logger.i(TAG, "Starting Android update download from: $downloadUrl")
+        Logger.i(TAG, "Starting ultra-fast Android update download (ABI: $primaryAbi) from: $downloadUrl")
         val baseDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
             ?: context.externalCacheDir
             ?: File(context.cacheDir, "updates")
@@ -103,7 +106,9 @@ private fun downloadWithRedirects(
         conn.connectTimeout = 30000
         conn.readTimeout = 60000
         conn.instanceFollowRedirects = false
-        conn.setRequestProperty("User-Agent", "PulseMusicApp")
+        conn.setRequestProperty("User-Agent", "PulseMusicFastDownloader")
+        conn.setRequestProperty("Accept-Encoding", "identity")
+        conn.setRequestProperty("Connection", "Keep-Alive")
         conn.connect()
 
         val status = conn.responseCode
@@ -116,9 +121,9 @@ private fun downloadWithRedirects(
             continue
         } else if (status in 200..299) {
             val contentLength = if (conn.contentLengthLong > 0) conn.contentLengthLong else expectedTotal
-            conn.inputStream.use { input ->
-                FileOutputStream(destination).use { output ->
-                    val buffer = ByteArray(64 * 1024)
+            BufferedInputStream(conn.inputStream, 256 * 1024).use { input ->
+                BufferedOutputStream(FileOutputStream(destination), 256 * 1024).use { output ->
+                    val buffer = ByteArray(256 * 1024)
                     var bytesRead: Int
                     var downloaded: Long = 0
                     var lastReportTime = 0L
@@ -127,12 +132,13 @@ private fun downloadWithRedirects(
                         output.write(buffer, 0, bytesRead)
                         downloaded += bytesRead
                         val now = System.currentTimeMillis()
-                        if (now - lastReportTime > 100 || (contentLength > 0 && downloaded == contentLength)) {
+                        if (now - lastReportTime > 200 || (contentLength > 0 && downloaded == contentLength)) {
                             lastReportTime = now
                             val progress = if (contentLength > 0) downloaded.toFloat() / contentLength.toFloat() else 0f
                             onProgress(progress, downloaded, contentLength)
                         }
                     }
+                    output.flush()
                 }
             }
             conn.disconnect()

@@ -50,7 +50,6 @@ import com.manikandan.domain.mediaservice.handler.SleepTimerState
 import com.manikandan.domain.repository.AlbumRepository
 import com.manikandan.domain.repository.CacheRepository
 import com.manikandan.domain.repository.LocalPlaylistRepository
-import com.manikandan.domain.repository.SupabaseAuthRepository
 import com.manikandan.domain.repository.LyricsCanvasRepository
 import com.manikandan.domain.repository.PlaylistRepository
 import com.manikandan.domain.repository.SongRepository
@@ -130,7 +129,6 @@ class SharedViewModel(
     private val lyricsCanvasRepository: LyricsCanvasRepository,
     private val cacheRepository: CacheRepository,
 ) : BaseViewModel() {
-    private val supabaseAuthRepository: SupabaseAuthRepository by inject<SupabaseAuthRepository>()
     var isFirstLiked: Boolean = false
     var isFirstMiniplayer: Boolean = false
     var isFirstSuggestions: Boolean = false
@@ -261,15 +259,6 @@ class SharedViewModel(
             }
             dataStoreManager.openApp()
             checkForAppUpdate(silent = true)
-            launch {
-                try {
-                    if (supabaseAuthRepository.isLoggedIn.first()) {
-                        supabaseAuthRepository.syncAll()
-                    }
-                } catch (e: Exception) {
-                    Logger.w(tag, "Initial cloud sync failed: ${e.message}")
-                }
-            }
             val timeLineJob =
                 launch {
                     nowPlayingState
