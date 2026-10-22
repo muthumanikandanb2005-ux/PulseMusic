@@ -1,6 +1,7 @@
 package org.simpmusic.listentogether
 
 import com.maxrave.logger.Logger
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -105,7 +106,12 @@ class ListenTogetherSession(
     private val client: ListenTogetherClient,
     dispatcher: CoroutineContext = Dispatchers.Default,
 ) : CoroutineScope {
-    override val coroutineContext: CoroutineContext = SupervisorJob() + dispatcher
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Logger.e(TAG, "Unhandled exception in ListenTogetherSession: ${throwable.message}", throwable)
+        _state.update { it.copy(error = throwable.message ?: "Unexpected error") }
+    }
+
+    override val coroutineContext: CoroutineContext = SupervisorJob() + dispatcher + exceptionHandler
 
     private val _state = MutableStateFlow(ListenTogetherState())
     val state: StateFlow<ListenTogetherState> = _state.asStateFlow()
@@ -119,7 +125,13 @@ class ListenTogetherSession(
     /** Opens the socket. When [force] is true, cancels any waiting reconnect backoff to connect immediately. */
     fun connect(force: Boolean = true) {
         if (pump == null) {
-            pump = launch { client.events.collect(::onEvent) }
+            pump = launch {
+                runCatching {
+                    client.events.collect(::onEvent)
+                }.onFailure {
+                    Logger.e(TAG, "Error collecting client events: ${it.message}", it)
+                }
+            }
         }
         _state.update { it.copy(connection = ConnectionState.Connecting, error = null) }
         client.connect(force = force)
@@ -143,24 +155,34 @@ class ListenTogetherSession(
 
     fun createRoom(username: String) =
         launch {
-            val name = username.trim().ifBlank { "Pulse User" }
-            pendingUsername = name
-            client.clearSessionToken()
-            _state.update { it.copy(connection = ConnectionState.Connecting, error = null) }
-            val connected = awaitConnected(8_000L)
-            if (!connected) {
+            runCatching {
+                val name = username.trim().ifBlank { "Pulse User" }
+                pendingUsername = name
+                client.clearSessionToken()
+                _state.update { it.copy(connection = ConnectionState.Connecting, error = null) }
+                val connected = awaitConnected(8_000L)
+                if (!connected) {
+                    _state.update {
+                        it.copy(
+                            connection = ConnectionState.Failed("Connection timed out. Please check your internet connection."),
+                            error = "Failed to connect to server. Please check internet connection.",
+                        )
+                    }
+                    return@launch
+                }
+                val sent = client.send(MessageTypes.CREATE_ROOM, CreateRoomPayload(username = pendingUsername))
+                if (!sent) {
+                    _state.update { it.copy(error = "Could not send room creation request. Please try again.") }
+                    client.connect(force = true)
+                }
+            }.onFailure { e ->
+                Logger.e(TAG, "Error in createRoom: ${e.message}", e)
                 _state.update {
                     it.copy(
-                        connection = ConnectionState.Failed("Connection timed out. Please check your internet connection."),
-                        error = "Failed to connect to server. Please check internet connection.",
+                        connection = ConnectionState.Failed("Error creating room: ${e.message}"),
+                        error = "Error creating room: ${e.message}",
                     )
                 }
-                return@launch
-            }
-            val sent = client.send(MessageTypes.CREATE_ROOM, CreateRoomPayload(username = pendingUsername))
-            if (!sent) {
-                _state.update { it.copy(error = "Could not send room creation request. Please try again.") }
-                client.connect(force = true)
             }
         }
 
@@ -168,30 +190,41 @@ class ListenTogetherSession(
         roomCode: String,
         username: String,
     ) = launch {
-        val name = username.trim().ifBlank { "Pulse User" }
-        pendingUsername = name
-        val code = roomCode.trim().uppercase()
-        if (code.isBlank()) return@launch
+        runCatching {
+            val name = username.trim().ifBlank { "Pulse User" }
+            pendingUsername = name
+            val code = roomCode.trim().uppercase()
+            if (code.isBlank()) return@launch
 
-        client.clearSessionToken()
-        _state.update { it.copy(pendingJoinCode = code, error = null, connection = ConnectionState.Connecting) }
+            client.clearSessionToken()
+            _state.update { it.copy(pendingJoinCode = code, error = null, connection = ConnectionState.Connecting) }
 
-        val connected = awaitConnected(8_000L)
-        if (!connected) {
+            val connected = awaitConnected(8_000L)
+            if (!connected) {
+                _state.update {
+                    it.copy(
+                        pendingJoinCode = null,
+                        connection = ConnectionState.Failed("Connection timed out. Please check your internet connection."),
+                        error = "Failed to connect to server. Please check internet connection.",
+                    )
+                }
+                return@launch
+            }
+
+            val sent = client.send(MessageTypes.JOIN_ROOM, JoinRoomPayload(roomCode = code, username = pendingUsername))
+            if (!sent) {
+                _state.update { it.copy(pendingJoinCode = null, error = "Could not send join request. Please try again.") }
+                client.connect(force = true)
+            }
+        }.onFailure { e ->
+            Logger.e(TAG, "Error in joinRoom: ${e.message}", e)
             _state.update {
                 it.copy(
                     pendingJoinCode = null,
-                    connection = ConnectionState.Failed("Connection timed out. Please check your internet connection."),
-                    error = "Failed to connect to server. Please check internet connection.",
+                    connection = ConnectionState.Failed("Error joining room: ${e.message}"),
+                    error = "Error joining room: ${e.message}",
                 )
             }
-            return@launch
-        }
-
-        val sent = client.send(MessageTypes.JOIN_ROOM, JoinRoomPayload(roomCode = code, username = pendingUsername))
-        if (!sent) {
-            _state.update { it.copy(pendingJoinCode = null, error = "Could not send join request. Please try again.") }
-            client.connect(force = true)
         }
     }
 
@@ -200,60 +233,80 @@ class ListenTogetherSession(
 
     fun leaveRoom() =
         launch {
-            client.send(MessageTypes.LEAVE_ROOM, LeaveRoomPayload())
-            client.clearSessionToken()
-            // The server sends nothing back for leave_room, so the local state is cleared here —
-            // waiting for a confirmation that never arrives would leave the room UI on screen.
-            _state.update {
-                it.copy(
-                    selfUserId = "",
-                    pendingJoinCode = null,
-                    roomCode = null,
-                    isHost = false,
-                    members = emptyList(),
-                    joinRequests = emptyList(),
-                    suggestions = emptyList(),
-                    currentTrack = null,
-                    waitingFor = emptyList(),
-                    queue = emptyList(),
-                    isPlaying = false,
-                    position = 0L,
-                )
-            }
+            runCatching {
+                client.send(MessageTypes.LEAVE_ROOM, LeaveRoomPayload())
+                client.clearSessionToken()
+                _state.update {
+                    it.copy(
+                        selfUserId = "",
+                        pendingJoinCode = null,
+                        roomCode = null,
+                        isHost = false,
+                        members = emptyList(),
+                        joinRequests = emptyList(),
+                        suggestions = emptyList(),
+                        currentTrack = null,
+                        waitingFor = emptyList(),
+                        queue = emptyList(),
+                        isPlaying = false,
+                        position = 0L,
+                    )
+                }
+            }.onFailure { Logger.e(TAG, "Error leaving room: ${it.message}", it) }
         }
 
     fun approveJoin(userId: String) =
         launch {
-            client.send(MessageTypes.APPROVE_JOIN, ApproveJoinPayload(userId = userId))
-            _state.update { s -> s.copy(joinRequests = s.joinRequests.filterNot { it.userId == userId }) }
+            runCatching {
+                client.send(MessageTypes.APPROVE_JOIN, ApproveJoinPayload(userId = userId))
+                _state.update { s -> s.copy(joinRequests = s.joinRequests.filterNot { it.userId == userId }) }
+            }.onFailure { Logger.e(TAG, "Error approving join: ${it.message}", it) }
         }
 
     fun rejectJoin(userId: String) =
         launch {
-            client.send(MessageTypes.REJECT_JOIN, RejectJoinPayload(userId = userId))
-            _state.update { s -> s.copy(joinRequests = s.joinRequests.filterNot { it.userId == userId }) }
+            runCatching {
+                client.send(MessageTypes.REJECT_JOIN, RejectJoinPayload(userId = userId))
+                _state.update { s -> s.copy(joinRequests = s.joinRequests.filterNot { it.userId == userId }) }
+            }.onFailure { Logger.e(TAG, "Error rejecting join: ${it.message}", it) }
         }
 
     fun approveSuggestion(suggestionId: String) =
         launch {
-            client.send(MessageTypes.APPROVE_SUGGESTION, ApproveSuggestionPayload(suggestionId = suggestionId))
-            dropSuggestion(suggestionId)
+            runCatching {
+                client.send(MessageTypes.APPROVE_SUGGESTION, ApproveSuggestionPayload(suggestionId = suggestionId))
+                dropSuggestion(suggestionId)
+            }.onFailure { Logger.e(TAG, "Error approving suggestion: ${it.message}", it) }
         }
 
     fun rejectSuggestion(suggestionId: String) =
         launch {
-            client.send(MessageTypes.REJECT_SUGGESTION, RejectSuggestionPayload(suggestionId = suggestionId))
-            dropSuggestion(suggestionId)
+            runCatching {
+                client.send(MessageTypes.REJECT_SUGGESTION, RejectSuggestionPayload(suggestionId = suggestionId))
+                dropSuggestion(suggestionId)
+            }.onFailure { Logger.e(TAG, "Error rejecting suggestion: ${it.message}", it) }
         }
 
     fun kickUser(userId: String) =
-        launch { client.send(MessageTypes.KICK_USER, KickUserPayload(userId = userId)) }
+        launch {
+            runCatching {
+                client.send(MessageTypes.KICK_USER, KickUserPayload(userId = userId))
+            }.onFailure { Logger.e(TAG, "Error kicking user: ${it.message}", it) }
+        }
 
     fun transferHost(userId: String) =
-        launch { client.send(MessageTypes.TRANSFER_HOST, TransferHostPayload(newHostId = userId)) }
+        launch {
+            runCatching {
+                client.send(MessageTypes.TRANSFER_HOST, TransferHostPayload(newHostId = userId))
+            }.onFailure { Logger.e(TAG, "Error transferring host: ${it.message}", it) }
+        }
 
     fun suggestTrack(track: TrackInfo) =
-        launch { client.send(MessageTypes.SUGGEST_TRACK, SuggestTrackPayload(trackInfo = track)) }
+        launch {
+            runCatching {
+                client.send(MessageTypes.SUGGEST_TRACK, SuggestTrackPayload(trackInfo = track))
+            }.onFailure { Logger.e(TAG, "Error suggesting track: ${it.message}", it) }
+        }
 
     /**
      * Publishes one transport command to the room. Host only — the server ignores it from a guest.
@@ -271,22 +324,20 @@ class ListenTogetherSession(
         queue: List<TrackInfo> = emptyList(),
         queueTitle: String = "",
     ) = launch {
-        client.send(
-            MessageTypes.PLAYBACK_ACTION,
-            PlaybackActionPayload(
-                action = action,
-                trackId = trackId,
-                position = position,
-                trackInfo = trackInfo,
-                // Carried on the SAME message as the track deliberately. Sent separately they are
-                // two independent sends with no ordering guarantee, and a queue arriving after the
-                // track means the guest has already committed to a one-track queue — it then plays
-                // its own next song and the room splits one track later.
-                queue = queue,
-                queueTitle = queueTitle,
-                capturedAtServerTime = client.serverNow() ?: 0L,
-            ),
-        )
+        runCatching {
+            client.send(
+                MessageTypes.PLAYBACK_ACTION,
+                PlaybackActionPayload(
+                    action = action,
+                    trackId = trackId,
+                    position = position,
+                    trackInfo = trackInfo,
+                    queue = queue,
+                    queueTitle = queueTitle,
+                    capturedAtServerTime = client.serverNow() ?: 0L,
+                ),
+            )
+        }.onFailure { Logger.e(TAG, "Error sending playback action: ${it.message}", it) }
     }
 
     /** Publishes the whole queue. Host only; guests take the host's order verbatim. */
@@ -294,15 +345,17 @@ class ListenTogetherSession(
         tracks: List<TrackInfo>,
         queueTitle: String,
     ) = launch {
-        client.send(
-            MessageTypes.PLAYBACK_ACTION,
-            PlaybackActionPayload(
-                action = PlaybackActions.SYNC_QUEUE,
-                queue = tracks,
-                queueTitle = queueTitle,
-                capturedAtServerTime = client.serverNow() ?: 0L,
-            ),
-        )
+        runCatching {
+            client.send(
+                MessageTypes.PLAYBACK_ACTION,
+                PlaybackActionPayload(
+                    action = PlaybackActions.SYNC_QUEUE,
+                    queue = tracks,
+                    queueTitle = queueTitle,
+                    capturedAtServerTime = client.serverNow() ?: 0L,
+                ),
+            )
+        }.onFailure { Logger.e(TAG, "Error sending queue: ${it.message}", it) }
     }
 
     /** See `ServerClock.positionAt` — corrects a room position for time spent in flight. */
@@ -311,21 +364,19 @@ class ListenTogetherSession(
         isPlaying: Boolean,
     ): Long = client.positionAt(position, _state.value.lastActionServerTime, isPlaying)
 
-    /**
-     * Asks the server for the room's current state.
-     *
-     * This is how a guest rejoins the room's timeline after driving its own transport: the server
-     * answers `sync_state` with the live position, so pressing play lands where everyone else
-     * actually is rather than where this device happened to stop.
-     */
     fun requestSync() =
         launch {
-            client.send(MessageTypes.REQUEST_SYNC, null)
+            runCatching {
+                client.send(MessageTypes.REQUEST_SYNC, null)
+            }.onFailure { Logger.e(TAG, "Error requesting sync: ${it.message}", it) }
         }
 
-    /** Answers the buffer barrier for [trackId]; until every member does, nobody hears anything. */
     fun reportBufferReady(trackId: String) =
-        launch { client.send(MessageTypes.BUFFER_READY, BufferReadyPayload(trackId = trackId)) }
+        launch {
+            runCatching {
+                client.send(MessageTypes.BUFFER_READY, BufferReadyPayload(trackId = trackId))
+            }.onFailure { Logger.e(TAG, "Error reporting buffer ready: ${it.message}", it) }
+        }
 
     fun clearError() = _state.update { it.copy(error = null) }
 

@@ -20,6 +20,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readBytes
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -111,7 +112,11 @@ class ListenTogetherClient(
     },
     dispatcher: CoroutineContext = Dispatchers.Default,
 ) : CoroutineScope {
-    override val coroutineContext: CoroutineContext = SupervisorJob() + dispatcher
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Logger.e(TAG, "Unhandled exception in ListenTogetherClient scope: ${throwable.message}", throwable)
+    }
+
+    override val coroutineContext: CoroutineContext = SupervisorJob() + dispatcher + exceptionHandler
 
     private val client: HttpClient =
         HttpClient(getEngine()) {
@@ -190,7 +195,7 @@ class ListenTogetherClient(
                     Logger.e(TAG, "Connection error: ${e.stackTraceToString()}")
                 }
                 // Reached on every close, clean or not — openAndRun returns when the reader stops.
-                scheduleReconnect()
+                runCatching { scheduleReconnect() }
             }
     }
 
@@ -329,8 +334,10 @@ class ListenTogetherClient(
                 continue
             }
             val (type, payloadBytes) = decoded
-            val payload = codec.decodePayload(type, payloadBytes)
-            handleMessage(type, payload)
+            val payload = runCatching { codec.decodePayload(type, payloadBytes) }.getOrNull()
+            runCatching { handleMessage(type, payload) }.onFailure { e ->
+                Logger.e(TAG, "Error handling message $type: ${e.message}", e)
+            }
         }
         Logger.i(TAG, "Read loop ended; socket closed")
     }

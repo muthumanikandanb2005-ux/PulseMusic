@@ -49,15 +49,23 @@ class ListenTogetherRepositoryImpl(
         }
 
     init {
-        scope.launch { session.state.collect { _room.value = it.toDomain() } }
         scope.launch {
-            dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_JOINS).collect {
-                session.autoApproveJoins = it != ListenTogetherPrefs.FALSE
+            runCatching {
+                session.state.collect { _room.value = it.toDomain() }
             }
         }
         scope.launch {
-            dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_SUGGESTIONS).collect {
-                session.autoApproveSuggestions = it == ListenTogetherPrefs.TRUE
+            runCatching {
+                dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_JOINS).collect {
+                    session.autoApproveJoins = it != ListenTogetherPrefs.FALSE
+                }
+            }
+        }
+        scope.launch {
+            runCatching {
+                dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_SUGGESTIONS).collect {
+                    session.autoApproveSuggestions = it == ListenTogetherPrefs.TRUE
+                }
             }
         }
     }

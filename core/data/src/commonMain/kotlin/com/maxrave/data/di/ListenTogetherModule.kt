@@ -30,8 +30,10 @@ val listenTogetherModule =
             val serviceScope = get<CoroutineScope>(named(Config.SERVICE_SCOPE))
             var cachedServerUrl = ""
             serviceScope.launch {
-                dataStore.getString(ListenTogetherPrefs.SERVER_URL).collect { url ->
-                    cachedServerUrl = url.orEmpty()
+                runCatching {
+                    dataStore.getString(ListenTogetherPrefs.SERVER_URL).collect { url ->
+                        cachedServerUrl = url.orEmpty()
+                    }
                 }
             }
             ListenTogetherClient(
@@ -55,14 +57,12 @@ val listenTogetherModule =
             )
         }
 
-        // createdAtStart: the bridge has to be listening before the user joins anything, otherwise
-        // the first track change of a room is missed and the guest sits in silence.
-        single(createdAtStart = true) {
+        single {
             ListenTogetherPlaybackBridge(
                 repository = get(),
                 session = get(),
                 handler = get(),
                 scope = get<CoroutineScope>(named(Config.SERVICE_SCOPE)),
-            ).also { it.start() }
+            )
         }
     }

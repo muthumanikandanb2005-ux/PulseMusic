@@ -211,68 +211,73 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         NotificationHandler.createAppUpdateNotificationChannel(this)
         NotificationHandler.createTrendingNotificationChannel(this)
 
-        // Schedule periodic & immediate Trending Music Worker
-        val trendingPeriodic =
-            PeriodicWorkRequestBuilder<TrendingMusicNotificationWorker>(
-                4L,
-                TimeUnit.HOURS,
-            ).addTag("Pulse Trending Music Worker")
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build(),
-                ).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "Pulse Trending Music Worker",
-            ExistingPeriodicWorkPolicy.UPDATE,
-            trendingPeriodic,
-        )
+        // Schedule periodic & immediate Trending Music Worker safely
+        runCatching {
+            val trendingPeriodic =
+                PeriodicWorkRequestBuilder<TrendingMusicNotificationWorker>(
+                    4L,
+                    TimeUnit.HOURS,
+                ).addTag("Pulse Trending Music Worker")
+                    .setConstraints(
+                        Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build(),
+                    ).build()
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "Pulse Trending Music Worker",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                trendingPeriodic,
+            )
 
-
-
-        val artistRequest =
-            PeriodicWorkRequestBuilder<NotifyWork>(
-                12L,
-                TimeUnit.HOURS,
-            ).addTag("Worker Test")
-                .setConstraints(
-                    Constraints
-                        .Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build(),
-                ).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "Artist Worker",
-            ExistingPeriodicWorkPolicy.KEEP,
-            artistRequest,
-        )
+            val artistRequest =
+                PeriodicWorkRequestBuilder<NotifyWork>(
+                    12L,
+                    TimeUnit.HOURS,
+                ).addTag("Worker Test")
+                    .setConstraints(
+                        Constraints
+                            .Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build(),
+                    ).build()
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "Artist Worker",
+                ExistingPeriodicWorkPolicy.KEEP,
+                artistRequest,
+            )
+        }.onFailure {
+            Logger.w("MainActivity", "Failed to schedule periodic workers: ${it.message}")
+        }
 
         lifecycleScope.launch {
-            // Cancel legacy blog RSS worker
-            WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Blog RSS Worker")
+            runCatching {
+                WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Blog RSS Worker")
+            }
 
             dataStoreManager.autoCheckForUpdates.collect { enabled ->
                 if (enabled == DataStoreManager.TRUE) {
-                    val updateRequest =
-                        PeriodicWorkRequestBuilder<AppUpdateWorker>(
-                            4L,
-                            TimeUnit.HOURS,
-                        ).addTag("Pulse App Update Worker")
-                            .setConstraints(
-                                Constraints
-                                    .Builder()
-                                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                                    .build(),
-                            ).build()
-                    WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
-                        "Pulse App Update Worker",
-                        ExistingPeriodicWorkPolicy.UPDATE,
-                        updateRequest,
-                    )
-
-
+                    runCatching {
+                        val updateRequest =
+                            PeriodicWorkRequestBuilder<AppUpdateWorker>(
+                                4L,
+                                TimeUnit.HOURS,
+                            ).addTag("Pulse App Update Worker")
+                                .setConstraints(
+                                    Constraints
+                                        .Builder()
+                                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                                        .build(),
+                                ).build()
+                        WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                            "Pulse App Update Worker",
+                            ExistingPeriodicWorkPolicy.UPDATE,
+                            updateRequest,
+                        )
+                    }
                 } else {
-                    WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Pulse App Update Worker")
+                    runCatching {
+                        WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Pulse App Update Worker")
+                    }
                 }
             }
         }
@@ -293,9 +298,12 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             triggerInitialNotifications()
         } else if (!EasyPermissions.hasPermissions(this, Manifest.permission.POST_NOTIFICATIONS)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val rationale = runCatching {
+                    runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.NOTIFICATION_REQUEST) }
+                }.getOrDefault("This app needs access to notifications to display playback controls.")
                 EasyPermissions.requestPermissions(
                     this,
-                    runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.NOTIFICATION_REQUEST) },
+                    rationale,
                     1,
                     Manifest.permission.POST_NOTIFICATIONS,
                 )
@@ -342,11 +350,15 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             viewModel.makeToast(
                 when (type) {
                     is ToastType.ExplicitContent -> {
-                        runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.EXPLICIT_CONTENT_BLOCKED) }
+                        runCatching {
+                            runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.EXPLICIT_CONTENT_BLOCKED) }
+                        }.getOrDefault("Explicit content blocked")
                     }
 
                     is ToastType.PlayerError -> {
-                        runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.TIME_OUT_ERROR, type.error) }
+                        runCatching {
+                            runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.TIME_OUT_ERROR, type.error) }
+                        }.getOrDefault("Playback error: ${type.error}")
                     }
                 },
             )

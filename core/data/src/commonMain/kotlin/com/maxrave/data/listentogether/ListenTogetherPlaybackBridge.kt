@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.listentogether
+package com.maxrave.data.listentogether
 
 import com.maxrave.common.MERGING_DATA_TYPE
 import com.manikandan.domain.data.model.browse.album.Track
@@ -87,16 +87,16 @@ class ListenTogetherPlaybackBridge(
         if (started) return
         started = true
         Logger.i(TAG, "Playback bridge started")
-        scope.launch { suppressCrossfadeWhileInRoom() }
-        scope.launch { watchRoomForGuests() }
-        scope.launch { resyncGuestOnResume() }
-        scope.launch { publishCurrentStateOnJoin() }
-        scope.launch { publishStateWhenSomeoneArrives() }
-        scope.launch { publishQueueAsHost() }
-        scope.launch { publishTrackChangesAsHost() }
-        scope.launch { publishPlayPauseAsHost() }
-        scope.launch { publishSeeksAsHost() }
-        scope.launch { answerBufferBarrier() }
+        scope.launch { runCatching { suppressCrossfadeWhileInRoom() }.onFailure { Logger.e(TAG, "suppressCrossfade failed", it) } }
+        scope.launch { runCatching { watchRoomForGuests() }.onFailure { Logger.e(TAG, "watchRoomForGuests failed", it) } }
+        scope.launch { runCatching { resyncGuestOnResume() }.onFailure { Logger.e(TAG, "resyncGuestOnResume failed", it) } }
+        scope.launch { runCatching { publishCurrentStateOnJoin() }.onFailure { Logger.e(TAG, "publishCurrentStateOnJoin failed", it) } }
+        scope.launch { runCatching { publishStateWhenSomeoneArrives() }.onFailure { Logger.e(TAG, "publishStateWhenSomeoneArrives failed", it) } }
+        scope.launch { runCatching { publishQueueAsHost() }.onFailure { Logger.e(TAG, "publishQueueAsHost failed", it) } }
+        scope.launch { runCatching { publishTrackChangesAsHost() }.onFailure { Logger.e(TAG, "publishTrackChangesAsHost failed", it) } }
+        scope.launch { runCatching { publishPlayPauseAsHost() }.onFailure { Logger.e(TAG, "publishPlayPauseAsHost failed", it) } }
+        scope.launch { runCatching { publishSeeksAsHost() }.onFailure { Logger.e(TAG, "publishSeeksAsHost failed", it) } }
+        scope.launch { runCatching { answerBufferBarrier() }.onFailure { Logger.e(TAG, "answerBufferBarrier failed", it) } }
     }
 
     /**
@@ -110,43 +110,43 @@ class ListenTogetherPlaybackBridge(
             .map { it.inRoom }
             .distinctUntilChanged()
             .collect { inRoom ->
-                withContext(Dispatchers.Main) { handler.player.crossfadeSuppressed = inRoom }
-                if (!inRoom) {
-                    lastRoomPlaying = false
-                } else if (!repository.room.value.isHost) {
-                    // Ask for the live position the moment we are in. The state pushed on join
-                    // carries the position as of the host's LAST command, which can be minutes old
-                    // — obeying it drops a joiner at the start of a song everyone else is halfway
-                    // through. sync_state answers with where the room actually is.
-                    repository.requestSync()
+                runCatching {
+                    withContext(Dispatchers.Main) {
+                        runCatching { handler.player.crossfadeSuppressed = inRoom }
+                    }
+                    if (!inRoom) {
+                        lastRoomPlaying = false
+                    } else if (!repository.room.value.isHost) {
+                        // Ask for the live position the moment we are in.
+                        repository.requestSync()
+                    }
+                    Logger.i(TAG, if (inRoom) "Crossfade suppressed for the room" else "Crossfade restored")
+                }.onFailure { e ->
+                    Logger.e(TAG, "Error in suppressCrossfadeWhileInRoom: ${e.message}")
                 }
-                Logger.i(TAG, if (inRoom) "Crossfade suppressed for the room" else "Crossfade restored")
             }
     }
 
     /**
      * A guest may pause, and stays paused.
-     *
-     * An earlier version forced the guest straight back to the room's state, which made pause
-     * impossible — press it and playback resumed instantly. The room is something you listen along
-     * with, not something that holds your transport hostage: pausing is local and silent, and
-     * pressing play again asks the server where the room actually is now, so resuming lands in the
-     * right place instead of wherever this device stopped. This is what Metrolist's manager does
-     * (`requestSync` — "call this when a guest presses play/pause").
      */
     private suspend fun resyncGuestOnResume() {
         handler.controlState
             .map { it.isPlaying }
             .distinctUntilChanged()
             .collect { locallyPlaying ->
-                val room = repository.room.value
-                if (!room.inRoom || room.isHost || applyingRemote) return@collect
-                if (!locallyPlaying) {
-                    Logger.i(TAG, "Guest paused locally — leaving the room running")
-                    return@collect
+                runCatching {
+                    val room = repository.room.value
+                    if (!room.inRoom || room.isHost || applyingRemote) return@collect
+                    if (!locallyPlaying) {
+                        Logger.i(TAG, "Guest paused locally — leaving the room running")
+                        return@collect
+                    }
+                    Logger.i(TAG, "Guest resumed — asking the server where the room is")
+                    repository.requestSync()
+                }.onFailure { e ->
+                    Logger.e(TAG, "Error in resyncGuestOnResume: ${e.message}")
                 }
-                Logger.i(TAG, "Guest resumed — asking the server where the room is")
-                repository.requestSync()
             }
     }
 
@@ -154,8 +154,6 @@ class ListenTogetherPlaybackBridge(
 
     private suspend fun watchRoomForGuests() {
         repository.room
-            // The queue is part of the key: without it a room state that changed ONLY its queue
-            // compares equal here and is dropped, so the guest never builds the host's queue at all.
             .map {
                 RoomSnapshot(
                     track = it.currentTrack,
@@ -171,34 +169,18 @@ class ListenTogetherPlaybackBridge(
                 Logger.i(TAG, "Room says: track=${track?.id} playing=$isPlaying pos=$position queue=${queueIds.size}")
                 applyingRemote = true
                 try {
-                    // Rebuild when the track changes OR when the queue behind it does — the queue
-                    // can legitimately arrive while the same track keeps playing.
                     val queueChanged = queueIds != lastAppliedQueueIds
                     val trackChanged =
                         track != null && track.id.isNotBlank() && (track.id != lastAppliedTrackId || queueChanged)
-                    // The server forces IsPlaying=false on EVERY change_track — protocol default,
-                    // not the host pausing. Obeying it pauses the track just loaded, which is why
-                    // the guest sat silent on next, prev AND end-of-song alike. Carry the room's
-                    // previous intent across the change; a real pause arrives as its own command,
-                    // with the track unchanged, and is applied normally.
                     val playing = if (trackChanged && !isPlaying) lastRoomPlaying else isPlaying
                     lastRoomPlaying = playing
                     if (trackChanged && track != null) {
                         val sameTrack = track.id == lastAppliedTrackId
                         lastAppliedTrackId = track.id
                         lastAppliedQueueIds = queueIds
-                        // Decided BEFORE loading, not corrected afterwards: loading with a hardcoded
-                        // playWhenReady=true and letting applyTransport pause it is a race, and the
-                        // guest wins it by starting to play in a room the host has paused.
-                        // A NEW track still starts where the room is, not at zero: someone joining
-                        // a room mid-song must land next to everyone else. Only the same track
-                        // being rebuilt (the queue arrived late) keeps the local playhead.
                         val startAt =
                             when {
-                                sameTrack -> handler.player.currentPosition
-                                // change_track carries position 0, and 0 means "from the top" —
-                                // running it through the clock correction turns it into however
-                                // long ago the last command was, which can seek past the end.
+                                sameTrack -> withContext(Dispatchers.Main) { runCatching { handler.player.currentPosition }.getOrDefault(0L) }
                                 position <= 0L -> 0L
                                 else -> session.positionAt(position, playing)
                             }
@@ -217,46 +199,25 @@ class ListenTogetherPlaybackBridge(
         isPlaying: Boolean,
         position: Long,
     ) = withContext(Dispatchers.Main) {
-        // Correct the position for however long the command spent in flight; ServerClock falls back
-        // to the raw value whenever it is not calibrated yet.
-        val corrected = session.positionAt(position, isPlaying)
-        // A small drift is normal and seeking on every tick would stutter; only a real gap is worth
-        // a seek, which is also why the host publishes position with each command.
-        if (abs(handler.player.currentPosition - corrected) > SEEK_TOLERANCE_MS) {
-            handler.player.seekTo(corrected)
-        }
-        // playWhenReady, not isPlaying: a track that is still buffering reports isPlaying=false
-        // while already committed to playing, so comparing against it re-issues play() every tick
-        // and, worse, lets a stale pause land on a track that was about to start.
-        if (isPlaying && !handler.player.playWhenReady) {
-            handler.player.play()
-        } else if (!isPlaying && handler.player.playWhenReady) {
-            handler.player.pause()
+        runCatching {
+            val corrected = session.positionAt(position, isPlaying)
+            val currentPos = runCatching { handler.player.currentPosition }.getOrDefault(0L)
+            if (abs(currentPos - corrected) > SEEK_TOLERANCE_MS) {
+                runCatching { handler.player.seekTo(corrected) }
+            }
+            val playWhenReady = runCatching { handler.player.playWhenReady }.getOrDefault(false)
+            if (isPlaying && !playWhenReady) {
+                runCatching { handler.player.play() }
+            } else if (!isPlaying && playWhenReady) {
+                runCatching { handler.player.pause() }
+            }
+        }.onFailure { e ->
+            Logger.e(TAG, "applyTransport failed: ${e.message}")
         }
     }
 
     /**
-     * Loads the host's track locally.
-     *
-     * The room only carries a videoId, so the guest resolves its own metadata and stream — which is
-     * exactly why two clients on different platforms, or a SimpMusic and a Metrolist client, can
-     * share a room at all: both read the same catalogue rather than shipping audio to each other.
-     */
-    /**
      * Loads the host's track and queue.
-     *
-     * Built straight from the room's own [TrackInfo], the way Metrolist's manager does
-     * (`TrackInfo.toMediaMetadata().toMediaItem()`) — deliberately NOT by resolving metadata from
-     * the catalogue first. Two reasons, both learned the hard way:
-     *
-     * 1. `Track.toGenericMediaItem()` GUESSES song-vs-video from the artwork aspect ratio and
-     *    treats the `maxresdefault.jpg` fallback as video. A guest resolving its own metadata lands
-     *    on that branch almost every time, ends up on the merged audio+video path, and gets video
-     *    with no sound where the host has plain audio.
-     * 2. A network round trip per track can hang; `first { it.data != null }` on a flow that never
-     *    carries data blocks the whole collector, and with it every later room command.
-     *
-     * The stream itself is still resolved locally by the player — the room only ever carries ids.
      */
     private suspend fun playTrack(
         info: RoomTrack,
@@ -264,32 +225,29 @@ class ListenTogetherPlaybackBridge(
         playWhenReady: Boolean,
     ) {
         val roomQueue = repository.room.value.queue
-        // Metrolist's canonicalPlaybackQueue: the current track leads, upcoming follows, no dupes.
         val ordered =
             (listOf(info) + roomQueue.filter { it.id != info.id })
                 .filter { it.id.isNotBlank() }
                 .distinctBy { it.id }
+        if (ordered.isEmpty()) {
+            Logger.w(TAG, "Guest playTrack: ordered queue is empty, skipping")
+            return
+        }
         Logger.i(TAG, "Guest loading ${info.id} (${info.title}) + ${ordered.size - 1} upcoming")
 
-        // Dispatchers.Main is mandatory, not tidiness: Media3 throws if the player is touched off
-        // the main thread, and the bridge runs on the service scope (Default).
         withContext(Dispatchers.Main) {
-            handler.clearMediaItems()
-            handler.addMediaItem(ordered.first().toRoomMediaItem(), playWhenReady = playWhenReady)
-            val rest = ordered.drop(1)
-            if (rest.isNotEmpty()) handler.addMediaItemList(rest.map { it.toRoomMediaItem() })
-            // Rebuilding restarts the track; if only the queue changed, put the playhead back.
-            if (keepPosition > 0L) handler.player.seekTo(keepPosition)
+            runCatching {
+                handler.clearMediaItems()
+                handler.addMediaItem(ordered.first().toRoomMediaItem(), playWhenReady = playWhenReady)
+                val rest = ordered.drop(1)
+                if (rest.isNotEmpty()) handler.addMediaItemList(rest.map { it.toRoomMediaItem() })
+                if (keepPosition > 0L) handler.player.seekTo(keepPosition)
+            }.onFailure { e ->
+                Logger.e(TAG, "Error in playTrack: ${e.message}")
+            }
         }
     }
 
-    /**
-     * A room track as a media item.
-     *
-     * `MERGING_DATA_TYPE.SONG` is set explicitly: inside a room every client must be on the same
-     * rendition, and for listening together that rendition is audio. Leaving it to be inferred is
-     * what produced video-with-no-sound on the guest.
-     */
     private fun RoomTrack.toRoomMediaItem(): GenericMediaItem =
         GenericMediaItem(
             mediaId = id,
@@ -307,79 +265,80 @@ class ListenTogetherPlaybackBridge(
 
     // ─────────────────────────── host: publish what we do ───────────────────────────
 
-    /**
-     * Publishes what is ALREADY playing the moment we become host.
-     *
-     * Everything else here reacts to a *change* — a track transition, a play/pause. Someone who
-     * was already listening and then opens a room produces neither, so without this the room has
-     * no state at all and every guest sits in silence waiting for a command that only arrives if
-     * the host happens to touch the transport.
-     */
     private suspend fun publishCurrentStateOnJoin() {
         repository.room
             .map { it.inRoom && it.isHost }
             .distinctUntilChanged()
-            .collect { isHosting -> if (isHosting) publishSnapshot() }
+            .collect { isHosting ->
+                runCatching {
+                    if (isHosting) publishSnapshot()
+                }.onFailure { Logger.e(TAG, "Error publishing state on join: ${it.message}") }
+            }
     }
 
-    /**
-     * Re-publishes for a guest who arrives later.
-     *
-     * The server keeps the room's last known state, but only what the host has told it; a guest
-     * approved before the host's first command would otherwise join an empty room.
-     */
     private suspend fun publishStateWhenSomeoneArrives() {
         repository.room
             .map { it.members.size }
             .distinctUntilChanged()
             .collect { count ->
-                val state = repository.room.value
-                if (state.inRoom && state.isHost && count > 1) publishSnapshot()
+                runCatching {
+                    val state = repository.room.value
+                    if (state.inRoom && state.isHost && count > 1) publishSnapshot()
+                }.onFailure { Logger.e(TAG, "Error publishing state when someone arrives: ${it.message}") }
             }
     }
 
-    /** Republishes the queue whenever the host's own queue changes. */
     private suspend fun publishQueueAsHost() {
         handler.queueData
             .map { it?.data?.listTracks?.map { t -> t.videoId }.orEmpty() }
             .distinctUntilChanged()
             .collect { ids ->
-                val state = repository.room.value
-                if (!state.inRoom || !state.isHost || applyingRemote || ids.isEmpty()) return@collect
-                publishQueue()
+                runCatching {
+                    val state = repository.room.value
+                    if (!state.inRoom || !state.isHost || applyingRemote || ids.isEmpty()) return@collect
+                    publishQueue()
+                }.onFailure { Logger.e(TAG, "Error publishing queue: ${it.message}") }
             }
     }
 
     private fun publishQueue() {
-        val data = handler.queueData.value?.data ?: return
-        val tracks = data.listTracks.map { it.toTrackInfo() }
-        if (tracks.isEmpty()) return
-        session.sendQueue(tracks, data.playlistName.orEmpty())
-        Logger.i(TAG, "Published queue of ${tracks.size} track(s)")
+        runCatching {
+            val data = handler.queueData.value?.data ?: return
+            val tracks = data.listTracks.toList().map { it.toTrackInfo() }
+            if (tracks.isEmpty()) return
+            session.sendQueue(tracks, data.playlistName.orEmpty())
+            Logger.i(TAG, "Published queue of ${tracks.size} track(s)")
+        }.onFailure { e ->
+            Logger.e(TAG, "Error in publishQueue: ${e.message}")
+        }
     }
 
     private fun publishSnapshot() {
-        val item = handler.nowPlaying.value ?: return
-        if (item.mediaId.isBlank()) return
-        lastPublishedTrackId = item.mediaId
-        val data = handler.queueData.value?.data
-        session.sendPlaybackAction(
-            action = PlaybackActions.CHANGE_TRACK,
-            trackId = item.mediaId,
-            position = handler.player.currentPosition,
-            trackInfo = item.toTrackInfo(),
-            queue = data?.listTracks.orEmpty().map { it.toTrackInfo() },
-            queueTitle = data?.playlistName.orEmpty(),
-        )
-        // A second command, because change_track alone does not say whether it is running —
-        // the server explicitly sets IsPlaying=false on a track change.
-        session.sendPlaybackAction(
-            action = if (handler.player.playWhenReady) PlaybackActions.PLAY else PlaybackActions.PAUSE,
-            trackId = "",
-            position = handler.player.currentPosition,
-            trackInfo = null,
-        )
-        Logger.i(TAG, "Published current state to the room: ${item.mediaId}")
+        runCatching {
+            val item = handler.nowPlaying.value ?: return
+            if (item.mediaId.isBlank()) return
+            lastPublishedTrackId = item.mediaId
+            val data = handler.queueData.value?.data
+            val currentPos = runCatching { handler.player.currentPosition }.getOrDefault(0L)
+            val isReady = runCatching { handler.player.playWhenReady }.getOrDefault(false)
+            session.sendPlaybackAction(
+                action = PlaybackActions.CHANGE_TRACK,
+                trackId = item.mediaId,
+                position = currentPos,
+                trackInfo = item.toTrackInfo(),
+                queue = data?.listTracks.orEmpty().map { it.toTrackInfo() },
+                queueTitle = data?.playlistName.orEmpty(),
+            )
+            session.sendPlaybackAction(
+                action = if (isReady) PlaybackActions.PLAY else PlaybackActions.PAUSE,
+                trackId = "",
+                position = currentPos,
+                trackInfo = null,
+            )
+            Logger.i(TAG, "Published current state to the room: ${item.mediaId}")
+        }.onFailure { e ->
+            Logger.e(TAG, "Error publishing snapshot: ${e.message}")
+        }
     }
 
     private suspend fun publishTrackChangesAsHost() {
@@ -387,49 +346,39 @@ class ListenTogetherPlaybackBridge(
             .filterNotNull()
             .distinctUntilChanged { old, new -> old.mediaId == new.mediaId }
             .collect { item ->
-                val state = repository.room.value
-                if (!state.inRoom || !state.isHost || applyingRemote) return@collect
-                if (item.mediaId == lastPublishedTrackId) return@collect
-                lastPublishedTrackId = item.mediaId
-                Logger.i(TAG, "Host publishing track change: ${item.mediaId}")
-                val data = handler.queueData.value?.data
-                session.sendPlaybackAction(
-                    action = PlaybackActions.CHANGE_TRACK,
-                    trackId = item.mediaId,
-                    position = 0L,
-                    trackInfo = item.toTrackInfo(),
-                    queue = data?.listTracks.orEmpty().map { it.toTrackInfo() },
-                    queueTitle = data?.playlistName.orEmpty(),
-                )
-                // change_track alone leaves the room paused: the server sets IsPlaying=false on
-                // every track change. The host's own controlState does NOT change when one playing
-                // track follows another, so nothing else would ever send this and guests would load
-                // each new track and sit there stopped.
-                //
-                // Whether the host is actually going to play this, decided by WAITING rather than
-                // by sampling. Reading playWhenReady inline was wrong twice over: it is false while
-                // a next-track buffers, and false again for a moment while the player is rebuilt
-                // for a track the host picked from a list — so the PLAY that guests depend on was
-                // dropped on exactly the transitions it exists for. A host who is genuinely paused
-                // simply never satisfies this and the room stays paused.
-                val started =
-                    withTimeoutOrNull(PLAY_SETTLE_TIMEOUT_MS) {
-                        // playWhenReady, not isPlaying: the intent flips the moment the load path
-                        // commits, while audible playback waits for the stream URL to resolve —
-                        // which can take longer than any reasonable timeout. Waiting for audio here
-                        // is why picking a track still left guests paused. Polled, because
-                        // playWhenReady is a plain property with no flow behind it.
-                        while (!handler.player.playWhenReady && !handler.player.isPlaying) {
-                            delay(PLAY_SETTLE_POLL_MS)
-                        }
-                    } != null
-                if (started) {
+                runCatching {
+                    val state = repository.room.value
+                    if (!state.inRoom || !state.isHost || applyingRemote) return@collect
+                    if (item.mediaId == lastPublishedTrackId) return@collect
+                    lastPublishedTrackId = item.mediaId
+                    Logger.i(TAG, "Host publishing track change: ${item.mediaId}")
+                    val data = handler.queueData.value?.data
                     session.sendPlaybackAction(
-                        action = PlaybackActions.PLAY,
-                        trackId = "",
-                        position = handler.player.currentPosition,
-                        trackInfo = null,
+                        action = PlaybackActions.CHANGE_TRACK,
+                        trackId = item.mediaId,
+                        position = 0L,
+                        trackInfo = item.toTrackInfo(),
+                        queue = data?.listTracks.orEmpty().map { it.toTrackInfo() },
+                        queueTitle = data?.playlistName.orEmpty(),
                     )
+                    val started =
+                        withTimeoutOrNull(PLAY_SETTLE_TIMEOUT_MS) {
+                            while (!runCatching { handler.player.playWhenReady }.getOrDefault(false) &&
+                                !runCatching { handler.player.isPlaying }.getOrDefault(false)
+                            ) {
+                                delay(PLAY_SETTLE_POLL_MS)
+                            }
+                        } != null
+                    if (started) {
+                        session.sendPlaybackAction(
+                            action = PlaybackActions.PLAY,
+                            trackId = "",
+                            position = runCatching { handler.player.currentPosition }.getOrDefault(0L),
+                            trackInfo = null,
+                        )
+                    }
+                }.onFailure { e ->
+                    Logger.e(TAG, "Error publishing track change: ${e.message}")
                 }
             }
     }
@@ -439,95 +388,83 @@ class ListenTogetherPlaybackBridge(
             .map { it.isPlaying }
             .distinctUntilChanged()
             .collect { isPlaying ->
-                val state = repository.room.value
-                if (!state.inRoom || !state.isHost || applyingRemote) return@collect
-                // A host that merely buffers reports isPlaying=false, indistinguishable from a
-                // user pause — and publishing it stops the WHOLE room on one device's hiccup.
-                // playWhenReady carries the intent, so a dip where the two disagree is not news.
-                val intent = handler.player.playWhenReady
-                if (isPlaying != intent) return@collect
-                Logger.i(TAG, "Host publishing ${if (intent) "PLAY" else "PAUSE"}")
-                session.sendPlaybackAction(
-                    action = if (intent) PlaybackActions.PLAY else PlaybackActions.PAUSE,
-                    // Deliberately EMPTY. The server rejects a play/pause whose trackId does not
-                    // match the track it is holding ("stale_track") and drops it silently; sending
-                    // nothing makes it fill in its own current track, which is always right.
-                    trackId = "",
-                    position = handler.player.currentPosition,
-                    trackInfo = null,
-                )
+                runCatching {
+                    val state = repository.room.value
+                    if (!state.inRoom || !state.isHost || applyingRemote) return@collect
+                    val intent = runCatching { handler.player.playWhenReady }.getOrDefault(isPlaying)
+                    if (isPlaying != intent) return@collect
+                    Logger.i(TAG, "Host publishing ${if (intent) "PLAY" else "PAUSE"}")
+                    session.sendPlaybackAction(
+                        action = if (intent) PlaybackActions.PLAY else PlaybackActions.PAUSE,
+                        trackId = "",
+                        position = runCatching { handler.player.currentPosition }.getOrDefault(0L),
+                        trackInfo = null,
+                    )
+                }.onFailure { e ->
+                    Logger.e(TAG, "Error publishing play/pause: ${e.message}")
+                }
             }
     }
 
-    /**
-     * Publishes a seek.
-     *
-     * Neither `nowPlaying` nor `controlState` changes when the host drags the scrubber, so without
-     * this a seek is simply never sent and guests keep playing from wherever they were.
-     *
-     * Detected off `SimpleMediaState.Progress`, which both platforms already emit — Metrolist uses
-     * Media3's `onPositionDiscontinuity(DISCONTINUITY_REASON_SEEK)`, but that is an Android-only
-     * API and Desktop runs mpv. A seek is a position that moved further than wall-clock time could
-     * account for; ordinary playback advances roughly in step with it.
-     */
     private suspend fun publishSeeksAsHost() {
         var lastProgress = 0L
         var lastAt = 0L
         handler.simpleMediaState.collect { mediaState ->
-            val progress = (mediaState as? SimpleMediaState.Progress)?.progress ?: return@collect
-            val now = PROCESS_START.elapsedNow().inWholeMilliseconds
-            val previous = lastProgress
-            val previousAt = lastAt
-            lastProgress = progress
-            lastAt = now
+            runCatching {
+                val progress = (mediaState as? SimpleMediaState.Progress)?.progress ?: return@collect
+                val now = PROCESS_START.elapsedNow().inWholeMilliseconds
+                val previous = lastProgress
+                val previousAt = lastAt
+                lastProgress = progress
+                lastAt = now
 
-            val state = repository.room.value
-            if (!state.inRoom || !state.isHost || applyingRemote) return@collect
-            if (previousAt == 0L) return@collect
+                val state = repository.room.value
+                if (!state.inRoom || !state.isHost || applyingRemote) return@collect
+                if (previousAt == 0L) return@collect
 
-            val elapsed = now - previousAt
-            val expected = previous + if (handler.player.isPlaying) elapsed else 0L
-            if (kotlin.math.abs(progress - expected) < SEEK_DETECT_MS) return@collect
+                val elapsed = now - previousAt
+                val isPlaying = runCatching { handler.player.isPlaying }.getOrDefault(false)
+                val expected = previous + if (isPlaying) elapsed else 0L
+                if (kotlin.math.abs(progress - expected) < SEEK_DETECT_MS) return@collect
 
-            Logger.i(TAG, "Host publishing SEEK to $progress (expected ~$expected)")
-            session.sendPlaybackAction(
-                action = PlaybackActions.SEEK,
-                trackId = "",
-                position = progress,
-                trackInfo = null,
-            )
+                Logger.i(TAG, "Host publishing SEEK to $progress (expected ~$expected)")
+                session.sendPlaybackAction(
+                    action = PlaybackActions.SEEK,
+                    trackId = "",
+                    position = progress,
+                    trackInfo = null,
+                )
+            }.onFailure { e ->
+                Logger.e(TAG, "Error publishing seek: ${e.message}")
+            }
         }
     }
 
     // ─────────────────────────── the buffer barrier ───────────────────────────
 
-    /**
-     * Answers `buffer_ready` once the local player has the track the room is waiting on.
-     *
-     * Nobody in the room hears anything until every member answers, so a client that never sends
-     * this silently freezes playback for everyone — including the host.
-     */
     private suspend fun answerBufferBarrier() {
         repository.room
             .map { it.waitingFor to it.currentTrack?.id }
             .distinctUntilChanged()
             .collect { (waitingFor, trackId) ->
-                val state = repository.room.value
-                if (trackId.isNullOrBlank() || !state.inRoom) return@collect
-                if (state.selfUserId !in waitingFor) return@collect
-                // Wait actively until the player has buffered or loaded the track.
-                // A timeout fallback ensures we never leave the room permanently frozen if a platform
-                // player's bufferedPercentage lags or does not report immediately.
-                withTimeoutOrNull(BUFFER_READY_TIMEOUT_MS) {
-                    while (handler.player.bufferedPercentage < READY_BUFFER_PERCENT &&
-                        handler.player.bufferedPosition <= 0L &&
-                        !handler.player.isPlaying
-                    ) {
-                        delay(100L)
+                runCatching {
+                    val state = repository.room.value
+                    if (trackId.isNullOrBlank() || !state.inRoom) return@collect
+                    if (state.selfUserId !in waitingFor) return@collect
+                    withTimeoutOrNull(BUFFER_READY_TIMEOUT_MS) {
+                        while (runCatching { handler.player.bufferedPercentage }.getOrDefault(0) < READY_BUFFER_PERCENT &&
+                            runCatching { handler.player.bufferedPosition }.getOrDefault(0L) <= 0L &&
+                            !runCatching { handler.player.isPlaying }.getOrDefault(false)
+                        ) {
+                            delay(100L)
+                        }
                     }
+                    val pct = runCatching { handler.player.bufferedPercentage }.getOrDefault(0)
+                    Logger.i(TAG, "Buffer ready for track $trackId (buffered $pct%)")
+                    session.reportBufferReady(trackId)
+                }.onFailure { e ->
+                    Logger.e(TAG, "Error answering buffer barrier: ${e.message}")
                 }
-                Logger.i(TAG, "Buffer ready for track $trackId (buffered ${handler.player.bufferedPercentage}%)")
-                session.reportBufferReady(trackId)
             }
     }
 
@@ -551,31 +488,19 @@ class ListenTogetherPlaybackBridge(
             thumbnail = thumbnails?.lastOrNull()?.url.orEmpty(),
         )
 
-    /** The room carries a videoId plus display metadata; the guest resolves its own stream. */
     private fun GenericMediaItem.toTrackInfo(): TrackInfo =
         TrackInfo(
             id = mediaId,
             title = metadata.title.orEmpty(),
             artist = metadata.artist.orEmpty(),
             album = metadata.albumTitle.orEmpty(),
-            duration = handler.player.duration.coerceAtLeast(0L),
+            duration = runCatching { handler.player.duration.coerceAtLeast(0L) }.getOrDefault(0L),
             thumbnail = metadata.artworkUri.orEmpty(),
         )
 
     private companion object {
-        /** Monotonic reference for telling a seek apart from ordinary playback advancing. */
         val PROCESS_START = TimeSource.Monotonic.markNow()
-
-        /**
-         * Metrolist's own hard-sync threshold (`HARD_SYNC_THRESHOLD_MS`). Below it a seek costs
-         * more in stutter than it buys in sync; above it the room is audibly apart.
-         */
         const val SEEK_TOLERANCE_MS = 750L
-
-        /**
-         * A jump larger than this is a seek rather than playback advancing. Comfortably above the
-         * progress tick interval so ordinary drift never trips it.
-         */
         const val SEEK_DETECT_MS = 2_500L
         const val READY_BUFFER_PERCENT = 5
         const val BUFFER_READY_TIMEOUT_MS = 4_000L
