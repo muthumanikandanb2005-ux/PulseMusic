@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic
+package com.maxrave.simpmusic
 
 import android.annotation.SuppressLint
 import android.app.Application
@@ -58,7 +58,7 @@ class PulseMusicApplication :
         configCrashlytics(this, BuildKonfig.sentryDsn)
         configLastfm(BuildKonfig.lastfmApiKey, BuildKonfig.lastfmSecret)
         startKoin {
-            androidLogger(level = Level.DEBUG)
+            androidLogger(level = Level.ERROR)
             androidContext(this@PulseMusicApplication)
             loadAllModules(
                 AppIdentity(
@@ -77,12 +77,20 @@ class PulseMusicApplication :
                 .build()
 
         // initialize WorkManager
-        WorkManager.initialize(this, workConfig)
+        runCatching {
+            WorkManager.initialize(this, workConfig)
+        }.onFailure {
+            Logger.w("PulseMusicApplication", "WorkManager already initialized: ${it.message}")
+        }
 
         // Initialize and start AutoBackupScheduler
-        autoBackupScheduler = AutoBackupScheduler(this, dataStoreManager)
-        applicationScope.launch {
-            autoBackupScheduler.observeAndSchedule()
+        runCatching {
+            autoBackupScheduler = AutoBackupScheduler(this, dataStoreManager)
+            applicationScope.launch {
+                autoBackupScheduler.observeAndSchedule()
+            }
+        }.onFailure {
+            Logger.w("PulseMusicApplication", "Failed to start AutoBackupScheduler: ${it.message}")
         }
 
         CaocConfig.Builder

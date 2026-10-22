@@ -1,4 +1,4 @@
-﻿package com.maxrave.media3.di
+package com.maxrave.media3.di
 
 import android.app.Activity
 import android.content.Context
@@ -116,7 +116,7 @@ private val mediaServiceModule =
             provideSimpleCache(
                 context = androidContext(),
                 cacheName = "exoplayer",
-                cacheSize = runBlocking { get<DataStoreManager>().maxSongCacheSize.first() },
+                cacheSize = runCatching { runBlocking { get<DataStoreManager>().maxSongCacheSize.first() } }.getOrDefault(512),
                 databaseProvider = get<DatabaseProvider>(),
             )
         }
