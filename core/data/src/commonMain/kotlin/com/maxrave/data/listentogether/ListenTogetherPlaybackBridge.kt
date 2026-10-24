@@ -313,19 +313,24 @@ class ListenTogetherPlaybackBridge(
         }
     }
 
-    private fun publishSnapshot() {
+    private suspend fun publishSnapshot() {
         runCatching {
             val item = handler.nowPlaying.value ?: return
             if (item.mediaId.isBlank()) return
             lastPublishedTrackId = item.mediaId
             val data = handler.queueData.value?.data
-            val currentPos = runCatching { handler.player.currentPosition }.getOrDefault(0L)
-            val isReady = runCatching { handler.player.playWhenReady }.getOrDefault(false)
+            val (currentPos, isReady, duration) = withContext(Dispatchers.Main) {
+                Triple(
+                    runCatching { handler.player.currentPosition }.getOrDefault(0L),
+                    runCatching { handler.player.playWhenReady }.getOrDefault(false),
+                    runCatching { handler.player.duration.coerceAtLeast(0L) }.getOrDefault(0L),
+                )
+            }
             session.sendPlaybackAction(
                 action = PlaybackActions.CHANGE_TRACK,
                 trackId = item.mediaId,
                 position = currentPos,
-                trackInfo = item.toTrackInfo(),
+                trackInfo = item.toTrackInfo(duration),
                 queue = data?.listTracks.orEmpty().map { it.toTrackInfo() },
                 queueTitle = data?.playlistName.orEmpty(),
             )
@@ -353,27 +358,34 @@ class ListenTogetherPlaybackBridge(
                     lastPublishedTrackId = item.mediaId
                     Logger.i(TAG, "Host publishing track change: ${item.mediaId}")
                     val data = handler.queueData.value?.data
+                    val duration = withContext(Dispatchers.Main) {
+                        runCatching { handler.player.duration.coerceAtLeast(0L) }.getOrDefault(0L)
+                    }
                     session.sendPlaybackAction(
                         action = PlaybackActions.CHANGE_TRACK,
                         trackId = item.mediaId,
                         position = 0L,
-                        trackInfo = item.toTrackInfo(),
+                        trackInfo = item.toTrackInfo(duration),
                         queue = data?.listTracks.orEmpty().map { it.toTrackInfo() },
                         queueTitle = data?.playlistName.orEmpty(),
                     )
-                    val started =
-                        withTimeoutOrNull(PLAY_SETTLE_TIMEOUT_MS) {
+                    val (started, currentPos) = withContext(Dispatchers.Main) {
+                        val isStarted = withTimeoutOrNull(PLAY_SETTLE_TIMEOUT_MS) {
                             while (!runCatching { handler.player.playWhenReady }.getOrDefault(false) &&
                                 !runCatching { handler.player.isPlaying }.getOrDefault(false)
                             ) {
                                 delay(PLAY_SETTLE_POLL_MS)
                             }
+                            true
                         } != null
+                        val pos = runCatching { handler.player.currentPosition }.getOrDefault(0L)
+                        Pair(isStarted, pos)
+                    }
                     if (started) {
                         session.sendPlaybackAction(
                             action = PlaybackActions.PLAY,
                             trackId = "",
-                            position = runCatching { handler.player.currentPosition }.getOrDefault(0L),
+                            position = currentPos,
                             trackInfo = null,
                         )
                     }
@@ -391,13 +403,18 @@ class ListenTogetherPlaybackBridge(
                 runCatching {
                     val state = repository.room.value
                     if (!state.inRoom || !state.isHost || applyingRemote) return@collect
-                    val intent = runCatching { handler.player.playWhenReady }.getOrDefault(isPlaying)
+                    val (intent, currentPos) = withContext(Dispatchers.Main) {
+                        Pair(
+                            runCatching { handler.player.playWhenReady }.getOrDefault(isPlaying),
+                            runCatching { handler.player.currentPosition }.getOrDefault(0L),
+                        )
+                    }
                     if (isPlaying != intent) return@collect
                     Logger.i(TAG, "Host publishing ${if (intent) "PLAY" else "PAUSE"}")
                     session.sendPlaybackAction(
                         action = if (intent) PlaybackActions.PLAY else PlaybackActions.PAUSE,
                         trackId = "",
-                        position = runCatching { handler.player.currentPosition }.getOrDefault(0L),
+                        position = currentPos,
                         trackInfo = null,
                     )
                 }.onFailure { e ->
@@ -423,7 +440,9 @@ class ListenTogetherPlaybackBridge(
                 if (previousAt == 0L) return@collect
 
                 val elapsed = now - previousAt
-                val isPlaying = runCatching { handler.player.isPlaying }.getOrDefault(false)
+                val isPlaying = withContext(Dispatchers.Main) {
+                    runCatching { handler.player.isPlaying }.getOrDefault(false)
+                }
                 val expected = previous + if (isPlaying) elapsed else 0L
                 if (kotlin.math.abs(progress - expected) < SEEK_DETECT_MS) return@collect
 
@@ -452,14 +471,19 @@ class ListenTogetherPlaybackBridge(
                     if (trackId.isNullOrBlank() || !state.inRoom) return@collect
                     if (state.selfUserId !in waitingFor) return@collect
                     withTimeoutOrNull(BUFFER_READY_TIMEOUT_MS) {
-                        while (runCatching { handler.player.bufferedPercentage }.getOrDefault(0) < READY_BUFFER_PERCENT &&
-                            runCatching { handler.player.bufferedPosition }.getOrDefault(0L) <= 0L &&
-                            !runCatching { handler.player.isPlaying }.getOrDefault(false)
-                        ) {
+                        while (true) {
+                            val isReady = withContext(Dispatchers.Main) {
+                                (runCatching { handler.player.bufferedPercentage }.getOrDefault(0) >= READY_BUFFER_PERCENT) ||
+                                (runCatching { handler.player.bufferedPosition }.getOrDefault(0L) > 0L) ||
+                                runCatching { handler.player.isPlaying }.getOrDefault(false)
+                            }
+                            if (isReady) break
                             delay(100L)
                         }
                     }
-                    val pct = runCatching { handler.player.bufferedPercentage }.getOrDefault(0)
+                    val pct = withContext(Dispatchers.Main) {
+                        runCatching { handler.player.bufferedPercentage }.getOrDefault(0)
+                    }
                     Logger.i(TAG, "Buffer ready for track $trackId (buffered $pct%)")
                     session.reportBufferReady(trackId)
                 }.onFailure { e ->
@@ -488,13 +512,13 @@ class ListenTogetherPlaybackBridge(
             thumbnail = thumbnails?.lastOrNull()?.url.orEmpty(),
         )
 
-    private fun GenericMediaItem.toTrackInfo(): TrackInfo =
+    private fun GenericMediaItem.toTrackInfo(durationMs: Long = 0L): TrackInfo =
         TrackInfo(
             id = mediaId,
             title = metadata.title.orEmpty(),
             artist = metadata.artist.orEmpty(),
             album = metadata.albumTitle.orEmpty(),
-            duration = runCatching { handler.player.duration.coerceAtLeast(0L) }.getOrDefault(0L),
+            duration = if (durationMs > 0L) durationMs else 0L,
             thumbnail = metadata.artworkUri.orEmpty(),
         )
 

@@ -166,7 +166,7 @@ class ListenTogetherClient(
         reconnectAttempts = 0
         reconnectDelay = INITIAL_RECONNECT_DELAY
         fatal = false
-        if (force && !isConnected) {
+        if (force) {
             val oldJob = connectionJob
             connectionJob = null
             oldJob?.cancel()
@@ -228,6 +228,7 @@ class ListenTogetherClient(
         Logger.i(TAG, "Disconnecting by request")
         sessionToken = null
         reconnectAttempts = 0
+        fatal = false
         val currentJob = connectionJob
         connectionJob = null
         currentJob?.cancel()
@@ -237,6 +238,7 @@ class ListenTogetherClient(
         launch {
             runCatching { currentSession?.close() }
         }
+        _events.tryEmit(ListenTogetherEvent.Disconnected("Disconnected by user", willRetry = false))
     }
 
     /** Releases the HTTP client too. The instance is unusable afterwards. */

@@ -1,6 +1,8 @@
-﻿package com.maxrave.simpmusic.ui.screen.player.content
+package com.maxrave.simpmusic.ui.screen.player.content
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -96,6 +98,17 @@ import com.maxrave.simpmusic.ui.icon.SkipNext
 import com.maxrave.simpmusic.ui.icon.SkipPrevious
 import com.maxrave.simpmusic.ui.icon.Subtitles
 import com.maxrave.simpmusic.viewModel.UIEvent
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.Shadow
+import com.maxrave.simpmusic.ui.component.AIBadge
+import com.maxrave.simpmusic.ui.component.LyricsView
+import com.maxrave.simpmusic.ui.component.lyrics.ShareLyricsSheet
+import com.maxrave.simpmusic.ui.component.lyrics.toShareLyricsLines
+import com.maxrave.simpmusic.ui.icon.Share
+import com.maxrave.simpmusic.ui.icon.ThumbsUpDown
+import com.maxrave.simpmusic.viewModel.LyricsProvider
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.maxrave.simpmusic.ui.theme.LocalIsPearlLavenderTheme
@@ -124,6 +137,7 @@ fun NowPlayingContentBitChord(
 
         val isLavender = LocalIsPearlLavenderTheme.current
         val isDark = isSystemInDarkTheme()
+        var showShareLyricsSheet by rememberSaveable { mutableStateOf(false) }
 
         val accentColor = remember(state.spotShadowColor) {
             if (state.spotShadowColor != Color.Unspecified &&
@@ -282,6 +296,22 @@ fun NowPlayingContentBitChord(
                         )
                     }
 
+                    // Instagram-style Glowing Lyrics line under the album image in landscape
+                    val landscapeLyricLine = remember(state.screenData.lyricsData, state.currentLyricLineIndex) {
+                        state.screenData.lyricsData?.lyrics?.lines
+                            ?.getOrNull(state.currentLyricLineIndex)
+                            ?.words
+                            ?.stripRichSyncTimestamps()
+                    }
+                    if (!landscapeLyricLine.isNullOrBlank()) {
+                        BitChordInstagramGlowingLyrics(
+                            line = landscapeLyricLine,
+                            translatedLine = null,
+                            accentColor = accentColor,
+                            onClick = { actions.onShowFullscreenLyrics() },
+                        )
+                    }
+
                     Spacer(Modifier.height(4.dp))
                 }
 
@@ -362,12 +392,14 @@ fun NowPlayingContentBitChord(
                 }
             }
         } else {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
                     .padding(horizontal = 24.dp)
                     .widthIn(max = 520.dp)
+                    .verticalScroll(scrollState)
                     .align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -383,18 +415,53 @@ fun NowPlayingContentBitChord(
                 // 2. Centered Breathing Artwork Hero with swipe support
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     BitChordArtworkHero(
                         state = state,
                         actions = actions,
                         isPlaying = isPlaying,
+                        modifier = Modifier
+                            .fillMaxWidth(0.92f)
+                            .aspectRatio(1f),
                     )
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
+
+                // Instagram-style Glowing Lyrics line under the album image
+                val activeLyricLine = remember(state.screenData.lyricsData, state.currentLyricLineIndex) {
+                    state.screenData.lyricsData?.lyrics?.lines
+                        ?.getOrNull(state.currentLyricLineIndex)
+                        ?.words
+                        ?.stripRichSyncTimestamps()
+                }
+                val translatedLyricLine = remember(state.screenData.lyricsData, state.currentLyricLineIndex) {
+                    state.screenData.lyricsData?.translatedLyrics?.first?.lines
+                        ?.getOrNull(state.currentLyricLineIndex)
+                        ?.words
+                        ?.stripRichSyncTimestamps()
+                }
+
+                AnimatedVisibility(
+                    visible = !activeLyricLine.isNullOrBlank(),
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                    modifier = Modifier.padding(bottom = 6.dp),
+                ) {
+                    if (!activeLyricLine.isNullOrBlank()) {
+                        BitChordInstagramGlowingLyrics(
+                            line = activeLyricLine,
+                            translatedLine = translatedLyricLine,
+                            accentColor = accentColor,
+                            onClick = { actions.onShowFullscreenLyrics() },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
 
                 // 3. Track Info (Title, Clickable Artist, Codec badge & Heart toggle)
                 BitChordTrackInfoRow(
@@ -407,7 +474,7 @@ fun NowPlayingContentBitChord(
                     accentColor = accentColor,
                 )
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(16.dp))
 
                 // 4. Isolated Hairline Scrubber (ThinSlider) — zero parent recomposition!
                 BitChordIsolatedScrubber(
@@ -426,7 +493,7 @@ fun NowPlayingContentBitChord(
                     accentColor = accentColor,
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(18.dp))
 
                 // 6. Bottom Action Dock (Lyrics, Pipeline/Info, Add to Playlist, Queue)
                 BitChordActionDock(
@@ -435,10 +502,35 @@ fun NowPlayingContentBitChord(
                     accentColor = accentColor,
                 )
 
-                Spacer(Modifier.height(24.dp))
+                // 7. Spotify-style Pulse Neon Lyrics Card below transport
+                if (state.screenData.lyricsData?.lyrics?.lines?.any { !it.words.isNullOrBlank() } == true) {
+                    Spacer(Modifier.height(20.dp))
+                    BitChordSpotifyLyricsCard(
+                        state = state,
+                        actions = actions,
+                        accentColor = accentColor,
+                        onShareLyrics = { showShareLyricsSheet = true },
+                    )
+                }
+
+                Spacer(Modifier.height(28.dp))
             }
         }
     }
+
+        if (showShareLyricsSheet) {
+            state.screenData.lyricsData?.let { lData ->
+                ShareLyricsSheet(
+                    lines = lData.toShareLyricsLines(),
+                    songTitle = state.screenData.nowPlayingTitle,
+                    artistName = state.screenData.artistName,
+                    artwork = state.screenData.bitmap,
+                    seedColor = state.startColor.value,
+                    initialLineIndex = state.currentLyricLineIndex,
+                    onDismiss = { showShareLyricsSheet = false },
+                )
+            }
+        }
     }
 }
 
@@ -1133,5 +1225,281 @@ fun BitChordMiniVisualizer(
                 .clip(RoundedCornerShape(2.dp))
                 .background(color),
         )
+    }
+}
+
+/** Instagram-style dynamic glowing lyrics subtitle directly under the artwork. */
+@Composable
+private fun BitChordInstagramGlowingLyrics(
+    line: String,
+    translatedLine: String?,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "InstagramLyricsGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0.88f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "GlowAlpha",
+    )
+    val glowShift by infiniteTransition.animateFloat(
+        initialValue = -50f,
+        targetValue = 50f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "GlowShift",
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = 0.10f),
+                        accentColor.copy(alpha = 0.22f * glowAlpha),
+                        accentColor.copy(alpha = 0.10f),
+                    ),
+                    startX = 100f + glowShift,
+                    endX = 600f + glowShift,
+                ),
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = 0.25f),
+                        accentColor.copy(alpha = 0.75f * glowAlpha),
+                        accentColor.copy(alpha = 0.25f),
+                    ),
+                ),
+                shape = RoundedCornerShape(18.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Neon glow dot like Instagram live music
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(accentColor)
+                        .drawBehind {
+                            drawCircle(
+                                color = accentColor.copy(alpha = glowAlpha),
+                                radius = size.width * 1.6f,
+                            )
+                        },
+                )
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        letterSpacing = (-0.2).sp,
+                        shadow = Shadow(
+                            color = accentColor.copy(alpha = glowAlpha),
+                            blurRadius = 18f,
+                        ),
+                    ),
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (!translatedLine.isNullOrBlank()) {
+                Text(
+                    text = translatedLine,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp,
+                    ),
+                    color = accentColor.copy(alpha = 0.85f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+/** Spotify-style Pulse Neon Lyrics Card rendered below the player controls. */
+@Composable
+private fun BitChordSpotifyLyricsCard(
+    state: NowPlayingContentState,
+    actions: NowPlayingContentActions,
+    accentColor: Color,
+    onShareLyrics: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val lyricsData = state.screenData.lyricsData ?: return
+    val hasLines = lyricsData.lyrics?.lines?.any { !it.words.isNullOrBlank() } == true
+    if (!hasLines) return
+
+    val isLavender = LocalIsPearlLavenderTheme.current
+    val infiniteTransition = rememberInfiniteTransition(label = "SpotifyCardNeon")
+    val cardGlowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.70f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "CardGlowAlpha",
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = cardGlowAlpha),
+                        Color.White.copy(alpha = 0.08f),
+                    ),
+                ),
+                shape = RoundedCornerShape(22.dp),
+            ),
+        shape = RoundedCornerShape(22.dp),
+        color = if (isLavender) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f) else Color(0xFF101015),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            // Header: "LYRICS" + AI Badge + Rate + Share + Fullscreen
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "LYRICS",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.4.sp,
+                            shadow = Shadow(
+                                color = accentColor.copy(alpha = 0.6f),
+                                blurRadius = 12f,
+                            ),
+                        ),
+                        color = accentColor,
+                    )
+                    if (lyricsData.translatedLyrics?.second == LyricsProvider.AI) {
+                        AIBadge()
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (lyricsData.canVote()) {
+                        IconButton(
+                            onClick = { actions.onShowVoteDialog() },
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = SimpIcons.ThumbsUpDown,
+                                contentDescription = "Rate Lyrics",
+                                tint = Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = onShareLyrics,
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            imageVector = SimpIcons.Share,
+                            contentDescription = "Share Lyrics",
+                            tint = Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Text(
+                        text = "MORE",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                        ),
+                        color = accentColor,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(accentColor.copy(alpha = 0.15f))
+                            .clickable { actions.onShowFullscreenLyrics() }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Body: Synchronized LyricsView with neon glow
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp),
+            ) {
+                LyricsView(
+                    lyricsData = lyricsData,
+                    timeLine = state.timelineFlow,
+                    onLineClick = { fraction ->
+                        actions.onUIEvent(UIEvent.UpdateProgress(fraction))
+                    },
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Footer: Sync type badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val syncTypeStr = when (lyricsData.lyrics?.syncType) {
+                    "LINE_SYNCED" -> "LINE SYNCED"
+                    "RICH_SYNCED" -> "RICH SYNCED"
+                    else -> "UNSYNCED"
+                }
+                Text(
+                    text = syncTypeStr,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                    color = Color.White.copy(alpha = 0.5f),
+                )
+            }
+        }
     }
 }
