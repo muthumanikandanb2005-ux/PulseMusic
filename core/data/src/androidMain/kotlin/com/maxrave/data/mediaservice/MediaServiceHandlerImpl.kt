@@ -25,6 +25,7 @@ import com.maxrave.common.SPONSOR_BLOCK_SKIP_MARGIN_MS
 import com.maxrave.common.TITLE
 import com.maxrave.data.db.Converters
 import com.maxrave.data.lastfm.LastfmScrobbler
+import com.maxrave.data.mediaservice.isDolbyAtmosHardwareSupported
 import com.manikandan.domain.data.entities.NewFormatEntity
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.model.browse.album.Track
@@ -429,7 +430,7 @@ internal class MediaServiceHandlerImpl(
                     dataStoreManager.dolbyAtmosEnabled,
                     dataStoreManager.dolbyAtmosProfile,
                 ) { enabled, profileName ->
-                    if (enabled == TRUE) {
+                    if (enabled == TRUE && isDolbyAtmosHardwareSupported(context)) {
                         DolbyAtmosEffect(
                             profile = runCatching { DolbyAtmosProfile.valueOf(profileName) }.getOrDefault(DolbyAtmosProfile.DYNAMIC),
                         )
