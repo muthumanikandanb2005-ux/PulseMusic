@@ -1,26 +1,32 @@
-﻿package com.maxrave.media3.audio
+package com.maxrave.media3.audio
 
 import com.manikandan.domain.data.player.AudioEffects
 import com.manikandan.domain.data.player.DolbyAtmosEffect
 import com.manikandan.domain.data.player.DolbyAtmosProfile
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.tanh
 
 /**
- * Real-time DSP kernel for Dolby Atmos spatial audio virtualization.
+ * Real-time high-fidelity DSP kernel for Dolby Atmos spatial audio virtualization.
  *
  * Implements:
- * 1. Mid-Side Soundstage Spatialization: Widens perceived acoustic space beyond physical stereo boundaries.
- * 2. Psychoacoustic Binaural Crossfeed: Micro-delay interaural reflection creating 3D head-externalized sound.
- * 3. Profile-Specific Acoustic Sculpting:
- *    - DYNAMIC: Balanced 3D soundstage, adaptive bass presence & high air.
- *    - MUSIC: Wide stereo field, transparent mids, warm lows, refined highs.
- *    - CINEMA: Immersive multi-dimensional envelopment, dialogue clarity, deep sub-bass impact.
- *    - VOICE: Focused center channel, speech band presence (300Hz-3.5kHz), sub-bass rumble reduction.
- * 4. Transparent Dynamic Soft-Knee Limiter: Prevents digital clipping and maintains max dynamic range.
+ * 1. Mid-Side Soundstage Spatialization: Widens perceived acoustic space beyond physical stereo boundaries
+ *    while preserving phantom center focus and vocal clarity.
+ * 2. Psychoacoustic Binaural Crossfeed with Acoustic Head-Shadow Diffraction:
+ *    Simulates natural interaural time delay (~0.35 ms) combined with 1st-order head-shadow low-pass filtering
+ *    (~4.0 kHz) to externalize sound without harsh comb filtering.
+ * 3. Audiophile Acoustic Sculpting:
+ *    - DYNAMIC: Wide dimensional soundstage, sub-bass punch (+1.8 dB @ 55 Hz), shimmering air (+1.6 dB @ 12 kHz).
+ *    - MUSIC: Natural expansive stereo imaging, warm sub-bass (+1.8 dB @ 50 Hz), pristine highs (+1.5 dB @ 13.5 kHz).
+ *    - CINEMA: Multi-dimensional soundstage, deep sub-bass impact (+3.0 dB @ 45 Hz), dialogue presence (+2.2 dB @ 2.4 kHz).
+ *    - VOICE: Center-channel speech focus, low-end rumble cut (-3.5 dB @ 90 Hz), vocal presence boost (+3.2 dB @ 2.2 kHz).
+ * 4. Transparent Headroom & Soft-Knee Peak Limiter:
+ *    Maintains 100% linear high-definition response up to -0.48 dBFS (31000) with smooth continuous-derivative
+ *    asymptotic limiting up to full-scale (32767), completely eliminating digital clipping and harshness.
  */
 class DolbyAtmosKernel {
     private var sampleRate: Int = 44100
@@ -32,12 +38,17 @@ class DolbyAtmosKernel {
     private var profile: DolbyAtmosProfile = DolbyAtmosProfile.DYNAMIC
     private var surroundStrength: Float = DolbyAtmosEffect.DEFAULT_SURROUND_STRENGTH
 
-    // Crossfeed delay line ring buffers (~0.35 ms ITD delay: 32 samples at 48kHz is ~0.66 ms)
+    // Crossfeed delay line ring buffers (~0.35 ms ITD delay: 17 samples at 48kHz, 15 at 44.1kHz)
     private val bufferMask = 63
     private val leftDelayBuffer = FloatArray(64)
     private val rightDelayBuffer = FloatArray(64)
     private var delayWriteIndex = 0
     private var delayReadOffset = 18
+
+    // Head-shadow 1st-order low-pass diffraction filter on crossfeed (~4000 Hz)
+    private var headShadowAlpha = 0.43
+    private var crossfeedFilterL = 0.0
+    private var crossfeedFilterR = 0.0
 
     // Biquad filter state for Low-Frequency (Bass) Shelf
     private var bassB0 = 1.0; private var bassB1 = 0.0; private var bassB2 = 0.0
@@ -61,17 +72,35 @@ class DolbyAtmosKernel {
     private var sideGain: Float = 1.0f
     private var crossfeedGain: Float = 0.18f
 
-    // Interleaved sample state
+    // Output shorts (synchronously updated per stereo pair)
+    var outputLeftShort: Short = 0
+        private set
+    var outputRightShort: Short = 0
+        private set
+
+    // Legacy interleaved state tracker
     private var channelCursor = 0
-    private var pendingLeft = 0.0
-    private var outputLeft = 0
-    private var outputRight = 0
+    private var pendingLeft = 0
+
+    companion object {
+        // Headroom factor ~ -1.0 dB to guarantee pristine dynamic range without clipping
+        private const val HEADROOM_FACTOR = 0.89125
+        // Linear threshold ~95% full scale (-0.48 dBFS)
+        private const val LIMIT_THRESHOLD = 31000.0
+        private const val LIMIT_MAX = 32767.0
+        private const val LIMIT_SPAN = LIMIT_MAX - LIMIT_THRESHOLD
+    }
 
     fun configure(sampleRate: Int, channelCount: Int) {
         this.sampleRate = if (sampleRate > 0) sampleRate else 44100
         this.channelCount = channelCount
         // ~0.35 ms ITD delay
-        delayReadOffset = ((sampleRate * 0.00035).toInt()).coerceIn(1, bufferMask - 1)
+        delayReadOffset = ((this.sampleRate * 0.00035).toInt()).coerceIn(1, bufferMask - 1)
+
+        // Head-shadow lowpass cutoff at 4000 Hz
+        val w = 2.0 * PI * 4000.0 / this.sampleRate.toDouble()
+        headShadowAlpha = 1.0 - exp(-w)
+
         recalculateCoefficients()
         flush()
     }
@@ -97,44 +126,44 @@ class DolbyAtmosKernel {
 
         when (profile) {
             DolbyAtmosProfile.DYNAMIC -> {
-                sideGain = 1.0f + 0.35f * surroundStrength
-                crossfeedGain = 0.18f * surroundStrength
-                // Bass boost +1.5 dB at 80 Hz
-                designLowShelf(80.0, 1.5, 0.71, fs)
-                // Mid presence flat
+                sideGain = 1.0f + 0.38f * surroundStrength
+                crossfeedGain = 0.16f * surroundStrength
+                // Warm sub-bass punch +1.8 dB at 55 Hz
+                designLowShelf(55.0, 1.8, 0.71, fs)
+                // Mid presence transparent/uncolored
                 designFlatMid()
-                // High air +2.0 dB at 10 kHz
-                designHighShelf(10000.0, 2.0, 0.71, fs)
+                // Shimmering spatial air +1.6 dB at 12 kHz
+                designHighShelf(12000.0, 1.6, 0.71, fs)
             }
             DolbyAtmosProfile.MUSIC -> {
-                sideGain = 1.0f + 0.50f * surroundStrength
-                crossfeedGain = 0.22f * surroundStrength
-                // Warm bass +2.0 dB at 60 Hz
-                designLowShelf(60.0, 2.0, 0.71, fs)
-                // Transparent mid
+                sideGain = 1.0f + 0.32f * surroundStrength
+                crossfeedGain = 0.14f * surroundStrength
+                // Deep acoustic low-end +1.8 dB at 50 Hz
+                designLowShelf(50.0, 1.8, 0.71, fs)
+                // Audiophile transparent mid
                 designFlatMid()
-                // Silky air +1.5 dB at 12 kHz
-                designHighShelf(12000.0, 1.5, 0.71, fs)
+                // Silky airy highs +1.5 dB at 13.5 kHz
+                designHighShelf(13500.0, 1.5, 0.71, fs)
             }
             DolbyAtmosProfile.CINEMA -> {
-                sideGain = 1.0f + 0.65f * surroundStrength
-                crossfeedGain = 0.28f * surroundStrength
-                // Deep sub-bass impact +3.5 dB at 70 Hz
-                designLowShelf(70.0, 3.5, 0.71, fs)
-                // Dialogue clarity boost +2.0 dB at 2500 Hz
-                designPeaking(2500.0, 2.0, 1.0, fs)
-                // Cinema stage high-shelf +1.0 dB at 8 kHz
-                designHighShelf(8000.0, 1.0, 0.71, fs)
+                sideGain = 1.0f + 0.50f * surroundStrength
+                crossfeedGain = 0.22f * surroundStrength
+                // Deep cinematic sub-bass impact +3.0 dB at 45 Hz
+                designLowShelf(45.0, 3.0, 0.71, fs)
+                // Dialogue clarity boost +2.2 dB at 2.4 kHz
+                designPeaking(2400.0, 2.2, 0.9, fs)
+                // Cinematic stage air +1.2 dB at 9.0 kHz
+                designHighShelf(9000.0, 1.2, 0.71, fs)
             }
             DolbyAtmosProfile.VOICE -> {
-                // Focus center channel, reduce wide reflections
-                sideGain = 0.45f + 0.20f * surroundStrength
-                crossfeedGain = 0.08f * surroundStrength
-                // Cut low-end rumble -3.5 dB at 100 Hz
-                designLowShelf(100.0, -3.5, 0.71, fs)
-                // Speech presence boost +3.5 dB at 2200 Hz
-                designPeaking(2200.0, 3.5, 0.9, fs)
-                // High frequency smoothing -1.0 dB at 8 kHz
+                // Focus center channel, tighten stereo reflections
+                sideGain = 0.50f + 0.15f * surroundStrength
+                crossfeedGain = 0.06f * surroundStrength
+                // Cut low-end rumble -3.5 dB at 90 Hz
+                designLowShelf(90.0, -3.5, 0.71, fs)
+                // Speech presence clarity +3.2 dB at 2.2 kHz
+                designPeaking(2200.0, 3.2, 0.85, fs)
+                // Smooth high sibilance -1.0 dB at 8.0 kHz
                 designHighShelf(8000.0, -1.0, 0.71, fs)
             }
         }
@@ -167,7 +196,7 @@ class DolbyAtmosKernel {
         val a0 = (a + 1.0) - (a - 1.0) * cosw0 + twoSqrtAAlpha
         highB0 = (a * ((a + 1.0) + (a - 1.0) * cosw0 + twoSqrtAAlpha)) / a0
         highB1 = (-2.0 * a * ((a - 1.0) + (a + 1.0) * cosw0)) / a0
-        highB2 = (a * ((a + 1.0) + (a - 1.0) * cosw0 - twoSqrtAAlpha)) / a0
+        highB2 = (a * ((a + 1.0) - (a - 1.0) * cosw0 - twoSqrtAAlpha)) / a0
         highA1 = (2.0 * ((a - 1.0) - (a + 1.0) * cosw0)) / a0
         highA2 = ((a + 1.0) - (a - 1.0) * cosw0 - twoSqrtAAlpha) / a0
     }
@@ -196,10 +225,12 @@ class DolbyAtmosKernel {
         leftDelayBuffer.fill(0f)
         rightDelayBuffer.fill(0f)
         delayWriteIndex = 0
+        crossfeedFilterL = 0.0
+        crossfeedFilterR = 0.0
         channelCursor = 0
-        pendingLeft = 0.0
-        outputLeft = 0
-        outputRight = 0
+        pendingLeft = 0
+        outputLeftShort = 0
+        outputRightShort = 0
 
         bassX1L = 0.0; bassX2L = 0.0; bassY1L = 0.0; bassY2L = 0.0
         bassX1R = 0.0; bassX2R = 0.0; bassY1R = 0.0; bassY2R = 0.0
@@ -220,82 +251,90 @@ class DolbyAtmosKernel {
     }
 
     /**
-     * Processes one 16-bit PCM sample in interleaved stereo format (L, R, L, R...).
+     * Processes a synchronous 16-bit stereo pair (L, R) simultaneously.
+     * Guarantees zero interchannel phase delay.
+     */
+    fun processStereo(inLeft: Int, inRight: Int) {
+        val dLeft = inLeft.toDouble() * HEADROOM_FACTOR
+        val dRight = inRight.toDouble() * HEADROOM_FACTOR
+
+        // 1. Mid-Side Soundstage Expansion
+        val mid = (dLeft + dRight) * 0.5
+        val side = (dLeft - dRight) * 0.5 * sideGain
+
+        val spatLeft = mid + side
+        val spatRight = mid - side
+
+        // 2. Head-shadow binaural crossfeed with micro-delay (ITD)
+        val readIdx = (delayWriteIndex - delayReadOffset + 64) and bufferMask
+        val delayedRawR = rightDelayBuffer[readIdx].toDouble()
+        val delayedRawL = leftDelayBuffer[readIdx].toDouble()
+
+        leftDelayBuffer[delayWriteIndex] = spatLeft.toFloat()
+        rightDelayBuffer[delayWriteIndex] = spatRight.toFloat()
+        delayWriteIndex = (delayWriteIndex + 1) and bufferMask
+
+        // Apply 1st-order head-shadow acoustic diffraction filter (~4 kHz) to delayed crossfeed
+        crossfeedFilterL += headShadowAlpha * (delayedRawR - crossfeedFilterL)
+        crossfeedFilterR += headShadowAlpha * (delayedRawL - crossfeedFilterR)
+
+        // Crossfeed opposite channel with micro-delay for externalized spatial stage
+        val leftProc = spatLeft + crossfeedFilterL * crossfeedGain
+        val rightProc = spatRight + crossfeedFilterR * crossfeedGain
+
+        // 3. Acoustic Filter Chain: Bass Shelf -> Mid Peaking -> High Shelf
+        // Left channel
+        val bL = bassB0 * leftProc + bassB1 * bassX1L + bassB2 * bassX2L - bassA1 * bassY1L - bassA2 * bassY2L
+        bassX2L = bassX1L; bassX1L = leftProc; bassY2L = bassY1L; bassY1L = bL
+
+        val mL = midB0 * bL + midB1 * midX1L + midB2 * midX2L - midA1 * midY1L - midA2 * midY2L
+        midX2L = midX1L; midX1L = bL; midY2L = midY1L; midY1L = mL
+
+        val hL = highB0 * mL + highB1 * highX1L + highB2 * highX2L - highA1 * highY1L - highA2 * highY2L
+        highX2L = highX1L; highX1L = mL; highY2L = highY1L; highY1L = hL
+
+        // Right channel
+        val bR = bassB0 * rightProc + bassB1 * bassX1R + bassB2 * bassX2R - bassA1 * bassY1R - bassA2 * bassY2R
+        bassX2R = bassX1R; bassX1R = rightProc; bassY2R = bassY1R; bassY1R = bR
+
+        val mR = midB0 * bR + midB1 * midX1R + midB2 * midX2R - midA1 * midY1R - midA2 * midY2R
+        midX2R = midX1R; midX1R = bR; midY2R = midY1R; midY1R = mR
+
+        val hR = highB0 * mR + highB1 * highX1R + highB2 * highX2R - highA1 * highY1R - highA2 * highY2R
+        highX2R = highX1R; highX1R = mR; highY2R = highY1R; highY1R = hR
+
+        // 4. Transparent soft-knee limiter
+        outputLeftShort = limitSample(hL)
+        outputRightShort = limitSample(hR)
+    }
+
+    /**
+     * Interleaved sample compatibility method.
      */
     fun processInterleaved(sample: Int): Int {
         if (channelCursor == 0) {
-            pendingLeft = sample.toDouble()
+            pendingLeft = sample
             channelCursor = 1
-            return outputLeft
+            return outputLeftShort.toInt()
         } else {
-            val inLeft = pendingLeft
-            val inRight = sample.toDouble()
             channelCursor = 0
-
-            // 1. Mid-Side Soundstage Expansion
-            val mid = (inLeft + inRight) * 0.5
-            val side = (inLeft - inRight) * 0.5 * sideGain
-
-            val spatLeft = mid + side
-            val spatRight = mid - side
-
-            // 2. Psychoacoustic Binaural Delay / Crossfeed
-            val readIdx = (delayWriteIndex - delayReadOffset + 64) and bufferMask
-            val delayedR = rightDelayBuffer[readIdx].toDouble()
-            val delayedL = leftDelayBuffer[readIdx].toDouble()
-
-            leftDelayBuffer[delayWriteIndex] = spatLeft.toFloat()
-            rightDelayBuffer[delayWriteIndex] = spatRight.toFloat()
-            delayWriteIndex = (delayWriteIndex + 1) and bufferMask
-
-            // Crossfeed opposite channel with micro-delay for externalized spatial stage
-            var leftProc = spatLeft + delayedR * crossfeedGain
-            var rightProc = spatRight + delayedL * crossfeedGain
-
-            // 3. Acoustic Filter Chain: Bass Shelf -> Mid Peaking -> High Shelf
-            // Left channel
-            val bL = bassB0 * leftProc + bassB1 * bassX1L + bassB2 * bassX2L - bassA1 * bassY1L - bassA2 * bassY2L
-            bassX2L = bassX1L; bassX1L = leftProc; bassY2L = bassY1L; bassY1L = bL
-
-            val mL = midB0 * bL + midB1 * midX1L + midB2 * midX2L - midA1 * midY1L - midA2 * midY2L
-            midX2L = midX1L; midX1L = bL; midY2L = midY1L; midY1L = mL
-
-            val hL = highB0 * mL + highB1 * highX1L + highB2 * highX2L - highA1 * highY1L - highA2 * highY2L
-            highX2L = highX1L; highX1L = mL; highY2L = highY1L; highY1L = hL
-
-            // Right channel
-            val bR = bassB0 * rightProc + bassB1 * bassX1R + bassB2 * bassX2R - bassA1 * bassY1R - bassA2 * bassY2R
-            bassX2R = bassX1R; bassX1R = rightProc; bassY2R = bassY1R; bassY1R = bR
-
-            val mR = midB0 * bR + midB1 * midX1R + midB2 * midX2R - midA1 * midY1R - midA2 * midY2R
-            midX2R = midX1R; midX1R = bR; midY2R = midY1R; midY1R = mR
-
-            val hR = highB0 * mR + highB1 * highX1R + highB2 * highX2R - highA1 * highY1R - highA2 * highY2R
-            highX2R = highX1R; highX1R = mR; highY2R = highY1R; highY1R = hR
-
-            // 4. Soft Clipper / Limiter (headroom protection)
-            outputLeft = softClip(hL)
-            outputRight = softClip(hR)
-
-            return outputRight
+            processStereo(pendingLeft, sample)
+            return outputRightShort.toInt()
         }
     }
 
-    private fun softClip(x: Double): Int {
-        // Fast, smooth tanh-like compression above 24000 (~ -2.7 dBFS) to prevent digital wrap/clip
-        val threshold = 24000.0
-        val maxAmp = 32767.0
+    private fun limitSample(x: Double): Short {
         val absX = if (x < 0.0) -x else x
         val sign = if (x < 0.0) -1.0 else 1.0
 
-        val clamped = if (absX <= threshold) {
+        val clamped = if (absX <= LIMIT_THRESHOLD) {
             x
         } else {
-            val excess = (absX - threshold) / (maxAmp - threshold)
-            val compressed = threshold + (maxAmp - threshold) * tanh(excess)
+            val excess = (absX - LIMIT_THRESHOLD) / LIMIT_SPAN
+            val compressed = LIMIT_THRESHOLD + LIMIT_SPAN * tanh(excess)
             sign * compressed
         }
 
-        return clamped.toInt().coerceIn(-32768, 32767)
+        return clamped.toInt().coerceIn(-32768, 32767).toShort()
     }
 }

@@ -116,16 +116,17 @@ fun SettingItem(
                     },
                     enabled = isEnable,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color(0xFF10B981),
-                        checkedTrackColor = Color(0xFF04381C),
-                        checkedBorderColor = Color(0xFF10B981),
-                        uncheckedThumbColor = Color(0xFF8E8E93),
-                        uncheckedTrackColor = Color(0xFF18181B),
-                        uncheckedBorderColor = Color(0xFF2E2E33),
-                        disabledCheckedThumbColor = Color(0xFF10B981).copy(alpha = 0.5f),
-                        disabledCheckedTrackColor = Color(0xFF04381C).copy(alpha = 0.5f),
-                        disabledUncheckedThumbColor = Color(0xFF55555B),
-                        disabledUncheckedTrackColor = Color(0xFF121215),
+                        checkedThumbColor = Color(0xFFFFFFFF),
+                        checkedTrackColor = Color(0xFFA78BFA),
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedThumbColor = Color(0xFFD4D4D8),
+                        uncheckedTrackColor = Color(0xFF27272A),
+                        uncheckedBorderColor = Color(0xFF3F3F46),
+                        disabledCheckedThumbColor = Color(0xFFFFFFFF).copy(alpha = 0.5f),
+                        disabledCheckedTrackColor = Color(0xFFA78BFA).copy(alpha = 0.4f),
+                        disabledUncheckedThumbColor = Color(0xFF71717A),
+                        disabledUncheckedTrackColor = Color(0xFF18181B),
+
                     ),
                 )
             }

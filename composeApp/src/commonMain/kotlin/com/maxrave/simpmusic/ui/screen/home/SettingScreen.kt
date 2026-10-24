@@ -207,6 +207,8 @@ import simpmusic.composeapp.generated.resources.cinematic_audio
 import simpmusic.composeapp.generated.resources.cinematic_audio_description
 import simpmusic.composeapp.generated.resources.dolby_atmos
 import simpmusic.composeapp.generated.resources.dolby_atmos_description
+import simpmusic.composeapp.generated.resources.dolby_atmos_unsupported
+import com.maxrave.simpmusic.expect.ui.rememberIsDolbyAtmosSupported
 import simpmusic.composeapp.generated.resources.author
 import simpmusic.composeapp.generated.resources.auto_backup
 import simpmusic.composeapp.generated.resources.auto_backup_description
@@ -1510,14 +1512,24 @@ fun SettingScreen(
                 AnimatedVisibility(visible = cinematicAudioEnabled) {
                     CinematicAudioSection()
                 }
+                val isDolbySupported = rememberIsDolbyAtmosSupported()
                 SettingItem(
                     title = stringResource(Res.string.dolby_atmos),
-                    subtitle = stringResource(Res.string.dolby_atmos_description),
+                    subtitle = if (isDolbySupported) {
+                        stringResource(Res.string.dolby_atmos_description)
+                    } else {
+                        stringResource(Res.string.dolby_atmos_unsupported)
+                    },
                     smallSubtitle = true,
-                    switch = (dolbyAtmosEnabled to { viewModel.setDolbyAtmosEnabled(it) }),
+                    isEnable = isDolbySupported,
+                    switch = if (isDolbySupported) {
+                        (dolbyAtmosEnabled to { viewModel.setDolbyAtmosEnabled(it) })
+                    } else null,
                 )
-                AnimatedVisibility(visible = dolbyAtmosEnabled) {
-                    DolbyAtmosSection()
+                if (isDolbySupported) {
+                    AnimatedVisibility(visible = dolbyAtmosEnabled) {
+                        DolbyAtmosSection()
+                    }
                 }
                 SettingItem(
                     title = stringResource(Res.string.save_playback_state),

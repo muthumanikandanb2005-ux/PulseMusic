@@ -1,4 +1,4 @@
-﻿package com.maxrave.media3.audio
+package com.maxrave.media3.audio
 
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
@@ -50,9 +50,14 @@ class DolbyAtmosAudioProcessor(
         }
 
         inputBuffer.order(ByteOrder.nativeOrder())
+        output.order(ByteOrder.nativeOrder())
         kernel.beginBuffer()
-        while (inputBuffer.remaining() >= 2) {
-            output.putShort(kernel.processInterleaved(inputBuffer.short.toInt()).toShort())
+        while (inputBuffer.remaining() >= 4) {
+            val inLeft = inputBuffer.short.toInt()
+            val inRight = inputBuffer.short.toInt()
+            kernel.processStereo(inLeft, inRight)
+            output.putShort(kernel.outputLeftShort)
+            output.putShort(kernel.outputRightShort)
         }
         while (inputBuffer.hasRemaining()) {
             output.put(inputBuffer.get())

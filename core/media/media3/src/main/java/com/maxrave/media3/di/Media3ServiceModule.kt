@@ -523,6 +523,9 @@ private fun provideAudioAttributes(): AudioAttributes =
         .Builder()
         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
         .setUsage(C.USAGE_MEDIA)
+        // Allow the Android Spatializer to process audio for Dolby Atmos / spatial audio.
+        // SPATIALIZATION_BEHAVIOR_AUTO lets the platform decide to spatialize based on headset caps.
+        .setSpatializationBehavior(C.SPATIALIZATION_BEHAVIOR_AUTO)
         .build()
 
 @UnstableApi

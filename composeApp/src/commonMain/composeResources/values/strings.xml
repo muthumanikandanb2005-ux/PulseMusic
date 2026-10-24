@@ -372,6 +372,7 @@
     <string name="dolby_profile_cinema">Cinema</string>
     <string name="dolby_profile_voice">Voice</string>
     <string name="dolby_atmos_surround">Surround Virtualization</string>
+    <string name="dolby_atmos_unsupported">Dolby Atmos is not supported on this device</string>
     <string name="sync_follow_to_youtube_description">Following an artist in Pulse Music also subscribes to their channel on your YouTube account</string>
     <string name="sync_follow_failed">Couldn't update your YouTube subscription</string>
     <string name="subscribed_on_youtube">Subscribed on YouTube</string>
