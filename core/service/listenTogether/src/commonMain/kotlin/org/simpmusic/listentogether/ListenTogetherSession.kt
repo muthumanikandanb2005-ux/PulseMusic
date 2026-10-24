@@ -124,7 +124,8 @@ class ListenTogetherSession(
 
     /** Opens the socket. When [force] is true, cancels any waiting reconnect backoff to connect immediately. */
     fun connect(force: Boolean = true) {
-        if (pump == null) {
+        if (pump == null || pump?.isActive != true) {
+            pump?.cancel()
             pump = launch {
                 runCatching {
                     client.events.collect(::onEvent)
@@ -138,10 +139,10 @@ class ListenTogetherSession(
     }
 
     suspend fun awaitConnected(timeoutMs: Long = 8_000L): Boolean {
-        if (client.isConnected) return true
+        if (client.isConnected && state.value.isConnected) return true
         connect(force = true)
         return withTimeoutOrNull(timeoutMs) {
-            while (!client.isConnected) {
+            while (!client.isConnected || !state.value.isConnected) {
                 delay(50L)
             }
             true
@@ -150,6 +151,8 @@ class ListenTogetherSession(
 
     fun disconnect() {
         client.disconnect()
+        pump?.cancel()
+        pump = null
         _state.value = ListenTogetherState()
     }
 

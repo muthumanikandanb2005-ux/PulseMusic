@@ -429,6 +429,7 @@ fun LyricsView(
     footerContent: (@Composable () -> Unit)? = null,
     dataStoreManager: DataStoreManager = koinInject(),
     romanizer: LyricsRomanizerRepository = koinInject(),
+    fullscreenAppleLyrics: Boolean = false,
 ) {
     val listState = rememberLazyListState()
     // AMLL drops blur to zero while the user is scrolling by hand (resolveBlurLevel:
