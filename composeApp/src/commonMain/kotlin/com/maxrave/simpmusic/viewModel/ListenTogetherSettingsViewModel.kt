@@ -1,9 +1,10 @@
-﻿package com.maxrave.simpmusic.viewModel
+package com.maxrave.simpmusic.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.maxrave.data.listentogether.ListenTogetherPrefs
 import com.manikandan.domain.manager.DataStoreManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -44,9 +45,14 @@ class ListenTogetherSettingsViewModel(
 
     /** Empty clears the override and falls back to [ListenTogetherClient.DEFAULT_SERVER_URL]. */
     fun setServerUrl(url: String) =
-        viewModelScope.launch { dataStore.putString(KEY_SERVER_URL, url.trim()) }
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { dataStore.putString(KEY_SERVER_URL, url.trim()) }
+        }
 
-    fun useDefaultServer() = viewModelScope.launch { dataStore.putString(KEY_SERVER_URL, "") }
+    fun useDefaultServer() =
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { dataStore.putString(KEY_SERVER_URL, "") }
+        }
 
     fun setAutoApproveJoins(value: Boolean) = putBool(KEY_AUTO_APPROVE_JOINS, value)
 
@@ -55,9 +61,11 @@ class ListenTogetherSettingsViewModel(
     fun setFollowHostVolume(value: Boolean) = putBool(KEY_FOLLOW_HOST_VOLUME, value)
 
     fun unblock(name: String) =
-        viewModelScope.launch {
-            val remaining = blockedNames.value.filterNot { it.equals(name, ignoreCase = true) }
-            dataStore.putString(KEY_BLOCKLIST, remaining.joinToString(SEPARATOR))
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val remaining = blockedNames.value.filterNot { it.equals(name, ignoreCase = true) }
+                dataStore.putString(KEY_BLOCKLIST, remaining.joinToString(SEPARATOR))
+            }
         }
 
     private fun boolFlow(
@@ -66,13 +74,15 @@ class ListenTogetherSettingsViewModel(
     ): StateFlow<Boolean> =
         dataStore
             .getString(key)
-            .map { it?.equals(TRUE, ignoreCase = true) ?: default }
+            .map { runCatching { it?.equals(TRUE, ignoreCase = true) ?: default }.getOrDefault(default) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), default)
 
     private fun putBool(
         key: String,
         value: Boolean,
-    ) = viewModelScope.launch { dataStore.putString(key, if (value) TRUE else FALSE) }
+    ) = viewModelScope.launch(Dispatchers.IO) {
+        runCatching { dataStore.putString(key, if (value) TRUE else FALSE) }
+    }
 
     companion object {
         // Single source of truth, shared with the DI module that builds the client — see

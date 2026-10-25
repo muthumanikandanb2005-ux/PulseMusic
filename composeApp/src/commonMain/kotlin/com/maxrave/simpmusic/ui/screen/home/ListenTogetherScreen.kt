@@ -164,7 +164,7 @@ private const val ROOM_CODE_LENGTH = ListenTogetherViewModel.ROOM_CODE_LENGTH
 
 /** Avatar tints derived from the theme, so they move with it instead of fighting it. */
 @Composable
-private fun tintFor(id: String): Color {
+private fun tintFor(id: String?): Color {
     val palette =
         listOf(
             MaterialTheme.colorScheme.primary,
@@ -173,11 +173,12 @@ private fun tintFor(id: String): Color {
             MaterialTheme.colorScheme.primaryContainer,
             MaterialTheme.colorScheme.tertiaryContainer,
         )
-    val index = id.hashCode().let { if (it == Int.MIN_VALUE) 0 else kotlin.math.abs(it) } % palette.size
+    val safeId = id.orEmpty()
+    val index = safeId.hashCode().let { if (it == Int.MIN_VALUE) 0 else kotlin.math.abs(it) } % palette.size
     return palette[index]
 }
 
-private fun initialOf(name: String): String = name.trim().firstOrNull()?.uppercase() ?: "?"
+private fun initialOf(name: String?): String = name?.trim()?.firstOrNull()?.uppercase() ?: "?"
 
 @Composable
 fun ListenTogetherScreen(
@@ -825,7 +826,7 @@ private fun Suggestions(
 @Composable
 private fun Members(
     members: List<RoomMember>,
-    selfId: String,
+    selfId: String?,
     canManage: Boolean,
     onManage: (RoomMember) -> Unit,
 ) {
@@ -843,7 +844,8 @@ private fun Members(
                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f)),
                 )
             }
-            val manageable = canManage && member.userId != selfId
+            val memberUserId = member.userId ?: ""
+            val manageable = canManage && memberUserId.isNotBlank() && memberUserId != (selfId ?: "")
             Row(
                 modifier =
                     Modifier

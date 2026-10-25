@@ -20,13 +20,15 @@ internal class UpdateRepositoryImpl(
         flow {
             val rawEndpoint = dataStoreManager.customUpdateEndpoint.first().trim()
             val endpoints = mutableListOf<String>()
+            val cacheBuster = System.currentTimeMillis()
 
-            // 1. Primary fast CDN endpoint (never rate limits)
+            // 1. Direct raw GitHub with cache buster (instant freshest source of truth)
+            endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json?t=$cacheBuster")
+            // 2. Fallback GitHub Releases API
+            endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
+            // 3. Fast CDN endpoint
             endpoints.add("https://cdn.jsdelivr.net/gh/muthumanikandanb2005-ux/PulseMusic@main/version.json")
-            // 2. Secondary raw GitHub endpoint
-            endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
 
-            // 3. Custom endpoint if configured
             if (rawEndpoint.isNotBlank() &&
                 !rawEndpoint.contains("maxrave-dev", ignoreCase = true) &&
                 !rawEndpoint.contains("simpmusic", ignoreCase = true)
@@ -36,13 +38,11 @@ internal class UpdateRepositoryImpl(
                 } else {
                     rawEndpoint
                 }
-                endpoints.add(formatted)
+                endpoints.add(0, formatted)
             }
 
-            // 4. Fallback GitHub API endpoint
-            endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
+            var bestUpdate: UpdateData? = null
 
-            var lastError = "Unable to check for updates. Please try again later."
             for (endpoint in endpoints.distinct()) {
                 val res = youTube.checkForGithubReleaseUpdate(endpoint)
                 if (res.isSuccess) {
@@ -59,24 +59,41 @@ internal class UpdateRepositoryImpl(
                             )
                         } ?: emptyList()
 
-                        emit(
-                            Resource.Success(
-                                UpdateData(
-                                    tagName = response.tagName ?: "",
-                                    releaseTime = response.publishedAt ?: "",
-                                    body = response.body ?: "",
-                                    assets = updateAssets,
-                                ),
-                            ),
+                        val current = UpdateData(
+                            tagName = response.tagName ?: "",
+                            releaseTime = response.publishedAt ?: "",
+                            body = response.body ?: "",
+                            assets = updateAssets,
                         )
-                        return@flow
+
+                        if (bestUpdate == null || isNewerTag(current.tagName, bestUpdate.tagName)) {
+                            bestUpdate = current
+                        }
                     }
                 } else {
                     Logger.w("UpdateRepository", "Endpoint failed: $endpoint - ${res.exceptionOrNull()?.message}")
                 }
             }
-            emit(Resource.Error<UpdateData>("Unable to check for updates. Please try again later."))
+
+            if (bestUpdate != null) {
+                emit(Resource.Success(bestUpdate))
+            } else {
+                emit(Resource.Error<UpdateData>("Unable to check for updates. Please try again later."))
+            }
         }.flowOn(Dispatchers.IO)
+
+    private fun isNewerTag(target: String, reference: String): Boolean {
+        val tParts = target.removePrefix("v").removePrefix("V").split(".").mapNotNull { it.toIntOrNull() }
+        val rParts = reference.removePrefix("v").removePrefix("V").split(".").mapNotNull { it.toIntOrNull() }
+        val maxLen = maxOf(tParts.size, rParts.size)
+        for (i in 0 until maxLen) {
+            val t = tParts.getOrElse(i) { 0 }
+            val r = rParts.getOrElse(i) { 0 }
+            if (t > r) return true
+            if (t < r) return false
+        }
+        return false
+    }
 
     override fun checkForFdroidUpdate(): Flow<Resource<UpdateData>> =
         flow {

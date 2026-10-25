@@ -7,6 +7,7 @@ import com.maxrave.data.listentogether.ListenTogetherPrefs
 import com.manikandan.domain.data.model.listentogether.ListenTogetherRoom
 import com.manikandan.domain.repository.ListenTogetherRepository
 import com.manikandan.domain.manager.DataStoreManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,26 +32,32 @@ class ListenTogetherViewModel(
         // first moment anything asks for it. Koin's `createdAtStart` does not fire for modules
         // added with loadKoinModules, so without an explicit injection it is never constructed
         // at all — and then a room syncs membership while no audio follows anyone.
-        bridge.start()
+        runCatching { bridge.start() }
 
         // Host conveniences live in settings but are applied by the session, so they are mirrored
         // onto it for as long as this screen exists. Default autoApproveJoins to true unless disabled.
-        viewModelScope.launch {
-            dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_JOINS).collect {
-                repository.autoApproveJoins = it != ListenTogetherPrefs.FALSE
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_JOINS).collect {
+                    repository.autoApproveJoins = it != ListenTogetherPrefs.FALSE
+                }
             }
         }
-        viewModelScope.launch {
-            dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_SUGGESTIONS).collect {
-                repository.autoApproveSuggestions = it == ListenTogetherPrefs.TRUE
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_SUGGESTIONS).collect {
+                    repository.autoApproveSuggestions = it == ListenTogetherPrefs.TRUE
+                }
             }
         }
-        viewModelScope.launch {
-            val savedName = dataStore.getString(ListenTogetherPrefs.DISPLAY_NAME).first()
-            if (!savedName.isNullOrBlank()) {
-                _displayName.value = savedName
-            } else {
-                _displayName.value = "Pulse User"
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val savedName = dataStore.getString(ListenTogetherPrefs.DISPLAY_NAME).first()
+                if (!savedName.isNullOrBlank()) {
+                    _displayName.value = savedName
+                } else {
+                    _displayName.value = "Pulse User"
+                }
             }
         }
     }
@@ -67,8 +74,10 @@ class ListenTogetherViewModel(
     fun onDisplayNameChange(value: String) {
         val trimmed = value.take(MAX_USERNAME_LENGTH)
         _displayName.value = trimmed
-        viewModelScope.launch {
-            dataStore.putString(ListenTogetherPrefs.DISPLAY_NAME, trimmed)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                dataStore.putString(ListenTogetherPrefs.DISPLAY_NAME, trimmed)
+            }
         }
     }
 
@@ -85,45 +94,55 @@ class ListenTogetherViewModel(
             codeToUse.uppercase().filter { it.isLetterOrDigit() }.take(ROOM_CODE_LENGTH)
     }
 
-    fun connect(force: Boolean = true) = repository.connect(force = force)
+    fun connect(force: Boolean = true) {
+        runCatching { repository.connect(force = force) }
+    }
 
-    fun disconnect() = repository.disconnect()
+    fun disconnect() {
+        runCatching { repository.disconnect() }
+    }
 
     fun createRoom() {
-        val name = _displayName.value.ifBlank { "Pulse User" }
-        repository.createRoom(name)
+        runCatching {
+            val name = _displayName.value.ifBlank { "Pulse User" }
+            repository.createRoom(name)
+        }
     }
 
     fun joinRoom() {
-        val name = _displayName.value.ifBlank { "Pulse User" }
-        val code = _roomCodeInput.value.trim()
-        if (code.isBlank()) return
-        repository.joinRoom(code, name)
+        runCatching {
+            val name = _displayName.value.ifBlank { "Pulse User" }
+            val code = _roomCodeInput.value.trim()
+            if (code.isBlank()) return
+            repository.joinRoom(code, name)
+        }
     }
 
     fun leaveRoom() {
-        repository.leaveRoom()
-        _roomCodeInput.value = ""
+        runCatching {
+            repository.leaveRoom()
+            _roomCodeInput.value = ""
+        }
     }
 
     fun approveJoin(userId: String) {
-        repository.approveJoin(userId)
+        runCatching { repository.approveJoin(userId) }
     }
 
     fun rejectJoin(userId: String) {
-        repository.rejectJoin(userId)
+        runCatching { repository.rejectJoin(userId) }
     }
 
     fun approveSuggestion(id: String) {
-        repository.approveSuggestion(id)
+        runCatching { repository.approveSuggestion(id) }
     }
 
     fun rejectSuggestion(id: String) {
-        repository.rejectSuggestion(id)
+        runCatching { repository.rejectSuggestion(id) }
     }
 
     fun kickUser(userId: String) {
-        repository.kickUser(userId)
+        runCatching { repository.kickUser(userId) }
     }
 
     /**
@@ -137,32 +156,38 @@ class ListenTogetherViewModel(
         userId: String,
         username: String,
     ) {
-        viewModelScope.launch {
-            val current =
-                dataStore
-                    .getString(ListenTogetherPrefs.BLOCKLIST)
-                    .first()
-                    .orEmpty()
-                    .split(ListenTogetherPrefs.BLOCKLIST_SEPARATOR)
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-            if (current.none { it.equals(username, ignoreCase = true) }) {
-                dataStore.putString(
-                    ListenTogetherPrefs.BLOCKLIST,
-                    (current + username).joinToString(ListenTogetherPrefs.BLOCKLIST_SEPARATOR),
-                )
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val current =
+                    dataStore
+                        .getString(ListenTogetherPrefs.BLOCKLIST)
+                        .first()
+                        .orEmpty()
+                        .split(ListenTogetherPrefs.BLOCKLIST_SEPARATOR)
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                if (current.none { it.equals(username, ignoreCase = true) }) {
+                    dataStore.putString(
+                        ListenTogetherPrefs.BLOCKLIST,
+                        (current + username).joinToString(ListenTogetherPrefs.BLOCKLIST_SEPARATOR),
+                    )
+                }
+                repository.kickUser(userId)
             }
-            repository.kickUser(userId)
         }
     }
 
     fun transferHost(userId: String) {
-        repository.transferHost(userId)
+        runCatching { repository.transferHost(userId) }
     }
 
-    fun cancelJoin() = repository.cancelJoin()
+    fun cancelJoin() {
+        runCatching { repository.cancelJoin() }
+    }
 
-    fun clearError() = repository.clearError()
+    fun clearError() {
+        runCatching { repository.clearError() }
+    }
 
     companion object {
         const val ROOM_CODE_LENGTH = 8

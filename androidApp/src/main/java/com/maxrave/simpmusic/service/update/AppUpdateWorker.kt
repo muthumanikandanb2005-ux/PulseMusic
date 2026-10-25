@@ -42,11 +42,14 @@ class AppUpdateWorker(
 
                 val rawEndpoint = dataStoreManager.customUpdateEndpoint.first().trim()
                 val endpoints = mutableListOf<String>()
+                val cacheBuster = System.currentTimeMillis()
 
-                // Primary fast CDN endpoint (never rate limits)
+                // Primary freshest: raw GitHub with cache buster
+                endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json?t=$cacheBuster")
+                // Secondary fallback: GitHub latest release API
+                endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
+                // Fast CDN endpoint
                 endpoints.add("https://cdn.jsdelivr.net/gh/muthumanikandanb2005-ux/PulseMusic@main/version.json")
-                // Secondary raw GitHub endpoint
-                endpoints.add("https://raw.githubusercontent.com/muthumanikandanb2005-ux/PulseMusic/main/version.json")
 
                 if (rawEndpoint.isNotBlank() &&
                     !rawEndpoint.contains("maxrave-dev", ignoreCase = true) &&
@@ -57,70 +60,70 @@ class AppUpdateWorker(
                     } else {
                         rawEndpoint
                     }
-                    endpoints.add(formatted)
+                    endpoints.add(0, formatted)
                 }
-
-                // Fallback GitHub API endpoint
-                endpoints.add("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/latest")
 
                 // Record check timestamp
                 val nowMillis = System.currentTimeMillis()
                 dataStoreManager.putString("CheckForUpdateAt", nowMillis.toString())
 
-                var responseJsonStr = ""
+                val currentVersion = VersionManager.getVersionName()
+                var remoteVersion = ""
+                var downloadUrl = ""
+
                 for (endpoint in endpoints.distinct()) {
                     try {
                         Logger.i(TAG, "Fetching update metadata from: $endpoint")
                         val str = fetchString(endpoint)
                         if (str.isNotBlank()) {
-                            responseJsonStr = str
-                            break
+                            val json = JSONObject(str)
+                            var curVer = ""
+                            var curUrl = ""
+
+                            if (json.has("tag_name")) {
+                                curVer = json.getString("tag_name").trim()
+                                if (json.has("assets")) {
+                                    val assets = json.getJSONArray("assets")
+                                    val apkList = mutableListOf<Pair<String, String>>()
+                                    for (i in 0 until assets.length()) {
+                                        val asset = assets.getJSONObject(i)
+                                        val name = asset.optString("name", "")
+                                        val assetUrl = asset.optString("browser_download_url", "")
+                                        if (name.endsWith(".apk", ignoreCase = true) || assetUrl.endsWith(".apk", ignoreCase = true)) {
+                                            apkList.add(name to assetUrl)
+                                        }
+                                    }
+                                    val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
+                                    curUrl = apkList.firstOrNull { it.first.contains(primaryAbi, ignoreCase = true) }?.second
+                                        ?: apkList.firstOrNull { it.first.contains("arm64-v8a", ignoreCase = true) }?.second
+                                        ?: apkList.firstOrNull { it.first.contains("armeabi-v7a", ignoreCase = true) }?.second
+                                        ?: apkList.firstOrNull { it.first.contains("universal", ignoreCase = true) }?.second
+                                        ?: apkList.firstOrNull()?.second ?: ""
+                                }
+                            } else if (json.has("version")) {
+                                curVer = json.getString("version").trim()
+                                curUrl = json.optString("downloadUrl", "")
+                                if (curUrl.isEmpty()) {
+                                    curUrl = json.optString("download_url", "")
+                                }
+                            }
+
+                            if (curVer.isNotBlank() && curUrl.isNotBlank()) {
+                                if (remoteVersion.isBlank() || isNewerVersion(curVer, remoteVersion)) {
+                                    remoteVersion = curVer
+                                    downloadUrl = curUrl
+                                }
+                                if (isNewerVersion(remoteVersion, currentVersion)) {
+                                    Logger.i(TAG, "Found newer version $remoteVersion from $endpoint")
+                                    break
+                                }
+                            }
                         }
                     } catch (e: Exception) {
                         Logger.w(TAG, "Failed to fetch from $endpoint: ${e.message}")
                     }
                 }
-                if (responseJsonStr.isBlank()) {
-                    Logger.w(TAG, "Empty response from all update endpoints")
-                    return@withContext Result.success()
-                }
 
-                val json = JSONObject(responseJsonStr)
-                var remoteVersion = ""
-                var downloadUrl = ""
-
-                if (json.has("tag_name")) {
-                    // GitHub Release format
-                    remoteVersion = json.getString("tag_name").trim()
-                    if (json.has("assets")) {
-                        val assets = json.getJSONArray("assets")
-                        val apkList = mutableListOf<Pair<String, String>>()
-                        for (i in 0 until assets.length()) {
-                            val asset = assets.getJSONObject(i)
-                            val name = asset.optString("name", "")
-                            val assetUrl = asset.optString("browser_download_url", "")
-                            if (name.endsWith(".apk", ignoreCase = true) || assetUrl.endsWith(".apk", ignoreCase = true)) {
-                                apkList.add(name to assetUrl)
-                            }
-                        }
-                        // Prioritize native 64-bit ARM architecture (33MB vs 61MB Universal)
-                        val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
-                        downloadUrl = apkList.firstOrNull { it.first.contains(primaryAbi, ignoreCase = true) }?.second
-                            ?: apkList.firstOrNull { it.first.contains("arm64-v8a", ignoreCase = true) }?.second
-                            ?: apkList.firstOrNull { it.first.contains("armeabi-v7a", ignoreCase = true) }?.second
-                            ?: apkList.firstOrNull { it.first.contains("universal", ignoreCase = true) }?.second
-                            ?: apkList.firstOrNull()?.second ?: ""
-                    }
-                } else if (json.has("version")) {
-                    // Custom JSON format: {"version": "1.0.1", "downloadUrl": "..."}
-                    remoteVersion = json.getString("version").trim()
-                    downloadUrl = json.optString("downloadUrl", "")
-                    if (downloadUrl.isEmpty()) {
-                        downloadUrl = json.optString("download_url", "")
-                    }
-                }
-
-                val currentVersion = VersionManager.getVersionName()
                 Logger.i(TAG, "Current version: $currentVersion, Remote version: $remoteVersion, URL: $downloadUrl")
 
                 if (remoteVersion.isNotEmpty() && downloadUrl.isNotEmpty() && isNewerVersion(remoteVersion, currentVersion)) {

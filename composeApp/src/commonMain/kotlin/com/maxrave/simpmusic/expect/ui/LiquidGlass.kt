@@ -67,8 +67,8 @@ fun Modifier.drawBackdropCustomShape(
             lens(24f.dp.toPx(), size.minDimension / 2f, true)
         },
         onDrawBackdrop = { drawBackdrop ->
-            drawBackdrop()
-            layer.record { drawBackdrop() }
+            runCatching { drawBackdrop() }
+            runCatching { layer.record { drawBackdrop() } }
         },
         shape = { shape },
         onDrawSurface = {
