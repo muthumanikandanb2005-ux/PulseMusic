@@ -68,7 +68,7 @@
         tools:targetApi="tiramisu">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".PulseMusicActivity"
             android:configChanges="orientation|uiMode|keyboardHidden|screenSize|screenLayout|smallestScreenSize"
             android:exported="true"
             android:supportsPictureInPicture="true"
@@ -193,6 +193,12 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+        <!-- Backward-compatibility alias for launcher shortcuts and existing installations -->
+        <activity-alias
+            android:name=".MainActivity"
+            android:targetActivity=".PulseMusicActivity"
+            android:exported="true" />
+
 
         <provider
             android:name="androidx.startup.InitializationProvider"

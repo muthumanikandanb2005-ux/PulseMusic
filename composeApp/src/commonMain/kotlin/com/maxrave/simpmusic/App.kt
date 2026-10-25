@@ -185,7 +185,7 @@ fun App(
     LaunchedEffect(intent) {
         val intent = intent ?: return@LaunchedEffect
         val data = intent.data
-        Logger.d("MainActivity", "onCreate: $data")
+        Logger.d("PulseMusicActivity", "onCreate: $data")
         if (data != null) {
             if (data == "simpmusic://notification".toUri()) {
                 viewModel.setIntent(null)
@@ -197,7 +197,7 @@ fun App(
                 // token: wordbyword://lastfm-auth?token=xxx. The callback is fixed on the API
                 // account, which is why the scheme is not "simpmusic".
                 val token = data.getQueryParameter("token")
-                Logger.d("MainActivity", "Last.fm callback, token present: ${!token.isNullOrEmpty()}")
+                Logger.d("PulseMusicActivity", "Last.fm callback, token present: ${!token.isNullOrEmpty()}")
                 viewModel.setIntent(null)
                 // Deliberately no navigation: the login screen is almost certainly already open —
                 // the browser was opened from it — and navigating would stack a second copy on top
@@ -220,7 +220,7 @@ fun App(
                     } else {
                         segments.getOrNull(1)
                     }
-                Logger.d("MainActivity", "simpmusic.org deep link, appPath: $appPath")
+                Logger.d("PulseMusicActivity", "simpmusic.org deep link, appPath: $appPath")
                 viewModel.setIntent(null)
                 when (appPath) {
                     "watch" -> {
@@ -283,7 +283,7 @@ fun App(
                     }
                 }
             } else {
-                Logger.d("MainActivity", "onCreate: $data")
+                Logger.d("PulseMusicActivity", "onCreate: $data")
                 when (val path = data.pathSegments.firstOrNull()) {
                     "playlist" -> {
                         data
@@ -349,7 +349,7 @@ fun App(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     LaunchedEffect(navBackStackEntry) {
-        Logger.d("MainActivity", "Current destination: ${navBackStackEntry?.destination?.route}")
+        Logger.d("PulseMusicActivity", "Current destination: ${navBackStackEntry?.destination?.route}")
         if (navBackStackEntry?.destination?.route?.contains("FullscreenDestination") == true) {
             isShowNowPlaylistScreen = false
         }
@@ -689,7 +689,7 @@ fun App(
                 }
 
                 if (sleepTimerState.isDone) {
-                    Logger.w("MainActivity", "Sleep Timer Done: $sleepTimerState")
+                    Logger.w("PulseMusicActivity", "Sleep Timer Done: $sleepTimerState")
                     AlertDialog(
                         properties =
                             DialogProperties(

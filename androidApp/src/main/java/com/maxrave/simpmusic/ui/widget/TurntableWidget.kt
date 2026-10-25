@@ -48,7 +48,7 @@ import coil3.request.placeholder
 import coil3.toBitmap
 import com.kmpalette.rememberPaletteState
 import com.maxrave.common.Config
-import com.maxrave.simpmusic.MainActivity
+import com.maxrave.simpmusic.PulseMusicActivity
 import com.maxrave.simpmusic.R
 import com.maxrave.simpmusic.extension.getColorFromPalette
 import com.maxrave.simpmusic.viewModel.SharedViewModel
@@ -157,7 +157,7 @@ class TurntableWidget :
                             .fillMaxSize()
                             .background(ColorProvider(bgColor))
                             .padding(8.dp)
-                            .clickable(actionStartActivity<MainActivity>(), rippleOverride = R.drawable.no_ripple),
+                            .clickable(actionStartActivity<PulseMusicActivity>(), rippleOverride = R.drawable.no_ripple),
                     contentAlignment = Alignment.BottomCenter,
                 ) {
                     artwork?.let {

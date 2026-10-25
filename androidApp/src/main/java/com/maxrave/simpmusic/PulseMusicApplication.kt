@@ -103,7 +103,7 @@ class PulseMusicApplication :
             .logErrorOnRestart(false) // default: true
             .trackActivities(true) // default: false
             .minTimeBetweenCrashesMs(2000) // default: 3000 //default: bug image
-            .restartActivity(MainActivity::class.java) // default: null (your app's launch activity)
+            .restartActivity(PulseMusicActivity::class.java) // default: null (your app's launch activity)
             .apply()
 
         runCatching {

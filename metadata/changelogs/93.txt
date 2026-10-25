@@ -1,0 +1,6 @@
+Pulse Music v3.2.5:
+- Fixed startup crash (NullPointerException) in SharedViewModel lyrics vote state
+- Replaced MainActivity with PulseMusicActivity for clean Pulse Music branding
+- Hardened backward compatibility with MainActivity activity-alias for home shortcuts
+- Multi-store distribution updates for Orion Store, F-Droid, and Obtainium
+- High-availability OTA update delivery with multi-endpoint arbitration

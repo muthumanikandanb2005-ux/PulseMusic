@@ -246,6 +246,44 @@ class SharedViewModel(
     private val _shareSavedLyrics: MutableStateFlow<Boolean> = MutableStateFlow(true)
     val shareSavedLyrics: StateFlow<Boolean> get() = _shareSavedLyrics
 
+    private var _downloadState: MutableStateFlow<DownloadHandler.Download?> = MutableStateFlow(null)
+    var downloadState: StateFlow<DownloadHandler.Download?> = _downloadState.asStateFlow()
+
+    private var songInfoJob: Job? = null
+
+    private var _updateResponse = MutableStateFlow<UpdateData?>(null)
+    val updateResponse: StateFlow<UpdateData?> = _updateResponse
+
+    private var _recreateActivity: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val recreateActivity: StateFlow<Boolean> = _recreateActivity
+
+    private val _reloadDestination: MutableStateFlow<KClass<*>?> = MutableStateFlow(null)
+    val reloadDestination: StateFlow<KClass<*>?> = _reloadDestination.asStateFlow()
+
+    sealed class UpdateDownloadState {
+        data object Idle : UpdateDownloadState()
+        data class Downloading(val progress: Float, val downloadedBytes: Long, val totalBytes: Long) : UpdateDownloadState()
+        data object ReadyToInstall : UpdateDownloadState()
+        data class Error(val message: String) : UpdateDownloadState()
+    }
+
+    private val _availableUpdate = MutableStateFlow<UpdateData?>(null)
+    val availableUpdate: StateFlow<UpdateData?> = _availableUpdate.asStateFlow()
+
+    private val _updateDownloadState = MutableStateFlow<UpdateDownloadState>(UpdateDownloadState.Idle)
+    val updateDownloadState: StateFlow<UpdateDownloadState> = _updateDownloadState.asStateFlow()
+
+    private var _downloadFileProgress = MutableStateFlow<DownloadProgress>(DownloadProgress.INIT)
+    val downloadFileProgress: StateFlow<DownloadProgress> get() = _downloadFileProgress
+
+    // Vote state for translated lyrics
+    private val _translatedVoteState = MutableStateFlow<VoteData?>(null)
+    val translatedVoteState: StateFlow<VoteData?> = _translatedVoteState.asStateFlow()
+
+    // Vote state for original lyrics
+    private val _lyricsVoteState = MutableStateFlow<VoteData?>(null)
+    val lyricsVoteState: StateFlow<VoteData?> = _lyricsVoteState.asStateFlow()
+
     init {
         viewModelScope.launch {
             log("SharedViewModel init")
@@ -681,8 +719,6 @@ class SharedViewModel(
         mediaPlayerHandler.sleepStop()
     }
 
-    private var _downloadState: MutableStateFlow<DownloadHandler.Download?> = MutableStateFlow(null)
-    var downloadState: StateFlow<DownloadHandler.Download?> = _downloadState.asStateFlow()
 
     fun checkIsRestoring() {
         viewModelScope.launch {
@@ -1018,7 +1054,6 @@ class SharedViewModel(
         }
     }
 
-    private var songInfoJob: Job? = null
 
     fun getSongInfo(mediaId: String?) {
         songInfoJob?.cancel()
@@ -1036,8 +1071,6 @@ class SharedViewModel(
             }
     }
 
-    private var _updateResponse = MutableStateFlow<UpdateData?>(null)
-    val updateResponse: StateFlow<UpdateData?> = _updateResponse
 
     fun checkForUpdate() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -1880,8 +1913,6 @@ class SharedViewModel(
         }
     }
 
-    private var _recreateActivity: MutableStateFlow<Boolean> = MutableStateFlow(false)
-    val recreateActivity: StateFlow<Boolean> = _recreateActivity
 
     fun activityRecreate() {
         _recreateActivity.value = true
@@ -2015,8 +2046,6 @@ class SharedViewModel(
         }
     }
 
-    private val _reloadDestination: MutableStateFlow<KClass<*>?> = MutableStateFlow(null)
-    val reloadDestination: StateFlow<KClass<*>?> = _reloadDestination.asStateFlow()
 
     fun reloadDestination(destination: KClass<*>) {
         _reloadDestination.value = destination
@@ -2026,18 +2055,6 @@ class SharedViewModel(
         _reloadDestination.value = null
     }
 
-    sealed class UpdateDownloadState {
-        data object Idle : UpdateDownloadState()
-        data class Downloading(val progress: Float, val downloadedBytes: Long, val totalBytes: Long) : UpdateDownloadState()
-        data object ReadyToInstall : UpdateDownloadState()
-        data class Error(val message: String) : UpdateDownloadState()
-    }
-
-    private val _availableUpdate = MutableStateFlow<UpdateData?>(null)
-    val availableUpdate: StateFlow<UpdateData?> = _availableUpdate.asStateFlow()
-
-    private val _updateDownloadState = MutableStateFlow<UpdateDownloadState>(UpdateDownloadState.Idle)
-    val updateDownloadState: StateFlow<UpdateDownloadState> = _updateDownloadState.asStateFlow()
 
     fun dismissUpdate() {
         _availableUpdate.value = null
@@ -2121,8 +2138,6 @@ class SharedViewModel(
 
     fun shouldCheckForUpdate(): Boolean = true
 
-    private var _downloadFileProgress = MutableStateFlow<DownloadProgress>(DownloadProgress.INIT)
-    val downloadFileProgress: StateFlow<DownloadProgress> get() = _downloadFileProgress
 
     fun downloadFile(bitmap: ImageBitmap) {
         val fileName =
@@ -2184,13 +2199,7 @@ class SharedViewModel(
         }
     }
 
-    // Vote state for translated lyrics
-    private val _translatedVoteState = MutableStateFlow<VoteData?>(null)
-    val translatedVoteState: StateFlow<VoteData?> = _translatedVoteState.asStateFlow()
 
-    // Vote state for original lyrics
-    private val _lyricsVoteState = MutableStateFlow<VoteData?>(null)
-    val lyricsVoteState: StateFlow<VoteData?> = _lyricsVoteState.asStateFlow()
 
     /**
      * Vote for SimpMusic original lyrics (upvote or downvote)
@@ -2243,8 +2252,12 @@ class SharedViewModel(
     }
 
     private fun resetLyricsVoteState() {
-        _lyricsVoteState.value = null
-        _translatedVoteState.value = null
+        runCatching {
+            _lyricsVoteState.value = null
+            _translatedVoteState.value = null
+        }.onFailure {
+            Logger.w(tag, "Failed to reset lyrics vote state: ${it.message}")
+        }
     }
 
     /**

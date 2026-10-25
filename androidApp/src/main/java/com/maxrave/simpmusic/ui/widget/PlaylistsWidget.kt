@@ -65,7 +65,7 @@ import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.type.RecentlyType
 import com.manikandan.domain.repository.CommonRepository
 import com.manikandan.domain.utils.toTrack
-import com.maxrave.simpmusic.MainActivity
+import com.maxrave.simpmusic.PulseMusicActivity
 import com.maxrave.simpmusic.R
 import com.maxrave.simpmusic.extension.getColorFromPalette
 import com.maxrave.simpmusic.viewModel.SharedViewModel
@@ -187,7 +187,7 @@ class PlaylistsWidget :
                             // covers used to be tappable, so a press on the title, on the label
                             // or on any gap between them fell straight through to the launcher.
                             .clickable(
-                                actionStartActivity<MainActivity>(),
+                                actionStartActivity<PulseMusicActivity>(),
                                 rippleOverride = R.drawable.no_ripple,
                             ),
                 ) {
@@ -211,7 +211,7 @@ class PlaylistsWidget :
                                 GlanceModifier
                                     .size(88.dp)
                                     .clickable(
-                                        actionStartActivity<MainActivity>(),
+                                        actionStartActivity<PulseMusicActivity>(),
                                         rippleOverride = R.drawable.no_ripple,
                                     ),
                         ) {
@@ -463,7 +463,7 @@ private fun PlaylistCover(
  */
 private fun Context.openAppIntent(uri: String): Intent =
     Intent(Intent.ACTION_VIEW, uri.toUri())
-        .setClass(this, MainActivity::class.java)
+        .setClass(this, PulseMusicActivity::class.java)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
 /**

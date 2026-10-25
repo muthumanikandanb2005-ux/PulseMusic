@@ -18,7 +18,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.maxrave.simpmusic.MainActivity
+import com.maxrave.simpmusic.PulseMusicActivity
 import com.maxrave.simpmusic.R
 import com.maxrave.simpmusic.utils.ComposeResUtils
 import kotlinx.coroutines.runBlocking
@@ -31,7 +31,7 @@ object NotificationHandler {
         noti: NotificationModel,
     ) {
         //  No back-stack when launched
-        val action = Intent(context, MainActivity::class.java)
+        val action = Intent(context, PulseMusicActivity::class.java)
         action.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         action.data = "simpmusic://notification".toUri()
         val pendingIntent =
@@ -295,7 +295,7 @@ object NotificationHandler {
             return
         }
 
-        val intent = Intent(context, MainActivity::class.java).apply {
+        val intent = Intent(context, PulseMusicActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             if (!videoId.isNullOrEmpty()) {
@@ -345,7 +345,7 @@ object NotificationHandler {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
         } else {
-            Intent(context, MainActivity::class.java).apply {
+            Intent(context, PulseMusicActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
         }
@@ -381,7 +381,7 @@ object NotificationHandler {
             return false
         }
 
-        val intent = Intent(context, MainActivity::class.java).apply {
+        val intent = Intent(context, PulseMusicActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(

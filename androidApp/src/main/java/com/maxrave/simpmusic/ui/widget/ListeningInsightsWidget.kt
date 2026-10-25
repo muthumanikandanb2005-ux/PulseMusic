@@ -54,7 +54,7 @@ import com.maxrave.common.Config
 import com.manikandan.domain.repository.AnalyticsRepository
 import com.manikandan.domain.repository.ArtistRepository
 import com.manikandan.domain.repository.SongRepository
-import com.maxrave.simpmusic.MainActivity
+import com.maxrave.simpmusic.PulseMusicActivity
 import com.maxrave.simpmusic.R
 import com.maxrave.simpmusic.extension.getColorFromPalette
 import com.maxrave.simpmusic.viewModel.SharedViewModel
@@ -245,7 +245,7 @@ class ListeningInsightsWidget :
                             .background(ColorProvider(bgColor))
                             .padding(12.dp)
                             .clickable(
-                                actionStartActivity<MainActivity>(),
+                                actionStartActivity<PulseMusicActivity>(),
                                 rippleOverride = R.drawable.no_ripple,
                             ),
                 ) {

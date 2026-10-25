@@ -60,7 +60,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 @Suppress("DEPRECATION")
-class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
+class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     val viewModel: SharedViewModel by inject()
     val mediaPlayerHandler by inject<MediaPlayerHandler>()
     val dataStoreManager: DataStoreManager by inject()
@@ -73,14 +73,14 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                 name: ComponentName?,
                 service: IBinder?,
             ) {
-//                mediaPlayerHandler.setActivitySession(this@MainActivity, MainActivity::class.java, service)
-                setServiceActivitySession(this@MainActivity, MainActivity::class.java, service)
-                Logger.w("MainActivity", "onServiceConnected: ")
+//                mediaPlayerHandler.setActivitySession(this@PulseMusicActivity, PulseMusicActivity::class.java, service)
+                setServiceActivitySession(this@PulseMusicActivity, PulseMusicActivity::class.java, service)
+                Logger.w("PulseMusicActivity", "onServiceConnected: ")
                 mBound = true
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-                Logger.w("MainActivity", "onServiceDisconnected: ")
+                Logger.w("PulseMusicActivity", "onServiceDisconnected: ")
                 mBound = false
             }
         }
@@ -105,14 +105,14 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         return if (scheme in listOf("http", "https", "simpmusic", "pulsemusic", "vnd.youtube")) {
             uri
         } else {
-            Logger.w("MainActivity", "Rejected untrusted intent URI scheme: $scheme")
+            Logger.w("PulseMusicActivity", "Rejected untrusted intent URI scheme: $scheme")
             null
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Logger.d("MainActivity", "onNewIntent: $intent")
+        Logger.d("PulseMusicActivity", "onNewIntent: $intent")
         val rawData = sanitizeIntentUri(
             intent.data
                 ?: intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         super.onCreate(savedInstanceState)
         loadKoinModules(
             module {
-                single<AppCompatActivity> { this@MainActivity }
+                single<AppCompatActivity> { this@PulseMusicActivity }
             },
         )
         VersionManager.initialize()
@@ -141,7 +141,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         } else {
             startMusicService()
         }
-        Logger.d("MainActivity", "onCreate: ")
+        Logger.d("PulseMusicActivity", "onCreate: ")
         val rawData = sanitizeIntentUri(
             intent?.data
                 ?: intent?.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
@@ -224,9 +224,9 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         viewModel.checkIsRestoring()
         // Offload non-critical notification channels & periodic WorkManager scheduling off main thread for fastest app opening speed
         lifecycleScope.launch(Dispatchers.Default) {
-            NotificationHandler.createNotificationChannel(this@MainActivity)
-            NotificationHandler.createAppUpdateNotificationChannel(this@MainActivity)
-            NotificationHandler.createTrendingNotificationChannel(this@MainActivity)
+            NotificationHandler.createNotificationChannel(this@PulseMusicActivity)
+            NotificationHandler.createAppUpdateNotificationChannel(this@PulseMusicActivity)
+            NotificationHandler.createTrendingNotificationChannel(this@PulseMusicActivity)
 
             runCatching {
                 val trendingPeriodic =
@@ -239,7 +239,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                                 .setRequiredNetworkType(NetworkType.CONNECTED)
                                 .build(),
                         ).build()
-                WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                WorkManager.getInstance(this@PulseMusicActivity).enqueueUniquePeriodicWork(
                     "Pulse Trending Music Worker",
                     ExistingPeriodicWorkPolicy.UPDATE,
                     trendingPeriodic,
@@ -256,19 +256,19 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                                 .setRequiredNetworkType(NetworkType.CONNECTED)
                                 .build(),
                         ).build()
-                WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                WorkManager.getInstance(this@PulseMusicActivity).enqueueUniquePeriodicWork(
                     "Artist Worker",
                     ExistingPeriodicWorkPolicy.KEEP,
                     artistRequest,
                 )
             }.onFailure {
-                Logger.w("MainActivity", "Failed to schedule periodic workers: ${it.message}")
+                Logger.w("PulseMusicActivity", "Failed to schedule periodic workers: ${it.message}")
             }
         }
 
         lifecycleScope.launch {
             runCatching {
-                WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Blog RSS Worker")
+                WorkManager.getInstance(this@PulseMusicActivity).cancelUniqueWork("Blog RSS Worker")
             }
 
             dataStoreManager.autoCheckForUpdates.collect { enabled ->
@@ -285,7 +285,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                                         .setRequiredNetworkType(NetworkType.CONNECTED)
                                         .build(),
                                 ).build()
-                        WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                        WorkManager.getInstance(this@PulseMusicActivity).enqueueUniquePeriodicWork(
                             "Pulse App Update Worker",
                             ExistingPeriodicWorkPolicy.UPDATE,
                             updateRequest,
@@ -293,7 +293,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                     }
                 } else {
                     runCatching {
-                        WorkManager.getInstance(this@MainActivity).cancelUniqueWork("Pulse App Update Worker")
+                        WorkManager.getInstance(this@PulseMusicActivity).cancelUniqueWork("Pulse App Update Worker")
                     }
                 }
             }
@@ -303,7 +303,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             viewModel.availableUpdate.collect { update ->
                 if (update != null && update.tagName.isNotBlank()) {
                     NotificationHandler.postUpdateAvailableNotification(
-                        context = this@MainActivity,
+                        context = this@PulseMusicActivity,
                         versionName = update.tagName.trim().removePrefix("v").removePrefix("V"),
                         downloadUrl = "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest",
                     )
@@ -335,13 +335,13 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     override fun onDestroy() {
         val shouldStopMusicService = viewModel.shouldStopMusicService()
-        Logger.w("MainActivity", "onDestroy: Should stop service $shouldStopMusicService")
+        Logger.w("PulseMusicActivity", "onDestroy: Should stop service $shouldStopMusicService")
 
         if (mBound && shouldUnbind) {
             try {
                 unbindService(serviceConnection)
             } catch (e: Exception) {
-                Logger.w("MainActivity", "Error unbinding service: ${e.message}")
+                Logger.w("PulseMusicActivity", "Error unbinding service: ${e.message}")
             }
             mBound = false
         }
@@ -349,7 +349,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             viewModel.isServiceRunning = false
         }
         super.onDestroy()
-        Logger.d("MainActivity", "onDestroy: ")
+        Logger.d("PulseMusicActivity", "onDestroy: ")
     }
 
     override fun onRestart() {
@@ -359,7 +359,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     private fun startMusicService() {
 //        mediaPlayerHandler.startMediaService(this, serviceConnection)
         com.maxrave.media3.di
-            .startService(this@MainActivity, serviceConnection)
+            .startService(this@PulseMusicActivity, serviceConnection)
         mediaPlayerHandler.pushPlayerError = { it ->
             pushPlayerError(it)
         }
@@ -400,14 +400,14 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     private fun triggerInitialNotifications() {
         lifecycleScope.launch(Dispatchers.IO) {
-            NotificationHandler.createNotificationChannel(this@MainActivity)
-            NotificationHandler.createAppUpdateNotificationChannel(this@MainActivity)
-            NotificationHandler.createTrendingNotificationChannel(this@MainActivity)
+            NotificationHandler.createNotificationChannel(this@PulseMusicActivity)
+            NotificationHandler.createAppUpdateNotificationChannel(this@PulseMusicActivity)
+            NotificationHandler.createTrendingNotificationChannel(this@PulseMusicActivity)
 
             // Always check for updates in background regardless of notification permission
             viewModel.checkForAppUpdate(silent = true)
 
-            if (!NotificationHandler.canPostNotification(this@MainActivity)) {
+            if (!NotificationHandler.canPostNotification(this@PulseMusicActivity)) {
                 return@launch
             }
 
@@ -428,7 +428,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                 )
                 val hit = trendingHits.random()
                 NotificationHandler.postTrendingSongNotification(
-                    context = this@MainActivity,
+                    context = this@PulseMusicActivity,
                     title = hit.first,
                     artist = hit.second,
                     videoId = hit.third,
@@ -459,7 +459,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     override fun onPermissionsGranted(requestCode: Int, perms: List<String>) {
-        Logger.i("MainActivity", "onPermissionsGranted: $perms")
+        Logger.i("PulseMusicActivity", "onPermissionsGranted: $perms")
         triggerInitialNotifications()
         val update = viewModel.availableUpdate.value
         if (update != null && update.tagName.isNotBlank()) {
@@ -472,10 +472,13 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     override fun onPermissionsDenied(requestCode: Int, perms: List<String>) {
-        Logger.w("MainActivity", "onPermissionsDenied: $perms")
+        Logger.w("PulseMusicActivity", "onPermissionsDenied: $perms")
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
     }
 }
+
+// Backward compatibility alias
+typealias MainActivity = PulseMusicActivity
