@@ -29,6 +29,8 @@ interface MediaPlayerHandler {
     val format: StateFlow<NewFormatEntity?>
     val currentSongIndex: StateFlow<Int>
     val castState: StateFlow<GenericCastState>
+    val discoveryRatio: StateFlow<Float>
+    val listeningHealthState: StateFlow<ListeningHealthState>
 
     // Listeners
     var onUpdateNotification: (List<GenericCommandButton>) -> Unit
@@ -167,6 +169,8 @@ interface MediaPlayerHandler {
     fun shouldReleaseOnTaskRemoved(): Boolean
 
     fun release()
+
+    fun setDiscoveryRatio(ratio: Float)
 }
 
 // State classes and enums - these would need to be defined in domain layer
@@ -376,4 +380,24 @@ sealed class ToastType(
     data class PlayerError(
         val error: String,
     ) : ToastType(error)
+
+    data class HearingHealthBreak(
+        val minutes: Int,
+    ) : ToastType(minutes.toString())
+
+    data object SaferVolumeLimitActive : ToastType()
+}
+
+data class ListeningHealthState(
+    val sessionMinutes: Int = 0,
+    val todayMinutes: Int = 0,
+    val isHeadphonesActive: Boolean = false,
+    val currentVolumeRatio: Float = 0.5f,
+    val hearingSafetyStatus: HearingSafetyStatus = HearingSafetyStatus.SAFE,
+)
+
+enum class HearingSafetyStatus {
+    SAFE,
+    MODERATE,
+    CAUTION,
 }

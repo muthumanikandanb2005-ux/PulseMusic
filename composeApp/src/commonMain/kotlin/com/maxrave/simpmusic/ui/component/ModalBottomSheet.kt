@@ -965,6 +965,7 @@ fun QueueBottomSheet(
         }
     }
     val endlessQueueEnable by dataStoreManager.endlessQueue.map { it == DataStoreManager.TRUE }.collectAsState(false)
+    val discoveryRatio by musicServiceHandler.discoveryRatio.collectAsStateWithLifecycle()
 
     val shouldLoadMore =
         remember {
@@ -1139,7 +1140,13 @@ fun QueueBottomSheet(
                         Spacer(modifier = Modifier.width(10.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+                DiscoveryMixSlider(
+                    ratio = discoveryRatio,
+                    onRatioChange = { musicServiceHandler.setDiscoveryRatio(it) },
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 LazyColumn(
                     horizontalAlignment = Alignment.Start,
                     state = lazyListState,

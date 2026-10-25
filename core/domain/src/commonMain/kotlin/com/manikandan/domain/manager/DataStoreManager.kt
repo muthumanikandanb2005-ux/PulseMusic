@@ -38,6 +38,33 @@ interface DataStoreManager {
 
     suspend fun setMusicLanguage(language: String)
 
+    // Discovery Mix Ratio: 0.0f (100% familiar) to 1.0f (100% discovery). Default: 0.20f (80% familiar, 20% new)
+    val discoveryRatio: Flow<Float>
+
+    suspend fun setDiscoveryRatio(ratio: Float)
+
+    // Listening Health & Hearing Safety
+    val listeningHealthEnabled: Flow<Boolean>
+
+    suspend fun setListeningHealthEnabled(enabled: Boolean)
+
+    val saferVolumeLimitEnabled: Flow<Boolean>
+
+    suspend fun setSaferVolumeLimitEnabled(enabled: Boolean)
+
+    // Interval in minutes for break reminders (0 = Off, 30, 45, 60, 90, 120). Default: 60
+    val breakReminderMinutes: Flow<Int>
+
+    suspend fun setBreakReminderMinutes(minutes: Int)
+
+    val todayListeningMinutes: Flow<Int>
+
+    suspend fun setTodayListeningMinutes(minutes: Int)
+
+    val todayListeningDate: Flow<String>
+
+    suspend fun setTodayListeningDate(date: String)
+
 
     /**
      * Serialized "Moods & Genres" browse result, so the search and home screens can paint their

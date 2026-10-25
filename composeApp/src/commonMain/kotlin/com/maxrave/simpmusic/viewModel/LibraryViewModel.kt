@@ -54,6 +54,12 @@ import simpmusic.composeapp.generated.resources.added_local_playlist
 import simpmusic.composeapp.generated.resources.wrapped_recap_month
 import simpmusic.composeapp.generated.resources.wrapped_recap_month_year
 import simpmusic.composeapp.generated.resources.youtube_liked_music
+import com.manikandan.domain.data.entities.DownloadState
+import com.maxrave.simpmusic.ui.screen.library.UnifiedShelfItem
+import com.maxrave.simpmusic.ui.screen.library.UnifiedShelfFilter
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 
 class LibraryViewModel(
     private val dataStoreManager: DataStoreManager,
@@ -388,6 +394,65 @@ class LibraryViewModel(
             songRepository.resetTotalPlayTime(videoId)
             delay(500) // Wait for the database to update
             getRecentlyAdded()
+        }
+    }
+
+    private val _unifiedItems: MutableStateFlow<List<UnifiedShelfItem>> = MutableStateFlow(emptyList())
+    private val _unifiedQuery: MutableStateFlow<String> = MutableStateFlow("")
+    val unifiedQuery: StateFlow<String> = _unifiedQuery.asStateFlow()
+    private val _unifiedFilter: MutableStateFlow<UnifiedShelfFilter> = MutableStateFlow(UnifiedShelfFilter.ALL)
+    val unifiedFilter: StateFlow<UnifiedShelfFilter> = _unifiedFilter.asStateFlow()
+
+    val filteredUnifiedItems: StateFlow<List<UnifiedShelfItem>> =
+        combine(_unifiedItems, _unifiedQuery, _unifiedFilter) { items, query, filter ->
+            items.filter { item ->
+                val matchesFilter = when (filter) {
+                    UnifiedShelfFilter.ALL -> true
+                    UnifiedShelfFilter.STREAMING -> item.filterType == UnifiedShelfFilter.STREAMING
+                    UnifiedShelfFilter.ALBUMS -> item.filterType == UnifiedShelfFilter.ALBUMS
+                    UnifiedShelfFilter.PERSONAL_AUDIO -> item.filterType == UnifiedShelfFilter.PERSONAL_AUDIO
+                }
+                val matchesQuery = if (query.isBlank()) {
+                    true
+                } else {
+                    item.title.contains(query, ignoreCase = true) || item.subtitle.contains(query, ignoreCase = true)
+                }
+                matchesFilter && matchesQuery
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setUnifiedQuery(query: String) {
+        _unifiedQuery.value = query
+    }
+
+    fun setUnifiedFilter(filter: UnifiedShelfFilter) {
+        _unifiedFilter.value = filter
+    }
+
+    fun getUnifiedShelfData() {
+        viewModelScope.launch {
+            combine(
+                songRepository.getAllSongs(1000),
+                albumRepository.getAllAlbums(1000),
+            ) { allSongs, allAlbums ->
+                val list = mutableListOf<UnifiedShelfItem>()
+                allSongs.forEach { song ->
+                    if (song.inLibrary != Config.REMOVED_SONG_DATE_TIME) {
+                        if (song.downloadState == DownloadState.STATE_DOWNLOADED) {
+                            list.add(UnifiedShelfItem.PersonalAudio(song))
+                        } else {
+                            list.add(UnifiedShelfItem.StreamingSong(song))
+                        }
+                    }
+                }
+                allAlbums.forEach { album ->
+                    list.add(UnifiedShelfItem.Album(album))
+                }
+                list.sortBy { it.title.lowercase() }
+                list
+            }.collectLatest {
+                _unifiedItems.value = it
+            }
         }
     }
 

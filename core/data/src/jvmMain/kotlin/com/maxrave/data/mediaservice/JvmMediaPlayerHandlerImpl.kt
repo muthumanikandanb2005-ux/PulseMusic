@@ -55,6 +55,8 @@ import com.manikandan.domain.mediaservice.handler.QueueData
 import com.manikandan.domain.mediaservice.handler.RepeatState
 import com.manikandan.domain.mediaservice.handler.SimpleMediaState
 import com.manikandan.domain.mediaservice.handler.SleepTimerState
+import com.manikandan.domain.mediaservice.handler.HearingSafetyStatus
+import com.manikandan.domain.mediaservice.handler.ListeningHealthState
 import com.manikandan.domain.mediaservice.handler.ToastType
 import com.manikandan.domain.mediaservice.player.MediaPlayerInterface
 import com.manikandan.domain.mediaservice.player.MediaPlayerListener
@@ -89,6 +91,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.single
@@ -221,7 +224,7 @@ class JvmMediaPlayerHandlerImpl(
             Platform.MacOs
         } else {
             Platform.Linux(
-                "SimpMusic",
+                "Pulse Music",
                 "com.maxrave.simpmusic",
             )
         }
@@ -307,6 +310,22 @@ class JvmMediaPlayerHandlerImpl(
 
     // Desktop never casts; expose a fixed not-casting state to satisfy the interface.
     override val castState: StateFlow<GenericCastState> = MutableStateFlow(GenericCastState.NOT_CASTING).asStateFlow()
+
+    private val _discoveryRatio = MutableStateFlow(0.20f)
+    override val discoveryRatio: StateFlow<Float> = _discoveryRatio.asStateFlow()
+
+    override fun setDiscoveryRatio(ratio: Float) {
+        _discoveryRatio.value = ratio.coerceIn(0f, 1f)
+        coroutineScope.launch {
+            dataStoreManager.setDiscoveryRatio(ratio.coerceIn(0f, 1f))
+        }
+    }
+
+    private val _listeningHealthState = MutableStateFlow(ListeningHealthState())
+    override val listeningHealthState: StateFlow<ListeningHealthState> = _listeningHealthState.asStateFlow()
+
+    private var continuousPlaybackSeconds = 0
+    private var lastReminderSentAtMinute = 0
 
     // List of Specific variables
 
@@ -406,6 +425,12 @@ class JvmMediaPlayerHandlerImpl(
         sleepTimerJob = Job()
         volumeNormalizationJob = Job()
         updateNotificationJob = Job()
+        coroutineScope.launch {
+            dataStoreManager.discoveryRatio.collectLatest { ratio ->
+                _discoveryRatio.value = ratio
+            }
+        }
+        startListeningHealthTracking()
         toggleLikeJob = Job()
         loadJob = Job()
         songEntityJob = Job()
@@ -1792,7 +1817,34 @@ class JvmMediaPlayerHandlerImpl(
             songRepository.getRelatedData(videoId).collect { response ->
                 when (response) {
                     is Resource.Success -> {
-                        loadMoreCatalog(response.data?.first?.toCollection(arrayListOf()) ?: arrayListOf())
+                        val discoveryTracks = response.data?.first?.toCollection(arrayListOf()) ?: arrayListOf()
+                        val ratio = _discoveryRatio.value
+                        val blendedTracks = if (ratio < 0.95f && discoveryTracks.isNotEmpty()) {
+                            val familiar = runCatching {
+                                songRepository.getLikedSongs().firstOrNull()?.toArrayListTrack()
+                            }.getOrNull()?.shuffled()?.filter { f -> !queueData.value.data.listTracks.any { it.videoId == f.videoId } } ?: emptyList()
+
+                            if (familiar.isNotEmpty()) {
+                                val familiarRatio = (1f - ratio).coerceIn(0f, 1f)
+                                val targetFamiliarPerBatch = ((familiarRatio / ratio.coerceAtLeast(0.05f))).toInt().coerceIn(1, 6)
+                                val result = arrayListOf<Track>()
+                                var fIdx = 0
+                                var dIdx = 0
+                                while (dIdx < discoveryTracks.size || fIdx < familiar.size) {
+                                    repeat(targetFamiliarPerBatch) {
+                                        if (fIdx < familiar.size) result.add(familiar[fIdx++])
+                                    }
+                                    if (dIdx < discoveryTracks.size) result.add(discoveryTracks[dIdx++])
+                                    if (result.size >= 50) break
+                                }
+                                result
+                            } else {
+                                discoveryTracks
+                            }
+                        } else {
+                            discoveryTracks
+                        }
+                        loadMoreCatalog(blendedTracks)
                         _queueData.update {
                             it.copy(
                                 data =
@@ -2583,6 +2635,53 @@ class JvmMediaPlayerHandlerImpl(
             _simpleMediaState.value = SimpleMediaState.Progress(savedPosition)
             true
         }
+
+    private fun startListeningHealthTracking() {
+        coroutineScope.launch(Dispatchers.IO) {
+            var pausedSeconds = 0
+            while (isActive) {
+                delay(5000L)
+                val isPlaying = player.isPlaying
+                if (isPlaying) {
+                    pausedSeconds = 0
+                    continuousPlaybackSeconds += 5
+                    val sessionMins = continuousPlaybackSeconds / 60
+
+                    val doseStatus = when {
+                        sessionMins > 90 -> HearingSafetyStatus.CAUTION
+                        sessionMins > 45 -> HearingSafetyStatus.MODERATE
+                        else -> HearingSafetyStatus.SAFE
+                    }
+
+                    _listeningHealthState.update {
+                        it.copy(
+                            sessionMinutes = sessionMins,
+                            todayMinutes = it.todayMinutes + (if (continuousPlaybackSeconds % 60 == 0) 1 else 0),
+                            isHeadphonesActive = true,
+                            currentVolumeRatio = 0.5f,
+                            hearingSafetyStatus = doseStatus,
+                        )
+                    }
+
+                    val reminderInterval = runCatching { dataStoreManager.breakReminderMinutes.firstOrNull() }.getOrNull() ?: 60
+                    val healthEnabled = runCatching { dataStoreManager.listeningHealthEnabled.firstOrNull() }.getOrNull() ?: true
+                    if (healthEnabled && reminderInterval > 0) {
+                        if (sessionMins >= reminderInterval && sessionMins > lastReminderSentAtMinute) {
+                            lastReminderSentAtMinute = sessionMins
+                            showToast(ToastType.HearingHealthBreak(sessionMins))
+                        }
+                    }
+                } else {
+                    pausedSeconds += 5
+                    if (pausedSeconds >= 300) {
+                        continuousPlaybackSeconds = 0
+                        lastReminderSentAtMinute = 0
+                        _listeningHealthState.update { it.copy(sessionMinutes = 0, hearingSafetyStatus = HearingSafetyStatus.SAFE) }
+                    }
+                }
+            }
+        }
+    }
 
     override fun shouldReleaseOnTaskRemoved() =
         runBlocking {

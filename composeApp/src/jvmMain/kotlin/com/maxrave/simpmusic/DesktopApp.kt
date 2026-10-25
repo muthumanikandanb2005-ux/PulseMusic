@@ -68,6 +68,8 @@ import org.koin.mp.KoinPlatform.getKoin
 import org.simpmusic.lastfm.configLastfm
 import simpmusic.composeapp.generated.resources.Res
 import simpmusic.composeapp.generated.resources.app_name
+import simpmusic.composeapp.generated.resources.break_reminder_toast
+import simpmusic.composeapp.generated.resources.safer_volume_limit_toast
 import simpmusic.composeapp.generated.resources.circle_app_icon
 import simpmusic.composeapp.generated.resources.close_miniplayer
 import simpmusic.composeapp.generated.resources.explicit_content_blocked
@@ -243,6 +245,14 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
 
                 is ToastType.PlayerError -> {
                     runBlocking { getString(Res.string.time_out_check_internet_connection_or_change_piped_instance_in_settings, type.error) }
+                }
+
+                is ToastType.HearingHealthBreak -> {
+                    runBlocking { getString(Res.string.break_reminder_toast, type.minutes) }
+                }
+
+                ToastType.SaferVolumeLimitActive -> {
+                    runBlocking { getString(Res.string.safer_volume_limit_toast) }
                 }
             },
         )

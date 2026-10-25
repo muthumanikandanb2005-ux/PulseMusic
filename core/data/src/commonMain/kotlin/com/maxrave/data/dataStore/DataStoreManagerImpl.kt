@@ -111,6 +111,84 @@ internal class DataStoreManagerImpl(
         }
     }
 
+    override val discoveryRatio: Flow<Float> =
+        settingsDataStore.data.map { preferences ->
+            preferences[DISCOVERY_RATIO] ?: 0.20f
+        }
+
+    override suspend fun setDiscoveryRatio(ratio: Float) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[DISCOVERY_RATIO] = ratio
+            }
+        }
+    }
+
+    override val listeningHealthEnabled: Flow<Boolean> =
+        settingsDataStore.data.map { preferences ->
+            preferences[LISTENING_HEALTH_ENABLED] ?: true
+        }
+
+    override suspend fun setListeningHealthEnabled(enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[LISTENING_HEALTH_ENABLED] = enabled
+            }
+        }
+    }
+
+    override val saferVolumeLimitEnabled: Flow<Boolean> =
+        settingsDataStore.data.map { preferences ->
+            preferences[SAFER_VOLUME_LIMIT_ENABLED] ?: false
+        }
+
+    override suspend fun setSaferVolumeLimitEnabled(enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[SAFER_VOLUME_LIMIT_ENABLED] = enabled
+            }
+        }
+    }
+
+    override val breakReminderMinutes: Flow<Int> =
+        settingsDataStore.data.map { preferences ->
+            preferences[BREAK_REMINDER_MINUTES] ?: 60
+        }
+
+    override suspend fun setBreakReminderMinutes(minutes: Int) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[BREAK_REMINDER_MINUTES] = minutes
+            }
+        }
+    }
+
+    override val todayListeningMinutes: Flow<Int> =
+        settingsDataStore.data.map { preferences ->
+            preferences[TODAY_LISTENING_MINUTES] ?: 0
+        }
+
+    override suspend fun setTodayListeningMinutes(minutes: Int) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[TODAY_LISTENING_MINUTES] = minutes
+            }
+        }
+    }
+
+    override val todayListeningDate: Flow<String> =
+        settingsDataStore.data.map { preferences ->
+            preferences[TODAY_LISTENING_DATE] ?: ""
+        }
+
+    override suspend fun setTodayListeningDate(date: String) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[TODAY_LISTENING_DATE] = date
+            }
+        }
+    }
+
     override val moodAndGenresCache: Flow<String?> =
         settingsDataStore.data.map { preferences ->
             preferences[MOOD_AND_GENRES_CACHE]
@@ -2027,6 +2105,12 @@ internal class DataStoreManagerImpl(
         val LOGGED_IN = stringPreferencesKey("logged_in")
         val LOCATION = stringPreferencesKey("location")
         val MUSIC_LANGUAGE = stringPreferencesKey("music_language")
+        val DISCOVERY_RATIO = floatPreferencesKey("discovery_ratio")
+        val LISTENING_HEALTH_ENABLED = booleanPreferencesKey("listening_health_enabled")
+        val SAFER_VOLUME_LIMIT_ENABLED = booleanPreferencesKey("safer_volume_limit_enabled")
+        val BREAK_REMINDER_MINUTES = intPreferencesKey("break_reminder_minutes")
+        val TODAY_LISTENING_MINUTES = intPreferencesKey("today_listening_minutes")
+        val TODAY_LISTENING_DATE = stringPreferencesKey("today_listening_date")
         val MOOD_AND_GENRES_CACHE = stringPreferencesKey("mood_and_genres_cache")
         val MOOD_ARTWORK_CACHE = stringPreferencesKey("mood_artwork_cache")
         val QUALITY = stringPreferencesKey("quality")

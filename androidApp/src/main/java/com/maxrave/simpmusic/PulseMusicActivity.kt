@@ -377,6 +377,14 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
                             runBlocking { ComposeResUtils.getResString(ComposeResUtils.StringType.TIME_OUT_ERROR, type.error) }
                         }.getOrDefault("Playback error: ${type.error}")
                     }
+
+                    is ToastType.HearingHealthBreak -> {
+                        "Listening Health: You've been listening for ${type.minutes} minutes. Give your ears a short break."
+                    }
+
+                    is ToastType.SaferVolumeLimitActive -> {
+                        "Safer Volume Limit active: Volume capped at 75% to protect your hearing."
+                    }
                 },
             )
         }

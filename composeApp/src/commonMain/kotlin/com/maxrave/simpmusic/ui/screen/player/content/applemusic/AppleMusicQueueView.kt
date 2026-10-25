@@ -79,6 +79,7 @@ import simpmusic.composeapp.generated.resources.Res
 import simpmusic.composeapp.generated.resources.continue_playing
 import simpmusic.composeapp.generated.resources.endless_queue
 import simpmusic.composeapp.generated.resources.now_playing
+import com.maxrave.simpmusic.ui.component.DiscoveryMixSlider
 
 /**
  * The QUEUE body: compact header, [Info][PlaylistAdd][Shuffle][Repeat] pills, a "Continue
@@ -392,6 +393,8 @@ private fun AppleMusicContinuePlayingHeader(
             dataStoreManager.endlessQueue.map { it == DataStoreManager.TRUE }
         }
     val endlessQueueEnabled by endlessQueueFlow.collectAsStateWithLifecycle(initialValue = false)
+    val musicServiceHandler: MediaPlayerHandler = koinInject()
+    val discoveryRatio by musicServiceHandler.discoveryRatio.collectAsStateWithLifecycle()
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Two stacked lines instead of one "Continue Playing": the small label says WHAT this
@@ -444,6 +447,12 @@ private fun AppleMusicContinuePlayingHeader(
                 modifier = Modifier.appleMusicPressInflate(pressedScale = 1.08f),
             )
         }
+        Spacer(modifier = Modifier.height(10.dp))
+        DiscoveryMixSlider(
+            ratio = discoveryRatio,
+            onRatioChange = { musicServiceHandler.setDiscoveryRatio(it) },
+            containerColor = Color.White.copy(alpha = 0.08f),
+        )
     }
 }
 

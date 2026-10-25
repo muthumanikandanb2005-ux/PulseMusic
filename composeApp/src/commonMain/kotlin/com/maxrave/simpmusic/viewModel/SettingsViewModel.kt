@@ -94,6 +94,25 @@ class SettingsViewModel(
     val language: StateFlow<String?> = _language
     private var _musicLanguage: MutableStateFlow<String> = MutableStateFlow("auto")
     val musicLanguage: StateFlow<String> = _musicLanguage
+
+    private val _listeningHealthEnabled = MutableStateFlow<Boolean>(true)
+    val listeningHealthEnabled: StateFlow<Boolean> = _listeningHealthEnabled
+
+    private val _saferVolumeLimitEnabled = MutableStateFlow<Boolean>(false)
+    val saferVolumeLimitEnabled: StateFlow<Boolean> = _saferVolumeLimitEnabled
+
+    private val _breakReminderMinutes = MutableStateFlow<Int>(60)
+    val breakReminderMinutes: StateFlow<Int> = _breakReminderMinutes
+
+    val listeningHealthState: StateFlow<com.manikandan.domain.mediaservice.handler.ListeningHealthState>
+        get() = mediaPlayerHandler.listeningHealthState
+
+    val discoveryRatio: StateFlow<Float>
+        get() = mediaPlayerHandler.discoveryRatio
+
+    fun setDiscoveryRatio(ratio: Float) {
+        mediaPlayerHandler.setDiscoveryRatio(ratio)
+    }
     private var _loggedIn: MutableStateFlow<String?> = MutableStateFlow(null)
     val loggedIn: StateFlow<String?> = _loggedIn
     private var _normalizeVolume: MutableStateFlow<String?> = MutableStateFlow(null)
@@ -286,6 +305,7 @@ class SettingsViewModel(
         getLocation()
         getLanguage()
         getMusicLanguage()
+        getListeningHealthSettings()
         getQuality()
         getPlayerCacheSize()
         getDownloadedCacheSize()
@@ -1191,6 +1211,47 @@ class SettingsViewModel(
             dataStoreManager.setMusicLanguage(language)
             dataStoreManager.setMoodAndGenresCache("")
             _musicLanguage.emit(language)
+        }
+    }
+
+    private fun getListeningHealthSettings() {
+        viewModelScope.launch {
+            launch {
+                dataStoreManager.listeningHealthEnabled.collect {
+                    _listeningHealthEnabled.value = it
+                }
+            }
+            launch {
+                dataStoreManager.saferVolumeLimitEnabled.collect {
+                    _saferVolumeLimitEnabled.value = it
+                }
+            }
+            launch {
+                dataStoreManager.breakReminderMinutes.collect {
+                    _breakReminderMinutes.value = it
+                }
+            }
+        }
+    }
+
+    fun setListeningHealthEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.setListeningHealthEnabled(enabled)
+            _listeningHealthEnabled.value = enabled
+        }
+    }
+
+    fun setSaferVolumeLimitEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.setSaferVolumeLimitEnabled(enabled)
+            _saferVolumeLimitEnabled.value = enabled
+        }
+    }
+
+    fun setBreakReminderMinutes(minutes: Int) {
+        viewModelScope.launch {
+            dataStoreManager.setBreakReminderMinutes(minutes)
+            _breakReminderMinutes.value = minutes
         }
     }
 

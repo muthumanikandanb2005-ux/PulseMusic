@@ -45,6 +45,10 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -241,6 +245,18 @@ import simpmusic.composeapp.generated.resources.clear_thumbnail_cache
 import simpmusic.composeapp.generated.resources.content
 import simpmusic.composeapp.generated.resources.content_country
 import simpmusic.composeapp.generated.resources.music_language_preference
+import com.maxrave.simpmusic.ui.icon.Headphones
+import simpmusic.composeapp.generated.resources.listening_health
+import simpmusic.composeapp.generated.resources.listening_health_session
+import simpmusic.composeapp.generated.resources.listening_health_today
+import simpmusic.composeapp.generated.resources.listening_health_dose_safe
+import simpmusic.composeapp.generated.resources.listening_health_dose_moderate
+import simpmusic.composeapp.generated.resources.listening_health_dose_caution
+import simpmusic.composeapp.generated.resources.break_reminder
+import simpmusic.composeapp.generated.resources.break_reminder_description
+import simpmusic.composeapp.generated.resources.break_reminder_interval
+import simpmusic.composeapp.generated.resources.safer_volume_limit
+import simpmusic.composeapp.generated.resources.safer_volume_limit_description
 
 import simpmusic.composeapp.generated.resources.crossfade
 import simpmusic.composeapp.generated.resources.crossfade_auto
@@ -523,6 +539,10 @@ fun SettingScreen(
     val language by viewModel.language.collectAsStateWithLifecycle()
     val location by viewModel.location.collectAsStateWithLifecycle()
     val musicLanguage by viewModel.musicLanguage.collectAsStateWithLifecycle()
+    val listeningHealthEnabled by viewModel.listeningHealthEnabled.collectAsStateWithLifecycle()
+    val saferVolumeLimitEnabled by viewModel.saferVolumeLimitEnabled.collectAsStateWithLifecycle()
+    val breakReminderMinutes by viewModel.breakReminderMinutes.collectAsStateWithLifecycle()
+    val listeningHealthState by viewModel.listeningHealthState.collectAsStateWithLifecycle()
     val quality by viewModel.quality.collectAsStateWithLifecycle()
     val downloadQuality by viewModel.downloadQuality.collectAsStateWithLifecycle()
     val autoDownloadLikedSongs by viewModel.autoDownloadLikedSongs.collectAsStateWithLifecycle()
@@ -1245,6 +1265,141 @@ fun SettingScreen(
                     title = stringResource(Res.string.proxy),
                     subtitle = stringResource(Res.string.proxy_description),
                     switch = (usingProxy to { viewModel.setUsingProxy(it) }),
+                )
+            }
+        }
+        item(key = "listening_health") {
+            Column {
+                Text(
+                    text = stringResource(Res.string.listening_health),
+                    style = typo().labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFA78BFA).copy(alpha = 0.12f),
+                    ),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = SimpIcons.Headphones,
+                                    contentDescription = null,
+                                    tint = Color(0xFFA78BFA),
+                                    modifier = Modifier.size(24.dp),
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = if (listeningHealthState.isHeadphonesActive) "Headphones Active" else "Audio Output",
+                                    style = typo().titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = when (listeningHealthState.hearingSafetyStatus) {
+                                    com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.SAFE -> Color(0xFF10B981).copy(alpha = 0.2f)
+                                    com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.MODERATE -> Color(0xFFF59E0B).copy(alpha = 0.2f)
+                                    com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.CAUTION -> Color(0xFFEF4444).copy(alpha = 0.2f)
+                                },
+                            ) {
+                                Text(
+                                    text = when (listeningHealthState.hearingSafetyStatus) {
+                                        com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.SAFE -> stringResource(Res.string.listening_health_dose_safe)
+                                        com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.MODERATE -> stringResource(Res.string.listening_health_dose_moderate)
+                                        com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.CAUTION -> stringResource(Res.string.listening_health_dose_caution)
+                                    },
+                                    style = typo().labelSmall.copy(fontSize = 11.sp),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = when (listeningHealthState.hearingSafetyStatus) {
+                                        com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.SAFE -> Color(0xFF34D399)
+                                        com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.MODERATE -> Color(0xFFFBBF24)
+                                        com.manikandan.domain.mediaservice.handler.HearingSafetyStatus.CAUTION -> Color(0xFFF87171)
+                                    },
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column {
+                                Text(
+                                    text = stringResource(Res.string.listening_health_session),
+                                    style = typo().bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "${listeningHealthState.sessionMinutes} min",
+                                    style = typo().titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "Estimated Volume Level",
+                                    style = typo().bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "${(listeningHealthState.currentVolumeRatio * 100).toInt()}%",
+                                    style = typo().titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                val reminderOptions = listOf(0 to "Off", 30 to "30 minutes", 45 to "45 minutes", 60 to "60 minutes", 90 to "90 minutes", 120 to "120 minutes")
+                val currentReminderLabel = reminderOptions.firstOrNull { it.first == breakReminderMinutes }?.second ?: "${breakReminderMinutes} minutes"
+                SettingItem(
+                    title = stringResource(Res.string.break_reminder),
+                    subtitle = "${stringResource(Res.string.break_reminder_description)} ($currentReminderLabel)",
+                    smallSubtitle = true,
+                    onClick = {
+                        viewModel.setAlertData(
+                            SettingAlertState(
+                                title = runBlocking { getString(Res.string.break_reminder_interval) },
+                                selectOne = SettingAlertState.SelectData(
+                                    listSelect = reminderOptions.map { (mins, label) ->
+                                        (mins == breakReminderMinutes) to label
+                                    },
+                                ),
+                                confirm = runBlocking { getString(Res.string.change) } to { state ->
+                                    val selectedText = state.selectOne?.getSelected()
+                                    val selectedMins = reminderOptions.firstOrNull { it.second == selectedText }?.first ?: 60
+                                    viewModel.setBreakReminderMinutes(selectedMins)
+                                },
+                                dismiss = runBlocking { getString(Res.string.cancel) },
+                            ),
+                        )
+                    },
+                )
+
+                SettingItem(
+                    title = stringResource(Res.string.safer_volume_limit),
+                    subtitle = stringResource(Res.string.safer_volume_limit_description),
+                    smallSubtitle = true,
+                    switch = (saferVolumeLimitEnabled to { viewModel.setSaferVolumeLimitEnabled(it) }),
                 )
             }
         }

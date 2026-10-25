@@ -924,4 +924,36 @@
     <string name="month_full_oct">October</string>
     <string name="month_full_nov">November</string>
     <string name="month_full_dec">December</string>
+    <!-- Discovery Mix Slider -->
+    <string name="discovery_mix">Discovery Mix</string>
+    <string name="discovery_mix_description">Choose a clear ratio between familiar songs and new recommendations while listening.</string>
+    <string name="discovery_mix_ratio_format">%1$d%% Familiar • %2$d%% New</string>
+    <string name="familiar_songs">Familiar</string>
+    <string name="new_discovery">New Discovery</string>
+
+    <!-- Listening Health & Hearing Safety -->
+    <string name="listening_health">Listening Health &amp; Hearing Safety</string>
+    <string name="listening_health_description">Track headphone listening time and volume together, with break reminders and safer volume limits.</string>
+    <string name="listening_health_session">Continuous Session</string>
+    <string name="listening_health_today">Today on Headphones</string>
+    <string name="listening_health_dose_safe">Safe Sound Exposure</string>
+    <string name="listening_health_dose_moderate">Moderate Sound Exposure</string>
+    <string name="listening_health_dose_caution">High Exposure – Rest Recommended</string>
+    <string name="break_reminder">Break Reminder</string>
+    <string name="break_reminder_description">Get notified to rest your ears after continuous listening.</string>
+    <string name="break_reminder_interval">Reminder Interval</string>
+    <string name="break_reminder_toast">Listening Health: You have been listening for %1$d minutes. Give your ears a short break.</string>
+    <string name="safer_volume_limit">Safer Volume Limit</string>
+    <string name="safer_volume_limit_description">Cap headphone volume at 75% to prevent hearing fatigue.</string>
+    <string name="safer_volume_limit_toast">Safer Volume Limit active: Volume capped at 75% to protect your hearing.</string>
+
+    <!-- Unified Music Shelf -->
+    <string name="unified_music_shelf">Unified Shelf</string>
+    <string name="unified_music_shelf_description">Keep streaming songs, purchased albums, and personal audio files together in one searchable library.</string>
+    <string name="search_unified_shelf">Search shelf (streaming, albums, personal audio)...</string>
+    <string name="shelf_filter_all">All</string>
+    <string name="shelf_filter_streaming">Streaming</string>
+    <string name="shelf_filter_albums">Albums</string>
+    <string name="shelf_filter_personal_audio">Personal Audio</string>
+    <string name="empty_unified_shelf">No items found in your unified music shelf</string>
 </resources>
