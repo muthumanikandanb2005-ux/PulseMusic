@@ -3,6 +3,7 @@
 import androidx.lifecycle.viewModelScope
 import com.maxrave.common.SELECTED_LANGUAGE
 import com.maxrave.common.SUPPORTED_LANGUAGE
+import com.maxrave.common.SUPPORTED_MUSIC_LANGUAGE
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.model.home.HomeDataCombine
 import com.manikandan.domain.data.model.home.HomeItem
@@ -68,6 +69,7 @@ class HomeViewModel(
     val loadingChart = MutableStateFlow<Boolean>(true)
     private var regionCode: String = ""
     private var language: String = ""
+    private var musicStreamingLanguage: String = "auto"
 
     private val _songEntity: MutableStateFlow<SongEntity?> = MutableStateFlow(null)
     val songEntity: StateFlow<SongEntity?> = _songEntity
@@ -108,6 +110,18 @@ class HomeViewModel(
                 launch {
                     dataStoreManager.language.distinctUntilChanged().collect {
                         language = it
+                        getHomeItemList(params.value)
+                    }
+                }
+            val jobMusicLang =
+                launch {
+                    dataStoreManager.musicLanguage.distinctUntilChanged().collect {
+                        musicStreamingLanguage = it
+                        val langRegion = SUPPORTED_MUSIC_LANGUAGE.getDefaultRegionForCode(it)
+                        if (langRegion != null) {
+                            exploreChart(langRegion)
+                        }
+                        delay(200)
                         getHomeItemList(params.value)
                     }
                 }
@@ -158,6 +172,7 @@ class HomeViewModel(
                 }
             job1.join()
             job2.join()
+            jobMusicLang.join()
             job3.join()
             job4.join()
             job5.join()
@@ -181,6 +196,10 @@ class HomeViewModel(
             runBlocking {
                 dataStoreManager.getString(SELECTED_LANGUAGE).first()
                     ?: SUPPORTED_LANGUAGE.codes.first()
+            }
+        musicStreamingLanguage =
+            runBlocking {
+                runCatching { dataStoreManager.musicLanguage.first() }.getOrDefault("auto")
             }
         regionCode = runBlocking { dataStoreManager.location.first() }
         homeJob?.cancel()
@@ -346,19 +365,21 @@ class HomeViewModel(
         }
     }
 
-    private fun isBollywoodOrVideo(content: com.manikandan.domain.data.model.home.Content?): Boolean {
+    private fun isBollywoodOrVideo(content: com.manikandan.domain.data.model.home.Content?, musicLang: String = musicStreamingLanguage): Boolean {
         if (content == null) return false
         val title = content.title.lowercase()
         val desc = content.description?.lowercase().orEmpty()
         val album = content.album?.name?.lowercase().orEmpty()
         val videoType = content.videoType?.lowercase().orEmpty()
 
-        // Filter Bollywood content
-        if (title.contains("bollywood") || desc.contains("bollywood") || album.contains("bollywood")) {
-            return true
-        }
-        if (content.artists?.any { it.name.lowercase().contains("bollywood") } == true) {
-            return true
+        // Filter Bollywood content only when user hasn't explicitly selected Hindi
+        if (musicLang != "hi") {
+            if (title.contains("bollywood") || desc.contains("bollywood") || album.contains("bollywood")) {
+                return true
+            }
+            if (content.artists?.any { it.name.lowercase().contains("bollywood") } == true) {
+                return true
+            }
         }
 
         // Filter video songs (YouTube Music classifies standard audio tracks as ATV - Audio Track Video)
@@ -384,9 +405,10 @@ class HomeViewModel(
         return videoPatterns.any { title.contains(it) }
     }
 
-    private fun isBollywoodOrVideoShelf(shelfTitle: String): Boolean {
+    private fun isBollywoodOrVideoShelf(shelfTitle: String, musicLang: String = musicStreamingLanguage): Boolean {
         val lower = shelfTitle.lowercase()
-        return lower.contains("bollywood") || lower.contains("video") || lower.contains("music video")
+        val hasBollywood = if (musicLang != "hi") lower.contains("bollywood") else false
+        return hasBollywood || lower.contains("video") || lower.contains("music video")
     }
 
     private fun filterCleanHomeItems(items: List<HomeItem>): List<HomeItem> {

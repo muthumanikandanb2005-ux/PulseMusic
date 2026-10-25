@@ -102,6 +102,7 @@ import com.maxrave.common.LIMIT_CACHE_SIZE
 import com.maxrave.common.QUALITY
 import com.maxrave.common.SUPPORTED_LANGUAGE
 import com.maxrave.common.SUPPORTED_LOCATION
+import com.maxrave.common.SUPPORTED_MUSIC_LANGUAGE
 import com.maxrave.common.VIDEO_QUALITY
 import com.manikandan.domain.extension.now
 import com.manikandan.domain.data.model.lyrics.RomanizationDictionaryState
@@ -239,6 +240,7 @@ import simpmusic.composeapp.generated.resources.clear_player_cache
 import simpmusic.composeapp.generated.resources.clear_thumbnail_cache
 import simpmusic.composeapp.generated.resources.content
 import simpmusic.composeapp.generated.resources.content_country
+import simpmusic.composeapp.generated.resources.music_language_preference
 
 import simpmusic.composeapp.generated.resources.crossfade
 import simpmusic.composeapp.generated.resources.crossfade_auto
@@ -520,6 +522,7 @@ fun SettingScreen(
     val enableTranslucentNavBar by remember { viewModel.translucentBottomBar.map { it == TRUE } }.collectAsStateWithLifecycle(initialValue = false)
     val language by viewModel.language.collectAsStateWithLifecycle()
     val location by viewModel.location.collectAsStateWithLifecycle()
+    val musicLanguage by viewModel.musicLanguage.collectAsStateWithLifecycle()
     val quality by viewModel.quality.collectAsStateWithLifecycle()
     val downloadQuality by viewModel.downloadQuality.collectAsStateWithLifecycle()
     val autoDownloadLikedSongs by viewModel.autoDownloadLikedSongs.collectAsStateWithLifecycle()
@@ -1053,6 +1056,31 @@ fun SettingScreen(
                                                 dismiss = runBlocking { getString(Res.string.cancel) },
                                             ),
                                         )
+                                    },
+                                dismiss = runBlocking { getString(Res.string.cancel) },
+                            ),
+                        )
+                    },
+                )
+                SettingItem(
+                    title = stringResource(Res.string.music_language_preference),
+                    subtitle = SUPPORTED_MUSIC_LANGUAGE.getDisplayNameFromCode(musicLanguage),
+                    onClick = {
+                        viewModel.setAlertData(
+                            SettingAlertState(
+                                title = runBlocking { getString(Res.string.music_language_preference) },
+                                selectOne =
+                                    SettingAlertState.SelectData(
+                                        listSelect =
+                                            SUPPORTED_MUSIC_LANGUAGE.list.map { item ->
+                                                (item.code.equals(musicLanguage, ignoreCase = true)) to item.displayName
+                                            },
+                                    ),
+                                confirm =
+                                    runBlocking { getString(Res.string.change) } to { state ->
+                                        val selectedName = state.selectOne?.getSelected() ?: "Auto (Default)"
+                                        val selectedCode = SUPPORTED_MUSIC_LANGUAGE.getCodeFromDisplayName(selectedName)
+                                        viewModel.setMusicLanguage(selectedCode)
                                     },
                                 dismiss = runBlocking { getString(Res.string.cancel) },
                             ),

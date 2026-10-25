@@ -34,6 +34,10 @@ interface DataStoreManager {
     suspend fun setVideoDownloadQuality(quality: String)
 
     val language: Flow<String>
+    val musicLanguage: Flow<String>
+
+    suspend fun setMusicLanguage(language: String)
+
 
     /**
      * Serialized "Moods & Genres" browse result, so the search and home screens can paint their

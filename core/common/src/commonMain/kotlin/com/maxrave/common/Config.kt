@@ -240,6 +240,66 @@ object SUPPORTED_LANGUAGE {
     }
 }
 
+object SUPPORTED_MUSIC_LANGUAGE {
+    data class MusicLangItem(
+        val code: String,
+        val displayName: String,
+        val defaultRegion: String? = null,
+    )
+
+    val list: List<MusicLangItem> =
+        listOf(
+            MusicLangItem("auto", "Auto (Default)", null),
+            MusicLangItem("ta", "Tamil (தமிழ்)", "IN"),
+            MusicLangItem("hi", "Hindi (हिन्दी)", "IN"),
+            MusicLangItem("te", "Telugu (తెలుగు)", "IN"),
+            MusicLangItem("pa", "Punjabi (ਪੰਜਾਬੀ)", "IN"),
+            MusicLangItem("ml", "Malayalam (മലയാളം)", "IN"),
+            MusicLangItem("kn", "Kannada (ಕನ್ನಡ)", "IN"),
+            MusicLangItem("bn", "Bengali (বাংলা)", "IN"),
+            MusicLangItem("bho", "Bhojpuri (भोजपुरी)", "IN"),
+            MusicLangItem("mr", "Marathi (मराठी)", "IN"),
+            MusicLangItem("gu", "Gujarati (ગુજરાતી)", "IN"),
+            MusicLangItem("ur", "Urdu (اردو)", "IN"),
+            MusicLangItem("en", "English", "US"),
+            MusicLangItem("es", "Spanish (Español)", "ES"),
+            MusicLangItem("ko", "Korean (한국어)", "KR"),
+            MusicLangItem("ja", "Japanese (日本語)", "JP"),
+            MusicLangItem("fr", "French (Français)", "FR"),
+            MusicLangItem("de", "German (Deutsch)", "DE"),
+            MusicLangItem("pt", "Portuguese (Português)", "BR"),
+            MusicLangItem("vi", "Vietnamese (Tiếng Việt)", "VN"),
+            MusicLangItem("id", "Indonesian (Bahasa Indonesia)", "ID"),
+            MusicLangItem("ar", "Arabic (العربية)", "SA"),
+            MusicLangItem("tr", "Turkish (Türkçe)", "TR"),
+            MusicLangItem("th", "Thai (ไทย)", "TH"),
+            MusicLangItem("ru", "Russian (Русский)", "RU"),
+            MusicLangItem("it", "Italian (Italiano)", "IT"),
+            MusicLangItem("zh", "Chinese (中文)", "TW"),
+        )
+
+    val items: Array<CharSequence> = list.map { it.displayName }.toTypedArray()
+    val codes: Array<String> = list.map { it.code }.toTypedArray()
+
+    fun getDisplayNameFromCode(code: String?): String {
+        if (code.isNullOrBlank() || code.equals("auto", ignoreCase = true)) {
+            return "Auto (Default)"
+        }
+        return list.firstOrNull { it.code.equals(code, ignoreCase = true) }?.displayName ?: "Auto (Default)"
+    }
+
+    fun getCodeFromDisplayName(name: String?): String {
+        return list.firstOrNull { it.displayName == name }?.code ?: "auto"
+    }
+
+    fun getDefaultRegionForCode(code: String?): String? {
+        if (code.isNullOrBlank() || code.equals("auto", ignoreCase = true)) {
+            return null
+        }
+        return list.firstOrNull { it.code.equals(code, ignoreCase = true) }?.defaultRegion
+    }
+}
+
 /**
  * The YouTube stream format ids (`itag`) SimpMusic asks for, in one place.
  *

@@ -8,6 +8,7 @@ import com.manikandan.domain.data.model.cookie.CookieItem
 import com.manikandan.domain.data.type.RecentlyType
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.repository.CommonRepository
+import com.maxrave.common.SUPPORTED_MUSIC_LANGUAGE
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.kotlinytmusicscraper.models.YouTubeLocale
 import com.maxrave.logger.Logger
@@ -56,18 +57,31 @@ internal class CommonRepositoryImpl(
                 }
             val localeJob =
                 launch {
-                    combine(dataStoreManager.location, dataStoreManager.language) { location, language ->
-                        Pair(location, language)
-                    }.collectLatest { (location, language) ->
-                        youTube.locale =
-                            YouTubeLocale(
-                                location,
+                    combine(
+                        dataStoreManager.location,
+                        dataStoreManager.musicLanguage,
+                        dataStoreManager.language,
+                    ) { location, musicLanguage, language ->
+                        Triple(location, musicLanguage, language)
+                    }.collectLatest { (location, musicLanguage, language) ->
+                        val effectiveHl =
+                            if (musicLanguage != "auto" && musicLanguage.isNotBlank()) {
+                                musicLanguage
+                            } else {
                                 try {
                                     language.substring(0..1)
                                 } catch (e: Exception) {
                                     "en"
-                                },
-                            )
+                                }
+                            }
+                        val effectiveGl =
+                            if (musicLanguage != "auto" && musicLanguage.isNotBlank()) {
+                                SUPPORTED_MUSIC_LANGUAGE.getDefaultRegionForCode(musicLanguage) ?: location
+                            } else {
+                                location
+                            }
+                        youTube.locale = YouTubeLocale(effectiveGl, effectiveHl)
+                        Logger.d("YouTubeLocale", "Configured locale: gl=$effectiveGl, hl=$effectiveHl (musicLanguage=$musicLanguage)")
                     }
                 }
             val resetYouTubeAuth =

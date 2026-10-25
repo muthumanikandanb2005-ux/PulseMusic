@@ -98,6 +98,19 @@ internal class DataStoreManagerImpl(
         }
     }
 
+    override val musicLanguage: Flow<String> =
+        settingsDataStore.data.map { preferences ->
+            preferences[MUSIC_LANGUAGE] ?: "auto"
+        }
+
+    override suspend fun setMusicLanguage(language: String) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[MUSIC_LANGUAGE] = language
+            }
+        }
+    }
+
     override val moodAndGenresCache: Flow<String?> =
         settingsDataStore.data.map { preferences ->
             preferences[MOOD_AND_GENRES_CACHE]
@@ -2013,6 +2026,7 @@ internal class DataStoreManagerImpl(
         val AUTH_USER = intPreferencesKey("auth_user")
         val LOGGED_IN = stringPreferencesKey("logged_in")
         val LOCATION = stringPreferencesKey("location")
+        val MUSIC_LANGUAGE = stringPreferencesKey("music_language")
         val MOOD_AND_GENRES_CACHE = stringPreferencesKey("mood_and_genres_cache")
         val MOOD_ARTWORK_CACHE = stringPreferencesKey("mood_artwork_cache")
         val QUALITY = stringPreferencesKey("quality")

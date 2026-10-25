@@ -92,6 +92,8 @@ class SettingsViewModel(
     val location: StateFlow<String?> = _location
     private var _language: MutableStateFlow<String?> = MutableStateFlow(null)
     val language: StateFlow<String?> = _language
+    private var _musicLanguage: MutableStateFlow<String> = MutableStateFlow("auto")
+    val musicLanguage: StateFlow<String> = _musicLanguage
     private var _loggedIn: MutableStateFlow<String?> = MutableStateFlow(null)
     val loggedIn: StateFlow<String?> = _loggedIn
     private var _normalizeVolume: MutableStateFlow<String?> = MutableStateFlow(null)
@@ -283,6 +285,7 @@ class SettingsViewModel(
     fun getData() {
         getLocation()
         getLanguage()
+        getMusicLanguage()
         getQuality()
         getPlayerCacheSize()
         getDownloadedCacheSize()
@@ -1172,6 +1175,22 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setLocation(location)
             getLocation()
+        }
+    }
+
+    fun getMusicLanguage() {
+        viewModelScope.launch {
+            dataStoreManager.musicLanguage.collect { lang ->
+                _musicLanguage.emit(lang)
+            }
+        }
+    }
+
+    fun setMusicLanguage(language: String) {
+        viewModelScope.launch {
+            dataStoreManager.setMusicLanguage(language)
+            dataStoreManager.setMoodAndGenresCache("")
+            _musicLanguage.emit(language)
         }
     }
 

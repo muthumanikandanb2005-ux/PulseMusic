@@ -71,6 +71,8 @@
     <string name="cancel">Cancel</string>
     <string name="clear">Clear</string>
     <string name="content_country">Content Country</string>
+    <string name="music_language_preference">Music Language Preference</string>
+    <string name="music_language_preference_description">Prioritize songs and recommendations in your preferred streaming language</string>
     <string name="change">Change</string>
     <string name="quality">Quality</string>
     <string name="prefer_320kbps_stream">Prefer 320kbps stream</string>

@@ -14,6 +14,7 @@ import com.manikandan.domain.data.model.mood.genre.GenreObject
 import com.manikandan.domain.data.model.mood.moodmoments.MoodsMomentObject
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.repository.HomeRepository
+import com.maxrave.common.SUPPORTED_MUSIC_LANGUAGE
 import com.manikandan.domain.utils.Resource
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.logger.Logger
@@ -236,8 +237,15 @@ internal class HomeRepositoryImpl(
     override fun getChartData(countryCode: String): Flow<Resource<Chart>> =
         flow {
             runCatching {
+                val musicLang = runCatching { dataStoreManager.musicLanguage.first() }.getOrDefault("auto")
+                val langRegion = SUPPORTED_MUSIC_LANGUAGE.getDefaultRegionForCode(musicLang)
+                val effectiveCountry = if (countryCode == "ZZ" || countryCode.isEmpty()) {
+                    langRegion ?: runCatching { dataStoreManager.location.first() }.getOrDefault("IN")
+                } else {
+                    countryCode
+                }
                 youTube
-                    .customQuery("FEmusic_charts", country = countryCode)
+                    .customQuery("FEmusic_charts", country = effectiveCountry)
                     .onSuccess { result ->
                         val data =
                             result.contents
