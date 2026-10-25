@@ -14,6 +14,7 @@
 .cxx
 local.properties
 /app/release/
+release_*/
 crowdin.yml
 # Kotlin 2.0
 .kotlin/

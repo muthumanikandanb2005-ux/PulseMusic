@@ -1,0 +1,7 @@
+Pulse Music v3.2.6:
+- Added Discovery Mix Slider: Dynamically balance familiar favorites and new songs (e.g. 80/20) while listening
+- Added Listening Health & Hearing Safety: Headphone duration & volume tracking, break reminders, and safer volume limit
+- Added Unified Music Shelf: Merge streaming songs, saved albums, and local personal audio in one searchable shelf
+- Added Music Streaming Language Preference in Settings with instant home feed localization
+- Updated branding across desktop media integrations to Pulse Music
+- High-availability OTA update delivery with multi-endpoint arbitration
