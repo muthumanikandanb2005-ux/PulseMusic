@@ -698,6 +698,10 @@ internal fun ExpressiveBelowTheFold(
                                         stringResource(Res.string.lyrics_provider_betterlyrics)
                                     }
 
+                                    LyricsProvider.BINI_LYRICS -> {
+                                        "BiniLyrics"
+                                    }
+
                                     else -> {
                                         ""
                                     }

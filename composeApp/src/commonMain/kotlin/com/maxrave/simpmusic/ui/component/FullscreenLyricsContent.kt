@@ -307,11 +307,20 @@ fun FullscreenLyricsContent(
                 label = "sliderCrossfadeColor",
             )
             Box(modifier = Modifier.fillMaxSize()) {
-                // Animated gradient background
-                AnimatedLyricsGradientBackground(
-                    color = color,
-                    modifier = if (isDesktop) Modifier.layerBackdrop(backdrop) else Modifier,
-                )
+                // Proper blurred artwork backdrop on supported devices with smooth animated fallback
+                if (isLyricsBlurSupported()) {
+                    val paletteColor = state.startColor.value
+                    AppleMusicArtworkBackdrop(
+                        state = state,
+                        actions = actions,
+                        seedColor = if (paletteColor == Color.Black) seed else paletteColor,
+                    )
+                } else {
+                    AnimatedLyricsGradientBackground(
+                        color = color,
+                        modifier = if (isDesktop) Modifier.layerBackdrop(backdrop) else Modifier,
+                    )
+                }
 
                 // ── Foreground content column ─────────────────────────────────────
                 Column(
@@ -810,9 +819,7 @@ private fun FullscreenLyricsLandscape(
         // The glass backdrop source. The Desktop chrome drawn over this layout is a sibling of this
         // whole Box, never a child of it.
         Box(modifier = Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            if (nowPlayingStyle == DataStoreManager.NOW_PLAYING_STYLE_APPLE_MUSIC) {
-                // The same seed rule the Apple Music page applies: the shell's colour starts on black
-                // and only turns into the palette colour once the palette resolves.
+            if (isLyricsBlurSupported()) {
                 val paletteColor = state.startColor.value
                 AppleMusicArtworkBackdrop(
                     state = state,

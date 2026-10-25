@@ -575,7 +575,7 @@ internal class CrossfadeExoPlayerAdapter(
                 ): AudioSink =
                     DefaultAudioSink
                         .Builder(context)
-                        .setEnableFloatOutput(enableFloatOutput)
+                        .setEnableFloatOutput(true)
                         .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                         .setAudioTrackBufferSizeProvider(
                             DefaultAudioTrackBufferSizeProvider.Builder()

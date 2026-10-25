@@ -11,6 +11,7 @@ import com.manikandan.domain.data.model.searchResult.songs.Artist
 import com.manikandan.domain.data.model.streams.YouTubeWatchEndpoint
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.manager.DataStoreManager.Values.BETTER_LYRICS
+import com.manikandan.domain.manager.DataStoreManager.Values.BINI_LYRICS
 import com.manikandan.domain.manager.DataStoreManager.Values.LRCLIB
 import com.manikandan.domain.manager.DataStoreManager.Values.SIMPMUSIC
 import com.manikandan.domain.manager.DataStoreManager.Values.YOUTUBE
@@ -121,6 +122,10 @@ class NowPlayingBottomSheetViewModel(
 
                             BETTER_LYRICS -> {
                                 _uiState.update { it.copy(mainLyricsProvider = BETTER_LYRICS) }
+                            }
+
+                            BINI_LYRICS -> {
+                                _uiState.update { it.copy(mainLyricsProvider = BINI_LYRICS) }
                             }
 
                             else -> {
@@ -336,7 +341,7 @@ class NowPlayingBottomSheetViewModel(
                 }
 
                 is NowPlayingBottomSheetUIEvent.ChangeLyricsProvider -> {
-                    if (listOf(SIMPMUSIC, YOUTUBE, LRCLIB, BETTER_LYRICS).contains(ev.lyricsProvider)) {
+                    if (listOf(SIMPMUSIC, YOUTUBE, LRCLIB, BETTER_LYRICS, BINI_LYRICS).contains(ev.lyricsProvider)) {
                         dataStoreManager.setLyricsProvider(ev.lyricsProvider)
                     } else {
                         return@launch

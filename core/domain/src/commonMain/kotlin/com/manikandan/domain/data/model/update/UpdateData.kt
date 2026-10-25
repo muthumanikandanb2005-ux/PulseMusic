@@ -13,7 +13,11 @@ data class UpdateData(
     val assets: List<UpdateAsset> = emptyList(),
 ) {
     fun getWindowsSetupAsset(): UpdateAsset? =
-        assets.firstOrNull { it.name.endsWith(".exe", ignoreCase = true) }
+        assets.firstOrNull {
+            it.name.endsWith(".exe", ignoreCase = true) ||
+            it.name.endsWith(".msi", ignoreCase = true) ||
+            (it.name.contains("windows", ignoreCase = true) && it.name.endsWith(".zip", ignoreCase = true))
+        }
 
     fun getAndroidApkAsset(preferredAbi: String? = null): UpdateAsset? {
         val apkAssets = assets.filter { it.name.endsWith(".apk", ignoreCase = true) }

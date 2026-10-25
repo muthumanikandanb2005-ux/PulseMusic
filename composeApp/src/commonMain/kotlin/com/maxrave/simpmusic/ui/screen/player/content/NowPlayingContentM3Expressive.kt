@@ -77,6 +77,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
@@ -93,6 +94,7 @@ import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.isElementVisible
 import com.maxrave.simpmusic.extension.smoothScrimBrush
 import com.maxrave.simpmusic.getPlatform
+import com.maxrave.simpmusic.ui.component.AudioOutputDeviceBadge
 import com.maxrave.simpmusic.ui.component.ExplicitBadge
 import com.maxrave.simpmusic.ui.component.heartBurst
 import com.maxrave.simpmusic.ui.component.rememberHeartBurstState
@@ -736,7 +738,7 @@ internal fun ExpressiveTrackInfoRow(
                     maxLines = 1,
                     modifier =
                         Modifier
-                            .weight(1f)
+                            .weight(1f, fill = false)
                             .wrapContentHeight(align = Alignment.CenterVertically)
                             .basicMarquee(
                                 iterations = Int.MAX_VALUE,
@@ -745,6 +747,15 @@ internal fun ExpressiveTrackInfoRow(
                             .clickable {
                                 actions.onNavigateToArtist()
                             },
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                AudioOutputDeviceBadge(
+                    softAccent = colorScheme.primary,
+                    containerColor = colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                    borderColor = colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    contentColor = colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp,
+                    iconSize = 12.dp,
                 )
             }
         }

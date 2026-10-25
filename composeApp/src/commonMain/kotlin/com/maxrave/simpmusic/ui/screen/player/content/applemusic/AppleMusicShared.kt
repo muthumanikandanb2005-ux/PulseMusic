@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
@@ -80,6 +81,7 @@ import com.maxrave.simpmusic.expect.ui.PlatformCastButton
 import com.maxrave.simpmusic.expect.ui.isPlatformCastAvailable
 import com.maxrave.simpmusic.extension.formatDuration
 import com.maxrave.simpmusic.getPlatform
+import com.maxrave.simpmusic.ui.component.AudioOutputDeviceBadge
 import com.maxrave.simpmusic.ui.component.ExplicitBadge
 import com.maxrave.simpmusic.ui.component.heartBurst
 import com.maxrave.simpmusic.ui.component.rememberHeartBurstState
@@ -382,7 +384,16 @@ internal fun AppleMusicCompactHeader(
                     style = typography.compactArtist,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { actions.onNavigateToArtist() },
+                    modifier = Modifier.weight(1f, fill = false).clickable { actions.onNavigateToArtist() },
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                AudioOutputDeviceBadge(
+                    softAccent = Color(0xFFA788FA),
+                    containerColor = Color.White.copy(alpha = 0.12f),
+                    borderColor = Color.White.copy(alpha = 0.20f),
+                    contentColor = Color.White.copy(alpha = 0.90f),
+                    fontSize = 9.sp,
+                    iconSize = 11.dp,
                 )
             }
         }
@@ -546,27 +557,41 @@ internal fun AppleMusicTimesRow(
             // A PILL, like the mock's badge (and Apple's "Lossless"): translucent rounded
             // background, not bare text floating between the two times. It is the TALLER of the two
             // states, so it is what the slot's height ends up being — see the note above.
-            Box(modifier = Modifier.alpha(codecBadgeAlpha)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(Color.White.copy(alpha = 0.16f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                ) {
-                    Icon(
-                        imageVector = SimpIcons.GraphicEq,
-                        contentDescription = "",
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.size(15.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    // orEmpty(), not codec!!: the null check drives the alpha above rather than
-                    // guarding this branch, so there is nothing here for the compiler to
-                    // smart-cast. It also renders while alpha is 0, which is the point.
-                    Text(text = codec.orEmpty(), style = typography.badge.copy(color = Color.White.copy(alpha = 0.9f)))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(modifier = Modifier.alpha(codecBadgeAlpha)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(Color.White.copy(alpha = 0.16f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Icon(
+                            imageVector = SimpIcons.GraphicEq,
+                            contentDescription = "",
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(15.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        // orEmpty(), not codec!!: the null check drives the alpha above rather than
+                        // guarding this branch, so there is nothing here for the compiler to
+                        // smart-cast. It also renders while alpha is 0, which is the point.
+                        Text(text = codec.orEmpty(), style = typography.badge.copy(color = Color.White.copy(alpha = 0.9f)))
+                    }
                 }
+                AudioOutputDeviceBadge(
+                    softAccent = Color(0xFFA788FA),
+                    containerColor = Color.White.copy(alpha = 0.14f),
+                    borderColor = Color.White.copy(alpha = 0.20f),
+                    contentColor = Color.White.copy(alpha = 0.90f),
+                    shape = RoundedCornerShape(9.dp),
+                    fontSize = typography.badge.fontSize,
+                    iconSize = 13.dp,
+                )
             }
         }
         Text(

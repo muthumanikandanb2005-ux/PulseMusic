@@ -626,6 +626,53 @@ internal class LyricsCanvasRepositoryImpl(
                 }
         }.flowOn(Dispatchers.IO)
 
+    override fun getBiniLyrics(
+        artist: String,
+        track: String,
+        duration: Int?,
+        isrc: String?,
+    ): Flow<Resource<Lyrics>> =
+        flow {
+            Logger.w("Lyrics", "getBiniLyrics: $artist $track $duration $isrc")
+            val qartist = cleanArtistForLyrics(artist)
+            val qtrack = cleanTrackTitleForLyrics(track)
+            var result = simpMusicLyrics.searchBiniLyrics(
+                q_track = qtrack,
+                q_artist = qartist,
+                durationSeconds = duration,
+                isrc = isrc,
+            ).getOrNull()
+
+            // If cleaned search didn't match, try raw title/artist
+            if (result == null && (qtrack != track.trim() || qartist != artist.trim())) {
+                result = simpMusicLyrics.searchBiniLyrics(
+                    q_track = track.trim(),
+                    q_artist = artist.trim(),
+                    durationSeconds = duration,
+                    isrc = isrc,
+                ).getOrNull()
+            }
+
+            // Also try with primary artist if artist contains multiple names separated by comma or &
+            if (result == null && (artist.contains(",") || artist.contains("&"))) {
+                val primaryArtist = cleanArtistForLyrics(artist.split(",", "&").first().trim())
+                if (primaryArtist.isNotEmpty() && primaryArtist != qartist) {
+                    result = simpMusicLyrics.searchBiniLyrics(
+                        q_track = qtrack,
+                        q_artist = primaryArtist,
+                        durationSeconds = duration,
+                        isrc = isrc,
+                    ).getOrNull()
+                }
+            }
+
+            if (result != null) {
+                emit(Resource.Success<Lyrics>(result.toLyrics()))
+            } else {
+                emit(Resource.Error<Lyrics>("No BiniLyrics found"))
+            }
+        }.flowOn(Dispatchers.IO)
+
     override fun getArtistLogo(artistName: String): Flow<Resource<ArtistLogo>> =
         flow {
             simpMusicLyrics

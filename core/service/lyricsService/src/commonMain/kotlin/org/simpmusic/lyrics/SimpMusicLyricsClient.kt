@@ -16,6 +16,7 @@ import org.simpmusic.lyrics.models.request.LyricsBody
 import org.simpmusic.lyrics.models.request.TranslatedLyricsBody
 import org.simpmusic.lyrics.models.response.BaseResponse
 import org.simpmusic.lyrics.models.response.BetterLyricsResponse
+import org.simpmusic.lyrics.models.response.BiniLyricsSearchResponse
 import org.simpmusic.lyrics.models.response.LrclibObject
 import org.simpmusic.lyrics.models.response.LyricsResponse
 import org.simpmusic.lyrics.models.response.SpotifyLyricsApiResponse
@@ -239,6 +240,65 @@ class SimpMusicLyricsClient {
                 ).body<BetterLyricsResponse>()
         rs.ttml
     }
+
+    suspend fun searchBiniLyrics(
+        q_track: String,
+        q_artist: String,
+        durationSeconds: Int? = null,
+        isrc: String? = null,
+    ): Result<org.simpmusic.lyrics.domain.Lyrics?> =
+        runCatching {
+            val response = lyricsService.searchBiniLyrics(
+                track = q_track,
+                artist = q_artist,
+                duration = durationSeconds,
+                isrc = isrc,
+            )
+            if (response.status.value !in 200..299) {
+                throw Exception("BiniLyrics API error: ${response.status.value}")
+            }
+            val searchRes = response.body<BiniLyricsSearchResponse>()
+            val candidates = searchRes.results.filter { !it.lyricsUrl.isNullOrBlank() }
+            if (candidates.isEmpty()) return@runCatching null
+
+            val matched = if (!isrc.isNullOrBlank()) {
+                candidates.firstOrNull { it.isrc.equals(isrc, ignoreCase = true) } ?: candidates.firstOrNull()
+            } else if (durationSeconds != null && durationSeconds > 0) {
+                candidates.find {
+                    val tName = it.trackName.orEmpty()
+                    val aName = it.artistName.orEmpty()
+                    val d = it.duration ?: 0
+                    isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName) && abs(d - durationSeconds) <= 15
+                } ?: candidates.find {
+                    val tName = it.trackName.orEmpty()
+                    val aName = it.artistName.orEmpty()
+                    val d = it.duration ?: 0
+                    isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName) && abs(d - durationSeconds) <= 30
+                } ?: candidates.find {
+                    val tName = it.trackName.orEmpty()
+                    val aName = it.artistName.orEmpty()
+                    isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName)
+                } ?: candidates.firstOrNull()
+            } else {
+                candidates.find {
+                    val tName = it.trackName.orEmpty()
+                    val aName = it.artistName.orEmpty()
+                    isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName)
+                } ?: candidates.firstOrNull()
+            }
+
+            val lyricsUrl = matched?.lyricsUrl ?: return@runCatching null
+            val rawResp = lyricsService.fetchRawLyricsFromUrl(lyricsUrl)
+            if (rawResp.status.value !in 200..299) return@runCatching null
+            val rawText = rawResp.bodyAsText()
+            if (rawText.isBlank()) return@runCatching null
+
+            if (lyricsUrl.endsWith(".ttml", ignoreCase = true) || rawText.contains("<tt") || rawText.contains("<p")) {
+                org.simpmusic.lyrics.parser.parseTtmlLyrics(rawText)
+            } else {
+                parseSyncedLyrics(rawText)
+            }
+        }
 
     suspend fun getSpotifyLyricsFromApi(
         endpoint: String,

@@ -232,6 +232,32 @@ class SimpMusicLyrics {
         }
     }
 
+    suspend fun searchBiniLyrics(
+        track: String,
+        artist: String,
+        duration: Int? = null,
+        isrc: String? = null,
+    ): HttpResponse =
+        httpClient.get("https://lyrics-api.binimum.org/") {
+            buildDefaultHeaders()
+            header(HttpHeaders.UserAgent, "PulseMusic/3.2.3")
+            if (!isrc.isNullOrBlank()) {
+                parameter("isrc", isrc.trim().uppercase().replace("-", ""))
+            } else {
+                parameter("track", track.trim())
+                parameter("artist", artist.trim())
+                if (duration != null && duration > 0) {
+                    parameter("duration", duration)
+                }
+            }
+        }
+
+    suspend fun fetchRawLyricsFromUrl(url: String): HttpResponse =
+        httpClient.get(url) {
+            buildDefaultHeaders()
+            header(HttpHeaders.UserAgent, "PulseMusic/3.2.3")
+        }
+
     suspend fun getSpotifyLyricsFromApi(
         endpoint: String,
         trackId: String? = null,

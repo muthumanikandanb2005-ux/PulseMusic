@@ -1711,7 +1711,7 @@ fun SettingScreen(
                 )
                 SettingItem(
                     title = stringResource(Res.string.main_lyrics_provider),
-                    subtitle = stringResource(Res.string.lrclib),
+                    subtitle = if (mainLyricsProvider == DataStoreManager.BINI_LYRICS) "BiniLyrics (lrc.red)" else stringResource(Res.string.lrclib),
                     onClick = {
                         viewModel.setAlertData(
                             SettingAlertState(
@@ -1720,12 +1720,14 @@ fun SettingScreen(
                                     SettingAlertState.SelectData(
                                         listSelect =
                                             listOf(
-                                                true to runBlocking { getString(Res.string.lrclib) },
+                                                (mainLyricsProvider != DataStoreManager.BINI_LYRICS) to runBlocking { getString(Res.string.lrclib) },
+                                                (mainLyricsProvider == DataStoreManager.BINI_LYRICS) to "BiniLyrics (lrc.red)",
                                             ),
                                     ),
                                 confirm =
-                                    runBlocking { getString(Res.string.change) } to { _ ->
-                                        viewModel.setLyricsProvider(DataStoreManager.LRCLIB)
+                                    runBlocking { getString(Res.string.change) } to { state ->
+                                        val chosen = if (state.selectOne?.getSelected() == "BiniLyrics (lrc.red)") DataStoreManager.BINI_LYRICS else DataStoreManager.LRCLIB
+                                        viewModel.setLyricsProvider(chosen)
                                     },
                                 dismiss = runBlocking { getString(Res.string.cancel) },
                             ),

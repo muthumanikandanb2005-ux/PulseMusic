@@ -1543,7 +1543,7 @@ fun NowPlayingBottomSheet(
 
     if (mainLyricsProvider) {
         var selected by remember {
-            mutableIntStateOf(1)
+            mutableIntStateOf(if (uiState.mainLyricsProvider == DataStoreManager.BINI_LYRICS) 2 else 1)
         }
 
         AlertDialog(
@@ -1565,9 +1565,21 @@ fun NowPlayingBottomSheet(
                                 .clickable { selected = 1 },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected = true, onClick = { selected = 1 })
+                        RadioButton(selected = selected == 1, onClick = { selected = 1 })
                         Spacer(modifier = Modifier.size(10.dp))
                         Text(text = stringResource(Res.string.lrclib), style = typo().labelSmall)
+                    }
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 4.dp)
+                                .fillMaxWidth()
+                                .clickable { selected = 2 },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected == 2, onClick = { selected = 2 })
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Text(text = "BiniLyrics (lrc.red)", style = typo().labelSmall)
                     }
                 }
             },
@@ -1575,7 +1587,9 @@ fun NowPlayingBottomSheet(
                 TextButton(
                     onClick = {
                         viewModel.onUIEvent(
-                            NowPlayingBottomSheetUIEvent.ChangeLyricsProvider(DataStoreManager.LRCLIB),
+                            NowPlayingBottomSheetUIEvent.ChangeLyricsProvider(
+                                if (selected == 2) DataStoreManager.BINI_LYRICS else DataStoreManager.LRCLIB,
+                            ),
                         )
                         mainLyricsProvider = false
                     },

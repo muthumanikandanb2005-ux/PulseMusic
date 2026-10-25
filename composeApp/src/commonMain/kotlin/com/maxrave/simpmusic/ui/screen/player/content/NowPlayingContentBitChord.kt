@@ -8,6 +8,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -15,6 +16,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import com.maxrave.simpmusic.ui.component.AudioOutputDeviceBadge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -113,7 +115,12 @@ import com.maxrave.simpmusic.viewModel.LyricsProvider
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.maxrave.simpmusic.ui.theme.LocalIsPearlLavenderTheme
 
-internal val BitChordNeonAccent = Color(0xFF10B981)
+import com.maxrave.common.Config.MAIN_PLAYER
+import com.maxrave.simpmusic.expect.ui.MediaPlayerViewWithSubtitle
+import com.maxrave.simpmusic.ui.icon.Fullscreen
+import com.maxrave.simpmusic.ui.screen.player.content.expressive.WavySeekBar
+
+internal val BitChordNeonAccent = Color(0xFFA788FA)
 private val BitChordOledBlack = Color(0xFF000000)
 private val BitChordSurface = Color(0xFF0D0D10)
 
@@ -139,20 +146,42 @@ fun NowPlayingContentBitChord(
         val isDark = isSystemInDarkTheme()
         var showShareLyricsSheet by rememberSaveable { mutableStateOf(false) }
 
-        val accentColor = remember(state.spotShadowColor) {
+        val albumThemeColor = remember(state.spotShadowColor, state.startColor.value) {
             if (state.spotShadowColor != Color.Unspecified &&
                 state.spotShadowColor != Color.Black &&
-                state.spotShadowColor != Color.Transparent) {
+                state.spotShadowColor != Color.Transparent
+            ) {
                 state.spotShadowColor
+            } else if (state.startColor.value != Color.Black && state.startColor.value != Color.Transparent) {
+                state.startColor.value
             } else {
                 BitChordNeonAccent
             }
         }
+        val accentColor by animateColorAsState(
+            targetValue = albumThemeColor,
+            animationSpec = tween(600),
+            label = "BitChordAccentColor",
+        )
 
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxSize()
-                .background(if (isLavender) MaterialTheme.colorScheme.background else BitChordOledBlack),
+                .then(
+                    if (isLavender) {
+                        Modifier.background(MaterialTheme.colorScheme.background)
+                    } else {
+                        Modifier.background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    accentColor.copy(alpha = 0.28f),
+                                    BitChordOledBlack.copy(alpha = 0.82f),
+                                    BitChordOledBlack,
+                                ),
+                            ),
+                        )
+                    },
+                ),
         ) {
         val ambientColor = state.spotShadowColor
 
@@ -605,7 +634,7 @@ private fun BitChordTopBar(
     }
 }
 
-/** Artwork Hero with breathing scale animation (1.0f play / 0.94f pause) and rounded corners. */
+/** Artwork / Video Hero with breathing scale animation (1.0f play / 0.94f pause) and rounded corners. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BitChordArtworkHero(
@@ -614,6 +643,10 @@ private fun BitChordArtworkHero(
     isPlaying: Boolean,
     modifier: Modifier = Modifier.fillMaxWidth().aspectRatio(1f),
 ) {
+    var isVideoMode by rememberSaveable(state.screenData.thumbnailURL) {
+        mutableStateOf(state.shouldShowVideo)
+    }
+
     val scale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f else 0.94f,
         animationSpec = spring(
@@ -641,7 +674,39 @@ private fun BitChordArtworkHero(
             .background(BitChordSurface),
         contentAlignment = Alignment.Center,
     ) {
-        if (state.artworkQueue.isNotEmpty()) {
+        if (isVideoMode || state.shouldShowVideo) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                MediaPlayerViewWithSubtitle(
+                    playerName = MAIN_PLAYER,
+                    modifier = Modifier.fillMaxSize().align(Alignment.Center),
+                    shouldShowSubtitle = true,
+                    shouldPip = false,
+                    shouldScaleDownSubtitle = true,
+                    timelineState = state.timelineState,
+                    lyricsData = state.screenData.lyricsData?.lyrics,
+                    translatedLyricsData = state.screenData.lyricsData?.translatedLyrics?.first,
+                    isInPipMode = state.isInPipMode,
+                    mainTextStyle = MaterialTheme.typography.bodyLarge,
+                    translatedTextStyle = MaterialTheme.typography.bodyMedium,
+                )
+                IconButton(
+                    onClick = { actions.onEnterFullscreenVideo() },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.65f)),
+                ) {
+                    Icon(
+                        imageVector = SimpIcons.Fullscreen,
+                        contentDescription = "Fullscreen Video",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        } else if (state.artworkQueue.isNotEmpty()) {
             HorizontalPager(
                 state = state.artworkPagerState,
                 modifier = Modifier.fillMaxSize(),
@@ -719,7 +784,7 @@ internal fun BitChordTrackInfoRow(
                     color = if (isLavender) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.72f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { onArtistClick() },
+                    modifier = Modifier.weight(1f, fill = false).clickable { onArtistClick() },
                 )
 
                 // Lossless/Hi-Res/Codec badge pill
@@ -738,6 +803,13 @@ internal fun BitChordTrackInfoRow(
                         color = accentColor,
                     )
                 }
+
+                // Audio Output Device Indicator pill (Soft pastel colours)
+                AudioOutputDeviceBadge(
+                    softAccent = accentColor,
+                    fontSize = 9.sp,
+                    iconSize = 11.dp,
+                )
             }
         }
 
@@ -796,24 +868,24 @@ private fun BitChordIsolatedScrubber(
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        BitChordThinSlider(
-            fraction = currentFraction,
-            onValueChange = { newFraction ->
+        WavySeekBar(
+            progressFraction = currentFraction,
+            isPlaying = state.controllerState.isPlaying,
+            activeColor = accentColor,
+            trackColor = if (isLavender) MaterialTheme.colorScheme.surfaceVariant else Color.White.copy(alpha = 0.2f),
+            thumbColor = if (isLavender) MaterialTheme.colorScheme.primary else Color.White,
+            onSliderChange = { newPercent ->
                 isDragging = true
-                dragProgress = newFraction
-                actions.onSliderChange(newFraction * 100f)
+                dragProgress = newPercent / 100f
+                actions.onSliderChange(newPercent)
             },
-            onValueChangeFinished = {
+            onSliderChangeFinished = {
                 isDragging = false
                 actions.onSliderChangeFinished()
             },
-            idleHeight = 5.dp,
-            activeHeight = 11.dp,
-            activeColor = accentColor,
-            inactiveColor = if (isLavender) MaterialTheme.colorScheme.surfaceVariant else Color.White.copy(alpha = 0.2f),
         )
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -829,24 +901,6 @@ private fun BitChordIsolatedScrubber(
                 ),
                 color = accentColor,
             )
-
-            // Prominent Music Time Badge
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color.White.copy(alpha = 0.08f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
-            ) {
-                Text(
-                    text = "Time ${formatDuration(currentMs)} / ${formatDuration(totalMs)}",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                    color = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                )
-            }
 
             val remainingMs = (totalMs - currentMs).coerceAtLeast(0L)
             Text(
@@ -1260,29 +1314,6 @@ private fun BitChordInstagramGlowingLyrics(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.horizontalGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = 0.10f),
-                        accentColor.copy(alpha = 0.22f * glowAlpha),
-                        accentColor.copy(alpha = 0.10f),
-                    ),
-                    startX = 100f + glowShift,
-                    endX = 600f + glowShift,
-                ),
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = 0.25f),
-                        accentColor.copy(alpha = 0.75f * glowAlpha),
-                        accentColor.copy(alpha = 0.25f),
-                    ),
-                ),
-                shape = RoundedCornerShape(18.dp),
-            )
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
@@ -1295,31 +1326,25 @@ private fun BitChordInstagramGlowingLyrics(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Neon glow dot like Instagram live music
+                // Soft accent dot — no neon glow ring
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(6.dp)
                         .clip(CircleShape)
-                        .background(accentColor)
-                        .drawBehind {
-                            drawCircle(
-                                color = accentColor.copy(alpha = glowAlpha),
-                                radius = size.width * 1.6f,
-                            )
-                        },
+                        .background(accentColor.copy(alpha = 0.60f)),
                 )
                 Text(
                     text = line,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.5.sp,
                         letterSpacing = (-0.2).sp,
                         shadow = Shadow(
-                            color = accentColor.copy(alpha = glowAlpha),
-                            blurRadius = 18f,
+                            color = accentColor.copy(alpha = 0.25f),
+                            blurRadius = 8f,
                         ),
                     ),
-                    color = Color.White,
+                    color = Color.White.copy(alpha = 0.92f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
@@ -1372,11 +1397,11 @@ private fun BitChordSpotifyLyricsCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .border(
-                width = 1.dp,
+                width = 0.5.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = cardGlowAlpha),
-                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = 0.04f),
                     ),
                 ),
                 shape = RoundedCornerShape(22.dp),

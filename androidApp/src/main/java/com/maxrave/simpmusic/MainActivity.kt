@@ -99,12 +99,25 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         // The service will be cleanly unbound in onDestroy().
     }
 
+    private fun sanitizeIntentUri(uri: android.net.Uri?): android.net.Uri? {
+        if (uri == null) return null
+        val scheme = uri.scheme?.lowercase() ?: return null
+        return if (scheme in listOf("http", "https", "simpmusic", "pulsemusic", "vnd.youtube")) {
+            uri
+        } else {
+            Logger.w("MainActivity", "Rejected untrusted intent URI scheme: $scheme")
+            null
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Logger.d("MainActivity", "onNewIntent: $intent")
-        val rawData = intent.data
-            ?: intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
-            ?: intent.getStringExtra("EXTRA_VIDEO_ID")?.let { "simpmusic://watch?v=$it".toUri() }
+        val rawData = sanitizeIntentUri(
+            intent.data
+                ?: intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
+                ?: intent.getStringExtra("EXTRA_VIDEO_ID")?.let { "simpmusic://watch?v=$it".toUri() }
+        )
         viewModel.setIntent(
             GenericIntent(
                 action = intent.action ?: Intent.ACTION_VIEW,
@@ -129,9 +142,11 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             startMusicService()
         }
         Logger.d("MainActivity", "onCreate: ")
-        val rawData = intent?.data
-            ?: intent?.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
-            ?: intent?.getStringExtra("EXTRA_VIDEO_ID")?.let { "simpmusic://watch?v=$it".toUri() }
+        val rawData = sanitizeIntentUri(
+            intent?.data
+                ?: intent?.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
+                ?: intent?.getStringExtra("EXTRA_VIDEO_ID")?.let { "simpmusic://watch?v=$it".toUri() }
+        )
         val data = rawData?.toKmpUriOrNull()
         if (data != null) {
             viewModel.setIntent(
@@ -207,46 +222,48 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
                 ),
         )
         viewModel.checkIsRestoring()
-        NotificationHandler.createNotificationChannel(this)
-        NotificationHandler.createAppUpdateNotificationChannel(this)
-        NotificationHandler.createTrendingNotificationChannel(this)
+        // Offload non-critical notification channels & periodic WorkManager scheduling off main thread for fastest app opening speed
+        lifecycleScope.launch(Dispatchers.Default) {
+            NotificationHandler.createNotificationChannel(this@MainActivity)
+            NotificationHandler.createAppUpdateNotificationChannel(this@MainActivity)
+            NotificationHandler.createTrendingNotificationChannel(this@MainActivity)
 
-        // Schedule periodic & immediate Trending Music Worker safely
-        runCatching {
-            val trendingPeriodic =
-                PeriodicWorkRequestBuilder<TrendingMusicNotificationWorker>(
-                    4L,
-                    TimeUnit.HOURS,
-                ).addTag("Pulse Trending Music Worker")
-                    .setConstraints(
-                        Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build(),
-                    ).build()
-            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                "Pulse Trending Music Worker",
-                ExistingPeriodicWorkPolicy.UPDATE,
-                trendingPeriodic,
-            )
+            runCatching {
+                val trendingPeriodic =
+                    PeriodicWorkRequestBuilder<TrendingMusicNotificationWorker>(
+                        4L,
+                        TimeUnit.HOURS,
+                    ).addTag("Pulse Trending Music Worker")
+                        .setConstraints(
+                            Constraints.Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .build(),
+                        ).build()
+                WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                    "Pulse Trending Music Worker",
+                    ExistingPeriodicWorkPolicy.UPDATE,
+                    trendingPeriodic,
+                )
 
-            val artistRequest =
-                PeriodicWorkRequestBuilder<NotifyWork>(
-                    12L,
-                    TimeUnit.HOURS,
-                ).addTag("Worker Test")
-                    .setConstraints(
-                        Constraints
-                            .Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build(),
-                    ).build()
-            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                "Artist Worker",
-                ExistingPeriodicWorkPolicy.KEEP,
-                artistRequest,
-            )
-        }.onFailure {
-            Logger.w("MainActivity", "Failed to schedule periodic workers: ${it.message}")
+                val artistRequest =
+                    PeriodicWorkRequestBuilder<NotifyWork>(
+                        12L,
+                        TimeUnit.HOURS,
+                    ).addTag("Worker Test")
+                        .setConstraints(
+                            Constraints
+                                .Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .build(),
+                        ).build()
+                WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                    "Artist Worker",
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    artistRequest,
+                )
+            }.onFailure {
+                Logger.w("MainActivity", "Failed to schedule periodic workers: ${it.message}")
+            }
         }
 
         lifecycleScope.launch {

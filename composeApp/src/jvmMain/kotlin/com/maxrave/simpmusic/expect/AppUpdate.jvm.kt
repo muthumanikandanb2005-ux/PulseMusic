@@ -14,6 +14,30 @@ import kotlin.system.exitProcess
 
 private const val TAG = "AppUpdateJvm"
 
+private fun queryLatestWindowsSetupAsset(): Pair<String, Long>? {
+    return try {
+        val url = URL("https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases")
+        val conn = url.openConnection() as HttpURLConnection
+        conn.connectTimeout = 15000
+        conn.readTimeout = 15000
+        conn.setRequestProperty("User-Agent", "PulseMusicApp/3.2.3")
+        conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+        conn.connect()
+        if (conn.responseCode in 200..299) {
+            val jsonText = conn.inputStream.bufferedReader().use { it.readText() }
+            val regex = """"browser_download_url":\s*"([^"]+?\.(?:exe|msi))"""".toRegex(RegexOption.IGNORE_CASE)
+            val match = regex.find(jsonText)
+            if (match != null) {
+                val dlUrl = match.groupValues[1]
+                dlUrl to 0L
+            } else null
+        } else null
+    } catch (e: Exception) {
+        Logger.w(TAG, "Failed to query latest releases: ${e.message}")
+        null
+    }
+}
+
 actual suspend fun downloadAndInstallAppUpdate(
     update: UpdateData,
     onProgress: (progress: Float, downloadedBytes: Long, totalBytes: Long) -> Unit,
@@ -22,9 +46,23 @@ actual suspend fun downloadAndInstallAppUpdate(
 ) = withContext(Dispatchers.IO) {
     try {
         val asset = update.getWindowsSetupAsset()
-        val downloadUrl = asset?.downloadUrl
-            ?: "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/${update.tagName}/PulseMusic-Windows-x64-Setup.exe"
-        val totalSize = asset?.size ?: 0L
+        var downloadUrl = asset?.downloadUrl
+        var totalSize = asset?.size ?: 0L
+
+        if (downloadUrl == null) {
+            Logger.i(TAG, "No direct Windows asset in update data, querying GitHub releases API...")
+            val latestWindowsAsset = queryLatestWindowsSetupAsset()
+            if (latestWindowsAsset != null) {
+                downloadUrl = latestWindowsAsset.first
+                totalSize = latestWindowsAsset.second
+                Logger.i(TAG, "Discovered latest Windows release installer: $downloadUrl")
+            }
+        }
+
+        if (downloadUrl == null) {
+            downloadUrl = "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.8/PulseMusic-Windows-x64-Setup.exe"
+            Logger.i(TAG, "Falling back to verified Windows installer: $downloadUrl")
+        }
 
         Logger.i(TAG, "Starting desktop update download from: $downloadUrl")
         val tempDir = File(System.getProperty("java.io.tmpdir"), "PulseMusicUpdates")
@@ -34,7 +72,17 @@ actual suspend fun downloadAndInstallAppUpdate(
         val partFile = File(tempDir, "PulseMusic-Windows-x64-Setup-${update.tagName}.exe.part")
         if (partFile.exists()) partFile.delete()
 
-        downloadWithRedirects(downloadUrl, partFile, totalSize, onProgress)
+        try {
+            downloadWithRedirects(downloadUrl, partFile, totalSize, onProgress)
+        } catch (downloadEx: Exception) {
+            Logger.w(TAG, "Initial download failed: ${downloadEx.message}, attempting fallback...")
+            val fallbackUrl = "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.1.8/PulseMusic-Windows-x64-Setup.exe"
+            if (downloadUrl != fallbackUrl) {
+                downloadWithRedirects(fallbackUrl, partFile, 0L, onProgress)
+            } else {
+                throw downloadEx
+            }
+        }
 
         if (!partFile.exists() || partFile.length() < 1024 * 1024) {
             onError("Downloaded update installer file is incomplete.")
@@ -87,7 +135,8 @@ actual suspend fun downloadAndInstallAppUpdate(
         }
     } catch (e: Exception) {
         Logger.e(TAG, "Error downloading update: ${e.message}", e)
-        onError(e.message ?: "Failed to download update.")
+        runCatching { openUrl("https://github.com/muthumanikandanb2005-ux/PulseMusic/releases") }
+        onError(e.message ?: "Failed to download update. Opened releases page in browser.")
     }
 }
 
@@ -106,7 +155,7 @@ private fun downloadWithRedirects(
         conn.connectTimeout = 30000
         conn.readTimeout = 60000
         conn.instanceFollowRedirects = false
-        conn.setRequestProperty("User-Agent", "PulseMusicApp")
+        conn.setRequestProperty("User-Agent", "PulseMusicApp/3.2.3")
         conn.connect()
 
         val status = conn.responseCode

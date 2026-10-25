@@ -1349,12 +1349,24 @@ class SharedViewModel(
                 }
             }
         }
-        // 2. Exclusively fetch from LRCLIB using the user's provided client ID
-        getLrclibLyrics(
-            song = song.copy(videoId = cleanVideoId),
-            artist = (artist ?: ""),
-            duration = duration,
-        )
+        // 2. Fetch from preferred lyrics provider (BiniLyrics or LRCLIB)
+        viewModelScope.launch {
+            val preferredProvider = dataStoreManager.lyricsProvider.first()
+            if (preferredProvider == DataStoreManager.BINI_LYRICS) {
+                getBiniLyrics(
+                    song = song.copy(videoId = cleanVideoId),
+                    artist = (artist ?: ""),
+                    duration = duration,
+                    fallbackToLrclib = true,
+                )
+            } else {
+                getLrclibLyrics(
+                    song = song.copy(videoId = cleanVideoId),
+                    artist = (artist ?: ""),
+                    duration = duration,
+                )
+            }
+        }
     }
 
     private suspend fun getSimpMusicLyrics(
@@ -1493,23 +1505,13 @@ class SharedViewModel(
                         }
 
                         else -> {
-                            Logger.d(tag, "LRCLIB yielded no lyrics for ${song.title}")
-                            // Check local Room database as offline / network error fallback
-                            val localSaved = lyricsCanvasRepository.getSavedLyrics(targetVideoId).firstOrNull()
-                            if (localSaved != null) {
-                                val curId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                                    ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                                if (curId == targetVideoId) {
-                                    val lyricsData = localSaved.toLyrics()
-                                    updateLyrics(
-                                        targetVideoId,
-                                        duration,
-                                        lyricsData,
-                                        false,
-                                        LyricsProvider.LRCLIB,
-                                    )
-                                }
-                            }
+                            Logger.d(tag, "LRCLIB yielded no lyrics for ${song.title}, falling back to BiniLyrics")
+                            getBiniLyrics(
+                                song = song,
+                                artist = artist,
+                                duration = duration,
+                                fallbackToLrclib = false,
+                            )
                         }
                     }
                 }
@@ -1568,6 +1570,81 @@ class SharedViewModel(
                                     duration,
                                     fallbackToSaved = false,
                                 )
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
+    private fun getBiniLyrics(
+        song: SongEntity,
+        artist: String,
+        duration: Int,
+        fallbackToLrclib: Boolean = true,
+    ) {
+        val targetVideoId = song.videoId.removePrefix(MERGING_DATA_TYPE.VIDEO)
+        viewModelScope.launch {
+            lyricsCanvasRepository
+                .getBiniLyrics(
+                    artist = artist,
+                    track = song.title,
+                    duration = duration,
+                    isrc = null,
+                ).collectLatest { res ->
+                    val currentVideoId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                        ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                    if (currentVideoId != null && currentVideoId.isNotEmpty() && targetVideoId != currentVideoId) {
+                        Logger.w(tag, "BiniLyrics arrived for $targetVideoId but current song is $currentVideoId, ignoring")
+                        return@collectLatest
+                    }
+                    val data = res.data
+                    when (res) {
+                        is Resource.Success if (data != null && !data.lines.isNullOrEmpty()) -> {
+                            Logger.d(tag, "Get BiniLyrics Success for ${song.title} ($targetVideoId)")
+                            updateLyrics(
+                                targetVideoId,
+                                duration,
+                                data,
+                                false,
+                                LyricsProvider.BINI_LYRICS,
+                            )
+                            insertLyrics(
+                                data.toLyricsEntity(
+                                    targetVideoId,
+                                ),
+                            )
+                            getAITranslationLyrics(
+                                targetVideoId,
+                                data,
+                            )
+                        }
+
+                        else -> {
+                            Logger.d(tag, "BiniLyrics yielded no lyrics for ${song.title}")
+                            if (fallbackToLrclib) {
+                                getLrclibLyrics(
+                                    song = song,
+                                    artist = artist,
+                                    duration = duration,
+                                )
+                            } else {
+                                // Check local Room database as offline / network error fallback
+                                val localSaved = lyricsCanvasRepository.getSavedLyrics(targetVideoId).firstOrNull()
+                                if (localSaved != null) {
+                                    val curId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                                        ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                                    if (curId == targetVideoId) {
+                                        val lyricsData = localSaved.toLyrics()
+                                        updateLyrics(
+                                            targetVideoId,
+                                            duration,
+                                            lyricsData,
+                                            false,
+                                            LyricsProvider.LRCLIB,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -2272,6 +2349,7 @@ enum class LyricsProvider {
     SPOTIFY,
     LRCLIB,
     BETTER_LYRICS,
+    BINI_LYRICS,
     MUSIXMATCH,
     AI,
     OFFLINE,

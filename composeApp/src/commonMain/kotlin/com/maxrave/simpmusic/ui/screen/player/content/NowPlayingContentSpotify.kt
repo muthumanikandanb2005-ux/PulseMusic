@@ -104,6 +104,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
@@ -125,6 +126,7 @@ import com.maxrave.simpmusic.extension.parseTimestampToMilliseconds
 import com.maxrave.simpmusic.extension.smoothScrimBrush
 import com.maxrave.simpmusic.getPlatform
 import com.maxrave.simpmusic.ui.component.AIBadge
+import com.maxrave.simpmusic.ui.component.AudioOutputDeviceBadge
 import com.maxrave.simpmusic.ui.component.DescriptionView
 import com.maxrave.simpmusic.ui.component.ExplicitBadge
 import com.maxrave.simpmusic.ui.component.HeartCheckBox
@@ -1055,7 +1057,7 @@ fun NowPlayingContentSpotify(
                                             // backdrop. Mirrors the `if (forceDark) Color.Cyan` rule in FullWidthItems.
                                             PlatformCastButton(
                                                 modifier = Modifier.size(24.dp),
-                                                tint = if (state.castState.isRemote) Color.Cyan else Color.White,
+                                                tint = if (state.castState.isRemote) Color(0xFF8AB4F8) else Color.White,
                                             )
                                             AnimatedVisibility(visible = state.castState.isRemote) {
                                                 Text(
@@ -1065,9 +1067,16 @@ fun NowPlayingContentSpotify(
                                                             state.castState.deviceName ?: "Cast",
                                                         ),
                                                     style = typo().bodySmall,
-                                                    color = Color.Cyan,
+                                                    color = Color(0xFF8AB4F8),
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+                                            AnimatedVisibility(visible = !state.castState.isRemote) {
+                                                AudioOutputDeviceBadge(
+                                                    softAccent = Color(0xFFA788FA),
+                                                    fontSize = 10.sp,
+                                                    iconSize = 12.dp,
                                                 )
                                             }
                                         }
@@ -1369,6 +1378,10 @@ fun NowPlayingContentSpotify(
 
                                                     LyricsProvider.BETTER_LYRICS -> {
                                                         stringResource(Res.string.lyrics_provider_betterlyrics)
+                                                    }
+
+                                                    LyricsProvider.BINI_LYRICS -> {
+                                                        "BiniLyrics"
                                                     }
 
                                                     else -> {
@@ -1785,22 +1798,31 @@ internal fun NowPlayingTrackInfoRow(
                     }
                 }
                 item(state.screenData.artistName) {
-                    Text(
-                        text = state.screenData.artistName,
-                        style = typo().bodyMedium,
-                        maxLines = 1,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight(align = Alignment.CenterVertically)
-                                .basicMarquee(
-                                    iterations = Int.MAX_VALUE,
-                                    animationMode = MarqueeAnimationMode.Immediately,
-                                ).focusable()
-                                .clickable {
-                                    actions.onNavigateToArtist()
-                                },
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = state.screenData.artistName,
+                            style = typo().bodyMedium,
+                            maxLines = 1,
+                            modifier =
+                                Modifier
+                                    .wrapContentHeight(align = Alignment.CenterVertically)
+                                    .basicMarquee(
+                                        iterations = Int.MAX_VALUE,
+                                        animationMode = MarqueeAnimationMode.Immediately,
+                                    ).focusable()
+                                    .clickable {
+                                        actions.onNavigateToArtist()
+                                    },
+                        )
+                        AudioOutputDeviceBadge(
+                            softAccent = Color(0xFFA788FA),
+                            fontSize = 9.sp,
+                            iconSize = 11.dp,
+                        )
+                    }
                 }
             }
         }

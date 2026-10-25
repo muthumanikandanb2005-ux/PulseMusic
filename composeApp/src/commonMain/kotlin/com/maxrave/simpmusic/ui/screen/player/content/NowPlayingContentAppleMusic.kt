@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
@@ -82,6 +83,7 @@ import com.maxrave.simpmusic.expect.ui.toImageBitmap
 import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.smoothScrimBrush
 import com.maxrave.simpmusic.getPlatform
+import com.maxrave.simpmusic.ui.component.AudioOutputDeviceBadge
 import com.maxrave.simpmusic.ui.component.ExplicitBadge
 import com.maxrave.simpmusic.ui.component.LiquidGlassIconButton
 import com.maxrave.simpmusic.ui.component.rememberHolderPainter
@@ -739,9 +741,19 @@ internal fun AppleMusicMainTitleRow(
                     maxLines = 1,
                     modifier =
                         Modifier
+                            .weight(1f, fill = false)
                             .basicMarquee(iterations = Int.MAX_VALUE, animationMode = MarqueeAnimationMode.Immediately)
                             .focusable()
                             .clickable { actions.onNavigateToArtist() },
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                AudioOutputDeviceBadge(
+                    softAccent = Color(0xFFA788FA),
+                    containerColor = Color.White.copy(alpha = 0.12f),
+                    borderColor = Color.White.copy(alpha = 0.20f),
+                    contentColor = Color.White.copy(alpha = 0.90f),
+                    fontSize = 10.sp,
+                    iconSize = 12.dp,
                 )
             }
         }
