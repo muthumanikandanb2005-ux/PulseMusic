@@ -18,6 +18,12 @@ object VersionManager {
 
     fun getVersionName(): String = removeDevSuffix(versionName ?: String())
 
+    fun getVersionCode(): Int = try {
+        BuildKonfig.versionCode
+    } catch (_: Exception) {
+        97
+    }
+
     private fun removeDevSuffix(versionName: String): String {
         return if (versionName.endsWith("-dev")) {
             versionName.replace("-dev", "")

@@ -10,7 +10,7 @@ Security updates and patches are actively provided for current and recent major 
 
 | Version | Supported | Notes |
 | :--- | :--- | :--- |
-| `3.2.x` | :white_check_mark: | Current active release branch (`v3.2.8`) |
+| `3.2.x` | :white_check_mark: | Current active release branch (`v3.2.9`) |
 | `3.1.x` | :warning: | Maintenance / critical fixes only |
 | `< 3.1` | :x: | Unsupported; please update to latest |
 
@@ -23,7 +23,7 @@ If you discover a security vulnerability or security bug in Pulse Music, please 
 1. **Email Directly**: Contact the sole project owner and lead developer **Muthumanikandan B**:  
    📧 `muthumanikandanb2005@gmail.com`
 2. **Include Details**:
-   - App version affected (e.g. `v3.2.8`)
+   - App version affected (e.g. `v3.2.9`)
    - Platform (Android version or Windows version)
    - Step-by-step reproduction instructions or proof of concept
    - Expected vs observed behavior

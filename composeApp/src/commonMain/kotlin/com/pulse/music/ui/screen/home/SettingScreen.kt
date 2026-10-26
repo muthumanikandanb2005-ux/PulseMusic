@@ -462,7 +462,7 @@ fun SettingScreen(
                 "Last checked: $formattedDate"
             }
         } else {
-            "Version 3.2.8 Build 96 · Pulse Music Studio"
+            "Version ${VersionManager.getVersionName()} Build ${VersionManager.getVersionCode()} · Pulse Music Studio"
         }
     }
 
@@ -1564,7 +1564,7 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "About Pulse Music",
-                            subtitle = "Version 3.2.8 (Build 96) • Pulse Music Studio",
+                            subtitle = "Version ${VersionManager.getVersionName()} (Build ${VersionManager.getVersionCode()}) • Pulse Music Studio",
                             leadingIcon = SimpIcons.Info,
                             showChevron = true,
                             onClick = {
@@ -1603,7 +1603,7 @@ fun SettingScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Pulse Music Studio • Version 3.2.8 (Build 96)",
+                        text = "Pulse Music Studio • Version ${VersionManager.getVersionName()} (Build ${VersionManager.getVersionCode()})",
                         style = typo().bodySmall.copy(
                             color = settingsColors.subtitleText,
                         ),

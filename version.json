@@ -1,54 +1,54 @@
 {
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v3.2.8",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v3.2.8",
-  "tag_name": "v3.2.8",
-  "name": "Pulse Music v3.2.8 - Listen Healthy, Smart Discovery, Continuous Playback & Unified com.pulse.music",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v3.2.9",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v3.2.9",
+  "tag_name": "v3.2.9",
+  "name": "Pulse Music v3.2.9 - Zero-Freeze Playback, Instant Desktop Transitions & Universal com.pulse.music",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-10-26T11:20:00Z",
-  "body": "# Pulse Music v3.2.8 - Listen Healthy, Smart Discovery, Continuous Playback & Unified com.pulse.music\n\nOfficial multi-platform release and OTA update for **Android**, **Windows**, **Orion Store**, and **Obtainium**.\n\n---\n\n### \ud83d\udee1\ufe0f Listen Healthy & Hearing Protection (WHO 85dB)\n- **Safe Volume Limiter**: Built-in 85dB safe volume limiter automatically capping headphone output at 75% to prevent long-term hearing fatigue and acoustic damage.\n- **Continuous Exposure Safety Monitor**: Real-time listening session tracking displaying active safety badges (**SAFE**, **MODERATE**, **BREAK NEEDED**).\n- **Ear Fatigue Break Reminders**: Customizable interval alerts (30m, 45m, 60m, 90m, 120m) reminding you to give your ears a short break.\n\n### \ud83e\udded Song Discovery & Smart Radio Mix\n- **Discovery Mix Slider**: Dynamic balance slider in Settings and Queue sheet allowing you to adjust the blend between familiar favorites and new recommendations (0% familiar to 100% explore).\n- **Quick Picks Discovery Toggle**: Live Discovery ratio badge on Home Quick Picks header allowing quick preset toggling (20%, 50%, 100% Discover) on tap.\n\n### \u26a1 Total Freeze & Reopen Lockup Elimination\n- **Room Flow Deadlock Resolution**: Replaced all blocking terminal operations on continuous reactive database flows with non-blocking stream access across all media handlers, background workers, and view models.\n- **Continuous Zero-Lock Playback**: Eliminates playback lockup after 1+ hours of listening and resolves app reopen freezes permanently.\n- **Clean Service Unbinding**: ServiceConnection cleanly unbinds on activity termination to eliminate memory leaks.\n\n### \ud83c\udf10 Unified Package Architecture\n- **Official Package Rebranding**: Full migration of package namespace and directory tree to com.pulse.music across all UI, settings, UX, and app layers.\n\n### \ud83c\udfa8 Visual & Lyrics Polish\n- **Dynamic Ambient Light Harmonized with Album Art**: Ambient glow accurately extracts palette colors from high-resolution album artwork.\n- **Multilingual Grapheme Cluster Light**: Letter-by-letter and syllable-by-syllable smooth progressive light for all global scripts (Tamil, Hindi, Telugu, Malayalam, Japanese, Chinese, Korean, Thai, Arabic, Latin).\n- **Mini Capsule Lyrics Polish**: Clean floating mini capsule lyrics without elapsed timestamp clutter.\n- **Settings Theme Engine**: Instant reliable switching between Dark AMOLED (#000000), Pure Light, System Default, and Pastel Pearl Lavender.\n- **Settings Footer Attribution**: Added 'Designed & Developed by Manikandan'.\n",
+  "published_at": "2026-10-26T13:30:00Z",
+  "body": "# Pulse Music v3.2.9 - Zero-Freeze Playback, Instant Desktop Transitions & Universal com.pulse.music\n\nOfficial multi-platform release and OTA update for **Android**, **Windows**, **Orion Store**, and **Obtainium**.\n\n---\n\n### ⚡ Zero-Freeze Continuous Playback (Android)\n- **Eliminated 1-Song Freeze**: Decoupled user drag gestures from programmatic pager animations in NowPlayingScreen, completely eliminating UI freeze, non-responsive buttons, and infinite seek loops after 1 song.\n- **Room Flow Deadlock Resolution**: Replaced all blocking terminal operations on continuous reactive database flows with non-blocking stream access across all media handlers, background workers, and view models.\n- **Continuous Zero-Lock Playback**: Eliminates playback lockup after 1+ hours of listening and resolves app reopen freezes permanently.\n- **Clean Service Unbinding**: ServiceConnection cleanly unbinds on activity termination to eliminate memory leaks.\n\n### 🚀 Instant Desktop Transitions (Windows)\n- **Instant Track & Artwork Switching**: Changing tracks or clicking Next/Previous on Windows now broadcasts metadata and album artwork synchronously on seek entry, delivering instant 0ms visual updates.\n- **High-Speed Artwork Transitions**: Tuned crossfade latency in MiniPlayer for rapid, seamless artwork rendering.\n\n### 🛡️ Listen Healthy & Hearing Protection (WHO 85dB)\n- **Safe Volume Limiter**: Built-in 85dB safe volume limiter automatically capping headphone output at 75% to prevent long-term hearing fatigue and acoustic damage.\n- **Continuous Exposure Safety Monitor**: Real-time listening session tracking displaying active safety badges (**SAFE**, **MODERATE**, **BREAK NEEDED**).\n- **Ear Fatigue Break Reminders**: Customizable interval alerts (30m, 45m, 60m, 90m, 120m) reminding you to give your ears a short break.\n\n### 🧭 Song Discovery & Smart Radio Mix\n- **Discovery Mix Slider**: Dynamic balance slider in Settings and Queue sheet allowing you to adjust the blend between familiar favorites and new recommendations (0% familiar to 100% explore).\n- **Quick Picks Discovery Toggle**: Live Discovery ratio badge on Home Quick Picks header allowing quick preset toggling (20%, 50%, 100% Discover) on tap.\n\n### 🌐 Unified Package Architecture\n- **Official Package Rebranding**: Full migration of package namespace and directory tree to com.pulse.music across all UI, settings, UX, and app layers.\n\n### 🎨 Visual & Lyrics Polish\n- **Dynamic Ambient Light Harmonized with Album Art**: Ambient glow accurately extracts palette colors from high-resolution album artwork.\n- **Multilingual Grapheme Cluster Light**: Letter-by-letter and syllable-by-syllable smooth progressive light for all global scripts (Tamil, Hindi, Telugu, Malayalam, Japanese, Chinese, Korean, Thai, Arabic, Latin).\n- **Mini Capsule Lyrics Polish**: Clean floating mini capsule lyrics without elapsed timestamp clutter.\n- **Settings Theme Engine**: Instant reliable switching between Dark AMOLED (#000000), Pure Light, System Default, and Pastel Pearl Lavender.\n- **Settings Footer Attribution**: Added 'Designed & Developed by Manikandan'.\n",
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 61281910
+      "size": 61284874
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 33412846
+      "size": 33415809
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 33376996
+      "size": 33379956
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 34878325
+      "size": 34881284
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/x-msdownload",
-      "size": 183256312
+      "size": 183253856
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 166810700
+      "size": 182781962
     },
     {
       "name": "SHA256SUMS.txt",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/SHA256SUMS.txt",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/SHA256SUMS.txt",
       "content_type": "text/plain; charset=utf-8",
-      "size": 1176
+      "size": 784
     }
   ]
 }

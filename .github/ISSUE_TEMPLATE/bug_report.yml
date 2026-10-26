@@ -50,7 +50,7 @@ body:
     id: version
     attributes:
       label: Pulse Music App Version
-      placeholder: e.g. v3.2.8 (Build 96)
+      placeholder: e.g. v3.2.9 (Build 97)
     validations:
       required: true
 

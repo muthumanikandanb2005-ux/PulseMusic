@@ -4,40 +4,29 @@ const path = require('path');
 const filePath = path.join(__dirname, '..', 'version.json');
 const v = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
-v.name = 'Pulse Music v3.2.7 - Redesigned AMOLED Settings, YouTube Sign In, Windows Shortcuts & Ambient Lighting';
-v.body = `## Pulse Music v3.2.7 - Redesigned AMOLED Settings, YouTube Sign In, Windows Shortcuts & Ambient Lighting
+v.name = 'Pulse Music v3.2.9 - Zero-Freeze Playback, Instant Desktop Transitions & Universal com.pulse.music';
+v.body = `## Pulse Music v3.2.9 - Zero-Freeze Playback, Instant Desktop Transitions & Universal com.pulse.music
 
-### ⚙️ Redesigned AMOLED Settings
-- **13 AMOLED Card Groups**: Complete visual parity with pure dark #000000 background, 18dp rounded cards (#161618), and clean border accents (#222226).
-- **High-Contrast Custom Switches**: Solid white track with black thumb when ON; dark charcoal with grey thumb when OFF.
-- **Segmented Control Buttons**: Segmented pills for Audio Output precision (16-bit PCM | 32-bit float).
-- **Real-Time Settings Search**: Instant live filtering across all settings categories and options.
+### ⚡ Zero-Freeze Continuous Playback (Android)
+- **Eliminated 1-Song Freeze**: Decoupled user drag interactions from programmatic pager animation in NowPlayingScreen, ensuring automatic track advancement never triggers infinite re-entrant seek cycles or main UI lockups.
+- **Continuous Zero-Lock Engine**: Non-blocking asynchronous database flows replace all blocking SQLite terminal operators across playback handlers, queue workers, and background receivers.
 
-### 🔴 YouTube Sign In
-- **Prominent Account Row**: Prominently placed in the first card of Settings.
-- **Account State & Switcher**: Shows active channel name with green ACTIVE badge; tap to switch accounts or sign out.
-- **Developer Login**: Developer/cookie manual sign-in bottom sheet supported.
+### 🚀 Instant Desktop Transitions (Windows)
+- **Instant Track & Artwork Switching**: Changing tracks or clicking Next/Previous on Windows now broadcasts metadata and album artwork synchronously on seek entry, delivering instant 0ms visual updates.
+- **High-Speed Artwork Transitions**: Tuned crossfade latency in MiniPlayer for rapid, seamless artwork rendering.
 
-### ⌨️ Windows Desktop Keyboard Shortcuts
-- **F11**: Toggle Fullscreen
-- **Space**: Play / Pause
-- **Ctrl + Left / Right**: Previous / Next Track
-- **Left / Right**: Seek 5s backward / forward
-- **Up / Down**: Volume control (+5% / -5%)
-- **M**: Mute / Unmute
-- **Ctrl + M**: Toggle Miniplayer
-- **Esc**: Close fullscreen player / overlay
+### 🛡️ Listen Healthy & Ear Protection
+- **WHO 85dB Volume Limiter**: Protects long-term hearing by capping headphone output at 75%.
+- **Ear Break Reminders & Exposure Monitor**: Real-time listening session tracking with customizable rest intervals.
 
-### 🎨 Visual & Playback Polish
-- **Balanced Ambient Light**: Ambient dynamic light rebalanced with a protective text scrim behind the seekbar and time labels so elapsed time and duration are always crisp and legible.
-- **Material Expressive 3 Buttons**: Modern M3 Expressive play/pause, next, and previous buttons with glowing halos removed.
-- **Compact Subtitle Lyrics**: Reduced lyrics font size below album art (11.5sp) with bullet dot separator removed.
-- **Anti-Blur Artwork**: Enforced high-resolution 1200x1200px artwork resolution (=w1200-h1200).
+### 🧭 Smart Discovery Mix
+- **Discovery Mix Slider**: Dynamic ratio balance between familiar library tracks and algorithmic recommendations.
+- **Quick Picks Discovery Toggle**: Live Discovery ratio badge on Home Quick Picks header.
 
-### 🚀 Performance & Stability
-- **Instant Launch**: Multi-stage async background initialization on Android and optimized thread pooling on Windows for rapid launch with zero errors.
-- **Rock-Solid Reliability**: Resolved SQLite UNIQUE constraint issues (1555), orientation transitions on Android 16 (SDK 36), and background thread Toast errors.
-- **Official Publisher**: Signed by Pulse Music Studio with automated certificate trust and sideloading scripts (install.bat & install.ps1).
+### 🎨 Visual & Lyrics Polish
+- **Dynamic Ambient Light**: Ambient dynamic light harmonized with high-resolution album artwork colors.
+- **Multilingual Grapheme Cluster Light**: Syllable and letter-level lyrics illumination across global scripts (Tamil, Hindi, Japanese, Korean, Arabic, Latin).
+- **Theme Engine**: Instant switching between Dark AMOLED (#000000), Pure Light, System Default, and Pastel Pearl Lavender.
 `;
 
 fs.writeFileSync(filePath, JSON.stringify(v, null, 2) + '\n', 'utf8');

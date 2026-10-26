@@ -12,16 +12,16 @@
     <a href="https://apt.izzysoft.de/fdroid/"><img src="https://img.shields.io/badge/IzzyOnDroid-Repository-3DDC84?style=for-the-badge&logo=f-droid&logoColor=white" alt="IzzyOnDroid" /></a>
   </p>
 
-  <h3>⚡ Instant Downloads (v3.2.8 - Latest Build 96)</h3>
+  <h3>⚡ Instant Downloads (v3.2.9 - Latest Build 97)</h3>
 
 | Platform / Architecture | Direct Package Link | Target Devices |
 | :--- | :--- | :--- |
-| **Android Universal (Recommended)** | [📥 **PulseMusic-Universal.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Universal.apk) | All Android Phones & Tablets (All ABIs) |
-| **Android 64-bit Optimized** | [📥 **PulseMusic-arm64-v8a.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-arm64-v8a.apk) | Modern Android Phones (Pixel, Galaxy, OnePlus, Xiaomi) |
-| **Windows 10 / 11 Installer** | [💻 **PulseMusic-Windows-x64-Setup.exe**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Windows-x64-Setup.exe) | Windows 64-bit Setup Installer |
-| **Windows Portable Archive** | [📦 **PulseMusic-Windows-x64-Setup.zip**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Windows-x64-Setup.zip) | Standalone Portable Windows Version |
-| **Android Legacy 32-bit** | [📥 **PulseMusic-armeabi-v7a.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-armeabi-v7a.apk) | Older 32-bit Android Hardware |
-| **Android Emulator / Intel / AMD** | [📥 **PulseMusic-x86_64.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-x86_64.apk) | Chromebooks, Windows WSA, Android x86 |
+| **Android Universal (Recommended)** | [📥 **PulseMusic-Universal.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-Universal.apk) | All Android Phones & Tablets (All ABIs) |
+| **Android 64-bit Optimized** | [📥 **PulseMusic-arm64-v8a.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-arm64-v8a.apk) | Modern Android Phones (Pixel, Galaxy, OnePlus, Xiaomi) |
+| **Windows 10 / 11 Installer** | [💻 **PulseMusic-Windows-x64-Setup.exe**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-Windows-x64-Setup.exe) | Windows 64-bit Setup Installer |
+| **Windows Portable Archive** | [📦 **PulseMusic-Windows-x64-Setup.zip**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-Windows-x64-Setup.zip) | Standalone Portable Windows Version |
+| **Android Legacy 32-bit** | [📥 **PulseMusic-armeabi-v7a.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-armeabi-v7a.apk) | Older 32-bit Android Hardware |
+| **Android Emulator / Intel / AMD** | [📥 **PulseMusic-x86_64.apk**](https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.9/PulseMusic-x86_64.apk) | Chromebooks, Windows WSA, Android x86 |
 
 </div>
 
