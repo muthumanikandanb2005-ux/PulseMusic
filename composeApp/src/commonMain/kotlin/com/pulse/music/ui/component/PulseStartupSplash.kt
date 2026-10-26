@@ -48,6 +48,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import simpmusic.composeapp.generated.resources.Res
 import simpmusic.composeapp.generated.resources.circle_app_icon
@@ -88,26 +90,31 @@ fun PulseStartupSplash(
     )
 
     LaunchedEffect(Unit) {
-        // Entrance animation
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(600, easing = FastOutSlowInEasing),
-        )
-        alpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(400),
-        )
-        // Keep visible for premium branding then dismiss
-        delay(1600)
+        // High-speed entrance animation for instant snappy app opening
+        coroutineScope {
+            launch {
+                scale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(220, easing = FastOutSlowInEasing),
+                )
+            }
+            launch {
+                alpha.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(180),
+                )
+            }
+        }
+        delay(250)
         isVisible = false
-        delay(400)
+        delay(120)
         onDismiss()
     }
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(tween(300)),
-        exit = fadeOut(tween(400)),
+        enter = fadeIn(tween(150)),
+        exit = fadeOut(tween(150)),
     ) {
         Box(
             modifier = modifier

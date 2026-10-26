@@ -69,7 +69,7 @@
 
         <activity
             android:name=".PulseMusicActivity"
-            android:configChanges="orientation|uiMode|keyboardHidden|screenSize|screenLayout|smallestScreenSize"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode|keyboardHidden|keyboard|navigation|density|fontScale|layoutDirection|locale"
             android:exported="true"
             android:supportsPictureInPicture="true"
             android:enableOnBackInvokedCallback="true"

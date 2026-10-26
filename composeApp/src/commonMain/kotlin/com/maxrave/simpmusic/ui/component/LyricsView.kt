@@ -779,7 +779,7 @@ fun LyricsView(
                         }
                     }
 
-                    if (appleStyle || isPulseNeonStyle) {
+                    if (appleStyle || isPulseNeonStyle || isLyricsBlurSupported()) {
                         // The whole wrapper is the tap target — original line AND translation — the
                         // way AMLL's .lyricLineWrapper is, rather than each Text separately. The
                         // press shows as a tinted rounded panel; indication is null because a
@@ -838,7 +838,7 @@ fun LyricsView(
             }
             footerContent?.let { footer ->
                 item {
-                    if (appleStyle || isPulseNeonStyle) {
+                    if (appleStyle || isPulseNeonStyle || isLyricsBlurSupported()) {
                         // Same gutter as the lyrics, and dimmed — but NOT blurred. Blur means
                         // "further away in the song"; the caption is not part of the song at all,
                         // it is a note about where the words came from. Blurring it made it look
@@ -989,7 +989,7 @@ fun PulseNeonLyricsLineItem(
             }
             .padding(vertical = 4.dp),
     ) {
-        // Frosted translucent card for active line with glowing neon accent
+        // Soft translucent backdrop for active line without harsh border or square box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -997,17 +997,12 @@ fun PulseNeonLyricsLineItem(
                     if (isCurrent) {
                         Modifier
                             .background(
-                                color = if (isLavender) MaterialTheme.colorScheme.surface.copy(alpha = 0.35f) else Color(0x18FFFFFF),
-                                shape = RoundedCornerShape(18.dp),
+                                color = if (isLavender) MaterialTheme.colorScheme.surface.copy(alpha = 0.18f) else Color(0x0EFFFFFF),
+                                shape = RoundedCornerShape(12.dp),
                             )
-                            .border(
-                                width = 1.dp,
-                                color = if (isLavender) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color(0x2E38BDF8),
-                                shape = RoundedCornerShape(18.dp),
-                            )
-                            .padding(horizontal = 18.dp, vertical = 14.dp)
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
                     } else {
-                        Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
+                        Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     }
                 ),
         ) {
@@ -1477,10 +1472,50 @@ private fun AnimatedWord(
                 translationY = -eased * EMP_RISE_EM * amount * fontPx
             },
     ) {
-        val chars = word.toCharArray()
-        val charCount = chars.size.coerceAtLeast(1)
-        Row {
-            chars.forEachIndexed { charIndex, ch ->
+        val isNonAsciiOrComplex = remember(word) { word.any { it.code > 127 } }
+        if (isNonAsciiOrComplex) {
+            val glowShadow = heldGlow ?: glow?.copy(blurRadius = SUNG_BASE_GLOW_EM * fontPx)
+            val wordRise =
+                if (glow != null && (isPast || wordProgress > 0f)) {
+                    FastOutSlowInEasing.transform(if (isPast) 1f else wordProgress)
+                } else {
+                    0f
+                }
+            Box(
+                modifier =
+                    Modifier.graphicsLayer {
+                        translationY = -wordRise * CHAR_RISE_EM * fontPx
+                    },
+            ) {
+                if (glowShadow != null && flareGate > 0f) {
+                    Text(
+                        text = word,
+                        style =
+                            style.copy(
+                                shadow =
+                                    glowShadow.copy(
+                                        color = glowShadow.color.copy(alpha = SUNG_BASE_GLOW_ALPHA * flareGate),
+                                    ),
+                            ),
+                        color = Color.Transparent,
+                    )
+                }
+                Text(
+                    text = word,
+                    style = style,
+                    color =
+                        when {
+                            isPast -> Color.White
+                            isActive -> lerp(restingColor, Color.White, wordProgress)
+                            else -> restingColor
+                        },
+                )
+            }
+        } else {
+            val chars = word.toCharArray()
+            val charCount = chars.size.coerceAtLeast(1)
+            Row {
+                chars.forEachIndexed { charIndex, ch ->
                 val charFrom = charIndex.toFloat() / charCount
                 val charTo = (charIndex + 1).toFloat() / charCount
                 val charProgress = ((wordProgress - charFrom) / (charTo - charFrom)).coerceIn(0f, 1f)
@@ -1567,6 +1602,7 @@ private fun AnimatedWord(
                     )
                 }
             }
+        }
         }
     }
 }

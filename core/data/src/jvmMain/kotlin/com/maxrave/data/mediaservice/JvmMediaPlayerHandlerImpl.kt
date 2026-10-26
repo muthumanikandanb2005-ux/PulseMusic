@@ -2668,7 +2668,9 @@ class JvmMediaPlayerHandlerImpl(
                     if (healthEnabled && reminderInterval > 0) {
                         if (sessionMins >= reminderInterval && sessionMins > lastReminderSentAtMinute) {
                             lastReminderSentAtMinute = sessionMins
-                            showToast(ToastType.HearingHealthBreak(sessionMins))
+                            withContext(Dispatchers.Main) {
+                                runCatching { showToast(ToastType.HearingHealthBreak(sessionMins)) }
+                            }
                         }
                     }
                 } else {

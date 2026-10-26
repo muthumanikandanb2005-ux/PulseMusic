@@ -19,6 +19,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.window.WindowPlacement
+import com.maxrave.simpmusic.viewModel.UIEvent
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.compose.setSingletonImageLoaderFactory
@@ -294,6 +302,8 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                 size = DpSize(1500.dp, 860.dp),
             )
         var isVisible by remember { mutableStateOf(true) }
+        val controllerState by sharedViewModel.controllerState.collectAsState()
+        var lastVolumeBeforeMute by remember { mutableFloatStateOf(0.7f) }
         val showNotificationPermissionDialog by
             desktopNotificationManager.shouldShowPermissionDialog.collectAsState()
         // The single-instance guard now runs before startKoin (top of
@@ -434,6 +444,96 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
             transparent = !isVM,
             state = windowState,
             visible = isVisible,
+            onKeyEvent = { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.F11 -> {
+                            windowState.placement =
+                                if (windowState.placement == WindowPlacement.Fullscreen) {
+                                    WindowPlacement.Floating
+                                } else {
+                                    WindowPlacement.Fullscreen
+                                }
+                            true
+                        }
+                        Key.Spacebar -> {
+                            sharedViewModel.onUIEvent(UIEvent.PlayPause)
+                            true
+                        }
+                        Key.MediaPlayPause -> {
+                            sharedViewModel.onUIEvent(UIEvent.PlayPause)
+                            true
+                        }
+                        Key.MediaNext -> {
+                            sharedViewModel.onUIEvent(UIEvent.Next)
+                            true
+                        }
+                        Key.MediaPrevious -> {
+                            sharedViewModel.onUIEvent(UIEvent.Previous)
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            if (keyEvent.isCtrlPressed) {
+                                sharedViewModel.onUIEvent(UIEvent.Next)
+                            } else {
+                                sharedViewModel.onUIEvent(UIEvent.Forward)
+                            }
+                            true
+                        }
+                        Key.DirectionLeft -> {
+                            if (keyEvent.isCtrlPressed) {
+                                sharedViewModel.onUIEvent(UIEvent.Previous)
+                            } else {
+                                sharedViewModel.onUIEvent(UIEvent.Backward)
+                            }
+                            true
+                        }
+                        Key.DirectionUp -> {
+                            val currentVol = controllerState.volume
+                            sharedViewModel.onUIEvent(
+                                UIEvent.UpdateVolume((currentVol + 0.05f).coerceAtMost(1f))
+                            )
+                            true
+                        }
+                        Key.DirectionDown -> {
+                            val currentVol = controllerState.volume
+                            sharedViewModel.onUIEvent(
+                                UIEvent.UpdateVolume((currentVol - 0.05f).coerceAtLeast(0f))
+                            )
+                            true
+                        }
+                        Key.M -> {
+                            if (keyEvent.isCtrlPressed) {
+                                MiniPlayerManager.isOpen = !MiniPlayerManager.isOpen
+                            } else {
+                                val currentVol = controllerState.volume
+                                if (currentVol > 0f) {
+                                    lastVolumeBeforeMute = currentVol
+                                    sharedViewModel.onUIEvent(UIEvent.UpdateVolume(0f))
+                                } else {
+                                    sharedViewModel.onUIEvent(
+                                        UIEvent.UpdateVolume(lastVolumeBeforeMute.coerceIn(0.1f, 1f))
+                                    )
+                                }
+                            }
+                            true
+                        }
+                        Key.P -> {
+                            if (keyEvent.isCtrlPressed) {
+                                MiniPlayerManager.isOpen = !MiniPlayerManager.isOpen
+                                true
+                            } else false
+                        }
+                        Key.Escape -> {
+                            if (windowState.placement == WindowPlacement.Fullscreen) {
+                                windowState.placement = WindowPlacement.Floating
+                                true
+                            } else false
+                        }
+                        else -> false
+                    }
+                } else false
+            },
         ) {
             // Returning from macOS System Settings is the only reliable time to learn whether the
             // user enabled notifications after denying the one-shot system prompt.

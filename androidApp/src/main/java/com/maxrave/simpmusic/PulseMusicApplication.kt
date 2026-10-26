@@ -58,6 +58,7 @@ class PulseMusicApplication :
         configCrashlytics(this, BuildKonfig.sentryDsn)
         configLastfm(BuildKonfig.lastfmApiKey, BuildKonfig.lastfmSecret)
         startKoin {
+            allowOverride(true)
             androidLogger(level = Level.ERROR)
             androidContext(this@PulseMusicApplication)
             loadAllModules(

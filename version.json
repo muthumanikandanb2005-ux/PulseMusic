@@ -2,7 +2,7 @@
   "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/423426419",
   "assets_url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/423426419/assets",
   "upload_url": "https://uploads.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/423426419/assets{?name,label}",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v3.2.6",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v3.2.7",
   "id": 423426419,
   "author": {
     "login": "muthumanikandanb2005-ux",
@@ -26,15 +26,15 @@
     "site_admin": false
   },
   "node_id": "RE_kwDOU7jAW84ZPPlz",
-  "tag_name": "v3.2.6",
+  "tag_name": "v3.2.7",
   "target_commitish": "main",
-  "name": "Pulse Music v3.2.6 - Discovery Mix Slider, Listening Health & Unified Music Shelf",
+  "name": "Pulse Music v3.2.7 - Redesigned AMOLED Settings, YouTube Sign In, Windows Shortcuts & Ambient Lighting",
   "draft": false,
   "immutable": false,
   "prerelease": false,
   "created_at": "2026-10-25T13:37:29Z",
   "updated_at": "2026-10-25T13:43:55Z",
-  "published_at": "2026-10-25T13:43:55Z",
+  "published_at": "2026-10-26T04:10:13Z",
   "assets": [
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675139139",
@@ -70,7 +70,7 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:37:56Z",
       "updated_at": "2026-10-25T13:38:35Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-arm64-v8a.apk"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-arm64-v8a.apk"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675140822",
@@ -106,7 +106,7 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:38:36Z",
       "updated_at": "2026-10-25T13:38:51Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-armeabi-v7a.apk"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-armeabi-v7a.apk"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675139142",
@@ -142,13 +142,13 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:37:56Z",
       "updated_at": "2026-10-25T13:39:21Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-Universal.apk"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-Universal.apk"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675147597",
       "id": 675147597,
       "node_id": "RA_kwDOU7jAW84oPe9N",
-      "name": "PulseMusic-v3.2.6-arm64-v8a.apk",
+      "name": "PulseMusic-v3.2.7-arm64-v8a.apk",
       "label": "",
       "uploader": {
         "login": "muthumanikandanb2005-ux",
@@ -178,13 +178,13 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:41:40Z",
       "updated_at": "2026-10-25T13:42:04Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-v3.2.6-arm64-v8a.apk"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-v3.2.7-arm64-v8a.apk"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675141446",
       "id": 675141446,
       "node_id": "RA_kwDOU7jAW84oPddG",
-      "name": "PulseMusic-v3.2.6-Universal.apk",
+      "name": "PulseMusic-v3.2.7-Universal.apk",
       "label": "",
       "uploader": {
         "login": "muthumanikandanb2005-ux",
@@ -214,13 +214,13 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:38:52Z",
       "updated_at": "2026-10-25T13:39:20Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-v3.2.6-Universal.apk"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-v3.2.7-Universal.apk"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675142615",
       "id": 675142615,
       "node_id": "RA_kwDOU7jAW84oPdvX",
-      "name": "PulseMusic-v3.2.6-Windows-x64-Setup.exe",
+      "name": "PulseMusic-v3.2.7-Windows-x64-Setup.exe",
       "label": "",
       "uploader": {
         "login": "muthumanikandanb2005-ux",
@@ -250,13 +250,13 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:39:21Z",
       "updated_at": "2026-10-25T13:41:39Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-v3.2.6-Windows-x64-Setup.exe"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-v3.2.7-Windows-x64-Setup.exe"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675142653",
       "id": 675142653,
       "node_id": "RA_kwDOU7jAW84oPdv9",
-      "name": "PulseMusic-v3.2.6-Windows-x64-Setup.msi",
+      "name": "PulseMusic-v3.2.7-Windows-x64-Setup.msi",
       "label": "",
       "uploader": {
         "login": "muthumanikandanb2005-ux",
@@ -286,13 +286,13 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:39:23Z",
       "updated_at": "2026-10-25T13:41:39Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-v3.2.6-Windows-x64-Setup.msi"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-v3.2.7-Windows-x64-Setup.msi"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675147580",
       "id": 675147580,
       "node_id": "RA_kwDOU7jAW84oPe88",
-      "name": "PulseMusic-v3.2.6-Windows-x64-Setup.zip",
+      "name": "PulseMusic-v3.2.7-Windows-x64-Setup.zip",
       "label": "",
       "uploader": {
         "login": "muthumanikandanb2005-ux",
@@ -322,7 +322,7 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:41:40Z",
       "updated_at": "2026-10-25T13:43:28Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-v3.2.6-Windows-x64-Setup.zip"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-v3.2.7-Windows-x64-Setup.zip"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675139141",
@@ -358,7 +358,7 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:37:56Z",
       "updated_at": "2026-10-25T13:43:52Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-Windows-x64-Setup.exe"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-Windows-x64-Setup.exe"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675139149",
@@ -394,7 +394,7 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:37:56Z",
       "updated_at": "2026-10-25T13:43:50Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-Windows-x64-Setup.msi"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-Windows-x64-Setup.msi"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675139137",
@@ -430,7 +430,7 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:37:56Z",
       "updated_at": "2026-10-25T13:43:54Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-Windows-x64-Setup.zip"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-Windows-x64-Setup.zip"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675148596",
@@ -466,7 +466,7 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:42:05Z",
       "updated_at": "2026-10-25T13:42:29Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/PulseMusic-x86_64.apk"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/PulseMusic-x86_64.apk"
     },
     {
       "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/assets/675149640",
@@ -502,10 +502,10 @@
       "download_count": 0,
       "created_at": "2026-10-25T13:42:31Z",
       "updated_at": "2026-10-25T13:42:31Z",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.6/SHA256SUMS.txt"
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.7/SHA256SUMS.txt"
     }
   ],
-  "tarball_url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/tarball/v3.2.6",
-  "zipball_url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/zipball/v3.2.6",
-  "body": "## Pulse Music v3.2.6 - Discovery Mix Slider, Listening Health & Unified Music Shelf\n\n### ≡ƒÄÜ∩╕Å Discovery Mix Slider\n- **Dynamic Queue Blending**: Choose a precise ratio between familiar tracks and new discovery recommendations (e.g. 80% familiar / 20% new) and adjust in real-time while listening.\n- **Queue Bottom Sheet & Apple Music Queue**: Integrated pastel lavender Material 3 slider with quick presets (80/20, 50/50, 20/80) and live badge percentage.\n- **Continuous Queue Interleaving**: Automated playback continuations balance liked favorites and fresh recommendations seamlessly.\n\n### ≡ƒÄº Listening Health & Hearing Safety\n- **Headphone Listening Time & Volume Exposure**: Real-time tracking of continuous session duration and headphone volume ratio.\n- **Break Reminders**: Configurable break interval dialog (Off, 30m, 45m, 60m, 90m, 120m) sending gentle reminders to give ears a rest.\n- **Safer Volume Limit**: Option to cap headphone output to safe listening levels (75%) with clear safety notifications.\n- **Live Safety Card in Settings**: Displays current session duration, today's listening minutes, and real-time safety status (`Safe`, `Moderate`, `Caution`).\n\n### ≡ƒôÜ Unified Music Shelf\n- **One Searchable Library**: Merges streaming tracks, saved/purchased albums, and local personal audio files into one unified, searchable collection.\n- **Categorical Filtering**: Instant filtering by `All`, `Streaming`, `Albums`, and `Personal Audio`.\n- **Integrated Library Chip**: Embedded directly in the Library header for one-tap access.\n\n### ≡ƒîÉ Music Streaming Language Preference\n- **Localized Streaming**: Select preferred music streaming language in Settings to tailor the home screen feed and recommended songs instantly.\n\n### ≡ƒÅ╖∩╕Å Pulse Music Rebranding\n- **Unified Identity**: Updated desktop and system media control integrations to Pulse Music.\n"
+  "tarball_url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/tarball/v3.2.7",
+  "zipball_url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/zipball/v3.2.7",
+  "body": "## Pulse Music v3.2.7 - Redesigned AMOLED Settings, YouTube Sign In, Windows Shortcuts & Ambient Lighting\n\n### ⚙️ Redesigned AMOLED Settings\n- **13 AMOLED Card Groups**: Complete visual parity with pure dark #000000 background, 18dp rounded cards (#161618), and clean border accents (#222226).\n- **High-Contrast Custom Switches**: Solid white track with black thumb when ON; dark charcoal with grey thumb when OFF.\n- **Segmented Control Buttons**: Segmented pills for Audio Output precision (16-bit PCM | 32-bit float).\n- **Real-Time Settings Search**: Instant live filtering across all settings categories and options.\n\n### 🔴 YouTube Sign In\n- **Prominent Account Row**: Prominently placed in the first card of Settings.\n- **Account State & Switcher**: Shows active channel name with green ACTIVE badge; tap to switch accounts or sign out.\n- **Developer Login**: Developer/cookie manual sign-in bottom sheet supported.\n\n### ⌨️ Windows Desktop Keyboard Shortcuts\n- **F11**: Toggle Fullscreen\n- **Space**: Play / Pause\n- **Ctrl + Left / Right**: Previous / Next Track\n- **Left / Right**: Seek 5s backward / forward\n- **Up / Down**: Volume control (+5% / -5%)\n- **M**: Mute / Unmute\n- **Ctrl + M**: Toggle Miniplayer\n- **Esc**: Close fullscreen player / overlay\n\n### 🎨 Visual & Playback Polish\n- **Balanced Ambient Light**: Ambient dynamic light rebalanced with a protective text scrim behind the seekbar and time labels so elapsed time and duration are always crisp and legible.\n- **Material Expressive 3 Buttons**: Modern M3 Expressive play/pause, next, and previous buttons with glowing halos removed.\n- **Compact Subtitle Lyrics**: Reduced lyrics font size below album art (11.5sp) with bullet dot separator removed.\n- **Anti-Blur Artwork**: Enforced high-resolution 1200x1200px artwork resolution (=w1200-h1200).\n\n### 🚀 Performance & Stability\n- **Instant Launch**: Multi-stage async background initialization on Android and optimized thread pooling on Windows for rapid launch with zero errors.\n- **Rock-Solid Reliability**: Resolved SQLite UNIQUE constraint issues (1555), orientation transitions on Android 16 (SDK 36), and background thread Toast errors.\n- **Official Publisher**: Signed by Pulse Music Studio with automated certificate trust and sideloading scripts (install.bat & install.ps1).\n"
 }

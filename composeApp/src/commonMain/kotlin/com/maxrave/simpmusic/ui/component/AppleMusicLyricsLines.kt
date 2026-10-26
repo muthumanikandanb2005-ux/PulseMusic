@@ -187,7 +187,7 @@ fun Modifier.appleMusicLyricFocus(
         }
     val fontSizeDp = with(LocalDensity.current) { AppleMusicLyricFontSize.toDp() }
     val targetBlur: Dp =
-        if (!blurEnabled || allLinesCurrent || !hasActiveLine || distanceFromCurrent == 0 || distance > 4) {
+        if (!blurEnabled || allLinesCurrent || !hasActiveLine || distanceFromCurrent == 0) {
             0.dp
         } else {
             fontSizeDp * (distance * BLUR_PER_LINE_EM).coerceAtMost(BLUR_MAX_EM)

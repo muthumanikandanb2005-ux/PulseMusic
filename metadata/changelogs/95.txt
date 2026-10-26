@@ -1,0 +1,16 @@
+Pulse Music v3.2.7:
+- Redesigned Settings Screen: Pure AMOLED card groups (#161618), high-contrast switches (solid white track with black thumb), segmented buttons (16-bit PCM | 32-bit float), and real-time search filtering across all settings
+- YouTube Sign In: Prominent Google/YouTube account sign-in directly at the top of Settings with active channel badge, account switcher, and developer login sheet
+- Windows Desktop Shortcuts: Full keyboard navigation (F11 fullscreen, Space play/pause, Ctrl+Left/Right prev/next, Left/Right 5s seek, Up/Down volume, M mute, Ctrl+M miniplayer, Esc close)
+- Ambient Light & Text Legibility: Rebalanced dynamic ambient light with protective contrast scrim so song elapsed time and duration are always razor-sharp and visible
+- Material Expressive 3 Playback Controls: Modern M3 Expressive play/pause, previous, and next controls with glowing halo glare completely removed
+- Subtitle Lyrics Refinement: Compact 11.5sp lyrics display beneath album artwork with separator bullet dot removed
+- High-Resolution Anti-Blur Artwork: Enforced 1200x1200px artwork resolution (=w1200-h1200) across Coil image loaders
+- Lightning-Fast Startup: Multi-stage async initialization on Android and optimized thread pooling on Windows for instantaneous launch
+- Zero Errors & Crashes: Verified rock-solid stability across both Android (arm64, armeabi-v7a, x86_64, universal) and Windows 10/11 x64
+- Fixed lyrics character rendering & glow: Fixed letters disappearing in Indic (Tamil, Hindi, Malayalam, Telugu, Bengali) and Arabic languages during word-by-word active glow
+- Removed square boxes (tofu) and harsh borders in synchronized lyrics for a clean, seamless display
+- Fixed lyrics blur depth of field: Restored smooth progressive blur across the entire screen in all lyrics styles on Windows and Android
+- Fixed orientation crash on Android 16 (SDK 36) when rotating from landscape back to portrait
+- Fixed SQLite database UNIQUE constraint crash (Error 1555) on track playback events
+- Updated Windows Desktop Publisher to Pulse Music Studio with automated certificate trust and sideloading scripts (install.bat & install.ps1)

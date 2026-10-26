@@ -1038,7 +1038,7 @@ interface DatabaseDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertPlaybackEvent(playbackEventEntity: PlaybackEventEntity): Long
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertEventArtist(eventArtist: EventArtistEntity)
 
     @Transaction
@@ -1062,15 +1062,20 @@ interface DatabaseDao {
                 ),
             )
 
-        channelIds.forEach { channelId ->
-            insertEventArtist(
-                EventArtistEntity(
-                    eventId = eventId,
-                    channelId = channelId,
-                    timestamp = timestamp,
-                ),
-            )
-        }
+        channelIds
+            .filter { it.isNotBlank() }
+            .distinct()
+            .forEach { channelId ->
+                runCatching {
+                    insertEventArtist(
+                        EventArtistEntity(
+                            eventId = eventId,
+                            channelId = channelId,
+                            timestamp = timestamp,
+                        ),
+                    )
+                }
+            }
         return eventId
     }
 

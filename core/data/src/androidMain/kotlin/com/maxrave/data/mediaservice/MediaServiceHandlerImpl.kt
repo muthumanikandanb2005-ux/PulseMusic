@@ -2721,7 +2721,9 @@ internal class MediaServiceHandlerImpl(
                     if (saferVolEnabled && isHeadphones && volRatio > 0.76f) {
                         val safeVol = (maxVol * 0.75f).toInt()
                         audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, safeVol, 0)
-                        showToast(ToastType.SaferVolumeLimitActive)
+                        withContext(Dispatchers.Main) {
+                            runCatching { showToast(ToastType.SaferVolumeLimitActive) }
+                        }
                     }
 
                     continuousPlaybackSeconds += 5
@@ -2748,7 +2750,9 @@ internal class MediaServiceHandlerImpl(
                     if (healthEnabled && reminderInterval > 0 && isHeadphones) {
                         if (sessionMins >= reminderInterval && sessionMins > lastReminderSentAtMinute) {
                             lastReminderSentAtMinute = sessionMins
-                            showToast(ToastType.HearingHealthBreak(sessionMins))
+                            withContext(Dispatchers.Main) {
+                                runCatching { showToast(ToastType.HearingHealthBreak(sessionMins)) }
+                            }
                         }
                     }
                 } else {

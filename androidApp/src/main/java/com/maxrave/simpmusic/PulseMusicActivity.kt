@@ -130,11 +130,13 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
     @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        loadKoinModules(
-            module {
-                single<AppCompatActivity> { this@PulseMusicActivity }
-            },
-        )
+        runCatching {
+            loadKoinModules(
+                module {
+                    single<AppCompatActivity> { this@PulseMusicActivity }
+                },
+            )
+        }
         VersionManager.initialize()
         if (viewModel.recreateActivity.value || viewModel.isServiceRunning) {
             viewModel.activityRecreateDone()
@@ -348,6 +350,13 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
         if (shouldStopMusicService && isFinishing) {
             viewModel.isServiceRunning = false
         }
+        runCatching {
+            unloadKoinModules(
+                module {
+                    single<AppCompatActivity> { this@PulseMusicActivity }
+                },
+            )
+        }
         super.onDestroy()
         Logger.d("PulseMusicActivity", "onDestroy: ")
     }
@@ -364,7 +373,9 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
             pushPlayerError(it)
         }
         mediaPlayerHandler.showToast = { type ->
-            viewModel.makeToast(
+            runOnUiThread {
+                runCatching {
+                    viewModel.makeToast(
                 when (type) {
                     is ToastType.ExplicitContent -> {
                         runCatching {
@@ -387,6 +398,10 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
                     }
                 },
             )
+                }.onFailure {
+                    Logger.e("PulseMusicActivity", "Error displaying toast: ${it.message}")
+                }
+            }
         }
         viewModel.isServiceRunning = true
         shouldUnbind = true

@@ -25,6 +25,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -80,6 +81,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.maxrave.simpmusic.expect.ui.toImageBitmap
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.mediaservice.handler.RepeatState
 import com.maxrave.simpmusic.extension.formatDuration
@@ -185,20 +191,25 @@ fun NowPlayingContentBitChord(
         ) {
         val ambientColor = state.spotShadowColor
 
-        // Ambient radial glow behind artwork (hardware-accelerated drawBehind)
+        // Ambient radial and vertical bloom behind artwork with protective bottom scrim for time/controls
         if (state.ambientModeEnabled) {
+            val animatedAmbientColor by animateColorAsState(
+                targetValue = ambientColor,
+                animationSpec = tween(700, easing = FastOutSlowInEasing),
+                label = "BitChordAmbientColor",
+            )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer { alpha = 0.28f }
                     .drawBehind {
-                        val centerOffset = Offset(size.width / 2f, size.height * 0.38f)
-                        val radius = size.width * 0.75f
+                        val centerOffset = Offset(size.width / 2f, size.height * 0.35f)
+                        val radius = size.width * 0.85f
+                        // 1. Soft radial artwork halo
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    ambientColor,
-                                    ambientColor.copy(alpha = 0.4f),
+                                    animatedAmbientColor.copy(alpha = 0.35f),
+                                    animatedAmbientColor.copy(alpha = 0.16f),
                                     Color.Transparent,
                                 ),
                                 center = centerOffset,
@@ -206,6 +217,29 @@ fun NowPlayingContentBitChord(
                             ),
                             radius = radius,
                             center = centerOffset,
+                        )
+                        // 2. Soft top-down ambient tint
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    animatedAmbientColor.copy(alpha = 0.14f),
+                                    Color.Transparent,
+                                ),
+                                startY = 0f,
+                                endY = size.height * 0.55f,
+                            ),
+                        )
+                        // 3. Contrast gradient scrim across bottom half: ensures song time & controls are ALWAYS 100% visible
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.35f),
+                                    Color.Black.copy(alpha = 0.75f),
+                                ),
+                                startY = size.height * 0.48f,
+                                endY = size.height,
+                            ),
                         )
                     },
             )
@@ -634,6 +668,23 @@ private fun BitChordTopBar(
     }
 }
 
+/** Upgrades YouTube and GoogleUserContent thumbnail URLs to maximum uncompressed resolution. */
+private fun getHighResArtworkUrl(url: String?): String? {
+    if (url.isNullOrBlank()) return null
+    var res = url
+    if (res.contains("googleusercontent.com") || res.contains("ggpht.com") || res.contains("ytimg.com")) {
+        res = res.replace(Regex("=w\\d+-h\\d+"), "=w1200-h1200")
+        res = res.replace(Regex("=s\\d+"), "=s1200")
+        res = res.replace(Regex("([wh])\\d{2,3}"), "$11200")
+    }
+    if (res.contains("i.ytimg.com/vi/")) {
+        res = res.replace("/hqdefault.jpg", "/maxresdefault.jpg")
+            .replace("/mqdefault.jpg", "/maxresdefault.jpg")
+            .replace("/sddefault.jpg", "/maxresdefault.jpg")
+    }
+    return res
+}
+
 /** Artwork / Video Hero with breathing scale animation (1.0f play / 0.94f pause) and rounded corners. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -713,24 +764,61 @@ private fun BitChordArtworkHero(
                 beyondViewportPageCount = 1,
             ) { page ->
                 val track: Track? = state.artworkQueue.getOrNull(page)
-                val artworkUrl = track?.thumbnails?.lastOrNull()?.url
+                val rawUrl = track?.thumbnails?.lastOrNull()?.url
                     ?: state.screenData.thumbnailURL
+                var artworkUrl by remember(rawUrl) {
+                    mutableStateOf(getHighResArtworkUrl(rawUrl))
+                }
 
                 AsyncImage(
-                    model = artworkUrl,
+                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                        .data(artworkUrl)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .crossfade(300)
+                        .build(),
                     contentDescription = track?.title ?: "Artwork",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
+                    onSuccess = {
+                        if (page == state.currentOrderIndex) {
+                            actions.onArtworkBitmap(it.result.image.toImageBitmap())
+                        }
+                    },
+                    onError = {
+                        val fallback = artworkUrl?.replace("maxresdefault", "hqdefault")
+                        if (fallback != null && fallback != artworkUrl) {
+                            artworkUrl = fallback
+                        }
+                    },
                     error = rememberHolderPainter(),
                     placeholder = rememberHolderPainter(),
                 )
             }
         } else {
+            val rawUrl = state.screenData.thumbnailURL
+            var artworkUrl by remember(rawUrl) {
+                mutableStateOf(getHighResArtworkUrl(rawUrl))
+            }
             AsyncImage(
-                model = state.screenData.thumbnailURL,
+                model = ImageRequest.Builder(LocalPlatformContext.current)
+                    .data(artworkUrl)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .crossfade(300)
+                    .build(),
                 contentDescription = "Artwork",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
+                onSuccess = {
+                    actions.onArtworkBitmap(it.result.image.toImageBitmap())
+                },
+                onError = {
+                    val fallback = artworkUrl?.replace("maxresdefault", "hqdefault")
+                    if (fallback != null && fallback != artworkUrl) {
+                        artworkUrl = fallback
+                    }
+                },
                 error = rememberHolderPainter(),
                 placeholder = rememberHolderPainter(),
             )
@@ -892,14 +980,20 @@ private fun BitChordIsolatedScrubber(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val timeShadow = Shadow(
+                color = Color.Black.copy(alpha = 0.75f),
+                blurRadius = 4f,
+                offset = Offset(0f, 1f),
+            )
             Text(
                 text = formatDuration(currentMs),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
+                    shadow = timeShadow,
                 ),
-                color = accentColor,
+                color = if (isLavender) MaterialTheme.colorScheme.primary else Color.White,
             )
 
             val remainingMs = (totalMs - currentMs).coerceAtLeast(0L)
@@ -909,8 +1003,9 @@ private fun BitChordIsolatedScrubber(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
+                    shadow = timeShadow,
                 ),
-                color = Color.White.copy(alpha = 0.65f),
+                color = if (isLavender) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.85f),
             )
         }
     }
@@ -1037,88 +1132,115 @@ internal fun BitChordTransportRow(
             )
         }
 
-        // Previous
-        IconButton(
-            onClick = { actions.onUIEvent(UIEvent.Previous) },
-            modifier = Modifier.size(52.dp),
+        // Previous — Material Expressive 3 Pill Button
+        val prevInteraction = remember { MutableInteractionSource() }
+        val isPrevPressed by prevInteraction.collectIsPressedAsState()
+        val prevScale by animateFloatAsState(
+            targetValue = if (isPrevPressed) 0.92f else 1f,
+            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+            label = "M3EPrevPressScale",
+        )
+        Box(
+            modifier = Modifier
+                .size(width = 56.dp, height = 52.dp)
+                .scale(prevScale)
+                .clip(RoundedCornerShape(26.dp))
+                .background(
+                    if (isLavender) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        Color.White.copy(alpha = 0.12f)
+                    }
+                )
+                .clickable(
+                    interactionSource = prevInteraction,
+                    indication = null,
+                    onClick = { actions.onUIEvent(UIEvent.Previous) }
+                ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = SimpIcons.SkipPrevious,
                 contentDescription = "Previous",
-                tint = Color.White,
+                tint = if (isLavender) MaterialTheme.colorScheme.onSecondaryContainer else Color.White,
+                modifier = Modifier.size(30.dp),
+            )
+        }
+
+        // Material Expressive 3 Play/Pause Button (Morphing corner, clean tactile surface, zero glow)
+        val playCornerRadius by animateDpAsState(
+            targetValue = if (isPlaying) 20.dp else 36.dp,
+            animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
+            label = "M3EPlayCorner",
+        )
+        val playWidth by animateDpAsState(
+            targetValue = if (isPlaying) 76.dp else 72.dp,
+            animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
+            label = "M3EPlayWidth",
+        )
+        val playInteraction = remember { MutableInteractionSource() }
+        val isPlayPressed by playInteraction.collectIsPressedAsState()
+        val playScale by animateFloatAsState(
+            targetValue = if (isPlayPressed) 0.94f else 1f,
+            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+            label = "M3EPlayPressScale",
+        )
+
+        Box(
+            modifier = Modifier
+                .size(width = playWidth, height = 72.dp)
+                .scale(playScale)
+                .clip(RoundedCornerShape(playCornerRadius))
+                .background(
+                    if (isLavender) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary
+                )
+                .clickable(
+                    interactionSource = playInteraction,
+                    indication = null,
+                    onClick = { actions.onUIEvent(UIEvent.PlayPause) },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (isPlaying) SimpIcons.Pause else SimpIcons.PlayArrow,
+                contentDescription = if (isPlaying) "Pause" else "Play",
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(36.dp),
             )
         }
 
-        // Large Circular Pulse Play/Pause Button with Dynamic BitChord Breathing Halo
-        val infiniteTransition = rememberInfiniteTransition(label = "BitChordTransportPulse")
-        val pulseScale by infiniteTransition.animateFloat(
-            initialValue = 1.0f,
-            targetValue = if (isPlaying) 1.24f else 1.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "PulseScale",
+        // Next — Material Expressive 3 Pill Button
+        val nextInteraction = remember { MutableInteractionSource() }
+        val isNextPressed by nextInteraction.collectIsPressedAsState()
+        val nextScale by animateFloatAsState(
+            targetValue = if (isNextPressed) 0.92f else 1f,
+            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+            label = "M3ENextPressScale",
         )
-        val pulseAlpha by infiniteTransition.animateFloat(
-            initialValue = 0.7f,
-            targetValue = if (isPlaying) 0.12f else 0.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "PulseAlpha",
-        )
-
         Box(
-            modifier = Modifier.size(84.dp),
+            modifier = Modifier
+                .size(width = 56.dp, height = 52.dp)
+                .scale(nextScale)
+                .clip(RoundedCornerShape(26.dp))
+                .background(
+                    if (isLavender) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        Color.White.copy(alpha = 0.12f)
+                    }
+                )
+                .clickable(
+                    interactionSource = nextInteraction,
+                    indication = null,
+                    onClick = { actions.onUIEvent(UIEvent.Next) }
+                ),
             contentAlignment = Alignment.Center,
-        ) {
-            if (isPlaying) {
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .scale(pulseScale)
-                        .border(
-                            width = 2.dp,
-                            color = accentColor.copy(alpha = pulseAlpha),
-                            shape = CircleShape,
-                        ),
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .shadow(
-                        elevation = 14.dp,
-                        shape = CircleShape,
-                        spotColor = accentColor.copy(alpha = 0.65f),
-                    )
-                    .clip(CircleShape)
-                    .background(if (isLavender) MaterialTheme.colorScheme.tertiary else accentColor)
-                    .clickable { actions.onUIEvent(UIEvent.PlayPause) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) SimpIcons.Pause else SimpIcons.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = if (isLavender) MaterialTheme.colorScheme.onTertiary else if (accentColor == BitChordNeonAccent) Color.Black else Color.White,
-                    modifier = Modifier.size(38.dp),
-                )
-            }
-        }
-
-        // Next
-        IconButton(
-            onClick = { actions.onUIEvent(UIEvent.Next) },
-            modifier = Modifier.size(52.dp),
         ) {
             Icon(
                 imageVector = SimpIcons.SkipNext,
                 contentDescription = "Next",
-                tint = Color.White,
-                modifier = Modifier.size(36.dp),
+                tint = if (isLavender) MaterialTheme.colorScheme.onSecondaryContainer else Color.White,
+                modifier = Modifier.size(30.dp),
             )
         }
 
@@ -1320,44 +1442,32 @@ private fun BitChordInstagramGlowingLyrics(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // Soft accent dot — no neon glow ring
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.60f)),
-                )
-                Text(
-                    text = line,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.5.sp,
-                        letterSpacing = (-0.2).sp,
-                        shadow = Shadow(
-                            color = accentColor.copy(alpha = 0.25f),
-                            blurRadius = 8f,
-                        ),
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.5.sp,
+                    letterSpacing = (-0.1).sp,
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.65f),
+                        blurRadius = 4f,
                     ),
-                    color = Color.White.copy(alpha = 0.92f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-            }
+                ),
+                color = Color.White.copy(alpha = 0.92f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
             if (!translatedLine.isNullOrBlank()) {
                 Text(
                     text = translatedLine,
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 11.5.sp,
                     ),
-                    color = accentColor.copy(alpha = 0.85f),
+                    color = accentColor.copy(alpha = 0.82f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,

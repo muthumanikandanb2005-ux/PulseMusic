@@ -10,6 +10,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import multiplatform.network.cmptoast.ToastDuration
@@ -67,11 +68,18 @@ abstract class BaseViewModel :
     }
 
     fun makeToast(message: String?) {
-        showToast(
-            message = message ?: "NO MESSAGE",
-            duration = ToastDuration.Short,
-            gravity = ToastGravity.Bottom,
-        )
+        if (message.isNullOrBlank()) return
+        viewModelScope.launch(Dispatchers.Main) {
+            runCatching {
+                showToast(
+                    message = message,
+                    duration = ToastDuration.Short,
+                    gravity = ToastGravity.Bottom,
+                )
+            }.onFailure {
+                Logger.e("BaseViewModel", "Error displaying toast: ${it.message}")
+            }
+        }
     }
 
     protected fun getString(resId: StringResource): String =
