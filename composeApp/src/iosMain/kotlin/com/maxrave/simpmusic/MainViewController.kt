@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic
+package com.pulse.music
 
 import androidx.compose.ui.window.ComposeUIViewController
 

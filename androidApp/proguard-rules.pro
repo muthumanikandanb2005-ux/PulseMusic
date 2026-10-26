@@ -79,9 +79,9 @@
 
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 -dontwarn kotlinx.serialization.internal.ClassValueReferences
--keep class com.maxrave.simpmusic.data.model.** { *; }
--keep class com.maxrave.simpmusic.extension.AllExtKt { *; }
--keep class com.maxrave.simpmusic.extension.AllExtKt$* { *; }
+-keep class com.pulse.music.data.model.** { *; }
+-keep class com.pulse.music.extension.AllExtKt { *; }
+-keep class com.pulse.music.extension.AllExtKt$* { *; }
 -keep class com.maxrave.kotlinytmusicscraper.extension.MapExtKt$* { *; }
 
 ## Removes all Logs to prevent reverse engineering and performance overhead

@@ -1,0 +1,9 @@
+Pulse Music v3.2.8:
+- Listen Healthy & Ear Care: Built-in WHO 85dB safe volume limiter (automatically capping headphone volume at 75%), customizable ear fatigue break reminder timers (30m, 45m, 60m, 90m, 120m), and real-time continuous listening session safety monitor (Safe, Moderate, Break Needed).
+- Total Freeze & Reopen Lockup Elimination: Completely resolved the 1-hour playback lockup and app reopen freeze by replacing blocking Room Flow operations with non-blocking stream handlers and ensuring clean ServiceConnection lifecycle management.
+- Song Discovery & Smart Radio: Interactive Discovery Mix Slider in Settings and Now Playing queue sheet to blend library favorites with new streaming discoveries (0% to 100% explore), plus an interactive Quick Picks Discovery badge on Home.
+- Multilingual Grapheme Cluster Lyrics Glow: Syllable-by-syllable and letter-by-letter smooth progressive light for all global languages (Tamil, Hindi, Telugu, Malayalam, Japanese, Chinese, Korean, Thai, Arabic, Latin).
+- Ambient Glow Matched to Album Image: Dynamic ambient lighting in player views accurately extracts and projects palette colors from high-resolution album artwork.
+- Mini Capsule Lyrics Polish: Clean floating mini capsule lyrics without elapsed timestamp clutter.
+- Settings Theme Engine: Reliable instant switching across Dark AMOLED (#000000), Pure Light, System Default, and Pastel Pearl Lavender themes.
+- Designed & Developed by Manikandan attribution added at the footer of Settings.

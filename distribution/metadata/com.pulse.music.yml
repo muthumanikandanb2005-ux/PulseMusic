@@ -48,7 +48,15 @@ Builds:
     gradle:
       - yes
 
+  - versionName: 3.2.8
+    versionCode: 96
+    commit: v3.2.8
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 3.2.7
-CurrentCode: 95
+CurrentVersion: 3.2.8
+CurrentCode: 96

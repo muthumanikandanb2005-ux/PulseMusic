@@ -14,7 +14,7 @@
 - Support both Android and Desktop (Windows, macOS, Linux)
 
 ### Basic Information
-- **Package name**: `com.maxrave.simpmusic`
+- **Package name**: `com.pulse.music`
 - **Primary language**: Kotlin
 - **UI Framework**: Jetpack Compose / Compose Multiplatform
 - **Architecture**: Clean Architecture + MVVM
@@ -307,12 +307,12 @@ GRAD 0, ROND 50**, `FILL=1`. Use `FILL=0` only for the "off" half of a state pai
 filled states render identically.
 
 **Then edit the downloaded file:**
-1. `package com.example.test` → `package com.maxrave.simpmusic.ui.icon`
+1. `package com.example.test` → `package com.pulse.music.ui.icon`
 2. `public val <symbol_name>: ImageVector` → `val SimpIcons.<PascalName>: ImageVector`
 3. Rename the backing field `_<symbol_name>` → `_<PascalName>`, and `name = "<symbol_name>"` → `"<PascalName>"`
 4. For an icon that must flip in RTL, add `autoMirror = true,` to `ImageVector.Builder`
 
-**Use it:** `SimpIcons.PlayArrow` — plus a per-icon import, `import com.maxrave.simpmusic.ui.icon.PlayArrow`.
+**Use it:** `SimpIcons.PlayArrow` — plus a per-icon import, `import com.pulse.music.ui.icon.PlayArrow`.
 
 #### Traps that have already cost time here
 

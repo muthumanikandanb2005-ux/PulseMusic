@@ -1,4 +1,4 @@
-package com.maxrave.simpmusic.expect
+package com.pulse.music.expect
 
 // No-op on iOS - mini player is desktop only
 actual fun toggleMiniPlayer() {

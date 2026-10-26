@@ -225,7 +225,7 @@ class JvmMediaPlayerHandlerImpl(
         } else {
             Platform.Linux(
                 "Pulse Music",
-                "com.maxrave.simpmusic",
+                "com.pulse.music",
             )
         }
     }

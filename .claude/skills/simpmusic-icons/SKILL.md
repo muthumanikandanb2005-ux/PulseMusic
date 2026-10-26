@@ -31,7 +31,7 @@ the on state and the distinction is lost.
 
 Then edit the downloaded file:
 
-1. `package com.example.test` → `package com.maxrave.simpmusic.ui.icon`
+1. `package com.example.test` → `package com.pulse.music.ui.icon`
 2. `public val <symbol_name>: ImageVector` → `val SimpIcons.<PascalName>: ImageVector`
 3. Rename the backing field `_<symbol_name>` → `_<PascalName>`, and `name = "<symbol_name>"` → `"<PascalName>"`
 4. If the glyph must flip in RTL, add `autoMirror = true,` inside `ImageVector.Builder(...)`
@@ -40,8 +40,8 @@ Then edit the downloaded file:
 ## Using an icon
 
 ```kotlin
-import com.maxrave.simpmusic.ui.icon.PlayArrow   // per-icon import, required
-import com.maxrave.simpmusic.ui.icon.SimpIcons
+import com.pulse.music.ui.icon.PlayArrow   // per-icon import, required
+import com.pulse.music.ui.icon.SimpIcons
 
 Icon(SimpIcons.PlayArrow, contentDescription = null)
 ```

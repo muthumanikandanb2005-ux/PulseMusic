@@ -41,7 +41,7 @@
         </intent>
     </queries>
     <queries>
-        <package android:name="com.maxrave.simpmusic" />
+        <package android:name="com.pulse.music" />
     </queries>
     <queries>
         <intent>
