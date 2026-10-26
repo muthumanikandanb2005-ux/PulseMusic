@@ -1,40 +1,42 @@
-name: Feature request
-description: Suggest an improvement or new idea for SimpMusic
+name: Feature Request
+description: Propose an idea or enhancement for Pulse Music
 labels: [ "feat:unconfirmed" ]
 
 body:
   - type: markdown
     attributes:
       value: |
-        ⚠️ **Important:**  
-        Feature requests that are incomplete or not properly filled out will be closed without further explanation.
+        💡 **Feature Requests for Pulse Music**  
+        Thank you for helping improve Pulse Music! Please describe your proposed enhancement clearly.
 
   - type: textarea
     id: problem
     attributes:
-      label: Problem Description
-      placeholder: Describe the underlying problem or pain point.
+      label: Problem or Pain Point
+      placeholder: What problem does this feature solve?
     validations:
       required: true
 
   - type: textarea
     id: solution
     attributes:
-      label: Proposed Solution
-      placeholder: Explain the solution or feature you'd like to see implemented.
+      label: Proposed Solution & Experience
+      placeholder: Describe in detail how you would like this feature to look and behave in Pulse Music.
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternative Solutions
-      placeholder: Describe any alternative approaches or features you've considered.
+      label: Alternative Approaches Considered
+      placeholder: What other alternatives or workarounds have you considered?
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: context
     attributes:
       label: Additional Context
-      placeholder: Add any extra context, details, or screenshots that help clarify your request.
+      placeholder: Attach any mockups, references from other audio players, or links.
+    validations:
+      required: false

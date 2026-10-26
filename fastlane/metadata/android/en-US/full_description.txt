@@ -1,13 +1,38 @@
-Experience music like never before with Pulse Music.
+Pulse Music is a next-generation open-source music player and streaming application designed for pure, uninterrupted listening pleasure on Android and Windows. Built with Compose Multiplatform, Pulse delivers a silky-smooth, ad-free experience powered by advanced audio technologies.
 
-<br><b>Features:</b>
+Experience music like never before:
 
-- Ad-free YouTube Music and YouTube streaming in background
-- Continuous playback engine with zero freezes and rapid skipping
-- Real-time Apple Music and Spotify hybrid styled synchronized lyrics
-- Offline caching and downloaded songs support
-- Equalizer, spatial audio, and sound enhancements
-- Home, Charts, Moods & Genres with high-speed browsing
-- SponsorBlock & Return YouTube Dislike integration
-- In-app OTA updates and trending music notification drawer delivery
-- Sleep timer and Android Auto support
+🛡️ LISTEN HEALTHY & HEARING PROTECTION (WHO 85dB)
+• Built-in safe volume limiter automatically caps headphone output at 75% to prevent long-term acoustic damage and hearing fatigue.
+• Live exposure intensity monitor displays active status badges (Safe, Moderate, Break Needed).
+• Customizable ear fatigue break reminders (30m, 45m, 60m, 90m, 120m) prompt you to give your ears essential rest.
+
+🧭 SONG DISCOVERY & SMART RADIO MIX
+• Dynamic Discovery Mix slider in Settings and Queue sheet allows you to fine-tune the exact balance between familiar favorites and new streaming recommendations (0% familiar to 100% explore).
+• Interactive Quick Picks Discovery preset badges (20%, 50%, 100%) on the Home screen header for curated musical variety.
+
+⚡ ZERO-LOCK CONTINUOUS PLAYBACK ENGINE
+• Asynchronous non-blocking reactive streams eliminate stuttering, playback buffering freezes, and track skip latency.
+• Zero memory leaks or 1+ hour playback lockups for uninterrupted listening day and night.
+
+🎤 REAL-TIME APPLE & SPOTIFY HYBRID SYNCED LYRICS
+• Syllable-by-syllable and word-by-word progressive karaoke glow synced to the beat.
+• Multilingual romanization for 12+ global scripts (Japanese Kanji/Kana, Korean Hangul, Chinese Pinyin, Tamil, Telugu, Hindi, Malayalam, Arabic).
+• Floating mini capsule lyrics for seamless multitasking.
+
+🎨 EXPRESSIVE MATERIAL 3 & AMOLED THEMES
+• Dynamic ambient light extracted in real time from album art.
+• Instant theme switching between Dark AMOLED (#000000), Pure Light, System Default, and Pastel Pearl Lavender.
+
+🎚️ AUDIOPHILE EQUALIZER & SPATIAL AUDIO
+• 10-Band professional audio equalizer with bass boost and virtualizer.
+• AutoEq headphone presets calibrated for over 1,000+ headphone models.
+• Spatial 8D audio and reverberation acoustic room modeling.
+
+🚗 CONNECTIVITY & PLATFORMS
+• Full Android Auto support for seamless in-car entertainment.
+• Seamless cross-platform synchronization with the native Windows Desktop companion app.
+• Sleep timer, offline song caching, SponsorBlock, and Return YouTube Dislike.
+
+100% Open Source, Ad-Free, and Privacy-Focused.
+Owned, Designed & Developed by Muthumanikandan B (Pulse Music Studio).

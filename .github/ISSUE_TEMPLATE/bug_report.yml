@@ -1,5 +1,5 @@
-name: Bug report
-description: Report a reproducible issue in SimpMusic
+name: Bug Report
+description: Report a reproducible issue or bug in Pulse Music
 labels: [ "bug:unconfirmed" ]
 
 body:
@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         ⚠️ **Important:**  
-        Issues that are incomplete or not properly filled out will be closed without further explanation.
+        Please search existing issues before submitting to ensure this bug has not already been reported.
 
   - type: checkboxes
     id: duplicate_check
@@ -22,7 +22,7 @@ body:
     id: bug_description
     attributes:
       label: Describe the Bug
-      placeholder: Briefly describe the bug you encountered.
+      placeholder: Clearly describe the problem you encountered in Pulse Music.
     validations:
       required: true
 
@@ -31,10 +31,10 @@ body:
     attributes:
       label: Steps to Reproduce
       placeholder: |
-        1. …
-        2. …
-        3. …
-        4. …
+        1. Open Pulse Music
+        2. Navigate to...
+        3. Tap on...
+        4. Observe bug...
     validations:
       required: true
 
@@ -42,29 +42,29 @@ body:
     id: expected
     attributes:
       label: Expected Behavior
-      placeholder: Describe what you expected to happen instead.
+      placeholder: Describe what should have happened instead.
     validations:
       required: true
 
   - type: input
     id: version
     attributes:
-      label: App Version
-      placeholder: e.g. 1.0.0
+      label: Pulse Music App Version
+      placeholder: e.g. v3.2.8 (Build 96)
     validations:
       required: true
 
   - type: markdown
     attributes:
       value: |
-        ### 📱 Device Information
-        Please provide details about the device where the issue occurred.
+        ### 📱 Device & Environment Information
+        Please provide details about your device and operating system.
 
   - type: input
-    id: android_version
+    id: os_version
     attributes:
-      label: Android Version
-      placeholder: e.g. Android 15
+      label: Operating System & Version
+      placeholder: e.g. Android 15 / Windows 11 23H2
     validations:
       required: true
 
@@ -72,15 +72,15 @@ body:
     id: device_model
     attributes:
       label: Device Model
-      placeholder: e.g. Google Pixel 7 Pro
+      placeholder: e.g. Google Pixel 8 Pro / Dell XPS 15
     validations:
       required: true
 
   - type: checkboxes
     id: custom_rom
     attributes:
-      label: Custom ROM
-      description: Check this if you are using a custom ROM.
+      label: Custom ROM (Android)
+      description: Check this if you are using a custom Android ROM.
       options:
         - label: I am using a custom ROM
 
@@ -89,16 +89,16 @@ body:
     attributes:
       label: Custom ROM Name (if applicable)
       description: Only fill this out if you checked the box above.
-      placeholder: e.g. LineageOS 21, crDroid, Pixel Experience
+      placeholder: e.g. LineageOS 21, crDroid, PixelOS
 
   - type: textarea
     id: screenshots
     attributes:
-      label: Screenshots (optional)
-      placeholder: Add screenshots if they help show the issue.
+      label: Screenshots / Screen Recordings (Optional)
+      placeholder: Drag and drop screenshots or videos to help explain the issue.
 
   - type: textarea
     id: logs
     attributes:
-      label: Log / Error Details
-      placeholder: Paste the crash log here if the app crashed.
+      label: Log / Stack Trace Details (Optional)
+      placeholder: Paste crash logs or error stack traces here.
