@@ -19,6 +19,7 @@ import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -144,7 +145,7 @@ class LibraryDynamicPlaylistViewModel(
                             // would otherwise leave a "top 50" 49 long. The query already stops at
                             // 100, so this reaches at most that far — the same shape as
                             // `WrappedViewModel.resolveTop`.
-                            .mapNotNull { songRepository.getSongById(it.videoId).lastOrNull() }
+                            .mapNotNull { songRepository.getSongById(it.videoId).firstOrNull() }
                             .take(MONTHLY_RECAP_LIMIT)
                 }
         }

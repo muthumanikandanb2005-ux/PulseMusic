@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.singleOrNull
 import kotlinx.coroutines.flow.update
@@ -173,11 +174,11 @@ class NowPlayingBottomSheetViewModel(
                             ),
                     )
                 }
-                songRepository.getSongById(it).lastOrNull().let { song ->
+                songRepository.getSongById(it).firstOrNull().let { song ->
                     if (song != null) {
                         getSongEntityFlow(videoId = song.videoId)
                     } else {
-                        songRepository.insertSong(songOrNowPlaying).singleOrNull()?.let {
+                        songRepository.insertSong(songOrNowPlaying).firstOrNull()?.let {
                             getSongEntityFlow(videoId = songOrNowPlaying.videoId)
                         }
                     }
@@ -229,7 +230,7 @@ class NowPlayingBottomSheetViewModel(
                         .removeTrackFromLocalPlaylist(
                             id = ev.playlistId,
                             song =
-                                songRepository.getSongById(ev.videoId).lastOrNull() ?: run {
+                                songRepository.getSongById(ev.videoId).firstOrNull() ?: run {
                                     makeToast(getString(Res.string.error_occurred))
                                     return@launch
                                 },
@@ -309,7 +310,7 @@ class NowPlayingBottomSheetViewModel(
                     if (newList.contains(songUIState.videoId)) {
                         return@launch
                     } else {
-                        val songEntity = songRepository.getSongById(songUIState.videoId).singleOrNull() ?: return@launch
+                        val songEntity = songRepository.getSongById(songUIState.videoId).firstOrNull() ?: return@launch
                         localPlaylistRepository
                             .addTrackToLocalPlaylist(
                                 id = ev.playlistId,
@@ -329,13 +330,13 @@ class NowPlayingBottomSheetViewModel(
                 }
 
                 is NowPlayingBottomSheetUIEvent.PlayNext -> {
-                    val songEntity = songRepository.getSongById(songUIState.videoId).singleOrNull() ?: return@launch
+                    val songEntity = songRepository.getSongById(songUIState.videoId).firstOrNull() ?: return@launch
                     mediaPlayerHandler.playNext(songEntity.toTrack())
                     makeToast(getString(Res.string.play_next))
                 }
 
                 is NowPlayingBottomSheetUIEvent.AddToQueue -> {
-                    val songEntity = songRepository.getSongById(songUIState.videoId).singleOrNull() ?: return@launch
+                    val songEntity = songRepository.getSongById(songUIState.videoId).firstOrNull() ?: return@launch
                     mediaPlayerHandler.loadMoreCatalog(arrayListOf(songEntity.toTrack()), isAddToQueue = true)
                     makeToast(getString(Res.string.added_to_queue))
                 }

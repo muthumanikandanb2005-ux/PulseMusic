@@ -1388,7 +1388,7 @@ class SettingsViewModel(
     fun clearDownloadedCache() {
         viewModelScope.launch {
             cacheRepository.clearCache(Config.DOWNLOAD_CACHE)
-            songRepository.getDownloadedSongs().singleOrNull()?.let { songs ->
+            songRepository.getDownloadedSongs().firstOrNull()?.let { songs ->
                 songs.forEach { song ->
                     songRepository.updateDownloadState(song.videoId, DownloadState.STATE_NOT_DOWNLOADED)
                 }
@@ -1619,7 +1619,7 @@ class SettingsViewModel(
                                                 authUser = it.first().authUser,
                                                 isUsed = true,
                                             ),
-                                        ).singleOrNull()
+                                        ).firstOrNull()
                                         ?.let { account ->
                                             Logger.w("getAllGoogleAccount", "inserted: $account")
                                         }
@@ -1652,16 +1652,16 @@ class SettingsViewModel(
             return accountRepository
                 .getAccountInfo(
                     cookie,
-                ).lastOrNull()
+                ).firstOrNull()
                 ?.takeIf {
                     it.isNotEmpty()
                 }?.let { accountInfoList ->
                     Logger.d("getAllGoogleAccount", "addAccount: $accountInfoList")
-                    accountRepository.getGoogleAccounts().lastOrNull()?.forEach {
+                    accountRepository.getGoogleAccounts().firstOrNull()?.forEach {
                         Logger.d("getAllGoogleAccount", "set used: $it start")
                         accountRepository
                             .updateGoogleAccountUsed(it.email, false)
-                            .singleOrNull()
+                            .firstOrNull()
                             ?.let {
                                 Logger.w("getAllGoogleAccount", "set used: $it")
                             }
@@ -1734,7 +1734,7 @@ class SettingsViewModel(
                 googleAccounts.value.data?.forEach {
                     accountRepository
                         .updateGoogleAccountUsed(it.email, false)
-                        .singleOrNull()
+                        .firstOrNull()
                         ?.let {
                             Logger.w("getAllGoogleAccount", "set used: $it")
                         }
@@ -1743,7 +1743,7 @@ class SettingsViewModel(
                 dataStoreManager.putString("AccountThumbUrl", acc.thumbnailUrl)
                 accountRepository
                     .updateGoogleAccountUsed(acc.email, true)
-                    .singleOrNull()
+                    .firstOrNull()
                     ?.let {
                         Logger.w("getAllGoogleAccount", "set used: $it")
                     }
@@ -1759,7 +1759,7 @@ class SettingsViewModel(
                 googleAccounts.value.data?.forEach {
                     accountRepository
                         .updateGoogleAccountUsed(it.email, false)
-                        .singleOrNull()
+                        .firstOrNull()
                         ?.let {
                             Logger.w("getAllGoogleAccount", "set used: $it")
                         }

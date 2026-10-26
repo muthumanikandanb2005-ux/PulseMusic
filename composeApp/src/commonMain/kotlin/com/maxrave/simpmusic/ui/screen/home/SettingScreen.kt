@@ -1,4 +1,7 @@
 package com.maxrave.simpmusic.ui.screen.home
+import androidx.compose.foundation.verticalScroll
+import com.maxrave.simpmusic.ui.navigation.destination.home.ListenTogetherDestination
+import androidx.compose.foundation.rememberScrollState
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -108,6 +111,7 @@ import com.manikandan.domain.data.model.lyrics.RomanizationDictionaryState
 import com.manikandan.domain.data.model.lyrics.RomanizationLanguage
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.manager.DataStoreManager.Values.TRUE
+import com.manikandan.domain.mediaservice.handler.HearingSafetyStatus
 import com.manikandan.domain.repository.ImportProgress
 import com.manikandan.domain.utils.LocalResource
 import com.maxrave.logger.Logger
@@ -127,6 +131,7 @@ import com.maxrave.simpmusic.ui.component.AmbientThemeGlow
 import com.maxrave.simpmusic.ui.component.CenterLoadingBox
 import com.maxrave.simpmusic.ui.component.DevLogInBottomSheet
 import com.maxrave.simpmusic.ui.component.DevLogInType
+import com.maxrave.simpmusic.ui.component.DiscoveryMixSlider
 import com.maxrave.simpmusic.ui.component.EndOfPage
 import com.maxrave.simpmusic.ui.component.ImportLinkDialog
 import com.maxrave.simpmusic.ui.component.ImportProgressDialog
@@ -139,6 +144,7 @@ import com.maxrave.simpmusic.ui.component.PulseSettingsCard
 import com.maxrave.simpmusic.ui.component.PulseSettingsHeader
 import com.maxrave.simpmusic.ui.component.PulseSettingsSearchBar
 import com.maxrave.simpmusic.ui.component.RippleIconButton
+import com.maxrave.simpmusic.ui.component.getSettingsThemeColors
 import com.maxrave.simpmusic.ui.component.rememberNowPlayingGlowTint
 import com.maxrave.simpmusic.ui.icon.Album
 import com.maxrave.simpmusic.ui.icon.ArrowBackIosNew
@@ -382,6 +388,12 @@ fun SettingScreen(
     val translationLanguage by viewModel.translationLanguage.collectAsStateWithLifecycle()
     val loggedInState by viewModel.loggedIn.collectAsStateWithLifecycle()
 
+    val listeningHealthEnabled by viewModel.listeningHealthEnabled.collectAsStateWithLifecycle()
+    val saferVolumeLimitEnabled by viewModel.saferVolumeLimitEnabled.collectAsStateWithLifecycle()
+    val breakReminderMinutes by viewModel.breakReminderMinutes.collectAsStateWithLifecycle()
+    val healthState by viewModel.listeningHealthState.collectAsStateWithLifecycle()
+    val discoveryRatio by viewModel.discoveryRatio.collectAsStateWithLifecycle()
+
     val isCheckingUpdate by sharedViewModel.isCheckingUpdate.collectAsStateWithLifecycle()
     val dataStoreManager: DataStoreManager = koinInject()
     val ytAccountName by remember { dataStoreManager.getString("AccountName") }.collectAsStateWithLifecycle(initialValue = null)
@@ -412,6 +424,9 @@ fun SettingScreen(
     var showDevLoginSheet by rememberSaveable { mutableStateOf(false) }
     var showColorPickerDialog by rememberSaveable { mutableStateOf(false) }
     var showThirdPartyLibraries by rememberSaveable { mutableStateOf(false) }
+    var showAudioSourcesDialog by rememberSaveable { mutableStateOf(false) }
+    var showLocalFolderDialog by rememberSaveable { mutableStateOf(false) }
+    var showSoundEffectsDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(true) {
         viewModel.getData()
@@ -456,7 +471,21 @@ fun SettingScreen(
         DataStoreManager.THEME_MODE_SYSTEM to stringResource(Res.string.theme_mode_system),
         DataStoreManager.THEME_MODE_DARK to stringResource(Res.string.theme_mode_dark),
         DataStoreManager.THEME_MODE_LIGHT to stringResource(Res.string.theme_mode_light),
+        "PEARL_LAVENDER" to "Pearl Lavender Signature",
     )
+    val currentThemeKey = if (pearlLavenderTheme) "PEARL_LAVENDER" else themeMode
+    val currentThemeSubtitle = when (currentThemeKey) {
+        "PEARL_LAVENDER" -> "Pearl Lavender Signature"
+        DataStoreManager.THEME_MODE_LIGHT -> stringResource(Res.string.theme_mode_light)
+        DataStoreManager.THEME_MODE_SYSTEM -> stringResource(Res.string.theme_mode_system)
+        else -> stringResource(Res.string.theme_mode_dark)
+    }
+    val currentThemeTrailing = when (currentThemeKey) {
+        "PEARL_LAVENDER" -> "Pearl Lavender"
+        DataStoreManager.THEME_MODE_LIGHT -> "Light"
+        DataStoreManager.THEME_MODE_SYSTEM -> "System"
+        else -> "Dark (AMOLED)"
+    }
     val nowPlayingStyleLabels = listOf(
         DataStoreManager.NOW_PLAYING_STYLE_BITCHORD to "Pulse Dynamic Neon (Ultra-Smooth)",
         DataStoreManager.NOW_PLAYING_STYLE_SPOTIFY to stringResource(Res.string.now_playing_style_spotify),
@@ -475,10 +504,12 @@ fun SettingScreen(
         return texts.any { it?.lowercase()?.contains(q) == true }
     }
 
+    val settingsColors = getSettingsThemeColors()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF000000)),
+            .background(settingsColors.screenBackground),
     ) {
         val settingListState = rememberLazyListState()
 
@@ -511,7 +542,7 @@ fun SettingScreen(
                             Icon(
                                 imageVector = SimpIcons.ArrowBackIosNew,
                                 contentDescription = "Back",
-                                tint = Color.White,
+                                tint = settingsColors.titleText,
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -523,7 +554,7 @@ fun SettingScreen(
                         style = typo().headlineLarge.copy(
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = settingsColors.titleText,
                             letterSpacing = (-0.5).sp,
                         ),
                         modifier = Modifier.padding(start = 4.dp),
@@ -583,7 +614,7 @@ fun SettingScreen(
                             leadingIcon = SimpIcons.PeopleAlt,
                             showChevron = true,
                             onClick = {
-                                sharedViewModel.makeToast("Listen Together: Sync room active")
+                                navController.navigate(ListenTogetherDestination)
                             },
                         )
                     }
@@ -601,7 +632,7 @@ fun SettingScreen(
                             leadingIcon = SimpIcons.LogoDev,
                             showChevron = true,
                             onClick = {
-                                sharedViewModel.makeToast("Audio source order: YouTube Music (HQ) > Local Storage")
+                                showAudioSourcesDialog = true
                             },
                         )
                         PulseSettingDivider()
@@ -782,32 +813,155 @@ fun SettingScreen(
                             leadingIcon = SimpIcons.TipsAndUpdates,
                             switchState = (crossfadeDjMode to { viewModel.setCrossfadeDjMode(it) }),
                         )
+                        PulseSettingDivider()
+                        val equalizerEnabled by viewModel.equalizerEnabled.collectAsStateWithLifecycle()
+                        PulseSettingRow(
+                            title = "10-Band Equalizer",
+                            subtitle = if (equalizerEnabled) "Hardware & DSP peaking biquad EQ enabled" else "Adjust 10 frequency bands and preamp",
+                            leadingIcon = SimpIcons.GraphicEq,
+                            switchState = (equalizerEnabled to { viewModel.setEqualizerEnabled(it) }),
+                        )
+                        AnimatedVisibility(visible = equalizerEnabled) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                EqualizerSection(viewModel)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // GROUP: LISTEN HEALTHY & HEARING SAFETY
+            if (matchesSearch("Listen Healthy", "Hearing Safety", "Ear Care", "Volume Limit", "Break Reminder", "Safe", "Health")) {
+                item(key = "card_listen_healthy") {
+                    PulseSettingsHeader(title = "LISTEN HEALTHY & EAR CARE")
+                    PulseSettingsCard {
+                        val safetyBadgeText = when (healthState.hearingSafetyStatus) {
+                            HearingSafetyStatus.SAFE -> "SAFE"
+                            HearingSafetyStatus.MODERATE -> "MODERATE"
+                            HearingSafetyStatus.CAUTION -> "BREAK NEEDED"
+                        }
+                        val safetyBadgeColor = when (healthState.hearingSafetyStatus) {
+                            HearingSafetyStatus.SAFE -> Color(0xFF10B981)
+                            HearingSafetyStatus.MODERATE -> Color(0xFFF59E0B)
+                            HearingSafetyStatus.CAUTION -> Color(0xFFEF4444)
+                        }
+                        PulseSettingRow(
+                            title = "Listen Healthy Monitor",
+                            subtitle = if (listeningHealthEnabled) "Actively monitoring continuous headphone exposure" else "Track headphone duration and prevent ear fatigue",
+                            leadingIcon = SimpIcons.Headphones,
+                            badgeText = if (listeningHealthEnabled) safetyBadgeText else null,
+                            badgeBg = safetyBadgeColor,
+                            switchState = (listeningHealthEnabled to { viewModel.setListeningHealthEnabled(it) }),
+                        )
+                        if (listeningHealthEnabled) {
+                            PulseSettingDivider()
+                            PulseSettingRow(
+                                title = "Safe Volume Limiter (85dB Cap)",
+                                subtitle = "Automatically caps headphone volume at 75% according to WHO hearing safety standards",
+                                leadingIcon = SimpIcons.VolumeUp,
+                                badgeText = if (saferVolumeLimitEnabled) "ACTIVE" else null,
+                                switchState = (saferVolumeLimitEnabled to { viewModel.setSaferVolumeLimitEnabled(it) }),
+                            )
+                            PulseSettingDivider()
+                            val reminderLabels = listOf(
+                                0 to "Off",
+                                30 to "Every 30 mins",
+                                45 to "Every 45 mins",
+                                60 to "Every 60 mins (Recommended)",
+                                90 to "Every 90 mins",
+                                120 to "Every 2 hours",
+                            )
+                            PulseSettingRow(
+                                title = "Ear Fatigue Break Reminder",
+                                subtitle = reminderLabels.firstOrNull { it.first == breakReminderMinutes }?.second ?: "${breakReminderMinutes} mins",
+                                leadingIcon = SimpIcons.TipsAndUpdates,
+                                trailingText = if (breakReminderMinutes > 0) "${breakReminderMinutes}m" else "Off",
+                                showChevron = true,
+                                onClick = {
+                                    viewModel.setAlertData(
+                                        SettingAlertState(
+                                            title = "Ear Fatigue Break Reminder",
+                                            selectOne = SettingAlertState.SelectData(
+                                                listSelect = reminderLabels.map { (it.first == breakReminderMinutes) to it.second },
+                                            ),
+                                            confirm = runBlocking { getString(Res.string.change) } to { state ->
+                                                val selected = state.selectOne?.getSelected()
+                                                val selectedMin = reminderLabels.firstOrNull { it.second == selected }?.first ?: 60
+                                                viewModel.setBreakReminderMinutes(selectedMin)
+                                            },
+                                            dismiss = runBlocking { getString(Res.string.cancel) },
+                                        ),
+                                    )
+                                },
+                            )
+                            PulseSettingDivider()
+                            PulseSettingRow(
+                                title = "Session Listening Duration",
+                                subtitle = if (healthState.isHeadphonesActive) {
+                                    "Headphones active • Session: ${healthState.sessionMinutes} mins • Volume: ${(healthState.currentVolumeRatio * 100).toInt()}%"
+                                } else {
+                                    "Speaker output • Session: ${healthState.sessionMinutes} mins"
+                                },
+                                leadingIcon = SimpIcons.AutoGraph,
+                                trailingText = "${healthState.sessionMinutes}m",
+                            )
+                        }
+                    }
+                }
+            }
+
+            // GROUP: SONG DISCOVERY & SMART RADIO
+            if (matchesSearch("Discovery", "Song Discovery", "Explore", "Familiar", "Radio", "Smart Mix", "Discover")) {
+                item(key = "card_discovery") {
+                    PulseSettingsHeader(title = "SONG DISCOVERY & SMART RADIO")
+                    PulseSettingsCard {
+                        val discoveryPercentage = (discoveryRatio * 100).toInt()
+                        PulseSettingRow(
+                            title = "Smart Mix Ratio",
+                            subtitle = "Balance familiar favorites vs. brand-new music discoveries when playing radio or autoplay",
+                            leadingIcon = SimpIcons.Insights,
+                            trailingText = "$discoveryPercentage% Discover",
+                            bottomContent = {
+                                DiscoveryMixSlider(
+                                    ratio = discoveryRatio,
+                                    onRatioChange = { viewModel.setDiscoveryRatio(it) },
+                                    containerColor = Color.Transparent,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            },
+                        )
                     }
                 }
             }
 
             // GROUP 5: APPEARANCE & PLAYER
-            if (matchesSearch("Appearance", "Now playing style", "Liquid Glass", "Full-screen cover art", "Legacy mesh gradient", "Animated cover art", "Spotify Canvas", "Theme", "Ambient")) {
+            if (matchesSearch("Appearance", "Now playing style", "Liquid Glass", "Full-screen cover art", "Legacy mesh gradient", "Animated cover art", "Spotify Canvas", "Theme", "Ambient", "Lavender", "Accent")) {
                 item(key = "card_appearance") {
                     PulseSettingsHeader(title = "APPEARANCE & PLAYER")
                     PulseSettingsCard {
                         PulseSettingRow(
                             title = stringResource(Res.string.theme),
-                            subtitle = if (pearlLavenderTheme) "Pearl Lavender Signature" else themeModeLabels.firstOrNull { it.first == themeMode }?.second ?: "Dark",
+                            subtitle = currentThemeSubtitle,
                             leadingIcon = SimpIcons.Album,
-                            trailingText = if (pearlLavenderTheme) "Pearl Lavender" else "Default Dark",
+                            trailingText = currentThemeTrailing,
                             showChevron = true,
                             onClick = {
                                 viewModel.setAlertData(
                                     SettingAlertState(
                                         title = runBlocking { getString(Res.string.theme) },
                                         selectOne = SettingAlertState.SelectData(
-                                            listSelect = themeModeLabels.map { (it.first == themeMode) to it.second },
+                                            listSelect = themeModeLabels.map { (it.first == currentThemeKey) to it.second },
                                         ),
                                         confirm = runBlocking { getString(Res.string.change) } to { state ->
                                             val selected = state.selectOne?.getSelected()
-                                            themeModeLabels.firstOrNull { it.second == selected }?.first?.let {
-                                                sharedViewModel.setThemeMode(it)
+                                            val selectedKey = themeModeLabels.firstOrNull { it.second == selected }?.first
+                                            if (selectedKey == "PEARL_LAVENDER") {
+                                                viewModel.setPearlLavenderTheme(true)
+                                                sharedViewModel.setPearlLavenderTheme(true)
+                                            } else if (selectedKey != null) {
+                                                viewModel.setPearlLavenderTheme(false)
+                                                sharedViewModel.setPearlLavenderTheme(false)
+                                                sharedViewModel.setThemeMode(selectedKey)
                                             }
                                         },
                                         dismiss = runBlocking { getString(Res.string.cancel) },
@@ -815,6 +969,62 @@ fun SettingScreen(
                                 )
                             },
                         )
+                        PulseSettingDivider()
+                        PulseSettingRow(
+                            title = "Pearl Lavender Theme",
+                            subtitle = "Soft pastel lavender palette with coral accents (Light & Dark)",
+                            leadingIcon = SimpIcons.Tune,
+                            switchState = (pearlLavenderTheme to { enabled ->
+                                viewModel.setPearlLavenderTheme(enabled)
+                                sharedViewModel.setPearlLavenderTheme(enabled)
+                            }),
+                        )
+                        PulseSettingDivider()
+                        val themeColorSourceLabels = listOf(
+                            DataStoreManager.THEME_COLOR_DEFAULT to "Pulse Violet (Default)",
+                            DataStoreManager.THEME_COLOR_WALLPAPER to "Dynamic Wallpaper (Material You)",
+                            DataStoreManager.THEME_COLOR_CUSTOM to "Custom Accent Color",
+                        )
+                        PulseSettingRow(
+                            title = "Accent Color",
+                            subtitle = themeColorSourceLabels.firstOrNull { it.first == themeColorSource }?.second ?: "Pulse Violet",
+                            leadingIcon = SimpIcons.Tune,
+                            trailingText = if (themeColorSource == DataStoreManager.THEME_COLOR_CUSTOM) "#${customThemeColorHex.takeLast(6).uppercase()}" else null,
+                            showChevron = true,
+                            onClick = {
+                                viewModel.setAlertData(
+                                    SettingAlertState(
+                                        title = "Accent Color",
+                                        selectOne = SettingAlertState.SelectData(
+                                            listSelect = themeColorSourceLabels.map { (it.first == themeColorSource) to it.second },
+                                        ),
+                                        confirm = runBlocking { getString(Res.string.change) } to { state ->
+                                            val selected = state.selectOne?.getSelected()
+                                            themeColorSourceLabels.firstOrNull { it.second == selected }?.first?.let { source ->
+                                                sharedViewModel.setThemeColorSource(source)
+                                                if (source == DataStoreManager.THEME_COLOR_CUSTOM) {
+                                                    showColorPickerDialog = true
+                                                }
+                                            }
+                                        },
+                                        dismiss = runBlocking { getString(Res.string.cancel) },
+                                    ),
+                                )
+                            },
+                        )
+                        if (themeColorSource == DataStoreManager.THEME_COLOR_CUSTOM) {
+                            PulseSettingDivider()
+                            PulseSettingRow(
+                                title = "Customize Accent Color",
+                                subtitle = "Current: #${customThemeColorHex.takeLast(6).uppercase()}",
+                                leadingIcon = SimpIcons.Tune,
+                                trailingText = "Pick Color",
+                                showChevron = true,
+                                onClick = {
+                                    showColorPickerDialog = true
+                                },
+                            )
+                        }
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = stringResource(Res.string.now_playing_style),
@@ -1036,7 +1246,7 @@ fun SettingScreen(
                             leadingIcon = SimpIcons.LibraryMusic,
                             showChevron = true,
                             onClick = {
-                                sharedViewModel.makeToast("Scanning all local audio folders on device")
+                                showLocalFolderDialog = true
                             },
                         )
                         PulseSettingDivider()
@@ -1328,7 +1538,7 @@ fun SettingScreen(
                             leadingIcon = SimpIcons.Tune,
                             showChevron = true,
                             onClick = {
-                                resultLauncher.launch()
+                                showSoundEffectsDialog = true
                             },
                         )
                         PulseSettingDivider()
@@ -1375,8 +1585,33 @@ fun SettingScreen(
             }
 
             item(key = "end_padding") {
-                Spacer(Modifier.height(32.dp))
-                EndOfPage()
+                Spacer(Modifier.height(36.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Designed & Developed by Manikandan",
+                        style = typo().bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = settingsColors.iconTint,
+                            letterSpacing = 0.2.sp,
+                        ),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Pulse Music Studio • Version 3.2.7 (Build 95)",
+                        style = typo().bodySmall.copy(
+                            color = settingsColors.subtitleText,
+                        ),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                EndOfPage(withoutCredit = true)
             }
         }
     }
@@ -1385,11 +1620,14 @@ fun SettingScreen(
     if (showYouTubeAccountDialog) {
         AlertDialog(
             onDismissRequest = { showYouTubeAccountDialog = false },
+            containerColor = settingsColors.cardBackground,
+            titleContentColor = settingsColors.titleText,
+            textContentColor = settingsColors.subtitleText,
             title = {
                 Text(
                     text = "YouTube Account",
                     style = typo().titleMedium,
-                    color = Color.White,
+                    color = settingsColors.titleText,
                 )
             },
             text = {
@@ -1397,12 +1635,12 @@ fun SettingScreen(
                     Text(
                         text = "Signed in as: ${if (!ytAccountName.isNullOrBlank()) ytAccountName else "Connected YouTube Account"}",
                         style = typo().bodyMedium,
-                        color = Color(0xFFD1D1D6),
+                        color = settingsColors.titleText,
                     )
                     Text(
                         text = "Your playlists, liked songs, subscriptions, and history are synchronized with YouTube Music.",
                         style = typo().bodySmall,
-                        color = Color(0xFF8E8E93),
+                        color = settingsColors.subtitleText,
                     )
                 }
             },
@@ -1446,6 +1684,80 @@ fun SettingScreen(
                 }
             },
             type = DevLogInType.YouTube,
+        )
+    }
+
+    if (showColorPickerDialog) {
+        val presetColors =
+            listOf(
+                "FF8ECAE6",
+                "FF4C82EF",
+                "FF9B72CF",
+                "FFEF6C9B",
+                "FFEF5350",
+                "FFF4A340",
+                "FFFFCA28",
+                "FF66BB6A",
+                "FF26A69A",
+                "FFBDBDBD",
+            )
+        var pendingHex by rememberSaveable { mutableStateOf(customThemeColorHex.takeLast(6)) }
+        val parsedColor = parseThemeColorHex(pendingHex)
+        AlertDialog(
+            onDismissRequest = { showColorPickerDialog = false },
+            title = { Text(text = "Accent Color", style = typo().titleSmall) },
+            text = {
+                Column {
+                    presetColors.chunked(5).forEach { rowColors ->
+                        Row(modifier = Modifier.padding(vertical = 4.dp)) {
+                            rowColors.forEach { hex ->
+                                val color = parseThemeColorHex(hex) ?: Color.Gray
+                                val isSelected = pendingHex.equals(hex.takeLast(6), ignoreCase = true)
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .padding(4.dp)
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(color)
+                                            .border(
+                                                width = if (isSelected) 3.dp else 0.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                                shape = CircleShape,
+                                            ).clickable { pendingHex = hex.takeLast(6) },
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    TextField(
+                        value = pendingHex,
+                        onValueChange = { pendingHex = it.take(8) },
+                        label = { Text("Hex Color Code") },
+                        singleLine = true,
+                        isError = parsedColor == null,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = parsedColor != null,
+                    onClick = {
+                        parsedColor?.let {
+                            val argb = "FF${pendingHex.takeLast(6).uppercase()}"
+                            sharedViewModel.setCustomThemeColor(argb)
+                            sharedViewModel.setThemeColorSource(DataStoreManager.THEME_COLOR_CUSTOM)
+                        }
+                        showColorPickerDialog = false
+                    },
+                ) { Text(text = stringResource(Res.string.change)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showColorPickerDialog = false }) {
+                    Text(text = stringResource(Res.string.cancel))
+                }
+            },
         )
     }
 
@@ -1677,4 +1989,187 @@ fun SettingScreen(
             )
         }
     }
+
+    // AUDIO SOURCES DIALOG
+    if (showAudioSourcesDialog) {
+        AlertDialog(
+            onDismissRequest = { showAudioSourcesDialog = false },
+            containerColor = settingsColors.cardBackground,
+            titleContentColor = settingsColors.titleText,
+            textContentColor = settingsColors.subtitleText,
+            title = {
+                Text(
+                    text = "Audio Sources & Priority",
+                    style = typo().titleMedium,
+                    color = settingsColors.titleText,
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Pulse Music resolves audio streams in the following priority order for optimal fidelity and zero buffering:",
+                        style = typo().bodySmall,
+                        color = settingsColors.subtitleText,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(SimpIcons.PlayArrow, contentDescription = null, tint = Color(0xFFA78BFA), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text("1. YouTube Music HQ (Primary)", style = typo().bodyMedium, color = settingsColors.titleText, fontWeight = FontWeight.SemiBold)
+                            Text("256kbps OPUS / AAC lossless stream cache", style = typo().bodySmall, color = settingsColors.subtitleText)
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(SimpIcons.LibraryMusic, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text("2. Local Device Storage (Fallback)", style = typo().bodyMedium, color = settingsColors.titleText, fontWeight = FontWeight.SemiBold)
+                            Text("Device MP3 / FLAC / M4A offline library", style = typo().bodySmall, color = settingsColors.subtitleText)
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(SimpIcons.Album, contentDescription = null, tint = Color(0xFF60A5FA), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text("3. Spotify Integration", style = typo().bodyMedium, color = settingsColors.titleText, fontWeight = FontWeight.SemiBold)
+                            Text("Canvas looping videos & synched lyrics", style = typo().bodySmall, color = settingsColors.subtitleText)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAudioSourcesDialog = false }) {
+                    Text("Done", color = Color(0xFFA78BFA))
+                }
+            },
+        )
+    }
+
+    // LOCAL FOLDER SELECTION DIALOG
+    if (showLocalFolderDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocalFolderDialog = false },
+            containerColor = settingsColors.cardBackground,
+            titleContentColor = settingsColors.titleText,
+            textContentColor = settingsColors.subtitleText,
+            title = {
+                Text(
+                    text = "Local Music Folders",
+                    style = typo().titleMedium,
+                    color = settingsColors.titleText,
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Pulse Music automatically indexes all supported audio formats (.flac, .mp3, .m4a, .wav, .opus) across your storage folders:",
+                        style = typo().bodySmall,
+                        color = settingsColors.subtitleText,
+                    )
+                    Text("• /Music", style = typo().bodyMedium, color = settingsColors.titleText)
+                    Text("• /Download", style = typo().bodyMedium, color = settingsColors.titleText)
+                    Text("• /Audio & Podcasts", style = typo().bodyMedium, color = settingsColors.titleText)
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLocalFolderDialog = false
+                        sharedViewModel.makeToast("Scanning device storage for local tracks...")
+                    },
+                ) {
+                    Text("Rescan Storage", color = Color(0xFFA78BFA))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocalFolderDialog = false }) {
+                    Text("Close", color = settingsColors.subtitleText)
+                }
+            },
+        )
+    }
+
+    // EQUALIZER & SOUND EFFECTS DIALOG
+    if (showSoundEffectsDialog) {
+        val eqEnabled by viewModel.equalizerEnabled.collectAsStateWithLifecycle()
+        AlertDialog(
+            onDismissRequest = { showSoundEffectsDialog = false },
+            containerColor = settingsColors.cardBackground,
+            titleContentColor = settingsColors.titleText,
+            textContentColor = settingsColors.subtitleText,
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Equalizer & Sound Effects",
+                        style = typo().titleMedium,
+                        color = settingsColors.titleText,
+                    )
+                    IconButton(onClick = { showSoundEffectsDialog = false }) {
+                        Icon(SimpIcons.Close, contentDescription = "Close", tint = settingsColors.titleText)
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    PulseSettingsCard {
+                        PulseSettingRow(
+                            title = "10-Band Equalizer",
+                            subtitle = if (eqEnabled) "Peaking biquad EQ enabled (31Hz - 16kHz)" else "Tap switch to enable EQ curve",
+                            leadingIcon = SimpIcons.GraphicEq,
+                            switchState = (eqEnabled to { viewModel.setEqualizerEnabled(it) }),
+                        )
+                        if (eqEnabled) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
+                                EqualizerSection(viewModel)
+                            }
+                        }
+                    }
+
+                    PulseSettingsCard {
+                        PulseSettingRow(
+                            title = "Open System Equalizer",
+                            subtitle = "Launch device vendor DSP (Samsung SoundAlive, Dolby, etc.)",
+                            leadingIcon = SimpIcons.Tune,
+                            showChevron = true,
+                            onClick = {
+                                resultLauncher.launch()
+                            },
+                        )
+                    }
+
+                    PulseSettingsCard {
+                        PulseSettingRow(
+                            title = "Cinematic Audio",
+                            subtitle = stringResource(Res.string.cinematic_audio_description),
+                            leadingIcon = SimpIcons.Headphones,
+                            switchState = (cinematicAudioEnabled to { viewModel.setCinematicAudioEnabled(it) }),
+                        )
+                        PulseSettingDivider()
+                        PulseSettingRow(
+                            title = "Dolby Atmos",
+                            subtitle = if (isDolbyAtmosSupported) stringResource(Res.string.dolby_atmos_description) else stringResource(Res.string.dolby_atmos_unsupported),
+                            leadingIcon = SimpIcons.GraphicEq,
+                            switchState = (dolbyAtmosEnabled to { viewModel.setDolbyAtmosEnabled(it) }),
+                            enabled = isDolbyAtmosSupported,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSoundEffectsDialog = false }) {
+                    Text("Done", color = Color(0xFFA78BFA))
+                }
+            },
+        )
+    }
+
 }

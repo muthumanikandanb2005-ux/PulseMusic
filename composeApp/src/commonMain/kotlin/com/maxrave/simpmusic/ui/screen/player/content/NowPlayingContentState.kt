@@ -54,7 +54,7 @@ private val WHITESPACE_REGEX = Regex("""\s+""")
 // Word-by-word lyrics carry a timestamp per word; replace each with a space
 // (not ""), then collapse — otherwise the words run together.
 // Shared by every Now Playing content style (Spotify + M3 Expressive).
-internal fun String.stripRichSyncTimestamps(): String =
+fun String.stripRichSyncTimestamps(): String =
     replace(RICH_SYNC_TIMESTAMP_REGEX, " ")
         .replace(WHITESPACE_REGEX, " ")
         .trim()
@@ -110,6 +110,10 @@ class NowPlayingContentState(
     val audioCodecLabel: String? = null,
     /** Whether Ambient Mode (dynamic animated lighting glow matching album art) is enabled. */
     val ambientModeEnabled: Boolean = true,
+    /** Vibrant primary ambient lighting color extracted from album artwork. */
+    val ambientColor: Color = spotShadowColor,
+    /** Complementary secondary ambient lighting color extracted from album artwork. */
+    val ambientSecondaryColor: Color = spotShadowColor,
 )
 
 /**

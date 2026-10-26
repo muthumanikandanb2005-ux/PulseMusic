@@ -336,10 +336,14 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
     }
 
     override fun onDestroy() {
+        if (isChangingConfigurations) {
+            super.onDestroy()
+            return
+        }
         val shouldStopMusicService = viewModel.shouldStopMusicService()
         Logger.w("PulseMusicActivity", "onDestroy: Should stop service $shouldStopMusicService")
 
-        if (mBound && shouldUnbind) {
+        if (mBound) {
             try {
                 unbindService(serviceConnection)
             } catch (e: Exception) {

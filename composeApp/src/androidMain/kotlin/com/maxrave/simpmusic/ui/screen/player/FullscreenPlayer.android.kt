@@ -31,20 +31,28 @@ actual fun FullScreenRotationImmersive(
     DisposableEffect(true) {
         onLaunch.invoke()
         val activity = context.findActivity()
-        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        val window = context.findActivity().window
+        runCatching {
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+        val window = activity.window
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
 
         onDispose {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            runCatching { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
 
-            insetsController.apply {
-                show(WindowInsetsCompat.Type.systemBars())
-                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            runCatching {
+                insetsController.apply {
+                    show(WindowInsetsCompat.Type.systemBars())
+                    systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                }
             }
             // restore original orientation when view disappears
-            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            onDispose.invoke()
+            runCatching {
+                if (!activity.isFinishing && !activity.isDestroyed) {
+                    activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
+                }
+            }
+            runCatching { onDispose.invoke() }
         }
     }
 

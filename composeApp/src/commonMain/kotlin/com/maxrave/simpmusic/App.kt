@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic
+package com.maxrave.simpmusic
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
@@ -68,6 +68,7 @@ import com.maxrave.simpmusic.expect.currentOrientation
 import com.maxrave.simpmusic.expect.ui.layerBackdrop
 import com.maxrave.simpmusic.expect.ui.rememberBackdrop
 import com.maxrave.simpmusic.extension.copy
+import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.ui.component.AppBottomNavigationBar
 import com.maxrave.simpmusic.ui.component.AppNavigationRail
 import com.maxrave.simpmusic.ui.component.LiquidGlassAppBottomNavigationBar
@@ -397,7 +398,8 @@ fun App(
     var isScrolledToTop by rememberSaveable {
         mutableStateOf(false)
     }
-    val isTablet = windowSize.isWidthAtLeastBreakpoint(WIDTH_DP_MEDIUM_LOWER_BOUND)
+    val screenInfo = getScreenSizeInfo()
+    val isTablet = getPlatform() == Platform.Desktop || minOf(screenInfo.wDP, screenInfo.hDP) >= 600
     val isTabletLandscape = isTablet && currentOrientation() == Orientation.LANDSCAPE
     var showStartupSplash by rememberSaveable { mutableStateOf(true) }
 

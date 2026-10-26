@@ -84,6 +84,7 @@ import com.maxrave.simpmusic.extension.animateScrollAndAnchorItemTop
 import com.maxrave.simpmusic.extension.animateScrollAndCentralizeItem
 import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.parseRichSyncWords
+import com.maxrave.simpmusic.extension.toGraphemeClusters
 import com.maxrave.simpmusic.ui.theme.LocalIsPearlLavenderTheme
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.NowPlayingScreenData
@@ -995,12 +996,7 @@ fun PulseNeonLyricsLineItem(
                 .fillMaxWidth()
                 .then(
                     if (isCurrent) {
-                        Modifier
-                            .background(
-                                color = if (isLavender) MaterialTheme.colorScheme.surface.copy(alpha = 0.18f) else Color(0x0EFFFFFF),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                        Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     } else {
                         Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     }
@@ -1472,50 +1468,10 @@ private fun AnimatedWord(
                 translationY = -eased * EMP_RISE_EM * amount * fontPx
             },
     ) {
-        val isNonAsciiOrComplex = remember(word) { word.any { it.code > 127 } }
-        if (isNonAsciiOrComplex) {
-            val glowShadow = heldGlow ?: glow?.copy(blurRadius = SUNG_BASE_GLOW_EM * fontPx)
-            val wordRise =
-                if (glow != null && (isPast || wordProgress > 0f)) {
-                    FastOutSlowInEasing.transform(if (isPast) 1f else wordProgress)
-                } else {
-                    0f
-                }
-            Box(
-                modifier =
-                    Modifier.graphicsLayer {
-                        translationY = -wordRise * CHAR_RISE_EM * fontPx
-                    },
-            ) {
-                if (glowShadow != null && flareGate > 0f) {
-                    Text(
-                        text = word,
-                        style =
-                            style.copy(
-                                shadow =
-                                    glowShadow.copy(
-                                        color = glowShadow.color.copy(alpha = SUNG_BASE_GLOW_ALPHA * flareGate),
-                                    ),
-                            ),
-                        color = Color.Transparent,
-                    )
-                }
-                Text(
-                    text = word,
-                    style = style,
-                    color =
-                        when {
-                            isPast -> Color.White
-                            isActive -> lerp(restingColor, Color.White, wordProgress)
-                            else -> restingColor
-                        },
-                )
-            }
-        } else {
-            val chars = word.toCharArray()
-            val charCount = chars.size.coerceAtLeast(1)
-            Row {
-                chars.forEachIndexed { charIndex, ch ->
+        val clusters = remember(word) { word.toGraphemeClusters() }
+        val charCount = clusters.size.coerceAtLeast(1)
+        Row {
+            clusters.forEachIndexed { charIndex, ch ->
                 val charFrom = charIndex.toFloat() / charCount
                 val charTo = (charIndex + 1).toFloat() / charCount
                 val charProgress = ((wordProgress - charFrom) / (charTo - charFrom)).coerceIn(0f, 1f)
@@ -1603,7 +1559,6 @@ private fun AnimatedWord(
                 }
             }
         }
-        }
     }
 }
 
@@ -1660,7 +1615,7 @@ fun FullscreenLyricsSheet(
             // composition, instead of cutting it off mid-screen.
             onDismiss = {
                 coroutineScope.launch {
-                    sheetState.hide()
+                    runCatching { sheetState.hide() }
                     onDismiss()
                 }
             },

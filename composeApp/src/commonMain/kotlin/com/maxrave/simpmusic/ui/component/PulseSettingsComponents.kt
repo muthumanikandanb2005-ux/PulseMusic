@@ -29,6 +29,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,24 +47,141 @@ import com.maxrave.simpmusic.ui.icon.ArrowForwardIos
 import com.maxrave.simpmusic.ui.icon.Close
 import com.maxrave.simpmusic.ui.icon.Search
 import com.maxrave.simpmusic.ui.icon.SimpIcons
+import com.maxrave.simpmusic.ui.theme.LocalIsDarkTheme
+import com.maxrave.simpmusic.ui.theme.LocalIsPearlLavenderTheme
 import com.maxrave.simpmusic.ui.theme.typo
 import kotlin.math.roundToInt
 
+@Immutable
+data class SettingsThemeColors(
+    val screenBackground: Color,
+    val cardBackground: Color,
+    val cardBorder: Color,
+    val searchBackground: Color,
+    val searchBorder: Color,
+    val titleText: Color,
+    val subtitleText: Color,
+    val iconTint: Color,
+    val divider: Color,
+    val headerText: Color,
+    val chevronTint: Color,
+    val badgeBg: Color,
+    val badgeText: Color,
+    val switchTrackChecked: Color,
+    val switchThumbChecked: Color,
+    val switchTrackUnchecked: Color,
+    val switchThumbUnchecked: Color,
+)
+
+@Composable
+fun getSettingsThemeColors(): SettingsThemeColors {
+    val isDark = LocalIsDarkTheme.current
+    val isLavender = LocalIsPearlLavenderTheme.current
+
+    return when {
+        isLavender -> {
+            if (isDark) {
+                SettingsThemeColors(
+                    screenBackground = Color(0xFF1B1130),
+                    cardBackground = Color(0xFF271A42),
+                    cardBorder = Color(0xFF3B2A5F),
+                    searchBackground = Color(0xFF2E204E),
+                    searchBorder = Color(0xFF4C3870),
+                    titleText = Color(0xFFF3EDFD),
+                    subtitleText = Color(0xFFB8A7D4),
+                    iconTint = Color(0xFFA78BFA),
+                    divider = Color(0xFF3B2A5F),
+                    headerText = Color(0xFFA78BFA),
+                    chevronTint = Color(0xFF8B77AA),
+                    badgeBg = Color(0xFF3B2A5F),
+                    badgeText = Color(0xFFE9D8FD),
+                    switchTrackChecked = Color(0xFFA78BFA),
+                    switchThumbChecked = Color(0xFF1B1130),
+                    switchTrackUnchecked = Color(0xFF3B2A5F),
+                    switchThumbUnchecked = Color(0xFF6B588E),
+                )
+            } else {
+                SettingsThemeColors(
+                    screenBackground = Color(0xFFFAF7FD),
+                    cardBackground = Color(0xFFFFFFFF),
+                    cardBorder = Color(0xFFE8DEF8),
+                    searchBackground = Color(0xFFF3EDF9),
+                    searchBorder = Color(0xFFE2D2F2),
+                    titleText = Color(0xFF26193E),
+                    subtitleText = Color(0xFF746591),
+                    iconTint = Color(0xFF7C3AED),
+                    divider = Color(0xFFF0E6F8),
+                    headerText = Color(0xFF7C3AED),
+                    chevronTint = Color(0xFF9E8FB8),
+                    badgeBg = Color(0xFFEADDFF),
+                    badgeText = Color(0xFF4F378B),
+                    switchTrackChecked = Color(0xFF7C3AED),
+                    switchThumbChecked = Color(0xFFFFFFFF),
+                    switchTrackUnchecked = Color(0xFFE2D2F2),
+                    switchThumbUnchecked = Color(0xFF9E8FB8),
+                )
+            }
+        }
+        !isDark -> {
+            SettingsThemeColors(
+                screenBackground = Color(0xFFF2F2F7),
+                cardBackground = Color(0xFFFFFFFF),
+                cardBorder = Color(0xFFE5E5EA),
+                searchBackground = Color(0xFFE5E5EA),
+                searchBorder = Color(0xFFD1D1D6),
+                titleText = Color(0xFF000000),
+                subtitleText = Color(0xFF636366),
+                iconTint = Color(0xFF3C3C43),
+                divider = Color(0xFFE5E5EA),
+                headerText = Color(0xFF6E6E73),
+                chevronTint = Color(0xFF8E8E93),
+                badgeBg = Color(0xFFE5E5EA),
+                badgeText = Color(0xFF3C3C43),
+                switchTrackChecked = Color(0xFF000000),
+                switchThumbChecked = Color(0xFFFFFFFF),
+                switchTrackUnchecked = Color(0xFFE5E5EA),
+                switchThumbUnchecked = Color(0xFF8E8E93),
+            )
+        }
+        else -> {
+            SettingsThemeColors(
+                screenBackground = Color(0xFF000000),
+                cardBackground = Color(0xFF161618),
+                cardBorder = Color(0xFF222226),
+                searchBackground = Color(0xFF1C1C1E),
+                searchBorder = Color(0xFF26262A),
+                titleText = Color(0xFFFFFFFF),
+                subtitleText = Color(0xFF8E8E93),
+                iconTint = Color(0xFFD1D1D6),
+                divider = Color(0xFF222226),
+                headerText = Color(0xFF8E8E93),
+                chevronTint = Color(0xFF636366),
+                badgeBg = Color(0xFF2C2C2E),
+                badgeText = Color(0xFFCCCCCC),
+                switchTrackChecked = Color(0xFFFFFFFF),
+                switchThumbChecked = Color(0xFF000000),
+                switchTrackUnchecked = Color(0xFF2C2C2E),
+                switchThumbUnchecked = Color(0xFF48484A),
+            )
+        }
+    }
+}
+
 /**
- * Pure Black AMOLED Settings Card Container.
- * Matches screenshot card styling (RoundedCornerShape 18dp, background #161618, subtle border).
+ * Settings Card Container supporting Dark, Light and Lavender themes.
  */
 @Composable
 fun PulseSettingsCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val colors = getSettingsThemeColors()
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF161618))
-            .border(1.dp, Color(0xFF222226), RoundedCornerShape(18.dp)),
+            .background(colors.cardBackground)
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(18.dp)),
         content = content,
     )
 }
@@ -76,13 +194,14 @@ fun PulseSettingsHeader(
     title: String,
     modifier: Modifier = Modifier,
 ) {
+    val colors = getSettingsThemeColors()
     Text(
         text = title.uppercase(),
         style = typo().labelSmall.copy(
             fontSize = 11.5.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.1.sp,
-            color = Color(0xFF8E8E93),
+            color = colors.headerText,
         ),
         modifier = modifier.padding(start = 14.dp, top = 22.dp, bottom = 8.dp),
     )
@@ -95,13 +214,16 @@ fun PulseSettingsHeader(
 fun PulseSettingsBadge(
     text: String,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Color(0xFF2C2C2E),
-    textColor: Color = Color(0xFFCCCCCC),
+    backgroundColor: Color? = null,
+    textColor: Color? = null,
 ) {
+    val colors = getSettingsThemeColors()
+    val bg = backgroundColor ?: colors.badgeBg
+    val fg = textColor ?: colors.badgeText
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(5.dp))
-            .background(backgroundColor)
+            .background(bg)
             .padding(horizontal = 6.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -110,7 +232,7 @@ fun PulseSettingsBadge(
             style = typo().labelSmall.copy(
                 fontSize = 9.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = textColor,
+                color = fg,
                 letterSpacing = 0.5.sp,
             ),
         )
@@ -129,17 +251,18 @@ fun PulseSettingSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val colors = getSettingsThemeColors()
     val trackWidth = 48.dp
     val trackHeight = 28.dp
     val thumbSize = 22.dp
     val padding = 3.dp
 
     val trackColor by animateColorAsState(
-        targetValue = if (checked) Color(0xFFFFFFFF) else Color(0xFF2C2C2E),
+        targetValue = if (checked) colors.switchTrackChecked else colors.switchTrackUnchecked,
         animationSpec = tween(durationMillis = 200),
     )
     val thumbColor by animateColorAsState(
-        targetValue = if (checked) Color(0xFF000000) else Color(0xFF48484A),
+        targetValue = if (checked) colors.switchThumbChecked else colors.switchThumbUnchecked,
         animationSpec = tween(durationMillis = 200),
     )
     val thumbOffsetPercent by animateFloatAsState(
@@ -191,11 +314,12 @@ fun PulseSegmentedControl(
     onOptionSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = getSettingsThemeColors()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF222226))
+            .background(colors.cardBorder)
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -205,7 +329,7 @@ fun PulseSegmentedControl(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(9.dp))
-                    .background(if (isSelected) Color(0xFFFFFFFF) else Color.Transparent)
+                    .background(if (isSelected) colors.switchTrackChecked else Color.Transparent)
                     .clickable { onOptionSelected(index) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
@@ -215,7 +339,7 @@ fun PulseSegmentedControl(
                     style = typo().labelMedium.copy(
                         fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) Color(0xFF000000) else Color(0xFF8E8E93),
+                        color = if (isSelected) colors.switchThumbChecked else colors.subtitleText,
                     ),
                 )
             }
@@ -237,6 +361,8 @@ fun PulseSettingRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     badgeText: String? = null,
+    badgeBg: Color? = null,
+    badgeTextColor: Color? = null,
     leadingIcon: ImageVector? = null,
     trailingText: String? = null,
     showChevron: Boolean = false,
@@ -245,6 +371,7 @@ fun PulseSettingRow(
     enabled: Boolean = true,
     bottomContent: (@Composable () -> Unit)? = null,
 ) {
+    val colors = getSettingsThemeColors()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -265,7 +392,7 @@ fun PulseSettingRow(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = if (enabled) Color(0xFFD1D1D6) else Color(0xFF636366),
+                    tint = if (enabled) colors.iconTint else colors.chevronTint.copy(alpha = 0.5f),
                     modifier = Modifier
                         .size(22.dp)
                         .padding(end = 0.dp),
@@ -286,11 +413,15 @@ fun PulseSettingRow(
                         style = typo().titleSmall.copy(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (enabled) Color.White else Color(0xFF6E6E73),
+                            color = if (enabled) colors.titleText else colors.subtitleText.copy(alpha = 0.6f),
                         ),
                     )
                     if (badgeText != null) {
-                        PulseSettingsBadge(text = badgeText)
+                        PulseSettingsBadge(
+                            text = badgeText,
+                            backgroundColor = badgeBg,
+                            textColor = badgeTextColor,
+                        )
                     }
                 }
 
@@ -301,7 +432,7 @@ fun PulseSettingRow(
                         style = typo().bodySmall.copy(
                             fontSize = 12.5.sp,
                             lineHeight = 16.5.sp,
-                            color = if (enabled) Color(0xFF8E8E93) else Color(0xFF555558),
+                            color = if (enabled) colors.subtitleText else colors.subtitleText.copy(alpha = 0.5f),
                         ),
                     )
                 }
@@ -325,7 +456,7 @@ fun PulseSettingRow(
                             text = trailingText,
                             style = typo().bodyMedium.copy(
                                 fontSize = 14.sp,
-                                color = Color(0xFF8E8E93),
+                                color = colors.subtitleText,
                             ),
                         )
                     }
@@ -333,7 +464,7 @@ fun PulseSettingRow(
                         Icon(
                             imageVector = SimpIcons.ArrowForwardIos,
                             contentDescription = null,
-                            tint = Color(0xFF636366),
+                            tint = colors.chevronTint,
                             modifier = Modifier.size(13.dp),
                         )
                     }
@@ -356,13 +487,14 @@ fun PulseSettingDivider(
     hasLeadingIcon: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
+    val colors = getSettingsThemeColors()
     HorizontalDivider(
         modifier = modifier.padding(
             start = if (hasLeadingIcon) 52.dp else 16.dp,
             end = 16.dp,
         ),
         thickness = 0.7.dp,
-        color = Color(0xFF222226),
+        color = colors.divider,
     )
 }
 
@@ -376,12 +508,13 @@ fun PulseSettingsSearchBar(
     modifier: Modifier = Modifier,
     placeholder: String = "Search settings",
 ) {
+    val colors = getSettingsThemeColors()
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1C1C1E))
-            .border(1.dp, Color(0xFF26262A), RoundedCornerShape(14.dp))
+            .background(colors.searchBackground)
+            .border(1.dp, colors.searchBorder, RoundedCornerShape(14.dp))
             .padding(horizontal = 14.dp, vertical = 11.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -392,7 +525,7 @@ fun PulseSettingsSearchBar(
             Icon(
                 imageVector = SimpIcons.Search,
                 contentDescription = null,
-                tint = Color(0xFF8E8E93),
+                tint = colors.subtitleText,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(10.dp))
@@ -402,7 +535,7 @@ fun PulseSettingsSearchBar(
                         text = placeholder,
                         style = typo().bodyMedium.copy(
                             fontSize = 14.5.sp,
-                            color = Color(0xFF8E8E93),
+                            color = colors.subtitleText,
                         ),
                     )
                 }
@@ -411,10 +544,10 @@ fun PulseSettingsSearchBar(
                     onValueChange = onQueryChange,
                     singleLine = true,
                     textStyle = TextStyle(
-                        color = Color.White,
+                        color = colors.titleText,
                         fontSize = 14.5.sp,
                     ),
-                    cursorBrush = SolidColor(Color.White),
+                    cursorBrush = SolidColor(colors.titleText),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -422,7 +555,7 @@ fun PulseSettingsSearchBar(
                 Icon(
                     imageVector = SimpIcons.Close,
                     contentDescription = "Clear search",
-                    tint = Color(0xFF8E8E93),
+                    tint = colors.subtitleText,
                     modifier = Modifier
                         .size(18.dp)
                         .clip(CircleShape)

@@ -69,6 +69,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -189,27 +190,45 @@ fun NowPlayingContentBitChord(
                     },
                 ),
         ) {
-        val ambientColor = state.spotShadowColor
+        val primaryGlow = if (state.ambientColor.isSpecified && state.ambientColor != Color.Transparent && state.ambientColor != Color.Black) {
+            state.ambientColor
+        } else if (state.spotShadowColor.isSpecified && state.spotShadowColor != Color.Transparent && state.spotShadowColor != Color.White) {
+            state.spotShadowColor
+        } else {
+            state.startColor.value
+        }
+        val secondaryGlow = if (state.ambientSecondaryColor.isSpecified && state.ambientSecondaryColor != Color.Transparent && state.ambientSecondaryColor != Color.Black) {
+            state.ambientSecondaryColor
+        } else {
+            primaryGlow
+        }
+
+        val animatedAmbientColor by animateColorAsState(
+            targetValue = primaryGlow,
+            animationSpec = tween(700, easing = FastOutSlowInEasing),
+            label = "BitChordAmbientColor",
+        )
+        val animatedSecondaryColor by animateColorAsState(
+            targetValue = secondaryGlow,
+            animationSpec = tween(700, easing = FastOutSlowInEasing),
+            label = "BitChordAmbientSecondaryColor",
+        )
 
         // Ambient radial and vertical bloom behind artwork with protective bottom scrim for time/controls
         if (state.ambientModeEnabled) {
-            val animatedAmbientColor by animateColorAsState(
-                targetValue = ambientColor,
-                animationSpec = tween(700, easing = FastOutSlowInEasing),
-                label = "BitChordAmbientColor",
-            )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawBehind {
+                        if (size.width <= 0f || size.height <= 0f) return@drawBehind
                         val centerOffset = Offset(size.width / 2f, size.height * 0.35f)
-                        val radius = size.width * 0.85f
-                        // 1. Soft radial artwork halo
+                        val radius = maxOf(1f, size.width * 0.85f)
+                        // 1. Soft radial artwork halo derived dynamically from album image
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    animatedAmbientColor.copy(alpha = 0.35f),
-                                    animatedAmbientColor.copy(alpha = 0.16f),
+                                    animatedAmbientColor.copy(alpha = 0.45f),
+                                    animatedSecondaryColor.copy(alpha = 0.20f),
                                     Color.Transparent,
                                 ),
                                 center = centerOffset,
@@ -218,11 +237,11 @@ fun NowPlayingContentBitChord(
                             radius = radius,
                             center = centerOffset,
                         )
-                        // 2. Soft top-down ambient tint
+                        // 2. Soft top-down ambient tint derived from album image
                         drawRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    animatedAmbientColor.copy(alpha = 0.14f),
+                                    animatedAmbientColor.copy(alpha = 0.18f),
                                     Color.Transparent,
                                 ),
                                 startY = 0f,
@@ -245,40 +264,46 @@ fun NowPlayingContentBitChord(
             )
         }
 
-        // Pearl Lavender soft breathing ambient glow behind artwork
-        if (isLavender) {
-            val breatheTransition = rememberInfiniteTransition(label = "LavenderBreathe")
-            val breatheScale by breatheTransition.animateFloat(
-                initialValue = 0.95f,
-                targetValue = 1.08f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(4000, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "BreatheScale",
-            )
-            val breatheAlpha by breatheTransition.animateFloat(
-                initialValue = 0.22f,
-                targetValue = 0.38f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(4000, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "BreatheAlpha",
-            )
+        // Soft breathing ambient glow behind artwork matching album image
+        val breatheTransition = rememberInfiniteTransition(label = "ArtworkAmbientBreathe")
+        val breatheScale by breatheTransition.animateFloat(
+            initialValue = 0.96f,
+            targetValue = 1.08f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "BreatheScale",
+        )
+        val breatheAlpha by breatheTransition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = 0.45f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "BreatheAlpha",
+        )
+        if (state.ambientModeEnabled || isLavender) {
+            val fallbackA = Color(0xFFA788FA)
+            val fallbackB = if (isDark) Color(0xFFF288C6) else Color(0xFFF2B8C6)
+            val glowStop1 = if (animatedAmbientColor != Color.Black && animatedAmbientColor.isSpecified) animatedAmbientColor else fallbackA
+            val glowStop2 = if (animatedSecondaryColor != Color.Black && animatedSecondaryColor.isSpecified) animatedSecondaryColor else fallbackB
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .scale(breatheScale)
-                    .graphicsLayer { alpha = breatheAlpha }
+                    .graphicsLayer { alpha = if (state.controllerState.isPlaying) breatheAlpha else 0.25f }
                     .drawBehind {
+                        if (size.width <= 0f || size.height <= 0f) return@drawBehind
                         val centerOffset = Offset(size.width / 2f, size.height * 0.38f)
-                        val radius = size.width * 0.7f
+                        val radius = maxOf(1f, size.width * 0.75f)
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color(0xFFA788FA),
-                                    if (isDark) Color(0xFFF288C6) else Color(0xFFF2B8C6),
+                                    glowStop1.copy(alpha = 0.55f),
+                                    glowStop2.copy(alpha = 0.28f),
                                     Color.Transparent,
                                 ),
                                 center = centerOffset,
@@ -672,15 +697,9 @@ private fun BitChordTopBar(
 private fun getHighResArtworkUrl(url: String?): String? {
     if (url.isNullOrBlank()) return null
     var res = url
-    if (res.contains("googleusercontent.com") || res.contains("ggpht.com") || res.contains("ytimg.com")) {
-        res = res.replace(Regex("=w\\d+-h\\d+"), "=w1200-h1200")
-        res = res.replace(Regex("=s\\d+"), "=s1200")
-        res = res.replace(Regex("([wh])\\d{2,3}"), "$11200")
-    }
-    if (res.contains("i.ytimg.com/vi/")) {
-        res = res.replace("/hqdefault.jpg", "/maxresdefault.jpg")
-            .replace("/mqdefault.jpg", "/maxresdefault.jpg")
-            .replace("/sddefault.jpg", "/maxresdefault.jpg")
+    if (res.contains("googleusercontent.com") || res.contains("ggpht.com")) {
+        res = res.replace(Regex("=w\\d+-h\\d+.*"), "=w1200-h1200-l90-rj")
+            .replace(Regex("=s\\d+.*"), "=s1200")
     }
     return res
 }
@@ -765,7 +784,8 @@ private fun BitChordArtworkHero(
             ) { page ->
                 val track: Track? = state.artworkQueue.getOrNull(page)
                 val rawUrl = track?.thumbnails?.lastOrNull()?.url
-                    ?: state.screenData.thumbnailURL
+                    ?: track?.thumbnails?.firstOrNull()?.url
+                    ?: (if (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage) state.screenData.thumbnailURL else null)
                 var artworkUrl by remember(rawUrl) {
                     mutableStateOf(getHighResArtworkUrl(rawUrl))
                 }
@@ -781,7 +801,7 @@ private fun BitChordArtworkHero(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     onSuccess = {
-                        if (page == state.currentOrderIndex) {
+                        if (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage) {
                             actions.onArtworkBitmap(it.result.image.toImageBitmap())
                         }
                     },

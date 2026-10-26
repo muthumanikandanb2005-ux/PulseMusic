@@ -243,7 +243,7 @@ class AnalyticsViewModel(
                 .collect { topPlayedTracks ->
                     topPlayedTracks
                         .mapNotNull {
-                            val song = songRepository.getSongById(it.videoId).lastOrNull() ?: return@mapNotNull null
+                            val song = songRepository.getSongById(it.videoId).firstOrNull() ?: return@mapNotNull null
                             it to song
                         }.let { pairs ->
                             _analyticsUIState.update { it.copy(topTracks = LocalResource.Success(pairs)) }
@@ -265,7 +265,7 @@ class AnalyticsViewModel(
                     topPlayedArtists
                         .mapNotNull { topPlayedArtist ->
                             val artist =
-                                artistRepository.getArtistById(topPlayedArtist.channelId).lastOrNull()
+                                artistRepository.getArtistById(topPlayedArtist.channelId).firstOrNull()
                                     ?: getArtistFromYouTube(topPlayedArtist.channelId)
                                     ?: return@mapNotNull null
                             topPlayedArtist to artist
@@ -309,7 +309,7 @@ class AnalyticsViewModel(
                 .collect { topPlayedAlbums ->
                     topPlayedAlbums
                         .mapNotNull {
-                            val album = albumRepository.getAlbum(it.albumBrowseId).lastOrNull() ?: return@mapNotNull null
+                            val album = albumRepository.getAlbum(it.albumBrowseId).firstOrNull() ?: return@mapNotNull null
                             it to album
                         }.let { pairs ->
                             _analyticsUIState.update { it.copy(topAlbums = LocalResource.Success(pairs)) }
@@ -327,7 +327,7 @@ class AnalyticsViewModel(
                 ).collect { events ->
                     events
                         .mapNotNull { event ->
-                            val song = songRepository.getSongById(event.videoId).lastOrNull() ?: return@mapNotNull null
+                            val song = songRepository.getSongById(event.videoId).firstOrNull() ?: return@mapNotNull null
                             event to song
                         }.let {
                             if (it.isNotEmpty()) {
@@ -419,7 +419,7 @@ class AnalyticsViewModel(
                                     .getPlaybackEventCountInRange(
                                         startTimestamp = startTimestamp,
                                         endTimestamp = endTimestamp,
-                                    ).lastOrNull() ?: 0L
+                                    ).firstOrNull() ?: 0L
                             Pair(it, count)
                         }
 
@@ -435,7 +435,7 @@ class AnalyticsViewModel(
                                     .getPlaybackEventCountInRange(
                                         startTimestamp = startTimestamp,
                                         endTimestamp = endTimestamp,
-                                    ).lastOrNull() ?: 0L
+                                    ).firstOrNull() ?: 0L
                             Pair(it, count)
                         }
 
@@ -453,7 +453,7 @@ class AnalyticsViewModel(
                                     .getPlaybackEventCountInRange(
                                         startTimestamp = startTimestamp,
                                         endTimestamp = endTimestamp,
-                                    ).lastOrNull() ?: 0L
+                                    ).firstOrNull() ?: 0L
                             Pair(it, count)
                         }
 
@@ -483,7 +483,7 @@ class AnalyticsViewModel(
                                     .getPlaybackEventCountInRange(
                                         startTimestamp = startTimestamp,
                                         endTimestamp = endTimestamp,
-                                    ).lastOrNull() ?: 0L
+                                    ).firstOrNull() ?: 0L
                             Pair(it, count)
                         }
                     }

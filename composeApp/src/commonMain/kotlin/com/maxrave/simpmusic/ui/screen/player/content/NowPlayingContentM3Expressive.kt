@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.ui.screen.player.content
+package com.maxrave.simpmusic.ui.screen.player.content
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -70,6 +70,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.layout.ContentScale
@@ -278,18 +279,20 @@ private fun NowPlayingM3ExpressiveLayout(
                 .then(
                     if (state.ambientModeEnabled && state.showHideMiddleLayout) {
                         Modifier.drawBehind {
-                            val gradientHeight = screenInfo.hPX.toFloat()
+                            if (size.width <= 0f || size.height <= 0f) return@drawBehind
+                            val gradientHeight = maxOf(1f, screenInfo.hPX.toFloat())
+                            val radius = maxOf(1f, size.width * 0.90f)
                             drawCircle(
                                 brush =
                                     Brush.radialGradient(
                                         colors =
                                             listOf(
-                                                state.startColor.value.copy(alpha = 0.35f),
-                                                state.endColor.value.copy(alpha = 0.12f),
+                                                (if (state.ambientColor.isSpecified && state.ambientColor != Color.Transparent) state.ambientColor else state.startColor.value).copy(alpha = 0.45f),
+                                                (if (state.ambientSecondaryColor.isSpecified && state.ambientSecondaryColor != Color.Transparent) state.ambientSecondaryColor else state.endColor.value).copy(alpha = 0.20f),
                                                 Color.Transparent,
                                             ),
                                         center = Offset(size.width / 2f, gradientHeight * 0.35f),
-                                        radius = size.width * 0.90f,
+                                        radius = radius,
                                     ),
                             )
                         }

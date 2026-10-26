@@ -23,6 +23,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.singleOrNull
 import kotlinx.coroutines.flow.update
@@ -73,7 +74,7 @@ class AlbumViewModel(
                                     loadState = LocalPlaylistState.PlaylistLoadState.Success,
                                 )
                             }
-                            val localAlbum = albumRepository.getAlbum(browseId).lastOrNull()
+                            val localAlbum = albumRepository.getAlbum(browseId).firstOrNull()
                             if (localAlbum != null) {
                                 _uiState.update {
                                     it.copy(
@@ -83,7 +84,7 @@ class AlbumViewModel(
                                 }
                                 albumRepository.updateAlbumInLibrary(now(), browseId)
                             } else {
-                                albumRepository.insertAlbum(data.toAlbumEntity(browseId)).singleOrNull().let {
+                                albumRepository.insertAlbum(data.toAlbumEntity(browseId)).firstOrNull().let {
                                     log("Insert Album $it")
                                     data.tracks.forEach { track ->
                                         songRepository
@@ -91,7 +92,7 @@ class AlbumViewModel(
                                                 track.toSongEntity().copy(
                                                     inLibrary = Config.REMOVED_SONG_DATE_TIME,
                                                 ),
-                                            ).singleOrNull()
+                                            ).firstOrNull()
                                             ?.let {
                                                 log("Insert Song $it")
                                             }
@@ -110,7 +111,7 @@ class AlbumViewModel(
                     }
 
                     is Resource.Error -> {
-                        albumRepository.getAlbum(browseId).singleOrNull().let { albumEntity ->
+                        albumRepository.getAlbum(browseId).firstOrNull().let { albumEntity ->
                             if (albumEntity != null) {
                                 _uiState.update {
                                     it.copy(
@@ -130,7 +131,7 @@ class AlbumViewModel(
                                             (
                                                 songRepository
                                                     .getSongsByListVideoId(albumEntity.tracks ?: emptyList())
-                                                    .singleOrNull() ?: emptyList()
+                                                    .firstOrNull() ?: emptyList()
                                             ).toArrayListTrack(),
                                         loadState = LocalPlaylistState.PlaylistLoadState.Success,
                                     )
@@ -248,14 +249,14 @@ class AlbumViewModel(
         viewModelScope.launch {
             // Insert all song to database
             uiState.value.listTrack.forEach { track ->
-                songRepository.insertSong(track.toSongEntity()).singleOrNull()?.let {
+                songRepository.insertSong(track.toSongEntity()).firstOrNull()?.let {
                     log("Insert Song $it")
                 }
             }
             val fullListSong =
                 songRepository
                     .getSongsByListVideoId(uiState.value.listTrack.map { it.videoId })
-                    .singleOrNull() ?: emptyList()
+                    .firstOrNull() ?: emptyList()
             log("Full list song: $fullListSong")
             if (fullListSong.isEmpty()) {
                 makeToast(getString(Res.string.playlist_is_empty))

@@ -17,6 +17,7 @@ import com.maxrave.simpmusic.viewModel.MoreAlbumsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -37,9 +38,9 @@ class NotifyWork(
     override suspend fun doWork(): Result =
         withContext(Dispatchers.IO) {
             Logger.w("NotifyWork", "doWork: ")
-            val artistList: List<ArtistEntity> = artistRepository.getFollowedArtists().lastOrNull() ?: listOf()
+            val artistList: List<ArtistEntity> = artistRepository.getFollowedArtists().firstOrNull() ?: listOf()
             val listFollowedArtistSingleAndAlbum =
-                albumRepository.getAllFollowedArtistSingleAndAlbums().lastOrNull() ?: listOf()
+                albumRepository.getAllFollowedArtistSingleAndAlbums().firstOrNull() ?: listOf()
             Logger.w("NotifyWork", "doWork: $artistList")
             Logger.w("NotifyWork", "doWork: $listFollowedArtistSingleAndAlbum")
             artistList.forEach { art ->

@@ -702,7 +702,7 @@ internal class MediaServiceHandlerImpl(
             coroutineScope.launch {
                 Logger.w(TAG, "getDataOfNowPlayingState: $videoId")
                 Logger.w(TAG, "getDataOfNowPlayingState: ${track?.thumbnails}")
-                songRepository.getSongById(videoId).cancellable().singleOrNull().let { songEntity ->
+                songRepository.getSongById(videoId).cancellable().firstOrNull().let { songEntity ->
                     if (songEntity != null) {
                         _controlState.update { it.copy(isLiked = songEntity.liked) }
                         var thumbUrl =
@@ -713,7 +713,7 @@ internal class MediaServiceHandlerImpl(
                         thumbUrl = Regex("=w\\d+-h\\d+").replace(thumbUrl, "=w544-h544")
                         Logger.w(TAG, "getDataOfNowPlayingState: $thumbUrl")
                         if (songEntity.thumbnails != thumbUrl) {
-                            songRepository.updateThumbnailsSongEntity(thumbUrl, songEntity.videoId).singleOrNull()?.let {
+                            songRepository.updateThumbnailsSongEntity(thumbUrl, songEntity.videoId).firstOrNull()?.let {
                                 Logger.w(TAG, "getDataOfNowPlayingState: Updated thumbs $it")
                             }
                         }
@@ -723,12 +723,12 @@ internal class MediaServiceHandlerImpl(
                         // anything that is not a real type, so an unknown never overwrites a known one.
                         MusicVideoType.normalize(track?.videoType)?.let { freshVideoType ->
                             if (songEntity.videoType != freshVideoType) {
-                                songRepository.updateVideoTypeSongEntity(freshVideoType, songEntity.videoId).singleOrNull()?.let {
+                                songRepository.updateVideoTypeSongEntity(freshVideoType, songEntity.videoId).firstOrNull()?.let {
                                     Logger.w(TAG, "getDataOfNowPlayingState: Updated videoType $it")
                                 }
                             }
                         }
-                        songRepository.updateSongInLibrary(now(), songEntity.videoId).singleOrNull().let {
+                        songRepository.updateSongInLibrary(now(), songEntity.videoId).firstOrNull().let {
                             Logger.w(TAG, "getDataOfNowPlayingState: $it")
                         }
                         songRepository.updateListenCount(songEntity.videoId)
@@ -760,7 +760,7 @@ internal class MediaServiceHandlerImpl(
                         songRepository
                             .insertSong(
                                 songEntity,
-                            ).singleOrNull()
+                            ).firstOrNull()
                             ?.let {
                                 Logger.w(TAG, "getDataOfNowPlayingState: $it")
                             }
@@ -1002,7 +1002,7 @@ internal class MediaServiceHandlerImpl(
                 val liked =
                     songRepository
                         .getSongById(id)
-                        .singleOrNull()
+                        .firstOrNull()
                         ?.liked ?: false
                 Logger.w("Check liked", liked.toString())
                 _controlState.value = _controlState.value.copy(isLiked = liked)
@@ -1436,7 +1436,7 @@ internal class MediaServiceHandlerImpl(
                 }
                 addMediaItem(firstPlayedTrack.toGenericMediaItem(), playWhenReady = true)
                 val longId = playlistId.replace(LOCAL_PLAYLIST_ID, "").toLong()
-                val localPlaylist = localPlaylistRepository.getLocalPlaylist(longId).lastOrNull()?.data
+                val localPlaylist = localPlaylistRepository.getLocalPlaylist(longId).firstOrNull()?.data
                 if (localPlaylist != null) {
                     Logger.w(TAG, "shufflePlaylist: Local playlist track size ${localPlaylist.tracks?.size}")
                     val trackCount = localPlaylist.tracks?.size ?: return@launch
@@ -1495,10 +1495,10 @@ internal class MediaServiceHandlerImpl(
                             .getPlaylistPairSongByListPosition(
                                 longId,
                                 listPosition.subList(50 * offset, if (theLastLoad) listPosition.size else 50 * (offset + 1)),
-                            ).singleOrNull()
+                            ).firstOrNull()
                             ?.let { pair ->
                                 Logger.w("Check loadMore response", pair.size.toString())
-                                songRepository.getSongsByListVideoId(pair.map { it.songId }).lastOrNull()?.let { songs ->
+                                songRepository.getSongsByListVideoId(pair.map { it.songId }).firstOrNull()?.let { songs ->
                                     if (songs.isNotEmpty()) {
                                         delay(300)
                                         loadMoreCatalog(songs.toArrayListTrack())
@@ -1559,10 +1559,10 @@ internal class MediaServiceHandlerImpl(
                                         longId,
                                         filter,
                                         localDateTime,
-                                    ).lastOrNull()
+                                    ).firstOrNull()
                                     ?.let { pair ->
                                         Logger.w("Check loadMore response", pair.size.toString())
-                                        songRepository.getSongsByListVideoId(pair.map { it.songId }).single().let { songs ->
+                                        songRepository.getSongsByListVideoId(pair.map { it.songId }).firstOrNull().orEmpty().let { songs ->
                                             if (songs.isNotEmpty()) {
                                                 delay(300)
                                                 loadMoreCatalog(songs.toArrayListTrack())
@@ -1611,10 +1611,10 @@ internal class MediaServiceHandlerImpl(
                                         longId,
                                         offset,
                                         filter,
-                                    ).lastOrNull()
+                                    ).firstOrNull()
                                     ?.let { pair ->
                                         Logger.w("Check loadMore response", pair.size.toString())
-                                        songRepository.getSongsByListVideoId(pair.map { it.songId }).single().let { songs ->
+                                        songRepository.getSongsByListVideoId(pair.map { it.songId }).firstOrNull().orEmpty().let { songs ->
                                             if (songs.isNotEmpty()) {
                                                 delay(300)
                                                 loadMoreCatalog(songs.toArrayListTrack())
@@ -1657,7 +1657,7 @@ internal class MediaServiceHandlerImpl(
                     Logger.w(TAG, "Check loadMore continuation $continuation")
                     songRepository
                         .getContinueTrack(playlistId, continuation)
-                        .lastOrNull()
+                        .firstOrNull()
                         .let { response ->
                             val list = response?.first
                             if (list != null) {
@@ -1902,7 +1902,7 @@ internal class MediaServiceHandlerImpl(
             if (track.artists.isNullOrEmpty()) {
                 songRepository
                     .getSongInfo(track.videoId)
-                    .lastOrNull()
+                    .firstOrNull()
                     .let { songInfo ->
                         if (songInfo != null) {
                             catalogMetadata.add(
@@ -2041,7 +2041,7 @@ internal class MediaServiceHandlerImpl(
                         )
                 if (downloaded == 1) {
                     if (track.artists.isNullOrEmpty()) {
-                        songRepository.getSongInfo(track.videoId).lastOrNull().let { songInfo ->
+                        songRepository.getSongInfo(track.videoId).firstOrNull().let { songInfo ->
                             if (songInfo != null) {
                                 val mediaItem =
                                     GenericMediaItem(
@@ -2117,7 +2117,7 @@ internal class MediaServiceHandlerImpl(
                         songRepository
                             .getSongInfo(track.videoId)
                             .cancellable()
-                            .lastOrNull()
+                            .firstOrNull()
                             .let { songInfo ->
                                 if (songInfo != null) {
                                     catalogMetadata.add(
@@ -2266,7 +2266,7 @@ internal class MediaServiceHandlerImpl(
                 )
         if ((player.currentMediaItemIndex + 1 in 0..queueData.value.data.listTracks.size)) {
             if (track.artists.isNullOrEmpty()) {
-                songRepository.getSongInfo(track.videoId).cancellable().lastOrNull().let { songInfo ->
+                songRepository.getSongInfo(track.videoId).cancellable().firstOrNull().let { songInfo ->
                     if (songInfo != null) {
                         catalogMetadata.add(
                             player.currentMediaItemIndex + 1,
@@ -2374,7 +2374,7 @@ internal class MediaServiceHandlerImpl(
             return
         }
         coroutineScope.launch(Dispatchers.IO) {
-            songRepository.insertSong(track.toSongEntity()).singleOrNull()?.let {
+            songRepository.insertSong(track.toSongEntity()).firstOrNull()?.let {
                 Logger.d(TAG, "Inserted song: ${track.title}")
             }
             track.durationSeconds?.let {
@@ -2615,7 +2615,7 @@ internal class MediaServiceHandlerImpl(
             val currentPlayingTrack =
                 songRepository
                     .getSongById(dataStoreManager.recentMediaId.first())
-                    .lastOrNull()
+                    .firstOrNull()
                     ?.toTrack() ?: return@withLock false
             // Snapshot the position before touching the player: loading the queue fires
             // onMediaItemTransition -> mayBeSaveRecentSong, which rewrites the stored
@@ -2624,7 +2624,7 @@ internal class MediaServiceHandlerImpl(
             val savedTracks =
                 songRepository
                     .getSavedQueue()
-                    .singleOrNull()
+                    .firstOrNull()
                     ?.firstOrNull()
                     ?.listTrack
                     .orEmpty()

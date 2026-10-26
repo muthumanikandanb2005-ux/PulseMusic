@@ -1,4 +1,4 @@
-﻿package com.maxrave.media3.exoplayer
+package com.maxrave.media3.exoplayer
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -575,11 +575,13 @@ internal class CrossfadeExoPlayerAdapter(
                 ): AudioSink =
                     DefaultAudioSink
                         .Builder(context)
-                        .setEnableFloatOutput(true)
+                        .setEnableFloatOutput(false)
                         .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                         .setAudioTrackBufferSizeProvider(
                             DefaultAudioTrackBufferSizeProvider.Builder()
-                                .setPcmBufferMultiplicationFactor(4)
+                                .setPcmBufferMultiplicationFactor(10)
+                                .setMinPcmBufferDurationUs(500_000)
+                                .setMaxPcmBufferDurationUs(2_000_000)
                                 .build()
                         )
                         .setAudioProcessorChain(
@@ -620,10 +622,10 @@ internal class CrossfadeExoPlayerAdapter(
                     DefaultLoadControl
                         .Builder()
                         .setBufferDurationsMs(
-                            50_000,
+                            60_000,
                             180_000,
-                            1_200,
                             2_500,
+                            5_000,
                         )
                         .setBackBuffer(60_000, true)
                         .setPrioritizeTimeOverSizeThresholds(true)

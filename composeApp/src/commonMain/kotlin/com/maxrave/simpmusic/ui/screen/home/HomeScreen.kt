@@ -137,6 +137,7 @@ import com.maxrave.simpmusic.ui.icon.Groups
 import com.maxrave.simpmusic.ui.icon.History
 import com.maxrave.simpmusic.ui.icon.Notifications
 import com.maxrave.simpmusic.ui.icon.Settings
+import com.maxrave.simpmusic.ui.icon.Tune
 import com.maxrave.simpmusic.ui.icon.PulseIcons
 import com.maxrave.simpmusic.ui.navigation.destination.home.HomeDestination
 import com.maxrave.simpmusic.ui.navigation.destination.home.ListenTogetherDestination
@@ -1018,6 +1019,7 @@ fun QuickPicks(
     homeItem: HomeItem,
     navController: NavController,
     viewModel: HomeViewModel = koinViewModel(),
+    sharedViewModel: SharedViewModel = koinInject(),
 ) {
     val lazyListState = rememberLazyGridState()
     val snapperFlingBehavior = rememberSnapFlingBehavior(SnapLayoutInfoProvider(lazyGridState = lazyListState, snapPosition = SnapPosition.Start))
@@ -1049,16 +1051,58 @@ fun QuickPicks(
             text = stringResource(Res.string.let_s_start_with_a_radio),
             style = typo().bodySmall,
         )
-        Text(
-            text = stringResource(Res.string.quick_picks),
-            style = typo().headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
+        val discoveryRatio by sharedViewModel.discoveryRatio.collectAsStateWithLifecycle()
+        val discoveryPercent = (discoveryRatio * 100).toInt()
+        Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .padding(vertical = 5.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(Res.string.quick_picks),
+                style = typo().headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                modifier =
+                    Modifier
+                        .padding(start = 8.dp)
+                        .clickable {
+                            val nextRatio = when {
+                                discoveryRatio < 0.35f -> 0.50f
+                                discoveryRatio < 0.75f -> 1.0f
+                                else -> 0.20f
+                            }
+                            sharedViewModel.setDiscoveryRatio(nextRatio)
+                        },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = PulseIcons.Tune,
+                        contentDescription = "Song Discovery Mix",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        text = "$discoveryPercent% Discover",
+                        style = typo().labelSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
         LazyHorizontalGrid(
             rows = GridCells.Fixed(4),
             modifier = Modifier.height(256.dp),

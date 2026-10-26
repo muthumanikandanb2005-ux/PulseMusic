@@ -24,7 +24,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toComposeImageBitmap
@@ -158,6 +160,16 @@ private fun MpvVideoFrames(
 
 private val RICH_SYNC_TIMESTAMP_REGEX = Regex("""<\d{2}:\d{2}\.\d{2,3}>\s*""")
 
+private fun sanitizeLyricsLine(raw: String): String {
+    return raw
+        .replace(RICH_SYNC_TIMESTAMP_REGEX, "")
+        .replace("\u25A1", "")
+        .replace("\u25A0", "")
+        .replace("\uFFFD", "")
+        .replace("\uFEFF", "")
+        .trim()
+}
+
 @Composable
 fun MediaPlayerViewWithSubtitleJvm(
     modifier: Modifier,
@@ -287,11 +299,7 @@ fun MediaPlayerViewWithSubtitleJvm(
                             ) {
                                 Text(
                                     text =
-                                        lines
-                                            .getOrNull(currentLineIndex)
-                                            ?.words
-                                            ?.replace(RICH_SYNC_TIMESTAMP_REGEX, "")
-                                            ?.trim() ?: return@Crossfade,
+                                        lines.getOrNull(currentLineIndex)?.words?.let { sanitizeLyricsLine(it) } ?: return@Crossfade,
                                     style =
                                         mainTextStyle.let { style ->
                                             if (shouldScaleDownSubtitle) {
@@ -305,14 +313,14 @@ fun MediaPlayerViewWithSubtitleJvm(
                                     modifier =
                                         Modifier
                                             .padding(4.dp)
-                                            .background(Color.Black.copy(alpha = 0.5f))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
                                             .wrapContentWidth(),
                                 )
                                 Crossfade(translatedLyricsData?.lines != null, label = "") { translate ->
                                     val translateLines = translatedLyricsData?.lines ?: return@Crossfade
                                     if (translate) {
                                         Text(
-                                            text = translateLines.getOrNull(currentTranslatedLineIndex)?.words ?: return@Crossfade,
+                                            text = translateLines.getOrNull(currentTranslatedLineIndex)?.words?.let { sanitizeLyricsLine(it) } ?: return@Crossfade,
                                             style =
                                                 translatedTextStyle.let { style ->
                                                     if (shouldScaleDownSubtitle) {
@@ -325,7 +333,7 @@ fun MediaPlayerViewWithSubtitleJvm(
                                             textAlign = TextAlign.Center,
                                             modifier =
                                                 Modifier
-                                                    .background(Color.Black.copy(alpha = 0.5f))
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
                                                     .wrapContentWidth(),
                                         )
                                     }

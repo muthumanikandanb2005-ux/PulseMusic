@@ -280,8 +280,8 @@ private fun provideResolvingDataSourceFactory(
         runBlocking(Dispatchers.IO) {
             if (mediaId.contains(MERGING_DATA_TYPE.VIDEO)) {
                 val id = mediaId.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                (streamRepository.getNewFormat(mediaId).lastOrNull()
-                    ?: streamRepository.getNewFormat(id).lastOrNull())?.let {
+                (streamRepository.getNewFormat(mediaId).firstOrNull()
+                    ?: streamRepository.getNewFormat(id).firstOrNull())?.let {
                     val videoUrl = it.videoUrl
                     if (videoUrl != null && it.expiredTime > now().plusMinutes(15)) {
                         Logger.d("Stream", videoUrl)
@@ -300,7 +300,7 @@ private fun provideResolvingDataSourceFactory(
                         id,
                         isDownloading = false,
                         isVideo = true,
-                    ).lastOrNull()
+                    ).firstOrNull()
                     ?.let {
                         Logger.d("Stream", it)
                         Logger.w("Stream", "Video resolved freshly")
@@ -308,7 +308,7 @@ private fun provideResolvingDataSourceFactory(
                         resolved = true
                     }
             } else {
-                streamRepository.getNewFormat(mediaId).lastOrNull()?.let {
+                streamRepository.getNewFormat(mediaId).firstOrNull()?.let {
                     val audioUrl = it.audioUrl
                     if (audioUrl != null && it.expiredTime > now().plusMinutes(15)) {
                         Logger.d("Stream", audioUrl)
@@ -327,7 +327,7 @@ private fun provideResolvingDataSourceFactory(
                         mediaId,
                         isDownloading = false,
                         isVideo = false,
-                    ).lastOrNull()
+                    ).firstOrNull()
                     ?.let {
                         Logger.d("Stream", it)
                         Logger.w("Stream", "Audio resolved freshly")
@@ -348,7 +348,7 @@ private fun provideResolvingDataSourceFactory(
                         rawId,
                         isDownloading = false,
                         isVideo = isVid,
-                    ).lastOrNull()
+                    ).firstOrNull()
                     ?.let {
                         Logger.d("Stream", "Retry resolved stream for $mediaId: $it")
                         dataSpecReturn = dataSpec.withUri(it.toUri())

@@ -64,6 +64,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -303,8 +304,8 @@ internal fun ExpressiveArtworkCardPage(
                                         Brush.radialGradient(
                                             colors =
                                                 listOf(
-                                                    state.startColor.value.copy(alpha = 0.70f),
-                                                    state.endColor.value.copy(alpha = 0.35f),
+                                                    (if (state.ambientColor.isSpecified && state.ambientColor != Color.Transparent) state.ambientColor else state.startColor.value).copy(alpha = 0.70f),
+                                                    (if (state.ambientSecondaryColor.isSpecified && state.ambientSecondaryColor != Color.Transparent) state.ambientSecondaryColor else state.endColor.value).copy(alpha = 0.35f),
                                                     Color.Transparent,
                                                 ),
                                         ),

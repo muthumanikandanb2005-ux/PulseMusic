@@ -14,6 +14,7 @@ import com.maxrave.simpmusic.viewModel.base.BaseViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
@@ -105,9 +106,9 @@ class WrappedViewModel(
     ): List<WrappedTrack> =
         analyticsRepository
             .queryTopPlayedSongsInRange(startTimestamp = start, endTimestamp = end)
-            .lastOrNull()
+            .firstOrNull()
             .orEmpty()
-            .resolveTop { songRepository.getSongById(it.videoId).lastOrNull() }
+            .resolveTop { songRepository.getSongById(it.videoId).firstOrNull() }
             .mapIndexed { index, (row, song) ->
                 WrappedTrack(
                     rank = index + 1,
@@ -128,12 +129,12 @@ class WrappedViewModel(
         val previousTopChannelId =
             analyticsRepository
                 .queryTopArtistsWithTimeInRange(startTimestamp = previousStart, endTimestamp = previousEnd)
-                .lastOrNull()
+                .firstOrNull()
                 ?.firstOrNull()
                 ?.channelId
         return analyticsRepository
             .queryTopArtistsWithTimeInRange(startTimestamp = start, endTimestamp = end)
-            .lastOrNull()
+            .firstOrNull()
             .orEmpty()
             .resolveTop { resolveArtist(it.channelId) }
             .mapIndexed { index, (row, artist) ->
@@ -156,9 +157,9 @@ class WrappedViewModel(
     ): List<WrappedAlbum> =
         analyticsRepository
             .queryTopAlbumsInRange(startTimestamp = start, endTimestamp = end)
-            .lastOrNull()
+            .firstOrNull()
             .orEmpty()
-            .resolveTop { albumRepository.getAlbum(it.albumBrowseId).lastOrNull() }
+            .resolveTop { albumRepository.getAlbum(it.albumBrowseId).firstOrNull() }
             .mapIndexed { index, (row, album) ->
                 WrappedAlbum(rank = index + 1, album = album, playCount = row.playCount)
             }
@@ -176,14 +177,14 @@ class WrappedViewModel(
                 .queryTopPlayedSongsInRange(
                     startTimestamp = date.atTime(0, 0),
                     endTimestamp = date.atTime(23, 59, 59),
-                ).lastOrNull()
+                ).firstOrNull()
                 ?.firstOrNull()
         return WrappedBiggestDay(
             date = date,
             plays = stats.busiestDayPlays,
             // Plays over the days that had any, so the comparison is against a day the user had.
             typicalPlays = stats.playsPerActiveDay,
-            topTrack = top?.let { songRepository.getSongById(it.videoId).lastOrNull() },
+            topTrack = top?.let { songRepository.getSongById(it.videoId).firstOrNull() },
             topTrackPlays = top?.playCount ?: 0,
         )
     }
@@ -253,12 +254,12 @@ class WrappedViewModel(
      * of radio would surface.
      */
     private suspend fun resolveArtist(channelId: String): ArtistEntity? =
-        artistRepository.getArtistById(channelId).lastOrNull() ?: fetchArtistFromYouTube(channelId)
+        artistRepository.getArtistById(channelId).firstOrNull() ?: fetchArtistFromYouTube(channelId)
 
     private suspend fun fetchArtistFromYouTube(channelId: String): ArtistEntity? =
         artistRepository
             .getArtistData(channelId)
-            .lastOrNull()
+            .firstOrNull()
             ?.takeIf { it is Resource.Success && it.data != null }
             ?.data
             ?.let {

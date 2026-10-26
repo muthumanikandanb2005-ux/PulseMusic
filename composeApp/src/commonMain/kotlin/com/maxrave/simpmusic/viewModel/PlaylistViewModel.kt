@@ -162,7 +162,7 @@ class PlaylistViewModel(
     private fun downloadTracks(listJob: List<String>) {
         viewModelScope.launch {
             listJob.forEach { videoId ->
-                songRepository.getSongById(videoId).singleOrNull()?.let { song ->
+                songRepository.getSongById(videoId).firstOrNull()?.let { song ->
                     if (song.downloadState != STATE_DOWNLOADED) {
                         downloadUtils.downloadTrack(videoId, song.title, song.thumbnails ?: "")
                     }

@@ -72,6 +72,11 @@ import com.maxrave.simpmusic.extension.smoothScrimBrush
 import com.maxrave.simpmusic.ui.component.NowPlayingBottomSheet
 import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.component.rememberNowPlayingGlowTint
+import com.kmpalette.rememberPaletteState
+import com.maxrave.simpmusic.extension.getAmbientGlowColor
+import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import com.maxrave.simpmusic.ui.icon.ArrowBackIosNew
 import com.maxrave.simpmusic.ui.icon.Forward5
 import com.maxrave.simpmusic.ui.icon.FullscreenExit
@@ -130,6 +135,17 @@ fun FullscreenPlayer(
         .collectAsStateWithLifecycle(initialValue = DataStoreManager.TRUE)
     val isAmbientEnabled = ambientModeSetting != DataStoreManager.FALSE
     val ambientTint = rememberNowPlayingGlowTint(nowPlayingState.thumbnailURL)
+    val fsPaletteState = rememberPaletteState()
+    LaunchedEffect(nowPlayingState.bitmap) {
+        nowPlayingState.bitmap?.let { fsPaletteState.generate(it) }
+    }
+    val fsVibrantColor = fsPaletteState.palette.getAmbientGlowColor().takeIf { it.isSpecified && it != Color.Transparent }
+    val effectiveAmbientTint = fsVibrantColor ?: ambientTint
+    val animatedAmbientTint by animateColorAsState(
+        targetValue = effectiveAmbientTint ?: Color.Transparent,
+        animationSpec = tween(600),
+        label = "FullscreenAmbientTint",
+    )
 
     var showBottom by rememberSaveable { mutableStateOf(false) }
     var isSliding by rememberSaveable {
@@ -190,7 +206,7 @@ fun FullscreenPlayer(
     }
 
     Box {
-        if (isAmbientEnabled && !isInPipMode && ambientTint != null) {
+        if (isAmbientEnabled && !isInPipMode && animatedAmbientTint != Color.Transparent) {
             Box(
                 modifier =
                     Modifier
@@ -201,7 +217,7 @@ fun FullscreenPlayer(
                                     colors =
                                         listOf(
                                             Color.Transparent,
-                                            ambientTint.copy(alpha = 0.25f),
+                                            animatedAmbientTint.copy(alpha = 0.38f),
                                         ),
                                 ),
                         ),

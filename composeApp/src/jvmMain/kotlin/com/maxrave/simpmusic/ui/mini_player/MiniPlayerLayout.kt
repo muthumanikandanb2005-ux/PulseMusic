@@ -1,4 +1,5 @@
 ﻿package com.maxrave.simpmusic.ui.mini_player
+import com.maxrave.simpmusic.ui.screen.player.content.stripRichSyncTimestamps
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -439,7 +440,7 @@ fun MediumMiniLayout(
                                                 animationMode = MarqueeAnimationMode.Immediately,
                                             ).focusable(),
                                     textAlign = TextAlign.Center,
-                                    text = currentLine.words,
+                                    text = currentLine.words.stripRichSyncTimestamps(),
                                     style = typo().bodySmall,
                                     color = Color.White.copy(alpha = 0.9f),
                                     maxLines = 1,
@@ -587,7 +588,7 @@ fun SquareMiniLayout(
                                         animationMode = MarqueeAnimationMode.Immediately,
                                     ).focusable(),
                             textAlign = TextAlign.Center,
-                            text = currentLine.words,
+                            text = currentLine.words.stripRichSyncTimestamps(),
                             style = typo().bodySmall,
                             color = Color.White.copy(alpha = 0.9f),
                             maxLines = 1,
@@ -942,7 +943,7 @@ fun ExpandedMiniLayout(
                                         ).focusable()
                                         .padding(bottom = 4.dp),
                                 textAlign = TextAlign.Center,
-                                text = currentLine.words,
+                                text = currentLine.words.stripRichSyncTimestamps(),
                                 style = typo().bodySmall,
                                 color = Color.White.copy(alpha = 0.9f),
                                 maxLines = 1,

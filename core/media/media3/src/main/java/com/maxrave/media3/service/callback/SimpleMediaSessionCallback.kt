@@ -54,6 +54,7 @@ import com.maxrave.media3.extension.toMediaItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.guava.future
@@ -258,7 +259,7 @@ internal class SimpleMediaSessionCallback(
     ): ListenableFuture<LibraryResult<Void>> =
         scope.future(Dispatchers.IO) {
             val searchResult =
-                searchRepository.getSearchDataSong(query).lastOrNull()?.let { resource ->
+                searchRepository.getSearchDataSong(query).firstOrNull()?.let { resource ->
                     when (resource) {
                         is Resource.Success -> {
                             resource.data?.let {
@@ -406,7 +407,7 @@ internal class SimpleMediaSessionCallback(
                                 .getHomeData(
                                     viewString = context.getString(R.string.view_count),
                                     songString = context.getString(R.string.song),
-                                ).lastOrNull()
+                                ).firstOrNull()
                                 ?.data
                         listHomeItem.clear()
                         listHomeItem.addAll(temp?.second ?: emptyList())
@@ -418,7 +419,7 @@ internal class SimpleMediaSessionCallback(
                                         continueParam,
                                         viewString = context.getString(R.string.view_count),
                                         songString = context.getString(R.string.song),
-                                    ).lastOrNull()
+                                    ).firstOrNull()
                                     .let {
                                         listHomeItem.addAll(it?.data?.second ?: emptyList())
                                         continueParam = it?.data?.first
@@ -476,7 +477,7 @@ internal class SimpleMediaSessionCallback(
                                         val playlist =
                                             playlistRepository
                                                 .getFullPlaylistData(playlistId, context.getString(R.string.view_count))
-                                                .lastOrNull()
+                                                .firstOrNull()
                                         if (playlist?.data?.tracks.isNullOrEmpty()) {
                                             emptyList()
                                         } else {
@@ -499,7 +500,7 @@ internal class SimpleMediaSessionCallback(
                                 val playlistId = parentId.split("/").getOrNull(1)
                                 if (playlistId != null) {
                                     val playlist =
-                                        localPlaylistRepository.getLocalPlaylist(playlistId.toLong()).lastOrNull()?.data
+                                        localPlaylistRepository.getLocalPlaylist(playlistId.toLong()).firstOrNull()?.data
                                     if (playlist != null) {
                                         Logger.w(TAG, "onGetChildren: $playlist")
                                         val tracks = playlist.tracks
@@ -508,7 +509,7 @@ internal class SimpleMediaSessionCallback(
                                         } else {
                                             songRepository
                                                 .getSongsByListVideoId(tracks)
-                                                .lastOrNull()
+                                                .firstOrNull()
                                                 ?.map { it.toMediaItem(parentId) } ?: emptyList()
                                         }
                                     } else {
@@ -538,7 +539,7 @@ internal class SimpleMediaSessionCallback(
         scope.future(Dispatchers.IO) {
             songRepository.getSongById(mediaId).first()?.let {
                 LibraryResult.ofItem(it.toMediaItem(), null)
-            } ?: streamRepository.getFullMetadata(mediaId).lastOrNull()?.data?.let {
+            } ?: streamRepository.getFullMetadata(mediaId).firstOrNull()?.data?.let {
                 LibraryResult.ofItem(it.toMediaItemWithoutPath(), null)
             } ?: LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
         }
@@ -652,14 +653,14 @@ internal class SimpleMediaSessionCallback(
                     val songs =
                         localPlaylistRepository
                             .getLocalPlaylist(playlistId.toLong())
-                            .lastOrNull()
+                            .firstOrNull()
                             ?.data
                             ?.also {
                                 title = it.title
                             }?.tracks
                             ?.let {
                                 songRepository.getSongsByListVideoId(it)
-                            }?.lastOrNull()
+                            }?.firstOrNull()
                     Logger.w(TAG, "onSetMediaItems songs: $songs")
                     if (songs.isNullOrEmpty()) {
                         defaultResult

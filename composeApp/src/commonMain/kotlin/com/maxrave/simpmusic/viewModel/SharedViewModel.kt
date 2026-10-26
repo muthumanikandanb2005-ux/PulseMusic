@@ -184,6 +184,13 @@ class SharedViewModel(
 
     val castState: StateFlow<GenericCastState> get() = mediaPlayerHandler.castState
 
+    val discoveryRatio: StateFlow<Float> get() = mediaPlayerHandler.discoveryRatio
+    val listeningHealthState: StateFlow<com.manikandan.domain.mediaservice.handler.ListeningHealthState> get() = mediaPlayerHandler.listeningHealthState
+
+    fun setDiscoveryRatio(ratio: Float) {
+        mediaPlayerHandler.setDiscoveryRatio(ratio)
+    }
+
     private var _controllerState =
         MutableStateFlow<ControlState>(
             ControlState(
@@ -416,7 +423,10 @@ class SharedViewModel(
                             nowPlayingTitle = title,
                             artistName = artist,
                             isVideo = state.mediaItem.isVideo(),
-                            thumbnailURL = state.mediaItem.metadata.artworkUri,
+                            thumbnailURL = state.mediaItem.metadata.artworkUri
+                                ?: state.songEntity?.thumbnails
+                                ?: state.track?.thumbnails?.lastOrNull()?.url
+                                ?: state.track?.thumbnails?.firstOrNull()?.url,
                             canvasData = null,
                             lyricsData = null, // ALWAYS wipe old lyrics immediately on track change!
                             songInfoData = null,
@@ -437,6 +447,7 @@ class SharedViewModel(
                         _nowPlayingScreenData.update {
                             it.copy(
                                 isExplicit = song.isExplicit,
+                                thumbnailURL = if (it.thumbnailURL.isNullOrBlank()) song.thumbnails else it.thumbnailURL,
                             )
                         }
                     }

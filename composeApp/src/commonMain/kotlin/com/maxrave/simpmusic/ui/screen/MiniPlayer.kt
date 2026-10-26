@@ -1,4 +1,5 @@
 package com.maxrave.simpmusic.ui.screen
+import com.maxrave.simpmusic.ui.screen.player.content.stripRichSyncTimestamps
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.AnimatedContent
@@ -267,14 +268,14 @@ fun MiniPlayer(
         if (lines.isNullOrEmpty()) null
         else {
             val currMs = timelineState.current
-            lines.findLast { line ->
+            (lines.findLast { line ->
                 val start = line.startTimeMs.toLongOrNull() ?: 0L
                 val end = line.endTimeMs.toLongOrNull() ?: Long.MAX_VALUE
                 currMs in start..end
             }?.words ?: lines.findLast { line ->
                 val start = line.startTimeMs.toLongOrNull() ?: 0L
                 start <= currMs
-            }?.words
+            }?.words)?.stripRichSyncTimestamps()
         }
     }
     var isIslandExpanded by rememberSaveable { mutableStateOf(false) }
@@ -578,7 +579,7 @@ fun MiniPlayer(
                                             }
                                             if (showLyricsTicker && !currentLyricText.isNullOrBlank()) {
                                                 Text(
-                                                    text = "♫ $currentLyricText",
+                                                    text = "♫ ${currentLyricText?.stripRichSyncTimestamps() ?: ""}",
                                                     style = typo().bodySmall.copy(fontWeight = FontWeight.Medium),
                                                     maxLines = 1,
                                                     color = if (isDarkTheme) Color(0xFF64B5F6) else MaterialTheme.colorScheme.primary,
@@ -895,7 +896,7 @@ fun MiniPlayer(
                                 }
                                 if (showLyricsTicker && !currentLyricText.isNullOrBlank()) {
                                     Text(
-                                        text = "♫ $currentLyricText",
+                                        text = "♫ ${currentLyricText?.stripRichSyncTimestamps() ?: ""}",
                                         style = typo().bodySmall.copy(fontWeight = FontWeight.Medium),
                                         maxLines = 1,
                                         color = if (isDarkTheme) Color(0xFF64B5F6) else MaterialTheme.colorScheme.primary,

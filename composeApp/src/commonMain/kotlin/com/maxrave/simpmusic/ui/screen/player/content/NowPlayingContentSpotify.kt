@@ -91,6 +91,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TileMode
@@ -306,18 +307,21 @@ fun NowPlayingContentSpotify(
                                         ),
                                     size = area,
                                 )
-                                if (state.ambientModeEnabled) {
+                                if (state.ambientModeEnabled && size.width > 0f && size.height > 0f) {
+                                    val spAmb1 = if (state.ambientColor.isSpecified && state.ambientColor != Color.Transparent) state.ambientColor else state.startColor.value
+                                    val spAmb2 = if (state.ambientSecondaryColor.isSpecified && state.ambientSecondaryColor != Color.Transparent) state.ambientSecondaryColor else state.endColor.value
+                                    val radius = maxOf(1f, size.width * 0.90f)
                                     drawCircle(
                                         brush =
                                             Brush.radialGradient(
                                                 colors =
                                                     listOf(
-                                                        state.startColor.value.copy(alpha = 0.40f),
-                                                        state.endColor.value.copy(alpha = 0.18f),
+                                                        spAmb1.copy(alpha = 0.48f),
+                                                        spAmb2.copy(alpha = 0.22f),
                                                         Color.Transparent,
                                                     ),
                                                 center = Offset(size.width / 2f, gradientHeight * 0.38f),
-                                                radius = size.width * 0.90f,
+                                                radius = radius,
                                             ),
                                     )
                                 }
@@ -536,8 +540,8 @@ fun NowPlayingContentSpotify(
                                 if (state.ambientModeEnabled && !pageHasCanvas) {
                                     AmbientArtworkGlow(
                                         isPlaying = state.controllerState.isPlaying,
-                                        startColor = state.startColor.value,
-                                        endColor = state.endColor.value,
+                                        startColor = if (state.ambientColor.isSpecified && state.ambientColor != Color.Transparent) state.ambientColor else state.startColor.value,
+                                        endColor = if (state.ambientSecondaryColor.isSpecified && state.ambientSecondaryColor != Color.Transparent) state.ambientSecondaryColor else state.endColor.value,
                                         modifier = Modifier.matchParentSize(),
                                     )
                                 }

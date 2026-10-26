@@ -1,4 +1,4 @@
-﻿package com.maxrave.media3.ui
+package com.maxrave.media3.ui
 
 import android.app.PictureInPictureParams
 import android.content.Context
@@ -31,7 +31,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -77,6 +79,16 @@ import kotlin.math.roundToInt
 private val RICH_SYNC_TIMESTAMP_REGEX = Regex("""<\d{2}:\d{2}\.\d{2,3}>\s*""")
 
 @androidx.annotation.OptIn(UnstableApi::class)
+private fun sanitizeLyricsLine(raw: String): String {
+    return raw
+        .replace(RICH_SYNC_TIMESTAMP_REGEX, "")
+        .replace("\u25A1", "")
+        .replace("\u25A0", "")
+        .replace("\uFFFD", "")
+        .replace("\uFEFF", "")
+        .trim()
+}
+
 @Composable
 fun MediaPlayerView(
     modifier: Modifier = Modifier,
@@ -500,12 +512,7 @@ fun MediaPlayerViewWithSubtitle(
                             ) {
                                 Text(
                                     text =
-                                        lines
-                                            .getOrNull(currentLineIndex)
-                                            ?.words
-                                            ?.replace(RICH_SYNC_TIMESTAMP_REGEX, "")
-                                            ?.trim()
-                                            ?: return@Crossfade,
+                                        lines.getOrNull(currentLineIndex)?.words?.let { sanitizeLyricsLine(it) } ?: return@Crossfade,
                                     style =
                                         mainTextStyle
                                             .let {
@@ -520,7 +527,7 @@ fun MediaPlayerViewWithSubtitle(
                                     modifier =
                                         Modifier
                                             .padding(4.dp)
-                                            .background(Color.Black.copy(alpha = 0.5f))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
                                             .wrapContentWidth(),
                                 )
                                 Crossfade(translatedLyricsData?.lines != null, label = "") { translate ->
@@ -528,13 +535,7 @@ fun MediaPlayerViewWithSubtitle(
                                     if (translate) {
                                         Text(
                                             text =
-                                                translateLines
-                                                    .getOrNull(
-                                                        currentTranslatedLineIndex,
-                                                    )?.words
-                                                    ?.replace(RICH_SYNC_TIMESTAMP_REGEX, "")
-                                                    ?.trim()
-                                                    ?: return@Crossfade,
+                                                translateLines.getOrNull(currentTranslatedLineIndex)?.words?.let { sanitizeLyricsLine(it) } ?: return@Crossfade,
                                             style =
                                                 translatedTextStyle.let {
                                                     if (isInPipMode || shouldScaleDownSubtitle) {
@@ -547,7 +548,7 @@ fun MediaPlayerViewWithSubtitle(
                                             textAlign = TextAlign.Center,
                                             modifier =
                                                 Modifier
-                                                    .background(Color.Black.copy(alpha = 0.5f))
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
                                                     .wrapContentWidth(),
                                         )
                                     }

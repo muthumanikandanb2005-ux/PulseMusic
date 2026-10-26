@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.extension
+package com.maxrave.simpmusic.extension
 
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.spring
@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.graphics.isSpecified
 import com.kmpalette.palette.graphics.Palette
 import com.manikandan.domain.data.model.ui.ScreenSizeInfo
 import com.maxrave.logger.Logger
@@ -502,6 +503,40 @@ fun Palette?.getColorFromPalette(): Color {
     }
     return Color(startColor)
 }
+
+/**
+ * Extracts a vibrant, colorful tone from the [Palette] specifically suited for
+ * dynamic ambient lighting glows behind artwork and player backdrops.
+ * Prioritizes luminous, rich swatches over dark muted tones.
+ */
+fun Palette?.getAmbientGlowColor(): Color {
+    val p = this ?: return Color.Unspecified
+    val rgb = p.getVibrantColor(0).takeIf { it != 0 }
+        ?: p.getLightVibrantColor(0).takeIf { it != 0 }
+        ?: p.getDominantColor(0).takeIf { it != 0 }
+        ?: p.getDarkVibrantColor(0).takeIf { it != 0 }
+        ?: p.getMutedColor(0).takeIf { it != 0 }
+        ?: p.getLightMutedColor(0).takeIf { it != 0 }
+        ?: return Color.Unspecified
+    return Color(rgb)
+}
+
+/**
+ * Extracts a complementary secondary color from the [Palette] to build rich,
+ * multi-stop ambient light gradients that react to the album artwork.
+ */
+fun Palette?.getAmbientSecondaryColor(): Color {
+    val p = this ?: return Color.Unspecified
+    val rgb = p.getLightVibrantColor(0).takeIf { it != 0 }
+        ?: p.getDominantColor(0).takeIf { it != 0 }
+        ?: p.getLightMutedColor(0).takeIf { it != 0 }
+        ?: p.getVibrantColor(0).takeIf { it != 0 }
+        ?: p.getDarkVibrantColor(0).takeIf { it != 0 }
+        ?: p.getMutedColor(0).takeIf { it != 0 }
+        ?: return Color.Unspecified
+    return Color(rgb)
+}
+
 
 /**
  * Apple-Music-style immersive page background derived from the artwork.

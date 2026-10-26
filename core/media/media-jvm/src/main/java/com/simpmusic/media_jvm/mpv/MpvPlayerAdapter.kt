@@ -2943,7 +2943,7 @@ class MpvPlayerAdapter(
         }
 
         // Try new format API (returns both audio and video URLs)
-        streamRepository.getNewFormat(videoId).lastOrNull()?.let { format ->
+        streamRepository.getNewFormat(videoId).firstOrNull()?.let { format ->
             val audioUrl = format.audioUrl
             val videoUrl = format.videoUrl
             val notExpired = format.expiredTime > now()

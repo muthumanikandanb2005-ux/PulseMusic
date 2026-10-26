@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.singleOrNull
@@ -519,7 +520,7 @@ class LocalPlaylistViewModel(
         song: SongEntity,
     ) {
         viewModelScope.launch {
-            val pair = localPlaylistRepository.getPlaylistPairOfSong(id, song.videoId).lastOrNull() ?: return@launch
+            val pair = localPlaylistRepository.getPlaylistPairOfSong(id, song.videoId).firstOrNull() ?: return@launch
             localPlaylistRepository
                 .removeTrackFromLocalPlaylist(
                     id,
@@ -751,7 +752,7 @@ class LocalPlaylistViewModel(
                         onSuccess = {
                             makeToast(it)
                             viewModelScope.launch {
-                                localPlaylistRepository.getPlaylistPairOfSong(id, track.videoId).lastOrNull()?.let { pair ->
+                                localPlaylistRepository.getPlaylistPairOfSong(id, track.videoId).firstOrNull()?.let { pair ->
                                     // Add to UI
                                     onApplyActions(PagingActions.Insert(track.toSongEntity() to pair))
                                 }
@@ -921,7 +922,7 @@ class LocalPlaylistViewModel(
                     }
                     val random = listVideoId.random()
                     val randomIndex = listVideoId.indexOf(random)
-                    val firstPlayedTrack = songRepository.getSongById(random).singleOrNull()?.toTrack() ?: return@launch
+                    val firstPlayedTrack = songRepository.getSongById(random).firstOrNull()?.toTrack() ?: return@launch
                     setQueueData(
                         QueueData.Data(
                             listTracks = arrayListOf(firstPlayedTrack),
@@ -974,7 +975,7 @@ class LocalPlaylistViewModel(
     private fun downloadTracks(listJob: List<String>) {
         viewModelScope.launch {
             listJob.forEach { videoId ->
-                songRepository.getSongById(videoId).singleOrNull()?.let { song ->
+                songRepository.getSongById(videoId).firstOrNull()?.let { song ->
                     if (song.downloadState != STATE_DOWNLOADED) {
                         downloadUtils.downloadTrack(videoId, song.title, song.thumbnails ?: "")
                     }

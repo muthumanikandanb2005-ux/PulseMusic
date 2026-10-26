@@ -95,7 +95,7 @@ internal class DownloadUtils(
             runBlocking(Dispatchers.IO) {
                 if (mediaId.contains(MERGING_DATA_TYPE.VIDEO)) {
                     val id = mediaId.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                    streamRepository.getNewFormat(id).lastOrNull()?.let {
+                    streamRepository.getNewFormat(id).firstOrNull()?.let {
                         val videoUrl = it.videoUrl
                         if (videoUrl != null && it.expiredTime > now()) {
                             Logger.d("Stream", videoUrl)
@@ -120,7 +120,7 @@ internal class DownloadUtils(
                             resolved = true
                         }
                 } else {
-                    streamRepository.getNewFormat(mediaId).lastOrNull()?.let {
+                    streamRepository.getNewFormat(mediaId).firstOrNull()?.let {
                         val audioUrl = it.audioUrl
                         if (audioUrl != null && it.expiredTime > now()) {
                             Logger.d("Stream", audioUrl)

@@ -1,4 +1,4 @@
-﻿package com.maxrave.simpmusic.extension
+package com.maxrave.simpmusic.extension
 
 import android.app.Activity
 import android.content.Context
@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.app.PictureInPictureModeChangedInfo
 import androidx.core.util.Consumer
 import com.manikandan.domain.data.model.ui.ScreenSizeInfo
@@ -40,37 +41,52 @@ actual fun getScreenSizeInfo(): ScreenSizeInfo {
     val localDensity = LocalDensity.current
 
     return remember(configuration) {
+        val confWdp = configuration.screenWidthDp
+        val confHdp = configuration.screenHeightDp
+        val confWpx = with(localDensity) { confWdp.dp.roundToPx() }
+        val confHpx = with(localDensity) { confHdp.dp.roundToPx() }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val windowMetrics = activity?.windowManager?.currentWindowMetrics
-            Logger.w("getScreenSizeInfo", "WindowMetrics: ${windowMetrics?.bounds?.height()}")
-            ScreenSizeInfo(
-                hDP = with(localDensity) { (windowMetrics?.bounds?.height())?.toDp()?.value?.toInt() ?: 0 },
-                wDP = with(localDensity) { (windowMetrics?.bounds?.width())?.toDp()?.value?.toInt() ?: 0 },
-                hPX = windowMetrics?.bounds?.height() ?: 0,
-                wPX = windowMetrics?.bounds?.width() ?: 0,
-            )
+            val mHeight = windowMetrics?.bounds?.height() ?: 0
+            val mWidth = windowMetrics?.bounds?.width() ?: 0
+            Logger.w("getScreenSizeInfo", "WindowMetrics: $mHeight x $mWidth, config: $confHdp x $confWdp")
+
+            if (mHeight > 0 && mWidth > 0) {
+                ScreenSizeInfo(
+                    hDP = with(localDensity) { mHeight.toDp().value.toInt() },
+                    wDP = with(localDensity) { mWidth.toDp().value.toInt() },
+                    hPX = mHeight,
+                    wPX = mWidth,
+                )
+            } else {
+                ScreenSizeInfo(
+                    hDP = confHdp,
+                    wDP = confWdp,
+                    hPX = confHpx,
+                    wPX = confWpx,
+                )
+            }
         } else {
             val point = Point()
             activity?.windowManager?.defaultDisplay?.getRealSize(point)
-            Logger.w("getScreenSizeInfo", "WindowMetrics: ${point.y}")
-            ScreenSizeInfo(
-                hDP =
-                    with(localDensity) {
-                        point.y
-                            .toDp()
-                            .value
-                            .toInt()
-                    },
-                wDP =
-                    with(localDensity) {
-                        point.x
-                            .toDp()
-                            .value
-                            .toInt()
-                    },
-                hPX = point.y,
-                wPX = point.x,
-            )
+            Logger.w("getScreenSizeInfo", "Point: ${point.y} x ${point.x}, config: $confHdp x $confWdp")
+
+            if (point.y > 0 && point.x > 0) {
+                ScreenSizeInfo(
+                    hDP = with(localDensity) { point.y.toDp().value.toInt() },
+                    wDP = with(localDensity) { point.x.toDp().value.toInt() },
+                    hPX = point.y,
+                    wPX = point.x,
+                )
+            } else {
+                ScreenSizeInfo(
+                    hDP = confHdp,
+                    wDP = confWdp,
+                    hPX = confHpx,
+                    wPX = confWpx,
+                )
+            }
         }
     }
 }
@@ -92,7 +108,7 @@ fun Context.findActivity(): ComponentActivity {
         if (context is ComponentActivity) return context
         context = context.baseContext
     }
-    throw IllegalStateException("Picture in picture should be called in the context of an Activity")
+    return (getActivityOrNull() as? ComponentActivity) ?: throw IllegalStateException("Activity not found in context")
 }
 
 @Composable

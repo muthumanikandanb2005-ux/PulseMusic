@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.maxrave.simpmusic.ui.screen.player
 
@@ -69,6 +69,10 @@ import com.maxrave.simpmusic.extension.GradientAngle
 import com.maxrave.simpmusic.extension.GradientOffset
 import com.maxrave.simpmusic.extension.KeepScreenOn
 import com.maxrave.simpmusic.extension.getColorFromPalette
+import com.maxrave.simpmusic.extension.getAmbientGlowColor
+import com.maxrave.simpmusic.extension.getAmbientSecondaryColor
+import com.maxrave.simpmusic.ui.component.rememberNowPlayingGlowTint
+import androidx.compose.ui.graphics.isSpecified
 import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.hsvToColor
 import com.maxrave.simpmusic.extension.rememberIsInPipMode
@@ -122,14 +126,29 @@ fun NowPlayingScreen(
     onDismiss: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val screenInfo = getScreenSizeInfo()
+    val isLandscape = screenInfo.wDP > screenInfo.hDP
+    var lastLandscapeState by remember { mutableStateOf(isLandscape) }
+    var isOrientationChanging by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isLandscape) {
+        if (isLandscape != lastLandscapeState) {
+            lastLandscapeState = isLandscape
+            isOrientationChanging = true
+            delay(800)
+            isOrientationChanging = false
+        }
+    }
+
     val sheetState =
         rememberModalBottomSheetState(
             skipPartiallyExpanded = true,
+            confirmValueChange = { true },
         )
 
     val hideSheet: () -> Unit = {
         coroutineScope.launch {
-            sheetState.hide()
+            runCatching { sheetState.hide() }
             onDismiss()
         }
     }
@@ -139,7 +158,9 @@ fun NowPlayingScreen(
             Modifier
                 .fillMaxHeight(),
         onDismissRequest = {
-            onDismiss()
+            if (!isOrientationChanging) {
+                onDismiss()
+            }
         },
         containerColor = Color.Black,
         dragHandle = {},
@@ -405,6 +426,20 @@ fun NowPlayingScreenContent(
     var spotShadowColor by remember {
         mutableStateOf(Color.White)
     }
+    val fallbackGlowTint = rememberNowPlayingGlowTint(screenDataState.thumbnailURL)
+    var ambientGlowColor by remember {
+        mutableStateOf(Color.Unspecified)
+    }
+    var ambientSecondaryColor by remember {
+        mutableStateOf(Color.Unspecified)
+    }
+
+    LaunchedEffect(fallbackGlowTint) {
+        if (fallbackGlowTint != null && fallbackGlowTint.isSpecified && !ambientGlowColor.isSpecified) {
+            ambientGlowColor = fallbackGlowTint
+            ambientSecondaryColor = fallbackGlowTint
+        }
+    }
 
     LaunchedEffect(screenDataState) {
         Logger.d(TAG, "ScreenDataState: $screenDataState")
@@ -429,11 +464,19 @@ fun NowPlayingScreenContent(
     LaunchedEffect(Unit) {
         snapshotFlow { paletteState.palette }
             .distinctUntilChanged()
-            .collectLatest {
-                spotShadowColor = it.getColorFromPalette()
-                startColor.animateTo(it.getColorFromPalette())
-                // Lands on the same backdrop colour the fade and the area below the gradient
-                // use, so the palette ramp resolves into the surface instead of a black patch.
+            .collectLatest { pal ->
+                val vibrant = pal.getAmbientGlowColor().takeIf { it.isSpecified && it != Color.Transparent }
+                    ?: fallbackGlowTint
+                    ?: pal.getColorFromPalette()
+                val secondary = pal.getAmbientSecondaryColor().takeIf { it.isSpecified && it != Color.Transparent }
+                    ?: fallbackGlowTint
+                    ?: pal.getColorFromPalette()
+
+                spotShadowColor = vibrant
+                ambientGlowColor = vibrant
+                ambientSecondaryColor = secondary
+
+                startColor.animateTo(pal.getColorFromPalette())
                 endColor.animateTo(PlayerBackdropColor)
             }
     }
@@ -623,6 +666,8 @@ fun NowPlayingScreenContent(
             // codec therefore never matched anything and the badge never rendered, on any track.
             audioCodecLabel = formatState?.codecs.toAudioCodecLabel(formatState?.bitrate, formatState?.itag),
             ambientModeEnabled = ambientModeSetting != DataStoreManager.FALSE,
+            ambientColor = if (ambientGlowColor.isSpecified) ambientGlowColor else spotShadowColor,
+            ambientSecondaryColor = if (ambientSecondaryColor.isSpecified) ambientSecondaryColor else spotShadowColor,
         )
     val actions =
         NowPlayingContentActions(

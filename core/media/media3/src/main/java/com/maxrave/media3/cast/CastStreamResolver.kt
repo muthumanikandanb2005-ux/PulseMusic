@@ -29,7 +29,7 @@ internal class CastStreamResolver(
 
     suspend fun resolve(mediaId: String): ResolvedStream? {
         val videoId = mediaId.removePrefix(MERGING_DATA_TYPE.VIDEO)
-        streamRepository.getNewFormat(videoId).lastOrNull()?.let { format ->
+        streamRepository.getNewFormat(videoId).firstOrNull()?.let { format ->
             val cachedUrl = format.audioUrl
             if (cachedUrl != null && format.expiredTime > now()) {
                 val is403 = streamRepository.is403Url(cachedUrl).firstOrNull() != false
@@ -46,8 +46,8 @@ internal class CastStreamResolver(
                     videoId,
                     isDownloading = false,
                     isVideo = false,
-                ).lastOrNull() ?: return null
-        val mimeType = streamRepository.getNewFormat(videoId).lastOrNull()?.mimeType
+                ).firstOrNull() ?: return null
+        val mimeType = streamRepository.getNewFormat(videoId).firstOrNull()?.mimeType
         Logger.d(TAG, "Resolved $videoId from fresh extraction")
         return ResolvedStream(freshUrl, normalizeMimeType(mimeType))
     }
