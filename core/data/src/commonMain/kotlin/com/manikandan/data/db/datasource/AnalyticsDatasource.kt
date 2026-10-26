@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.db.datasource
+package com.manikandan.data.db.datasource
 
 import DatabaseDao
 import com.manikandan.domain.data.entities.analytics.PlaybackEventEntity

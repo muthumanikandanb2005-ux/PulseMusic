@@ -50,3 +50,6 @@ sentry.properties
 
 dist/
 replica/
+
+.git_backup/
+

@@ -1,10 +1,10 @@
-﻿package com.maxrave.data.di
+package com.maxrave.data.di
 
 import com.maxrave.common.Config.SERVICE_SCOPE
 import com.maxrave.data.io.fileDir
 import com.maxrave.data.repository.AccountRepositoryImpl
 import com.maxrave.data.repository.AlbumRepositoryImpl
-import com.maxrave.data.repository.AnalyticsRepositoryImpl
+import com.manikandan.data.repository.AnalyticsRepositoryImpl
 import com.maxrave.data.repository.ArtistRepositoryImpl
 import com.maxrave.data.repository.AutoEqRepositoryImpl
 import com.maxrave.data.lyrics.LyricsRomanizerRepositoryImpl

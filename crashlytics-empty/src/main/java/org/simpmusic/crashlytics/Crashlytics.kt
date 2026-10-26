@@ -1,18 +1,18 @@
-﻿package org.simpmusic.crashlytics
+package org.simpmusic.crashlytics
 
 import android.content.Context
+import android.util.Log
 import com.manikandan.domain.data.player.PlayerError
-import com.maxrave.logger.Logger
 
 // Sent crash to Sentry
 fun reportCrash(throwable: Throwable) {
-    Logger.e("Crashlytics", "NON-SENTRY crash: ${throwable.localizedMessage}")
+    Log.e("Crashlytics", "NON-SENTRY crash: ${throwable.localizedMessage}")
 }
 
 fun configCrashlytics(applicationContext: Context, dsn: String) {
-    Logger.d("Crashlytics", "NON-SENTRY start app")
+    Log.d("Crashlytics", "NON-SENTRY start app")
 }
 
 fun pushPlayerError(error: PlayerError) {
-    Logger.e("Crashlytics", "NON-SENTRY Player Error: ${error.message}, code: ${error.errorCode}, code name: ${error.errorCodeName}")
+    Log.e("Crashlytics", "NON-SENTRY Player Error: ${error.message}, code: ${error.errorCode}, code name: ${error.errorCodeName}")
 }

@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.di
+package com.maxrave.data.di
 
 import DatabaseDao
 import androidx.datastore.core.DataStore
@@ -8,7 +8,7 @@ import com.maxrave.data.dataStore.DataStoreManagerImpl
 import com.maxrave.data.dataStore.createDataStoreInstance
 import com.maxrave.data.db.Converters
 import com.maxrave.data.db.MusicDatabase
-import com.maxrave.data.db.datasource.AnalyticsDatasource
+import com.manikandan.data.db.datasource.AnalyticsDatasource
 import com.maxrave.data.db.datasource.LocalDataSource
 import com.maxrave.data.db.getDatabaseBuilder
 import com.manikandan.domain.manager.DataStoreManager

@@ -1,4 +1,4 @@
-﻿package com.simpmusic.media_jvm.mpv
+package com.simpmusic.media_jvm.mpv
 
 import com.maxrave.common.MERGING_DATA_TYPE
 import com.manikandan.domain.data.player.AudioEffects
@@ -479,6 +479,17 @@ class MpvPlayerAdapter(
         positionMs: Long,
     ) {
         if (mediaItemIndex !in playlist.indices) return
+
+        // Update index and notify listeners immediately so Desktop UI (title, artist, artwork)
+        // updates instantaneously rather than waiting for background coroutines or MPV release.
+        localCurrentMediaItemIndex = mediaItemIndex
+        val immediateItem = playlist[mediaItemIndex]
+        notifyListeners {
+            onMediaItemTransition(
+                immediateItem,
+                PlayerConstants.MEDIA_ITEM_TRANSITION_REASON_SEEK,
+            )
+        }
 
         coroutineScope.launch {
             val shouldPlay = internalPlayWhenReady

@@ -19,6 +19,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -254,26 +255,15 @@ fun NowPlayingScreenContent(
             pageCount = { artworkQueue.size.coerceAtLeast(1) },
         )
     var isAnimatingFromPlayer by remember { mutableStateOf(false) }
-    var isUserDraggingActive by remember { mutableStateOf(false) }
-    // Whether a real finger-drag is waiting to be turned into a seek. See the latch below.
+    // Detect physical user touches/drags via the pager's interactionSource.
+    // Programmatic animateScrollToPage NEVER emits a DragInteraction, ensuring
+    // background song completion never tricks the UI into a re-entrant seek loop.
+    val isUserDragging by artworkPagerState.interactionSource.collectIsDraggedAsState()
     var pendingUserSwipe by remember { mutableStateOf(false) }
 
-    // Drag detection — `isScrollInProgress` is `true` for both user drags (forwarded
-    // by the outer Modifier.scrollable on the Column) and programmatic
-    // `animateScrollToPage`. We disambiguate via `isAnimatingFromPlayer`, which we
-    // set explicitly around the player → pager animation (try/finally).
-    LaunchedEffect(artworkPagerState) {
-        snapshotFlow {
-            artworkPagerState.isScrollInProgress to isAnimatingFromPlayer
-        }.collect { (scrolling, animating) ->
-            isUserDraggingActive = scrolling && !animating
-            // Latched, and cleared only once a seek has been dispatched for it. settledPage can
-            // move for reasons that are NOT a swipe — the pager being composed for the first time,
-            // or re-composed after the Apple Music style spent a while on its Queue/Lyrics tab,
-            // where the pager does not exist at all and its settledPage stays frozen on the track
-            // that was playing when the user left MAIN. Without this latch, coming back from that
-            // tab replays a stale page as though it had just been swiped to.
-            if (isUserDraggingActive) pendingUserSwipe = true
+    LaunchedEffect(isUserDragging) {
+        if (isUserDragging) {
+            pendingUserSwipe = true
         }
     }
 
@@ -288,7 +278,7 @@ fun NowPlayingScreenContent(
     // not as a trigger; ③ handles the case where the queue shrinks under the current page.
     LaunchedEffect(currentOrderIndex) {
         val target = currentOrderIndex
-        if (!isUserDraggingActive &&
+        if (!isUserDragging &&
             artworkQueue.isNotEmpty() &&
             target in 0 until artworkQueue.size &&
             target != artworkPagerState.currentPage

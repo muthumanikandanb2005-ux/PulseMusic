@@ -36,19 +36,19 @@
       "name": "PulseMusic-Windows-x64-Setup.exe",
       "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/x-msdownload",
-      "size": 183367616
+      "size": 183256312
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
       "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 182905890
+      "size": 166810700
     },
     {
       "name": "SHA256SUMS.txt",
       "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.2.8/SHA256SUMS.txt",
       "content_type": "text/plain; charset=utf-8",
-      "size": 1164
+      "size": 1176
     }
   ]
 }
