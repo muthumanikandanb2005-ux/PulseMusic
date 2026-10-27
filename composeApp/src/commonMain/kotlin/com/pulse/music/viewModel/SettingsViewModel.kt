@@ -1,4 +1,4 @@
-﻿package com.pulse.music.viewModel
+package com.pulse.music.viewModel
 
 import androidx.lifecycle.viewModelScope
 import coil3.PlatformContext
@@ -37,6 +37,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -357,6 +358,17 @@ class SettingsViewModel(
         getUpdateChannel()
         getEnableLiquidGlass()
         getPearlLavenderTheme()
+        getOutputPrecision()
+        getPreferUsbDac()
+        getLegacyMesh()
+        getPlayAnimOverCellular()
+        getHighPerformanceMode()
+        getPlayNextOnSwipe()
+        getDontRepeatSongsSession()
+        getStopOnCloseRecents()
+        getHideVolumeBar()
+        getHideSongStatus()
+        getAnalyticsEnabled()
         getExplicitContentEnabled()
         getDiscordLoggedIn()
         getDiscordRichPresenceEnabled()
@@ -2277,6 +2289,215 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.setHelpBuildLyricsDatabase(help)
             getHelpBuildLyricsDatabase()
+        }
+    }
+
+    // Output Precision ("16" or "32")
+    private val _outputPrecision = MutableStateFlow("16")
+    val outputPrecision: StateFlow<String> = _outputPrecision.asStateFlow()
+
+    fun getOutputPrecision() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.OUTPUT_PRECISION).collect { precision ->
+                _outputPrecision.emit(precision ?: "16")
+            }
+        }
+    }
+
+    fun setOutputPrecision(precision: String) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.OUTPUT_PRECISION, precision)
+            _outputPrecision.emit(precision)
+        }
+    }
+
+    // Prefer USB DAC
+    private val _preferUsbDac = MutableStateFlow(false)
+    val preferUsbDac: StateFlow<Boolean> = _preferUsbDac.asStateFlow()
+
+    fun getPreferUsbDac() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.PREFER_USB_DAC).collect { value ->
+                _preferUsbDac.emit(value == "true")
+            }
+        }
+    }
+
+    fun setPreferUsbDac(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.PREFER_USB_DAC, if (enabled) "true" else "false")
+            _preferUsbDac.emit(enabled)
+        }
+    }
+
+    // Legacy Mesh Gradient
+    private val _legacyMesh = MutableStateFlow(false)
+    val legacyMesh: StateFlow<Boolean> = _legacyMesh.asStateFlow()
+
+    fun getLegacyMesh() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.LEGACY_MESH_GRADIENT).collect { value ->
+                _legacyMesh.emit(value == "true")
+            }
+        }
+    }
+
+    fun setLegacyMesh(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.LEGACY_MESH_GRADIENT, if (enabled) "true" else "false")
+            _legacyMesh.emit(enabled)
+        }
+    }
+
+    // Play Animated Cover Over Cellular
+    private val _playAnimOverCellular = MutableStateFlow(false)
+    val playAnimOverCellular: StateFlow<Boolean> = _playAnimOverCellular.asStateFlow()
+
+    fun getPlayAnimOverCellular() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.PLAY_ANIM_CELLULAR).collect { value ->
+                _playAnimOverCellular.emit(value == "true")
+            }
+        }
+    }
+
+    fun setPlayAnimOverCellular(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.PLAY_ANIM_CELLULAR, if (enabled) "true" else "false")
+            _playAnimOverCellular.emit(enabled)
+        }
+    }
+
+    // High Performance Mode
+    private val _highPerformanceMode = MutableStateFlow(false)
+    val highPerformanceMode: StateFlow<Boolean> = _highPerformanceMode.asStateFlow()
+
+    fun getHighPerformanceMode() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.HIGH_PERFORMANCE_MODE).collect { value ->
+                _highPerformanceMode.emit(value == "true")
+            }
+        }
+    }
+
+    fun setHighPerformanceMode(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.HIGH_PERFORMANCE_MODE, if (enabled) "true" else "false")
+            _highPerformanceMode.emit(enabled)
+        }
+    }
+
+    // Play Next on Swipe
+    private val _playNextOnSwipe = MutableStateFlow(true)
+    val playNextOnSwipe: StateFlow<Boolean> = _playNextOnSwipe.asStateFlow()
+
+    fun getPlayNextOnSwipe() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.PLAY_NEXT_ON_SWIPE).collect { value ->
+                _playNextOnSwipe.emit(value != "false")
+            }
+        }
+    }
+
+    fun setPlayNextOnSwipe(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.PLAY_NEXT_ON_SWIPE, if (enabled) "true" else "false")
+            _playNextOnSwipe.emit(enabled)
+        }
+    }
+
+    // Don't Repeat Songs in Current Session
+    private val _dontRepeatSongsSession = MutableStateFlow(false)
+    val dontRepeatSongsSession: StateFlow<Boolean> = _dontRepeatSongsSession.asStateFlow()
+
+    fun getDontRepeatSongsSession() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.DONT_REPEAT_SESSION).collect { value ->
+                _dontRepeatSongsSession.emit(value == "true")
+            }
+        }
+    }
+
+    fun setDontRepeatSongsSession(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.DONT_REPEAT_SESSION, if (enabled) "true" else "false")
+            _dontRepeatSongsSession.emit(enabled)
+        }
+    }
+
+    // Stop Music on Close from Recents
+    private val _stopOnCloseRecents = MutableStateFlow(false)
+    val stopOnCloseRecents: StateFlow<Boolean> = _stopOnCloseRecents.asStateFlow()
+
+    fun getStopOnCloseRecents() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.STOP_ON_CLOSE_RECENTS).collect { value ->
+                _stopOnCloseRecents.emit(value == "true")
+            }
+        }
+    }
+
+    fun setStopOnCloseRecents(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.STOP_ON_CLOSE_RECENTS, if (enabled) "true" else "false")
+            _stopOnCloseRecents.emit(enabled)
+        }
+    }
+
+    // Hide Volume Bar
+    private val _hideVolumeBar = MutableStateFlow(false)
+    val hideVolumeBar: StateFlow<Boolean> = _hideVolumeBar.asStateFlow()
+
+    fun getHideVolumeBar() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.HIDE_VOLUME_BAR).collect { value ->
+                _hideVolumeBar.emit(value == "true")
+            }
+        }
+    }
+
+    fun setHideVolumeBar(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.HIDE_VOLUME_BAR, if (enabled) "true" else "false")
+            _hideVolumeBar.emit(enabled)
+        }
+    }
+
+    // Hide Song Status
+    private val _hideSongStatus = MutableStateFlow(false)
+    val hideSongStatus: StateFlow<Boolean> = _hideSongStatus.asStateFlow()
+
+    fun getHideSongStatus() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.HIDE_SONG_STATUS).collect { value ->
+                _hideSongStatus.emit(value == "true")
+            }
+        }
+    }
+
+    fun setHideSongStatus(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.HIDE_SONG_STATUS, if (enabled) "true" else "false")
+            _hideSongStatus.emit(enabled)
+        }
+    }
+
+    // Analytics On / Off
+    private val _analyticsEnabled = MutableStateFlow(false)
+    val analyticsEnabled: StateFlow<Boolean> = _analyticsEnabled.asStateFlow()
+
+    fun getAnalyticsEnabled() {
+        viewModelScope.launch {
+            dataStoreManager.getString(DataStoreManager.ANALYTICS_ENABLED).collect { value ->
+                _analyticsEnabled.emit(value == "true")
+            }
+        }
+    }
+
+    fun setAnalyticsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.putString(DataStoreManager.ANALYTICS_ENABLED, if (enabled) "true" else "false")
+            _analyticsEnabled.emit(enabled)
         }
     }
 }

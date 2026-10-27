@@ -87,8 +87,8 @@ private val LABEL_COLUMN_WIDTH = 72.dp
 fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
     val bands by viewModel.equalizerBands.collectAsStateWithLifecycle()
     val preamp by viewModel.equalizerPreamp.collectAsStateWithLifecycle()
-    val curveColor = MaterialTheme.colorScheme.primary
-    val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+    val curveColor = Color.White
+    val gridColor = Color(0xFF8E8E93).copy(alpha = 0.25f)
 
     // Starts the collectors on THIS view model instance. They are normally kicked off from
     // SettingsViewModel.getData(); embedded here that call has already happened, but the effect
@@ -112,10 +112,12 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
     // A surface of its own, a step lighter than the settings background. The block is a single
     // control made of several widgets; without a card behind it the curve, the preamp slider and
     // the reset button read as three unrelated rows in the list.
+    // Surface styled with settings grey (#161618), border (#222226), and white/grey controls
     Surface(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFF161618),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF222226)),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             // Two questions, two rows: what the music should sound like, and what this pair of
@@ -128,7 +130,7 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
             Text(
                 text = stringResource(Res.string.equalizer_presets),
                 style = typo().bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF8E8E93),
                 modifier = Modifier.width(LABEL_COLUMN_WIDTH),
             )
             Box {
@@ -147,12 +149,12 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
                         // re-selects itself if the curve is ever put back on it.
                         text = activePreset?.name ?: stringResource(Res.string.equalizer_preset_custom),
                         style = typo().bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color.White,
                     )
                     Icon(
                         imageVector = SimpIcons.KeyboardArrowDown,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = Color(0xFF8E8E93),
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -171,7 +173,7 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
                                     Icon(
                                         imageVector = SimpIcons.Check,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        tint = Color.White,
                                         modifier = Modifier.size(18.dp),
                                     )
                                 } else {
@@ -190,7 +192,7 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
             Text(
                 text = stringResource(Res.string.equalizer_autoeq),
                 style = typo().bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF8E8E93),
                 modifier = Modifier.width(LABEL_COLUMN_WIDTH),
             )
             AutoEqPicker(label = autoEqLabel)
@@ -198,7 +200,7 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
             Text(
             text = stringResource(Res.string.equalizer_preamp),
             style = typo().bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Color(0xFF8E8E93),
             modifier = Modifier.padding(bottom = 4.dp),
             )
             // Cut only. Ten boosted bands sum well past full scale long before any single one looks
@@ -216,12 +218,17 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
                 // there in mpv, which drains and re-creates its whole audio filter graph to take it.
                 onValueChangeFinished = { draftPreamp?.let(viewModel::setEqualizerPreamp) },
                 valueRange = PREAMP_MIN_DB..0f,
+                colors = androidx.compose.material3.SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color(0xFF2C2C2E),
+                ),
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = "${(draftPreamp ?: preamp).roundToInt()} dB",
                 style = typo().bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF8E8E93),
                 textAlign = TextAlign.End,
                 modifier = Modifier.width(52.dp),
             )
@@ -238,12 +245,12 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
                 Text(
                     text = "+${BAND_RANGE_DB.roundToInt()}dB",
                     style = typo().bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color(0xFF8E8E93),
                 )
                 Text(
                     text = "-${BAND_RANGE_DB.roundToInt()}dB",
                     style = typo().bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color(0xFF8E8E93),
                 )
             }
             EqualizerCurve(
@@ -269,7 +276,7 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
                 Text(
                     text = label,
                     style = typo().bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color(0xFF8E8E93),
                 )
             }
             }
@@ -279,8 +286,14 @@ fun EqualizerSection(viewModel: SettingsViewModel = koinViewModel()) {
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.End,
             ) {
-            OutlinedButton(onClick = { viewModel.resetEqualizer() }) {
-                Text(text = stringResource(Res.string.equalizer_reset), style = typo().labelMedium)
+            OutlinedButton(
+                onClick = { viewModel.resetEqualizer() },
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2C2E)),
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text(text = stringResource(Res.string.equalizer_reset), style = typo().labelMedium, color = Color.White)
             }
             }
         }

@@ -1078,7 +1078,7 @@ fun NowPlayingContentSpotify(
                                             }
                                             AnimatedVisibility(visible = !state.castState.isRemote) {
                                                 AudioOutputDeviceBadge(
-                                                    softAccent = Color(0xFFA788FA),
+                                                    softAccent = Color(0xFFE5E5EA),
                                                     fontSize = 10.sp,
                                                     iconSize = 12.dp,
                                                 )
@@ -1822,7 +1822,7 @@ internal fun NowPlayingTrackInfoRow(
                                     },
                         )
                         AudioOutputDeviceBadge(
-                            softAccent = Color(0xFFA788FA),
+                            softAccent = Color(0xFFE5E5EA),
                             fontSize = 9.sp,
                             iconSize = 11.dp,
                         )

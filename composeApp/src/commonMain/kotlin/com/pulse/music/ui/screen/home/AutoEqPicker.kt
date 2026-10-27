@@ -1,4 +1,4 @@
-package com.pulse.music.ui.screen.home
+﻿package com.pulse.music.ui.screen.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -94,15 +94,15 @@ fun AutoEqPicker(
                 style = typo().bodyMedium,
                 color =
                     if (label != null) {
-                        MaterialTheme.colorScheme.onSurface
+                        Color.White
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        Color(0xFF8E8E93)
                     },
             )
             Icon(
                 imageVector = SimpIcons.KeyboardArrowDown,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = Color(0xFF8E8E93),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -121,7 +121,7 @@ fun AutoEqPicker(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (status == AutoEqStatus.DOWNLOADING || status == AutoEqStatus.APPLYING) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = Color.White, trackColor = Color(0xFF2C2C2E))
                 }
                 if (failed) {
                     Message(
@@ -180,7 +180,7 @@ fun AutoEqPicker(
                                             // which.
                                             text = listOfNotNull(entry.source, entry.rig).joinToString(" · "),
                                             style = typo().bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = Color(0xFF8E8E93),
                                         )
                                     }
                                     // Filled means the curve is already on disk and this row works
@@ -195,9 +195,9 @@ fun AutoEqPicker(
                                         contentDescription = null,
                                         tint =
                                             if (downloaded) {
-                                                MaterialTheme.colorScheme.primary
+                                                Color.White
                                             } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                                Color(0xFF8E8E93).copy(alpha = 0.4f)
                                             },
                                         modifier = Modifier.size(18.dp),
                                     )
@@ -213,7 +213,7 @@ fun AutoEqPicker(
 @Composable
 private fun Message(
     text: String,
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    color: Color = Color(0xFF8E8E93),
 ) {
     Text(
         text = text,

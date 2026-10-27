@@ -1,5 +1,8 @@
-﻿package com.pulse.music.ui.screen.home
+package com.pulse.music.ui.screen.home
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -181,7 +187,7 @@ fun DelaySection(viewModel: SettingsViewModel = koinViewModel()) {
     EffectCard {
         EffectPresetRow {
             DELAY_PRESETS.forEach { preset ->
-                Chip(
+                EffectChip(
                     isSelected = preset == activePreset,
                     text = stringResource(preset.label),
                     onClick = { viewModel.applyDelayPreset(preset.timeMs, preset.feedback, preset.mix) },
@@ -245,7 +251,7 @@ fun ReverbSection(viewModel: SettingsViewModel = koinViewModel()) {
             Box(modifier = Modifier.weight(1f)) {
                 EffectPresetRow {
                     ReverbPreset.entries.forEach { option ->
-                        Chip(
+                        EffectChip(
                             isSelected = option == preset,
                             text = stringResource(reverbPresetLabel(option)),
                             onClick = { viewModel.setReverbPreset(option) },
@@ -255,7 +261,7 @@ fun ReverbSection(viewModel: SettingsViewModel = koinViewModel()) {
             }
             RippleIconButton(
                 imageVector = SimpIcons.Help,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = Color(0xFF8E8E93),
                 onClick = { showHelp = true },
             )
         }
@@ -312,7 +318,7 @@ fun CinematicAudioSection(viewModel: SettingsViewModel = koinViewModel()) {
     EffectCard {
         EffectPresetRow {
             CINEMATIC_PRESETS.forEach { preset ->
-                Chip(
+                EffectChip(
                     isSelected = preset == activePreset,
                     text = stringResource(preset.label),
                     onClick = { viewModel.applyCinematicPreset(preset.speedSeconds, preset.depth) },
@@ -356,7 +362,7 @@ fun DolbyAtmosSection(viewModel: SettingsViewModel = koinViewModel()) {
         Text(
             text = stringResource(Res.string.dolby_atmos_description),
             style = typo().bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Color(0xFF8E8E93),
             modifier = Modifier.padding(bottom = 12.dp),
         )
         EffectPresetRow {
@@ -367,7 +373,7 @@ fun DolbyAtmosSection(viewModel: SettingsViewModel = koinViewModel()) {
                     DolbyAtmosProfile.CINEMA -> Res.string.dolby_profile_cinema
                     DolbyAtmosProfile.VOICE -> Res.string.dolby_profile_voice
                 }
-                Chip(
+                EffectChip(
                     isSelected = profile == currentProfile,
                     text = stringResource(label),
                     onClick = { viewModel.setDolbyAtmosProfile(profile) },
@@ -389,10 +395,14 @@ fun DolbyAtmosSection(viewModel: SettingsViewModel = koinViewModel()) {
 private fun ReverbHelpDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color(0xFF161618),
+        titleContentColor = Color.White,
+        textContentColor = Color(0xFF8E8E93),
         title = {
             Text(
                 text = stringResource(Res.string.reverb_help_title),
                 style = typo().titleSmall,
+                color = Color.White,
             )
         },
         text = {
@@ -400,12 +410,13 @@ private fun ReverbHelpDialog(onDismiss: () -> Unit) {
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = stringResource(Res.string.reverb_help_intro), style = typo().bodySmall)
+                Text(text = stringResource(Res.string.reverb_help_intro), style = typo().bodySmall, color = Color(0xFF8E8E93))
                 ReverbPreset.entries.forEach { preset ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = stringResource(reverbPresetLabel(preset)),
                             style = typo().labelMedium,
+                            color = Color.White,
                         )
                         Text(
                             text =
@@ -413,20 +424,20 @@ private fun ReverbHelpDialog(onDismiss: () -> Unit) {
                                     stringResource(Res.string.reverb_help_predelay, "${preset.preDelayMs} ms") + " · " +
                                     stringResource(Res.string.reverb_help_damping, formatKiloHertz(preset.dampingHz)),
                             style = typo().bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color(0xFF8E8E93),
                         )
-                        Text(text = stringResource(reverbPresetHelp(preset)), style = typo().bodySmall)
+                        Text(text = stringResource(reverbPresetHelp(preset)), style = typo().bodySmall, color = Color(0xFF8E8E93))
                     }
                 }
-                Text(text = stringResource(Res.string.reverb_help_rt60_meaning), style = typo().bodySmall)
-                Text(text = stringResource(Res.string.reverb_help_predelay_meaning), style = typo().bodySmall)
-                Text(text = stringResource(Res.string.reverb_help_damping_meaning), style = typo().bodySmall)
-                Text(text = stringResource(Res.string.reverb_help_mix), style = typo().bodySmall)
+                Text(text = stringResource(Res.string.reverb_help_rt60_meaning), style = typo().bodySmall, color = Color(0xFF8E8E93))
+                Text(text = stringResource(Res.string.reverb_help_predelay_meaning), style = typo().bodySmall, color = Color(0xFF8E8E93))
+                Text(text = stringResource(Res.string.reverb_help_damping_meaning), style = typo().bodySmall, color = Color(0xFF8E8E93))
+                Text(text = stringResource(Res.string.reverb_help_mix), style = typo().bodySmall, color = Color(0xFF8E8E93))
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(Res.string.ok))
+                Text(text = stringResource(Res.string.ok), color = Color.White)
             }
         },
     )
@@ -458,18 +469,39 @@ private fun formatKiloHertz(hz: Int): String {
     return if (tenths % 10 == 0) "${tenths / 10} kHz" else "${tenths / 10}.${tenths % 10} kHz"
 }
 
+@Composable
+private fun EffectChip(
+    isSelected: Boolean,
+    text: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (isSelected) Color.White else Color(0xFF2C2C2E))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = typo().labelMedium,
+            color = if (isSelected) Color.Black else Color(0xFF8E8E93),
+            maxLines = 1,
+        )
+    }
+}
+
 /**
  * The surface both blocks sit on — the equalizer card's treatment, kept identical on purpose.
- *
- * Each block is one control made of several widgets, and without a card behind it the chips, the
- * sliders and the button read as unrelated rows in the settings list.
  */
 @Composable
 private fun EffectCard(content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFF161618),
+        border = BorderStroke(1.dp, Color(0xFF222226)),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -480,11 +512,6 @@ private fun EffectCard(content: @Composable ColumnScope.() -> Unit) {
 
 /**
  * A row of preset chips.
- *
- * Scrolls sideways rather than wrapping: four rooms including "Cathedral" do not fit across a phone
- * in every language, and a row that reflows to two lines moves every chip under the finger that is
- * reaching for one. Carries no label — a filled chip among empty ones is already legible as a
- * choice, and the block's own switch above says what is being chosen.
  */
 @Composable
 private fun EffectPresetRow(chips: @Composable () -> Unit) {
@@ -499,15 +526,6 @@ private fun EffectPresetRow(chips: @Composable () -> Unit) {
 
 /**
  * One labelled slider with its number beside it.
- *
- * [value] is the stored setting; the thumb follows a local draft while a finger is down and only
- * [onCommit] reaches storage, on release. Every write lands in the preferences file and from there
- * in the audio chain — which on desktop drains and rebuilds mpv's whole filter graph — so applying
- * per frame would rebuild it on every pixel of a drag.
- *
- * The draft is handed back to the stored value by the [LaunchedEffect], not at release: clearing it
- * in [Slider.onValueChangeFinished] would show the pre-drag number for the length of that round
- * trip through storage.
  */
 @Composable
 private fun EffectSlider(
@@ -527,7 +545,7 @@ private fun EffectSlider(
         Text(
             text = label,
             style = typo().bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Color.White,
             modifier = Modifier.padding(bottom = 4.dp),
         )
         Row(
@@ -540,12 +558,17 @@ private fun EffectSlider(
                 onValueChange = { draft = snap(it).coerceIn(valueRange.start, valueRange.endInclusive) },
                 onValueChangeFinished = { draft?.let(onCommit) },
                 valueRange = valueRange,
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color(0xFF2C2C2E),
+                ),
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = readout(shown),
                 style = typo().bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF8E8E93),
                 textAlign = TextAlign.End,
                 modifier = Modifier.width(EFFECT_READOUT_WIDTH),
             )

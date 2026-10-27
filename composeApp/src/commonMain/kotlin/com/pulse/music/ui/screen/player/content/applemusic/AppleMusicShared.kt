@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.screen.player.content.applemusic
+package com.pulse.music.ui.screen.player.content.applemusic
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearEasing
@@ -388,7 +388,7 @@ internal fun AppleMusicCompactHeader(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 AudioOutputDeviceBadge(
-                    softAccent = Color(0xFFA788FA),
+                    softAccent = Color(0xFFE5E5EA),
                     containerColor = Color.White.copy(alpha = 0.12f),
                     borderColor = Color.White.copy(alpha = 0.20f),
                     contentColor = Color.White.copy(alpha = 0.90f),
@@ -557,41 +557,43 @@ internal fun AppleMusicTimesRow(
             // A PILL, like the mock's badge (and Apple's "Lossless"): translucent rounded
             // background, not bare text floating between the two times. It is the TALLER of the two
             // states, so it is what the slot's height ends up being — see the note above.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Box(modifier = Modifier.alpha(codecBadgeAlpha)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(9.dp))
-                                .background(Color.White.copy(alpha = 0.16f))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                    ) {
-                        Icon(
-                            imageVector = SimpIcons.GraphicEq,
-                            contentDescription = "",
-                            tint = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier.size(15.dp),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        // orEmpty(), not codec!!: the null check drives the alpha above rather than
-                        // guarding this branch, so there is nothing here for the compiler to
-                        // smart-cast. It also renders while alpha is 0, which is the point.
-                        Text(text = codec.orEmpty(), style = typography.badge.copy(color = Color.White.copy(alpha = 0.9f)))
+            if (!state.hideSongStatus) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(modifier = Modifier.alpha(codecBadgeAlpha)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(9.dp))
+                                    .background(Color.White.copy(alpha = 0.16f))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Icon(
+                                imageVector = SimpIcons.GraphicEq,
+                                contentDescription = "",
+                                tint = Color.White.copy(alpha = 0.9f),
+                                modifier = Modifier.size(15.dp),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            // orEmpty(), not codec!!: the null check drives the alpha above rather than
+                            // guarding this branch, so there is nothing here for the compiler to
+                            // smart-cast. It also renders while alpha is 0, which is the point.
+                            Text(text = codec.orEmpty(), style = typography.badge.copy(color = Color.White.copy(alpha = 0.9f)))
+                        }
                     }
+                    AudioOutputDeviceBadge(
+                        softAccent = Color(0xFFE5E5EA),
+                        containerColor = Color.White.copy(alpha = 0.14f),
+                        borderColor = Color.White.copy(alpha = 0.20f),
+                        contentColor = Color.White.copy(alpha = 0.90f),
+                        shape = RoundedCornerShape(9.dp),
+                        fontSize = typography.badge.fontSize,
+                        iconSize = 13.dp,
+                    )
                 }
-                AudioOutputDeviceBadge(
-                    softAccent = Color(0xFFA788FA),
-                    containerColor = Color.White.copy(alpha = 0.14f),
-                    borderColor = Color.White.copy(alpha = 0.20f),
-                    contentColor = Color.White.copy(alpha = 0.90f),
-                    shape = RoundedCornerShape(9.dp),
-                    fontSize = typography.badge.fontSize,
-                    iconSize = 13.dp,
-                )
             }
         }
         Text(
@@ -864,9 +866,11 @@ internal fun AppleMusicBottomCluster(
         if (getPlatform() == Platform.Android) {
             AppleMusicPlaybackControls(state = state, actions = actions, typography = typography)
             Spacer(modifier = Modifier.height(14.dp))
-            deviceVolumeController?.let { controller ->
-                AppleMusicVolumeRow(controller = controller)
-                Spacer(modifier = Modifier.height(14.dp))
+            if (!state.hideVolumeBar) {
+                deviceVolumeController?.let { controller ->
+                    AppleMusicVolumeRow(controller = controller)
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
             }
         } else {
             Spacer(modifier = Modifier.height(16.dp))

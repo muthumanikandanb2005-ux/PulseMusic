@@ -32,7 +32,10 @@ actual class Extractor {
     }
 
     actual fun logIn(cookie: String?) {
-        ServiceList.YouTube.tokens = cookie ?: ""
+        // Do not assign cookie string to ServiceList.YouTube.tokens:
+        // PipePipeExtractor treats `tokens` as OAuth Bearer tokens, which triggers 401 Unauthorized
+        // when passed raw browser cookies. Keeping it clean ensures on-device FaradayJsDecoder
+        // extracts direct audio streams instantly without failing after user login.
     }
 
     actual fun newPipePlayer(videoId: String): List<Pair<Int, String>> {

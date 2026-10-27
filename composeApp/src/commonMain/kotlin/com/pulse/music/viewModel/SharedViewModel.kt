@@ -62,6 +62,7 @@ import com.manikandan.domain.utils.toLyricsEntity
 import com.manikandan.domain.utils.toSongEntity
 import com.manikandan.domain.utils.toSyncedLyrics
 import com.manikandan.domain.utils.toTrack
+import com.pulse.music.expect.ui.isCellularNetwork
 import com.maxrave.logger.LogLevel
 import com.maxrave.logger.Logger
 import org.koin.core.component.inject
@@ -655,6 +656,11 @@ class SharedViewModel(
         Logger.w(tag, "Start getCanvas: $videoId $duration")
 //        canvasJob?.cancel()
         viewModelScope.launch {
+            val playOverCellular = dataStoreManager.getString(DataStoreManager.PLAY_ANIM_CELLULAR).firstOrNull() != "false"
+            if (!playOverCellular && isCellularNetwork()) {
+                Logger.d(tag, "Skipping canvas video over cellular (play_anim_cellular is false)")
+                return@launch
+            }
             // Both sources fill the same slot, so they are tried in order rather than raced:
             // animated artwork first, and a Spotify canvas only if that found nothing AND the user
             // has that switch on too. Neither switch touches the other — a track with no animated
@@ -2015,6 +2021,14 @@ class SharedViewModel(
     fun getLyricsStyle() = dataStoreManager.lyricsStyle
 
     fun getLyricsOffsetMs() = dataStoreManager.lyricsOffsetMs
+
+    fun getHideVolumeBar() = dataStoreManager.getString(DataStoreManager.HIDE_VOLUME_BAR)
+    fun getHideSongStatus() = dataStoreManager.getString(DataStoreManager.HIDE_SONG_STATUS)
+    fun getPlayNextOnSwipe() = dataStoreManager.getString(DataStoreManager.PLAY_NEXT_ON_SWIPE)
+    fun getLegacyMesh() = dataStoreManager.getString(DataStoreManager.LEGACY_MESH_GRADIENT)
+    fun getHighPerformanceMode() = dataStoreManager.getString(DataStoreManager.HIGH_PERFORMANCE_MODE)
+    fun getDontRepeatSongsInSession() = dataStoreManager.getString(DataStoreManager.DONT_REPEAT_SONGS_IN_SESSION)
+    fun getPlayAnimOverCellular() = dataStoreManager.getString(DataStoreManager.PLAY_ANIM_CELLULAR)
 
     fun setThemeMode(mode: String) {
         viewModelScope.launch {

@@ -149,8 +149,13 @@ class LibraryViewModel(
                 }
             val cookieJob =
                 launch {
-                    dataStoreManager.cookie.distinctUntilChanged().collect {
+                    dataStoreManager.cookie.distinctUntilChanged().collect { cookie ->
                         _accountThumbnail.value = dataStoreManager.getString("AccountThumbUrl").first().takeIf { !it.isNullOrEmpty() }
+                        if (cookie.isNotEmpty()) {
+                            getRecentlyAdded()
+                            getYouTubePlaylist()
+                            getYouTubeMixedForYou()
+                        }
                     }
                 }
             currentScreenJob.join()

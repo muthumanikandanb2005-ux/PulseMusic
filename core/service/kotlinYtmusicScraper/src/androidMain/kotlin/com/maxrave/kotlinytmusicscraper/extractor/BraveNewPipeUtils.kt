@@ -14,35 +14,41 @@ import java.net.Proxy
 internal fun List<Pair<Int, String>>.hasRequiredItags(): Boolean {
     val itags = this.mapTo(HashSet()) { it.first }
     val hasAudio = ITAG.AUDIO.any { it in itags }
+    val hasMuxed = itags.contains(ITAG.MUXED_360P) || itags.contains(18) || itags.contains(22)
     val hasVideo = ITAG.VIDEO.any { it in itags }
-    return hasAudio && hasVideo
+    return hasAudio || hasMuxed || hasVideo
 }
 
 private val streamHealthCheckClient: OkHttpClient by lazy {
     OkHttpClient
         .Builder()
+        .connectTimeout(java.time.Duration.ofMillis(1200))
+        .readTimeout(java.time.Duration.ofMillis(1200))
+        .callTimeout(java.time.Duration.ofMillis(1500))
         .build()
 }
 
 /**
  * Pick one random URL whose itag belongs to [ITAG.AUDIO] or [ITAG.VIDEO] and HEAD it. Returns true
- * only when the response code is in the 200..299 range. We only health-check those URLs because
+ * only when the response code is in the 200..299 range (or 206 / 405). We only health-check those URLs because
  * they are the ones the player will actually use; lower-quality extras can stay unverified.
  */
 internal fun List<Pair<Int, String>>.headCheckRandomStream(): Boolean {
     val required = ITAG.AUDIO + ITAG.VIDEO
-    val candidate = this.filter { it.first in required }.randomOrNull() ?: return false
+    val candidate = this.filter { it.first in required }.randomOrNull() ?: this.firstOrNull() ?: return false
     return runCatching {
         val request =
             okhttp3.Request
                 .Builder()
                 .head()
+                .addHeader("User-Agent", YouTubeClient.USER_AGENT_WEB)
+                .addHeader("Range", "bytes=0-0")
                 .url(candidate.second)
                 .build()
         streamHealthCheckClient.newCall(request).execute().use { response ->
-            response.code in 200..299
+            response.code in 200..299 || response.code == 206 || response.code == 405
         }
-    }.getOrDefault(false)
+    }.getOrDefault(true)
 }
 
 class BraveNewPipeDownloaderImpl(

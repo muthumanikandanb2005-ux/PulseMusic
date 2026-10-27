@@ -1,4 +1,4 @@
-﻿package com.manikandan.domain.manager
+package com.manikandan.domain.manager
 
 import com.manikandan.domain.data.model.network.ProxyConfiguration
 import com.manikandan.domain.data.player.ReverbPreset
@@ -773,5 +773,19 @@ interface DataStoreManager {
         const val AUTO_BACKUP_FREQUENCY_DAILY = "daily"
         const val AUTO_BACKUP_FREQUENCY_WEEKLY = "weekly"
         const val AUTO_BACKUP_FREQUENCY_MONTHLY = "monthly"
+
+        // Advanced Settings & Controls
+        const val OUTPUT_PRECISION = "output_precision"
+        const val PREFER_USB_DAC = "prefer_usb_dac"
+        const val LEGACY_MESH_GRADIENT = "legacy_mesh_gradient"
+        const val PLAY_ANIM_CELLULAR = "play_anim_cellular"
+        const val HIGH_PERFORMANCE_MODE = "high_performance_mode"
+        const val PLAY_NEXT_ON_SWIPE = "play_next_on_swipe"
+        const val DONT_REPEAT_SESSION = "dont_repeat_session"
+        const val DONT_REPEAT_SONGS_IN_SESSION = "dont_repeat_session"
+        const val STOP_ON_CLOSE_RECENTS = "stop_on_close_recents"
+        const val HIDE_VOLUME_BAR = "hide_volume_bar"
+        const val HIDE_SONG_STATUS = "hide_song_status"
+        const val ANALYTICS_ENABLED = "analytics_enabled"
     }
 }

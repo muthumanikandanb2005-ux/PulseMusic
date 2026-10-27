@@ -404,20 +404,22 @@ fun SettingScreen(
 
     // Local UI States (Screenshot Parity)
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var outputPrecisionIndex by rememberSaveable { mutableIntStateOf(0) }
-    var preferUsbDac by rememberSaveable { mutableStateOf(false) }
+    val outputPrecision by viewModel.outputPrecision.collectAsStateWithLifecycle()
+    val preferUsbDac by viewModel.preferUsbDac.collectAsStateWithLifecycle()
     var fullScreenCover by rememberSaveable { mutableStateOf(true) }
-    var legacyMesh by rememberSaveable { mutableStateOf(false) }
-    var playAnimOverCellular by rememberSaveable { mutableStateOf(false) }
+    val legacyMesh by viewModel.legacyMesh.collectAsStateWithLifecycle()
+    val playAnimOverCellular by viewModel.playAnimOverCellular.collectAsStateWithLifecycle()
     var syncedLyricsEnabled by rememberSaveable { mutableStateOf(true) }
     var blurLyricsEnabled by rememberSaveable { mutableStateOf(true) }
-    var highPerformanceMode by rememberSaveable { mutableStateOf(false) }
+    val highPerformanceMode by viewModel.highPerformanceMode.collectAsStateWithLifecycle()
     var filterNonMusicAudio by rememberSaveable { mutableStateOf(true) }
     var workOutGenres by rememberSaveable { mutableStateOf(true) }
-    var playNextOnSwipe by rememberSaveable { mutableStateOf(false) }
-    var dontRepeatSongsSession by rememberSaveable { mutableStateOf(false) }
-    var hideVolumeBar by rememberSaveable { mutableStateOf(false) }
-    var hideSongStatus by rememberSaveable { mutableStateOf(false) }
+    val playNextOnSwipe by viewModel.playNextOnSwipe.collectAsStateWithLifecycle()
+    val dontRepeatSongsSession by viewModel.dontRepeatSongsSession.collectAsStateWithLifecycle()
+    val stopOnCloseRecents by viewModel.stopOnCloseRecents.collectAsStateWithLifecycle()
+    val hideVolumeBar by viewModel.hideVolumeBar.collectAsStateWithLifecycle()
+    val hideSongStatus by viewModel.hideSongStatus.collectAsStateWithLifecycle()
+    val analyticsEnabled by viewModel.analyticsEnabled.collectAsStateWithLifecycle()
     var smartAudioAlignment by rememberSaveable { mutableStateOf(true) }
 
     var showYouTubeAccountDialog by rememberSaveable { mutableStateOf(false) }
@@ -745,17 +747,14 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Output precision",
-                            subtitle = "AudioTrack · 48.0 kHz · ${if (outputPrecisionIndex == 0) "16-bit PCM" else "32-bit float"}",
+                            subtitle = "AudioTrack · 48.0 kHz · ${if (outputPrecision == "32") "32-bit float" else "16-bit PCM"}",
                             leadingIcon = SimpIcons.GraphicEq,
                             bottomContent = {
                                 PulseSegmentedControl(
                                     options = listOf("16-bit PCM", "32-bit float"),
-                                    selectedIndex = outputPrecisionIndex,
+                                    selectedIndex = if (outputPrecision == "32") 1 else 0,
                                     onOptionSelected = {
-                                        outputPrecisionIndex = it
-                                        coroutineScope.launch {
-                                            dataStoreManager.putString("output_precision", if (it == 0) "16" else "32")
-                                        }
+                                        viewModel.setOutputPrecision(if (it == 0) "16" else "32")
                                     },
                                 )
                             },
@@ -763,12 +762,9 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Prefer USB DAC",
-                            switchState = (preferUsbDac to {
-                                preferUsbDac = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("prefer_usb_dac", if (it) "true" else "false")
-                                }
-                            }),
+                            subtitle = "Prioritize external USB DAC / audio interface when connected",
+                            leadingIcon = SimpIcons.Headphones,
+                            switchState = (preferUsbDac to { viewModel.setPreferUsbDac(it) }),
                         )
                         PulseSettingDivider(hasLeadingIcon = false)
                         PulseSettingRow(
@@ -1074,12 +1070,7 @@ fun SettingScreen(
                             title = "Legacy mesh gradient",
                             subtitle = "Brings back the drifting colour blobs behind the player from v1.5",
                             leadingIcon = SimpIcons.Tune,
-                            switchState = (legacyMesh to {
-                                legacyMesh = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("legacy_mesh", if (it) "true" else "false")
-                                }
-                            }),
+                            switchState = (legacyMesh to { viewModel.setLegacyMesh(it) }),
                         )
                         PulseSettingDivider()
                         PulseSettingRow(
@@ -1091,12 +1082,9 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Play animated cover over cellular",
-                            switchState = (playAnimOverCellular to {
-                                playAnimOverCellular = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("anim_cover_cellular", if (it) "true" else "false")
-                                }
-                            }),
+                            subtitle = "Stream canvas video loops when connected to mobile data",
+                            leadingIcon = SimpIcons.Sensors,
+                            switchState = (playAnimOverCellular to { viewModel.setPlayAnimOverCellular(it) }),
                         )
                         PulseSettingDivider(hasLeadingIcon = false)
                         PulseSettingRow(
@@ -1222,14 +1210,9 @@ fun SettingScreen(
                     PulseSettingsCard {
                         PulseSettingRow(
                             title = "High performance mode",
-                            subtitle = "Uses full animations and blur, and requests a higher display refresh rate",
+                            subtitle = "Disables heavy background blurs and GPU load for maximum smoothness and battery life",
                             leadingIcon = SimpIcons.Speed,
-                            switchState = (highPerformanceMode to {
-                                highPerformanceMode = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("high_performance", if (it) "true" else "false")
-                                }
-                            }),
+                            switchState = (highPerformanceMode to { viewModel.setHighPerformanceMode(it) }),
                         )
                     }
                 }
@@ -1382,12 +1365,19 @@ fun SettingScreen(
                                 restoreLauncher.launch()
                             },
                         )
+                        PulseSettingDivider()
+                        PulseSettingRow(
+                            title = "Anonymous analytics & crash reports",
+                            subtitle = "Share anonymous usage statistics and diagnostics to help improve app reliability",
+                            leadingIcon = SimpIcons.Insights,
+                            switchState = (analyticsEnabled to { viewModel.setAnalyticsEnabled(it) }),
+                        )
                     }
                 }
             }
 
             // GROUP 11: MISCELLANEOUS
-            if (matchesSearch("Miscellaneous", "Play next on swipe", "Don't repeat songs in current session", "Stop music on close from recents", "Hide volume bar", "Hide Song Status")) {
+            if (matchesSearch("Miscellaneous", "Play next on swipe", "Don't repeat songs in current session", "Stop music on close from recents", "Hide volume bar", "Hide Song Status", "Analytics")) {
                 item(key = "card_miscellaneous") {
                     PulseSettingsHeader(title = "MISCELLANEOUS")
                     PulseSettingsCard {
@@ -1395,55 +1385,35 @@ fun SettingScreen(
                             title = "Play next on swipe",
                             subtitle = "When disabled, swiping adds the song to the end of the queue",
                             leadingIcon = SimpIcons.PlaylistAdd,
-                            switchState = (playNextOnSwipe to {
-                                playNextOnSwipe = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("play_next_on_swipe", if (it) "true" else "false")
-                                }
-                            }),
+                            switchState = (playNextOnSwipe to { viewModel.setPlayNextOnSwipe(it) }),
                         )
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Don't repeat songs in current session",
                             subtitle = "AutoPlay won't suggest a song already played or suggested this session",
                             leadingIcon = SimpIcons.History,
-                            switchState = (dontRepeatSongsSession to {
-                                dontRepeatSongsSession = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("dont_repeat_session", if (it) "true" else "false")
-                                }
-                            }),
+                            switchState = (dontRepeatSongsSession to { viewModel.setDontRepeatSongsSession(it) }),
                         )
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Stop music on close from recents",
                             subtitle = "Stops playback when swiped away from recent apps",
                             leadingIcon = SimpIcons.PauseCircle,
-                            switchState = (killServiceOnExit to { viewModel.setKillServiceOnExit(it) }),
+                            switchState = (stopOnCloseRecents to { viewModel.setStopOnCloseRecents(it) }),
                         )
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Hide volume bar",
                             subtitle = "Removes the volume slider from the main player",
                             leadingIcon = SimpIcons.VolumeOff,
-                            switchState = (hideVolumeBar to {
-                                hideVolumeBar = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("hide_volume_bar", if (it) "true" else "false")
-                                }
-                            }),
+                            switchState = (hideVolumeBar to { viewModel.setHideVolumeBar(it) }),
                         )
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Hide Song Status",
                             subtitle = "Hides the \"Playing from\" or \"Played by\" text in the main player",
                             leadingIcon = SimpIcons.SubtitlesOff,
-                            switchState = (hideSongStatus to {
-                                hideSongStatus = it
-                                coroutineScope.launch {
-                                    dataStoreManager.putString("hide_song_status", if (it) "true" else "false")
-                                }
-                            }),
+                            switchState = (hideSongStatus to { viewModel.setHideSongStatus(it) }),
                         )
                     }
                 }
@@ -1543,11 +1513,16 @@ fun SettingScreen(
                         )
                         PulseSettingDivider()
                         PulseSettingRow(
-                            title = "Cinematic Audio",
+                            title = "Cinematic Audio (8D Audio)",
                             subtitle = stringResource(Res.string.cinematic_audio_description),
                             leadingIcon = SimpIcons.Headphones,
                             switchState = (cinematicAudioEnabled to { viewModel.setCinematicAudioEnabled(it) }),
                         )
+                        AnimatedVisibility(visible = cinematicAudioEnabled) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
+                                CinematicAudioSection(viewModel)
+                            }
+                        }
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Check for updates",
@@ -1651,7 +1626,7 @@ fun SettingScreen(
                         navController.navigate(LoginDestination)
                     },
                 ) {
-                    Text(text = "Switch Account", color = Color(0xFFA78BFA))
+                    Text(text = "Switch Account", color = Color.White)
                 }
             },
             dismissButton = {
@@ -2012,7 +1987,7 @@ fun SettingScreen(
                         color = settingsColors.subtitleText,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(SimpIcons.PlayArrow, contentDescription = null, tint = Color(0xFFA78BFA), modifier = Modifier.size(20.dp))
+                        Icon(SimpIcons.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text("1. YouTube Music HQ (Primary)", style = typo().bodyMedium, color = settingsColors.titleText, fontWeight = FontWeight.SemiBold)
@@ -2039,7 +2014,7 @@ fun SettingScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showAudioSourcesDialog = false }) {
-                    Text("Done", color = Color(0xFFA78BFA))
+                    Text("Done", color = Color.White)
                 }
             },
         )
@@ -2078,7 +2053,7 @@ fun SettingScreen(
                         sharedViewModel.makeToast("Scanning device storage for local tracks...")
                     },
                 ) {
-                    Text("Rescan Storage", color = Color(0xFFA78BFA))
+                    Text("Rescan Storage", color = Color.White)
                 }
             },
             dismissButton = {
@@ -2148,11 +2123,16 @@ fun SettingScreen(
 
                     PulseSettingsCard {
                         PulseSettingRow(
-                            title = "Cinematic Audio",
+                            title = "Cinematic Audio (8D Audio)",
                             subtitle = stringResource(Res.string.cinematic_audio_description),
                             leadingIcon = SimpIcons.Headphones,
                             switchState = (cinematicAudioEnabled to { viewModel.setCinematicAudioEnabled(it) }),
                         )
+                        AnimatedVisibility(visible = cinematicAudioEnabled) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
+                                CinematicAudioSection(viewModel)
+                            }
+                        }
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Dolby Atmos",
@@ -2166,7 +2146,7 @@ fun SettingScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showSoundEffectsDialog = false }) {
-                    Text("Done", color = Color(0xFFA78BFA))
+                    Text("Done", color = Color.White)
                 }
             },
         )

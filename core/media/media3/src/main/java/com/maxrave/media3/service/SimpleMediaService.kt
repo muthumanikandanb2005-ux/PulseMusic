@@ -1,4 +1,4 @@
-﻿package com.maxrave.media3.service
+package com.maxrave.media3.service
 
 import android.app.Activity
 import android.app.ActivityManager
@@ -11,6 +11,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.os.Binder
 import android.os.Build
@@ -19,6 +22,7 @@ import android.os.PowerManager
 import androidx.core.content.getSystemService
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
@@ -38,6 +42,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -182,6 +187,8 @@ internal class SimpleMediaService :
                 commandButtonList,
             )
         }
+
+        setupUsbDacRouting()
     }
 
     @UnstableApi
@@ -273,11 +280,83 @@ internal class SimpleMediaService :
         }
     }
 
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
+    private var preferUsbDacJob: Job? = null
+    private var audioDeviceCallback: AudioDeviceCallback? = null
+
+    private fun setupUsbDacRouting() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            preferUsbDacJob?.cancel()
+            preferUsbDacJob = coroutineScope.launch {
+                dataStoreManager.getString(DataStoreManager.PREFER_USB_DAC).collect { preferUsb ->
+                    updatePreferredAudioDevice(preferUsb == "true")
+                }
+            }
+            audioDeviceCallback = object : AudioDeviceCallback() {
+                override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
+                    checkAndUpdateUsbRouting()
+                }
+                override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
+                    checkAndUpdateUsbRouting()
+                }
+            }
+            try {
+                audioManager?.registerAudioDeviceCallback(audioDeviceCallback, null)
+            } catch (e: Exception) {
+                Logger.w("Service", "Failed to register audio device callback: ${e.message}")
+            }
+        }
+    }
+
+    private fun checkAndUpdateUsbRouting() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            coroutineScope.launch {
+                val preferUsb = dataStoreManager.getString(DataStoreManager.PREFER_USB_DAC).firstOrNull() == "true"
+                updatePreferredAudioDevice(preferUsb)
+            }
+        }
+    }
+
+    private fun updatePreferredAudioDevice(preferUsb: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                if (preferUsb) {
+                    val devices = audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                    val usbDevice = devices?.firstOrNull {
+                        it.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                            it.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                            it.type == AudioDeviceInfo.TYPE_USB_ACCESSORY
+                    }
+                    if (usbDevice != null) {
+                        Logger.d("Service", "Routing audio to USB DAC: ${usbDevice.productName}")
+                        (player as? ExoPlayer)?.setPreferredAudioDevice(usbDevice)
+                    } else {
+                        (player as? ExoPlayer)?.setPreferredAudioDevice(null)
+                    }
+                } else {
+                    (player as? ExoPlayer)?.setPreferredAudioDevice(null)
+                }
+            } catch (e: Exception) {
+                Logger.w("Service", "Failed to set preferred audio device: ${e.message}")
+            }
+        }
+    }
+
     @UnstableApi
     override fun onDestroy() {
         pauseTimeoutJob?.cancel()
         pauseTimeoutJob = null
         releaseLocks()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audioDeviceCallback != null) {
+            try {
+                audioManager?.unregisterAudioDeviceCallback(audioDeviceCallback)
+            } catch (e: Exception) {
+                Logger.w("Service", "Failed to unregister audio device callback: ${e.message}")
+            }
+            audioDeviceCallback = null
+        }
+        preferUsbDacJob?.cancel()
+        preferUsbDacJob = null
         super.onDestroy()
         Logger.w("Service", "Simple Media Service Destroyed")
         if (simpleMediaServiceHandler.shouldReleaseOnTaskRemoved()) {
@@ -293,6 +372,29 @@ internal class SimpleMediaService :
     @UnstableApi
     override fun onTaskRemoved(rootIntent: Intent?) {
         Logger.w("Service", "Simple Media Service Task Removed")
+        val shouldStop = runBlocking {
+            val kill = dataStoreManager.killServiceOnExit.firstOrNull() == DataStoreManager.TRUE
+            val stopRecents = dataStoreManager.getString(DataStoreManager.STOP_ON_CLOSE_RECENTS).firstOrNull() == "true"
+            kill || stopRecents
+        }
+        if (shouldStop) {
+            Logger.w("Service", "Stop music on close from recents enabled — stopping playback and foreground service.")
+            try {
+                player.pause()
+                player.playWhenReady = false
+                release()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+                stopSelf()
+            } catch (e: Exception) {
+                Logger.e("Service", "Error stopping service on task removed: ${e.message}")
+            }
+            return
+        }
         if (player.isPlaying || player.playWhenReady) {
             // Keep playing uninterrupted in background
             Logger.d("Service", "App task removed while playing — keep service alive in foreground.")

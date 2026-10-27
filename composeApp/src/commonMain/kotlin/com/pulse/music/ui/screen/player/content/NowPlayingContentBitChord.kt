@@ -454,6 +454,7 @@ fun NowPlayingContentBitChord(
                         onArtistClick = { actions.onNavigateToArtist() },
                         onLikeClick = { actions.onAddToYouTubeLiked() },
                         accentColor = accentColor,
+                        hideSongStatus = state.hideSongStatus,
                     )
 
                     // Isolated Hairline Scrubber (ThinSlider)
@@ -560,6 +561,7 @@ fun NowPlayingContentBitChord(
                     onArtistClick = { actions.onNavigateToArtist() },
                     onLikeClick = { actions.onAddToYouTubeLiked() },
                     accentColor = accentColor,
+                    hideSongStatus = state.hideSongStatus,
                 )
 
                 Spacer(Modifier.height(16.dp))
@@ -779,6 +781,7 @@ private fun BitChordArtworkHero(
         } else if (state.artworkQueue.isNotEmpty()) {
             HorizontalPager(
                 state = state.artworkPagerState,
+                userScrollEnabled = state.playNextOnSwipe,
                 modifier = Modifier.fillMaxSize(),
                 beyondViewportPageCount = 1,
             ) { page ->
@@ -856,6 +859,7 @@ internal fun BitChordTrackInfoRow(
     onArtistClick: () -> Unit,
     onLikeClick: () -> Unit,
     accentColor: Color,
+    hideSongStatus: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val isLavender = LocalIsPearlLavenderTheme.current
@@ -895,29 +899,31 @@ internal fun BitChordTrackInfoRow(
                     modifier = Modifier.weight(1f, fill = false).clickable { onArtistClick() },
                 )
 
-                // Lossless/Hi-Res/Codec badge pill
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        text = codec,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = accentColor,
+                if (!hideSongStatus) {
+                    // Lossless/Hi-Res/Codec badge pill
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = codec,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = accentColor,
+                        )
+                    }
+
+                    // Audio Output Device Indicator pill (Soft pastel colours)
+                    AudioOutputDeviceBadge(
+                        softAccent = accentColor,
+                        fontSize = 9.sp,
+                        iconSize = 11.dp,
                     )
                 }
-
-                // Audio Output Device Indicator pill (Soft pastel colours)
-                AudioOutputDeviceBadge(
-                    softAccent = accentColor,
-                    fontSize = 9.sp,
-                    iconSize = 11.dp,
-                )
             }
         }
 
@@ -1438,7 +1444,7 @@ private fun BitChordInstagramGlowingLyrics(
         initialValue = 0.45f,
         targetValue = 0.88f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
+            animation = tween(500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "GlowAlpha",
@@ -1447,7 +1453,7 @@ private fun BitChordInstagramGlowingLyrics(
         initialValue = -50f,
         targetValue = 50f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = FastOutSlowInEasing),
+            animation = tween(700, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "GlowShift",
@@ -1516,7 +1522,7 @@ private fun BitChordSpotifyLyricsCard(
         initialValue = 0.35f,
         targetValue = 0.70f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
+            animation = tween(1000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "CardGlowAlpha",

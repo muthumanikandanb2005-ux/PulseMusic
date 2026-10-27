@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.screen.player.content
+package com.pulse.music.ui.screen.player.content
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector4D
@@ -114,6 +114,16 @@ class NowPlayingContentState(
     val ambientColor: Color = spotShadowColor,
     /** Complementary secondary ambient lighting color extracted from album artwork. */
     val ambientSecondaryColor: Color = spotShadowColor,
+    /** Whether the volume bar row is hidden. */
+    val hideVolumeBar: Boolean = false,
+    /** Whether song status/codec badge pills are hidden. */
+    val hideSongStatus: Boolean = false,
+    /** Whether swiping horizontally on artwork changes tracks. */
+    val playNextOnSwipe: Boolean = true,
+    /** Whether legacy mesh gradient is used for artwork backdrop. */
+    val legacyMesh: Boolean = false,
+    /** Whether high performance mode is active (reducing blur/animations). */
+    val highPerformanceMode: Boolean = false,
 )
 
 /**

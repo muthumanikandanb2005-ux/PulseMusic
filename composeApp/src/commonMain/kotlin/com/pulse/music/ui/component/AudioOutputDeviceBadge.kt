@@ -43,7 +43,7 @@ import com.pulse.music.ui.icon.VolumeUp
 @Composable
 fun AudioOutputDeviceBadge(
     modifier: Modifier = Modifier,
-    softAccent: Color = Color(0xFFA788FA), // Soft pastel lavender default
+    softAccent: Color = Color(0xFFE5E5EA), // Soft pastel lavender default
     containerColor: Color? = null,
     borderColor: Color? = null,
     contentColor: Color? = null,

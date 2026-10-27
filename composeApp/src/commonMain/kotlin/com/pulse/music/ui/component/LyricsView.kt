@@ -104,7 +104,7 @@ private const val TAG = "LyricsView"
 // and JvmMediaPlayerHandlerImpl both tick on `tickIntervalMs`). It is the ceiling on how far the interpolated
 // playhead below is allowed to run ahead of the last real tick, so a stalled tick — paused
 // playback, a wedged player — can never drift further than the granularity we already live with.
-private const val PLAYHEAD_TICK_MS = 50L
+private const val PLAYHEAD_TICK_MS = 350L
 
 // A rich-synced line followed by a silence at least this long gets a row of dots standing in for
 // the instrumental, the way Apple Music marks one. Rich sync only: it is the one format that knows
@@ -147,7 +147,7 @@ private const val EMP_GLOW_RADIUS_EM = 0.3f
 // purpose — it is dimmed, never blurred.
 // How far the travelling glow reaches, in characters. Below ~1 the light goes out between
 // characters; far above it the whole word lifts at once.
-private const val FLARE_REACH_CHARS = 3.5f
+private const val FLARE_REACH_CHARS = 2.8f
 
 // How long a word's flare takes to fade in as it becomes the sung one, and to fade out again once
 // the playhead has left it. Without this the flare was gated by a hard boolean, so the light died
@@ -157,8 +157,8 @@ private const val FLARE_REACH_CHARS = 3.5f
 //
 // Roughly one sung word long. Much shorter and the hand-over is not visible; much longer and half
 // the line glows at once, which is a smear rather than a light.
-private const val FLARE_FADE_MS = 800
-private const val FLARE_ATTACK_MS = 60
+private const val FLARE_FADE_MS = 120
+private const val FLARE_ATTACK_MS = 25
 
 // Distance, in characters, over which the wake behind the playhead falls to about a third of full
 // brightness. The decay is EXPONENTIAL, not linear, and that distinction is the whole point: a long
@@ -166,7 +166,7 @@ private const val FLARE_ATTACK_MS = 60
 // character of a four-letter word still sits at ninety percent of it. An exponential keeps the
 // light concentrated on the character being sung, drops away sharply behind it, and leaves a faint
 // glow trailing for a long way — which is what a wake looks like.
-private const val FLARE_TAIL_CHARS = 2.5f
+private const val FLARE_TAIL_CHARS = 2.0f
 
 // How far the character under the light lifts, as a fraction of the font size — Apple nudges the
 // syllable being sung upward, and the eye reads the lift as the light having weight.
@@ -176,7 +176,7 @@ private const val FLARE_TAIL_CHARS = 2.5f
 // moves without the line being measured again, so nothing reflows and no line ever changes height.
 // No alpha goes through that layer — alpha below 1 would force an offscreen buffer the size of the
 // glyph and slice off the very glow this is meant to accompany.
-private const val CHAR_RISE_EM = 0.065f
+private const val CHAR_RISE_EM = 0.055f
 
 // How long one character takes to travel from its resting line to the top, once the light has
 // touched it. Deliberately longer than a character is sung for: the lift is NOT finished before the
@@ -187,7 +187,7 @@ private const val CHAR_RISE_EM = 0.065f
 // moment the word is done, so a word sung in less than this would freeze its characters half-risen.
 // Each character needs a clock of its own, started when the light arrives and left to finish on its
 // own time.
-private const val CHAR_RISE_MS = 1_000
+private const val CHAR_RISE_MS = 250
 
 private const val FOOTER_ALPHA = 0.45f
 
@@ -966,12 +966,12 @@ fun PulseNeonLyricsLineItem(
 
     val scale by animateFloatAsState(
         targetValue = if (isCurrent) 1.02f else 0.96f,
-        animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
         label = "PulseHybridScale",
     )
     val alpha by animateFloatAsState(
         targetValue = if (isCurrent) 1.0f else 0.40f,
-        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
         label = "PulseHybridAlpha",
     )
 
@@ -1093,7 +1093,7 @@ private fun PulseNeonWordItem(
 
     val wordScale by animateFloatAsState(
         targetValue = if (isWordActive) 1.08f else if (isWordPast) 1.0f else 0.98f,
-        animationSpec = tween(180, easing = FastOutSlowInEasing),
+        animationSpec = tween(120, easing = FastOutSlowInEasing),
         label = "wordScale",
     )
 

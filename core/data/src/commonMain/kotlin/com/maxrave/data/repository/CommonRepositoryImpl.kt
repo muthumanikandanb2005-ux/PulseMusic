@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.repository
+package com.maxrave.data.repository
 
 import com.maxrave.data.db.MusicDatabase
 import com.maxrave.data.db.datasource.LocalDataSource
@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
@@ -84,15 +85,28 @@ internal class CommonRepositoryImpl(
                         Logger.d("YouTubeLocale", "Configured locale: gl=$effectiveGl, hl=$effectiveHl (musicLanguage=$musicLanguage)")
                     }
                 }
-            val resetYouTubeAuth =
-                launch {
-                    dataStoreManager.setCookie("", null)
-                    dataStoreManager.setLoggedIn(false)
-                    dataStoreManager.setShouldShowLogInRequiredAlert(false)
-                }
             val ytCookieJob =
                 launch {
-                    youTube.cookie = null
+                    val currentCookie = dataStoreManager.cookie.first()
+                    if (currentCookie.isEmpty()) {
+                        localDataSource.getUsedGoogleAccount()?.let { acc ->
+                            val cache = acc.cache
+                            if (!cache.isNullOrEmpty()) {
+                                Logger.i("CommonRepository", "Restoring YouTube account from DB: ${acc.email}")
+                                dataStoreManager.setCookie(cache, acc.pageId, acc.authUser)
+                                dataStoreManager.setLoggedIn(true)
+                                youTube.cookie = cache
+                                youTube.pageId = acc.pageId
+                                youTube.authUser = acc.authUser
+                            }
+                        }
+                    } else {
+                        youTube.cookie = currentCookie
+                    }
+                    dataStoreManager.cookie.distinctUntilChanged().collectLatest { cookie ->
+                        youTube.cookie = cookie.ifEmpty { null }
+                        Logger.d("YouTube", "Updated youTube.cookie (isNullOrEmpty=${cookie.isEmpty()})")
+                    }
                 }
             val pageIdJob =
                 launch {

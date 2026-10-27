@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.screen.library
+package com.pulse.music.ui.screen.library
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -182,9 +182,7 @@ fun LibraryScreen(
     LaunchedEffect(currentFilter) {
         when (currentFilter) {
             LibraryChipType.YOUTUBE_MUSIC_PLAYLIST -> {
-                if (youTubePlaylist.data.isNullOrEmpty()) {
-                    viewModel.getYouTubePlaylist()
-                }
+                viewModel.getYouTubePlaylist()
             }
 
             // Mix for you has its own nav tab now. The filter is persisted, so a build upgraded

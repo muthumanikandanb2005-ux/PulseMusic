@@ -135,6 +135,8 @@ fun App(
 
     val isTranslucentBottomBar by viewModel.getTranslucentBottomBar().collectAsStateWithLifecycle(DataStoreManager.FALSE)
     val isLiquidGlassEnabled by viewModel.getEnableLiquidGlass().collectAsStateWithLifecycle(DataStoreManager.FALSE)
+    val isHighPerformanceMode by viewModel.getHighPerformanceMode().collectAsStateWithLifecycle(DataStoreManager.FALSE)
+    val effectiveLiquidGlass = isLiquidGlassEnabled == TRUE && isHighPerformanceMode != "true" 
     // Analytics only makes sense with local tracking on, so its tab follows that setting.
     val isLocalTrackingEnabled by viewModel.getLocalTrackingEnabled().collectAsStateWithLifecycle(DataStoreManager.TRUE)
     val showAnalyticsTab = isLocalTrackingEnabled == TRUE
@@ -409,7 +411,7 @@ fun App(
         customThemeColor = parseThemeColorHex(customThemeColorHex),
         // Desktop is unconditionally true — the liquid-glass setting row is Android-only, and the
         // Desktop capsule player is glass by design. Same rule as MiniPlayer's useGlassSurface.
-        liquidGlassEnabled = isLiquidGlassEnabled == TRUE || getPlatform() == Platform.Desktop,
+        liquidGlassEnabled = (effectiveLiquidGlass || getPlatform() == Platform.Desktop) && isHighPerformanceMode != "true",
         pearlLavenderEnabled = isPearlLavenderEnabled == TRUE,
     ) {
         // Backdrop base must match the theme: white page → white glass, dark/AMOLED → black glass.
@@ -449,7 +451,7 @@ fun App(
                     ) {
                         Column {
                             AnimatedVisibility(
-                                isShowMiniPlayer && isLiquidGlassEnabled == DataStoreManager.FALSE,
+                                isShowMiniPlayer && !effectiveLiquidGlass,
                                 enter = fadeIn() + slideInHorizontally(),
                                 exit = fadeOut(),
                             ) {
@@ -472,7 +474,7 @@ fun App(
                                     },
                                 )
                             }
-                            if (isLiquidGlassEnabled == TRUE) {
+                            if (effectiveLiquidGlass) {
                                 LiquidGlassAppBottomNavigationBar(
                                     navController = navController,
                                     backdrop = backdrop,
@@ -503,7 +505,7 @@ fun App(
                     Modifier
                         .fillMaxSize()
                         .then(
-                            if (isLiquidGlassEnabled == TRUE && !isTablet) {
+                            if (effectiveLiquidGlass && !isTablet) {
                                 Modifier.layerBackdrop(backdrop)
                             } else {
                                 Modifier

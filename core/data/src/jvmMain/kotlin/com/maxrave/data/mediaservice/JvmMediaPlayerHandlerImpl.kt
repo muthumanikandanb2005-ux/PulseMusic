@@ -2886,6 +2886,10 @@ class JvmMediaPlayerHandlerImpl(
         currentPositionMillis: Long,
     ) {
         coroutineScope.launch {
+            val analyticsEnabled = dataStoreManager.getString(DataStoreManager.ANALYTICS_ENABLED).firstOrNull() != "false"
+            if (!analyticsEnabled) {
+                return@launch
+            }
             val trackingEnabled = dataStoreManager.localTrackingEnabled.first() == TRUE
             if (!trackingEnabled) {
                 return@launch

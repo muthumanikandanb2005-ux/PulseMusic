@@ -221,6 +221,21 @@ fun NowPlayingScreenContent(
     val ambientModeSetting by sharedViewModel
         .getAmbientMode()
         .collectAsStateWithLifecycle(initialValue = DataStoreManager.TRUE)
+    val hideVolumeBarSetting by sharedViewModel
+        .getHideVolumeBar()
+        .collectAsStateWithLifecycle(initialValue = DataStoreManager.FALSE)
+    val hideSongStatusSetting by sharedViewModel
+        .getHideSongStatus()
+        .collectAsStateWithLifecycle(initialValue = DataStoreManager.FALSE)
+    val playNextOnSwipeSetting by sharedViewModel
+        .getPlayNextOnSwipe()
+        .collectAsStateWithLifecycle(initialValue = "true")
+    val legacyMeshSetting by sharedViewModel
+        .getLegacyMesh()
+        .collectAsStateWithLifecycle(initialValue = DataStoreManager.FALSE)
+    val highPerformanceSetting by sharedViewModel
+        .getHighPerformanceMode()
+        .collectAsStateWithLifecycle(initialValue = DataStoreManager.FALSE)
 
     // Artwork Pager state — Spotify-style horizontal swipe between queue tracks.
     // The pager wraps the Canvas + Thumbnail layers. Controller layout below stays fixed.
@@ -322,6 +337,7 @@ fun NowPlayingScreenContent(
                 // on the old page and "correct" it right back.
                 if (!pendingUserSwipe) return@collect
                 pendingUserSwipe = false
+                if (playNextOnSwipeSetting == "false") return@collect
                 val queueSize = latestQueueSize
                 val orderIndex = latestOrderIndex
                 if (queueSize == 0) return@collect
@@ -658,6 +674,11 @@ fun NowPlayingScreenContent(
             ambientModeEnabled = ambientModeSetting != DataStoreManager.FALSE,
             ambientColor = if (ambientGlowColor.isSpecified) ambientGlowColor else spotShadowColor,
             ambientSecondaryColor = if (ambientSecondaryColor.isSpecified) ambientSecondaryColor else spotShadowColor,
+            hideVolumeBar = hideVolumeBarSetting == "true",
+            hideSongStatus = hideSongStatusSetting == "true",
+            playNextOnSwipe = playNextOnSwipeSetting != "false",
+            legacyMesh = legacyMeshSetting == "true",
+            highPerformanceMode = highPerformanceSetting == "true",
         )
     val actions =
         NowPlayingContentActions(

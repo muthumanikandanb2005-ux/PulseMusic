@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.screen.player.content
+package com.pulse.music.ui.screen.player.content
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -359,7 +359,7 @@ private fun AppleMusicMainView(
             state = state.artworkPagerState,
             modifier = Modifier.fillMaxSize(),
             beyondViewportPageCount = 1,
-            userScrollEnabled = !isRepeatOne && state.artworkQueue.isNotEmpty(),
+            userScrollEnabled = !isRepeatOne && state.artworkQueue.isNotEmpty() && state.playNextOnSwipe,
             key = { idx ->
                 val vid = state.artworkQueue.getOrNull(idx)?.videoId.orEmpty()
                 "appleMusicArtwork_${vid}_$idx"
@@ -682,7 +682,8 @@ internal fun BoxScope.AppleMusicArtworkBackdrop(
     // The heavy blur radius is safe because the whole style is gated behind Android 12 for
     // exactly this reason (isLyricsBlurSupported), and Crop + fillMaxSize means the artwork is
     // scaled far past its own resolution — at this blur that costs nothing visually.
-    if (!backdropUrl.isNullOrBlank()) {
+    if (!backdropUrl.isNullOrBlank() && !state.legacyMesh) {
+        val blurRadius = if (state.highPerformanceMode) 20.dp else BACKDROP_BLUR_RADIUS
         AsyncImage(
             model =
                 ImageRequest
@@ -700,13 +701,14 @@ internal fun BoxScope.AppleMusicArtworkBackdrop(
                 val fallback = backdropUrl?.replace("maxresdefault", "hqdefault")
                 if (fallback != null && fallback != backdropUrl) backdropUrl = fallback
             },
-            modifier = Modifier.fillMaxSize().blur(BACKDROP_BLUR_RADIUS, BlurredEdgeTreatment.Unbounded),
+            modifier = Modifier.fillMaxSize().blur(blurRadius, BlurredEdgeTreatment.Unbounded),
         )
     }
     // The tint still rides on top, but as a translucent wash rather than the whole background:
     // it keeps the vertical darkening that makes the controls readable at the bottom, while the
     // frosted artwork shows through it.
-    Box(modifier = Modifier.fillMaxSize().alpha(BACKDROP_TINT_ALPHA).background(backdropBrush))
+    val tintAlpha = if (state.legacyMesh) 1f else BACKDROP_TINT_ALPHA
+    Box(modifier = Modifier.fillMaxSize().alpha(tintAlpha).background(backdropBrush))
 }
 
 @Composable
@@ -746,15 +748,17 @@ internal fun AppleMusicMainTitleRow(
                             .focusable()
                             .clickable { actions.onNavigateToArtist() },
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                AudioOutputDeviceBadge(
-                    softAccent = Color(0xFFA788FA),
-                    containerColor = Color.White.copy(alpha = 0.12f),
-                    borderColor = Color.White.copy(alpha = 0.20f),
-                    contentColor = Color.White.copy(alpha = 0.90f),
-                    fontSize = 10.sp,
-                    iconSize = 12.dp,
-                )
+                if (!state.hideSongStatus) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AudioOutputDeviceBadge(
+                        softAccent = Color(0xFFE5E5EA),
+                        containerColor = Color.White.copy(alpha = 0.12f),
+                        borderColor = Color.White.copy(alpha = 0.20f),
+                        contentColor = Color.White.copy(alpha = 0.90f),
+                        fontSize = 10.sp,
+                        iconSize = 12.dp,
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
