@@ -112,10 +112,7 @@ class AppUpdateWorker(
                                 if (remoteVersion.isBlank() || isNewerVersion(curVer, remoteVersion)) {
                                     remoteVersion = curVer
                                     downloadUrl = curUrl
-                                }
-                                if (isNewerVersion(remoteVersion, currentVersion)) {
-                                    Logger.i(TAG, "Found newer version $remoteVersion from $endpoint")
-                                    break
+                                    Logger.i(TAG, "Discovered newest release candidate $remoteVersion from $endpoint")
                                 }
                             }
                         }
