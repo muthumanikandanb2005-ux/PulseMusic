@@ -704,6 +704,10 @@ interface DataStoreManager {
 
     suspend fun setProfile(name: String, age: String, gender: String, languagePreference: String)
 
+    val dailyAnalyticsEnabled: Flow<Boolean>
+
+    suspend fun setDailyAnalyticsEnabled(enabled: Boolean)
+
     enum class ProxyType {
         PROXY_TYPE_HTTP,
         PROXY_TYPE_SOCKS,
@@ -787,5 +791,6 @@ interface DataStoreManager {
         const val HIDE_VOLUME_BAR = "hide_volume_bar"
         const val HIDE_SONG_STATUS = "hide_song_status"
         const val ANALYTICS_ENABLED = "analytics_enabled"
+        const val DAILY_ANALYTICS_ENABLED = "daily_analytics_enabled"
     }
 }

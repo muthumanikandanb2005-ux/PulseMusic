@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.di
+package com.maxrave.data.di
 
 import com.maxrave.common.Config
 import com.maxrave.data.mediaservice.createMediaServiceHandler
@@ -9,7 +9,7 @@ import org.koin.dsl.module
 
 val mediaHandlerModule =
     module {
-        single<MediaPlayerHandler>(createdAtStart = true) {
+        single<MediaPlayerHandler> {
             createMediaServiceHandler(
                 dataStoreManager = get(),
                 songRepository = get(),

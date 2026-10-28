@@ -437,7 +437,9 @@ class JvmMediaPlayerHandlerImpl(
         getSkipSegmentsJob = Job()
         getFormatJob = Job()
         jobWatchtime = Job()
-        skipSilent = runBlocking { dataStoreManager.skipSilent.first() == TRUE }
+        backgroundScope.launch {
+            skipSilent = dataStoreManager.skipSilent.first() == TRUE
+        }
         // Collected rather than read once like the settings around it: the equalizer is adjusted
         // while music is playing, and a curve that only takes effect after a restart is useless
         // for judging what you just changed.
@@ -495,13 +497,13 @@ class JvmMediaPlayerHandlerImpl(
                 .distinctUntilChanged()
                 .collect { effects -> player.setAudioEffects(effects) }
         }
-        normalizeVolume =
-            runBlocking { dataStoreManager.normalizeVolume.first() == TRUE }
         _nowPlaying.value = player.currentMediaItem
-        if (runBlocking { dataStoreManager.saveStateOfPlayback.first() } == TRUE) {
-            Logger.d(TAG, "SaveStateOfPlayback TRUE")
-            val shuffleKey = runBlocking { dataStoreManager.shuffleKey.first() }
-            val repeatKey = runBlocking { dataStoreManager.repeatKey.first() }
+        backgroundScope.launch {
+            normalizeVolume = dataStoreManager.normalizeVolume.first() == TRUE
+            if (dataStoreManager.saveStateOfPlayback.first() == TRUE) {
+                Logger.d(TAG, "SaveStateOfPlayback TRUE")
+                val shuffleKey = dataStoreManager.shuffleKey.first()
+                val repeatKey = dataStoreManager.repeatKey.first()
             Logger.d(TAG, "Shuffle: $shuffleKey")
             Logger.d(TAG, "Repeat: $repeatKey")
             val restoredShuffle = shuffleKey == TRUE
@@ -525,8 +527,9 @@ class JvmMediaPlayerHandlerImpl(
                         },
                 )
         }
-        player.volume = runBlocking { dataStoreManager.playerVolume.first() }
-        mayBeRestoreQueue()
+            player.volume = dataStoreManager.playerVolume.first()
+            mayBeRestoreQueue()
+        }
         nypc?.setListener(
             object : NowPlayingListener {
                 override fun onPlayPause() {
@@ -2114,9 +2117,7 @@ class JvmMediaPlayerHandlerImpl(
                 var thumbUrl =
                     track.thumbnails?.lastOrNull()?.url
                         ?: "http://i.ytimg.com/vi/${track.videoId}/maxresdefault.jpg"
-                if (thumbUrl.contains("w120")) {
-                    thumbUrl = Regex("([wh])120").replace(thumbUrl, "$1544")
-                }
+                thumbUrl = Regex("=w\\d+-h\\d+").replace(thumbUrl, "=w544-h544")
                 val isSong =
                     (
                         track.thumbnails?.lastOrNull()?.height != 0 &&
@@ -2130,108 +2131,33 @@ class JvmMediaPlayerHandlerImpl(
                                     .contains("maxresdefault") &&
                                 !thumbUrl.contains("sddefault")
                         )
-                if (downloaded == 1) {
-                    if (track.artists.isNullOrEmpty()) {
-                        songRepository.getSongInfo(track.videoId).firstOrNull().let { songInfo ->
-                            if (songInfo != null) {
-                                val mediaItem =
-                                    GenericMediaItem(
-                                        mediaId = track.videoId,
-                                        uri = track.videoId,
-                                        metadata =
-                                            GenericMediaMetadata(
-                                                title = track.title,
-                                                artist = songInfo.author ?: "",
-                                                albumTitle = track.album?.name,
-                                                artworkUri = thumbUrl,
-                                                description = if (isSong) MERGING_DATA_TYPE.SONG else MERGING_DATA_TYPE.VIDEO,
-                                            ),
-                                        customCacheKey = track.videoId,
-                                    )
-                                addMediaItemNotSet(mediaItem)
-                                catalogMetadata.add(
-                                    track.copy(
-                                        artists =
-                                            listOf(
-                                                Artist(
-                                                    songInfo.authorId,
-                                                    songInfo.author ?: "",
-                                                ),
-                                            ),
-                                    ),
-                                )
-                            } else {
-                                val mediaItem =
-                                    GenericMediaItem(
-                                        mediaId = track.videoId,
-                                        uri = track.videoId,
-                                        metadata =
-                                            GenericMediaMetadata(
-                                                title = track.title,
-                                                artist = "Various Artists",
-                                                albumTitle = track.album?.name,
-                                                artworkUri = thumbUrl,
-                                                description = if (isSong) MERGING_DATA_TYPE.SONG else MERGING_DATA_TYPE.VIDEO,
-                                            ),
-                                        customCacheKey = track.videoId,
-                                    )
-                                addMediaItemNotSet(mediaItem)
-                                catalogMetadata.add(
-                                    track.copy(
-                                        artists = listOf(Artist("", "Various Artists")),
-                                    ),
-                                )
-                            }
-                        }
-                    } else {
-                        val mediaItem =
-                            GenericMediaItem(
-                                mediaId = track.videoId,
-                                uri = track.videoId,
-                                metadata =
-                                    GenericMediaMetadata(
-                                        title = track.title,
-                                        artist = track.artists.toListName().connectArtists(),
-                                        albumTitle = track.album?.name,
-                                        artworkUri = thumbUrl,
-                                        description = if (isSong) MERGING_DATA_TYPE.SONG else MERGING_DATA_TYPE.VIDEO,
-                                    ),
-                                customCacheKey = track.videoId,
-                            )
-                        addMediaItemNotSet(mediaItem)
-                        catalogMetadata.add(track)
-                    }
-                    Logger.d("MusicSource", "updateCatalog: ${track.title}, ${catalogMetadata.size}")
+                val resolvedArtists = if (track.artists.isNullOrEmpty()) {
+                    listOf(Artist("", "Various Artists"))
                 } else {
-                    val resolvedArtist = if (track.artists.isNullOrEmpty()) "Various Artists" else track.artists.toListName().connectArtists()
-                    val resolvedArtists = if (track.artists.isNullOrEmpty()) listOf(Artist("", "Various Artists")) else track.artists
-                    addMediaItemNotSet(
-                        GenericMediaItem(
-                            mediaId = track.videoId,
-                            uri = track.videoId,
-                            metadata =
-                                GenericMediaMetadata(
-                                    title = track.title,
-                                    artist = resolvedArtist,
-                                    albumTitle = track.album?.name,
-                                    artworkUri = thumbUrl,
-                                    description = if (isSong) MERGING_DATA_TYPE.SONG else MERGING_DATA_TYPE.VIDEO,
-                                ),
-                            customCacheKey = track.videoId,
-                        ),
-                    )
-                    catalogMetadata.add(track.copy(artists = resolvedArtists))
-                    Logger.d(
-                        "MusicSource",
-                        "updateCatalog: ${track.title}, ${catalogMetadata.size}",
-                    )
-                    Logger.d("MusicSource", "updateCatalog: ${track.title}")
+                    track.artists
                 }
+                val artistName: String = resolvedArtists.toListName().connectArtists()
+                val mediaItem =
+                    GenericMediaItem(
+                        mediaId = track.videoId,
+                        uri = track.videoId,
+                        metadata =
+                            GenericMediaMetadata(
+                                title = track.title,
+                                artist = artistName,
+                                albumTitle = track.album?.name,
+                                artworkUri = thumbUrl,
+                                description = if (isSong) MERGING_DATA_TYPE.SONG else MERGING_DATA_TYPE.VIDEO,
+                            ),
+                        customCacheKey = track.videoId,
+                    )
+                addMediaItemNotSet(mediaItem)
+                catalogMetadata.add(track.copy(artists = resolvedArtists))
+                Logger.d("MusicSource", "updateCatalog: ${track.title}, ${catalogMetadata.size}")
             }
             _queueData.update {
                 it.addTrackList(catalogMetadata)
             }
-            delay(200)
         }
         if (current != null && index != null) {
             _queueData.update {
@@ -2888,6 +2814,10 @@ class JvmMediaPlayerHandlerImpl(
         coroutineScope.launch {
             val analyticsEnabled = dataStoreManager.getString(DataStoreManager.ANALYTICS_ENABLED).firstOrNull() != "false"
             if (!analyticsEnabled) {
+                return@launch
+            }
+            val dailyAnalytics = dataStoreManager.dailyAnalyticsEnabled.first()
+            if (!dailyAnalytics) {
                 return@launch
             }
             val trackingEnabled = dataStoreManager.localTrackingEnabled.first() == TRUE

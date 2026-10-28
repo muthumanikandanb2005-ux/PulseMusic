@@ -31,6 +31,7 @@ import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
@@ -91,6 +92,13 @@ import simpmusic.composeapp.generated.resources.time_out_check_internet_connecti
  * ALPHA / DIGIT / "+" / "-" / ".".
  */
 private val DEEP_LINK_ARG = Regex("^[A-Za-z][A-Za-z0-9+.\\-]*://.+")
+
+private val sharedDesktopOkHttpClient: OkHttpClient by lazy {
+    OkHttpClient.Builder()
+        .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
+}
 
 private fun setWindowsAppUserModelId(appId: String = "com.pulse.music") {
     if (!System.getProperty("os.name", "").contains("Windows", ignoreCase = true)) return
@@ -223,23 +231,21 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         loadKoinModules(viewModelModule)
     }
 
-    val language =
-        runBlocking {
-            getKoin()
-                .get<DataStoreManager>()
-                .language
-                .first()
-                .substring(0..1)
+    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+        runCatching {
+            val language = getKoin().get<DataStoreManager>().language.first().substring(0..1)
+            changeLanguageNative(language)
         }
-    changeLanguageNative(language)
-
-    VersionManager.initialize()
-    configLastfm(BuildKonfig.lastfmApiKey, BuildKonfig.lastfmSecret)
-    if (BuildKonfig.sentryDsn.isNotEmpty()) {
-        Sentry.init { options ->
-            options.dsn = BuildKonfig.sentryDsn
-            options.release = "pulsemusic-desktop@${VersionManager.getVersionName()}"
-            options.setDiagnosticLevel(SentryLevel.ERROR)
+        runCatching { VersionManager.initialize() }
+        runCatching { configLastfm(BuildKonfig.lastfmApiKey, BuildKonfig.lastfmSecret) }
+        if (BuildKonfig.sentryDsn.isNotEmpty()) {
+            runCatching {
+                Sentry.init { options ->
+                    options.dsn = BuildKonfig.sentryDsn
+                    options.release = "pulsemusic-desktop@${VersionManager.getVersionName()}"
+                    options.setDiagnosticLevel(SentryLevel.ERROR)
+                }
+            }
         }
     }
 
@@ -597,11 +603,18 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                             add(
                                 OkHttpNetworkFetcherFactory(
                                     callFactory = {
-                                        OkHttpClient()
+                                        sharedDesktopOkHttpClient
                                     },
                                 ),
                             )
-                        }.diskCachePolicy(CachePolicy.ENABLED)
+                        }
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .memoryCache {
+                            MemoryCache.Builder()
+                                .maxSizePercent(context, 0.25)
+                                .build()
+                        }
+                        .diskCachePolicy(CachePolicy.ENABLED)
                         .networkCachePolicy(CachePolicy.ENABLED)
                         .diskCache(
                             DiskCache
@@ -609,7 +622,8 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                                 .directory(FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "image_cache")
                                 .maxSizeBytes(512L * 1024 * 1024)
                                 .build(),
-                        ).crossfade(true)
+                        )
+                        .crossfade(false)
                         .build()
                 }
                 App(

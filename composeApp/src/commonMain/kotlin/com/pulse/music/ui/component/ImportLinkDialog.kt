@@ -41,6 +41,9 @@ import simpmusic.composeapp.generated.resources.import_link_dialog_subtitle
 import simpmusic.composeapp.generated.resources.import_link_dialog_title
 import simpmusic.composeapp.generated.resources.import_link_placeholder
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.OutlinedTextFieldDefaults
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ImportLinkDialog(
@@ -51,19 +54,20 @@ fun ImportLinkDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color(0xFF161618),
         icon = {
             Icon(
                 imageVector = SimpIcons.PlaylistAdd,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = Color.White,
                 modifier = Modifier.size(32.dp),
             )
         },
         title = {
             Text(
-                text = stringResource(Res.string.import_link_dialog_title),
+                text = "Import Playlist from Other Streaming Apps",
                 style = typo().titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
             )
         },
         text = {
@@ -71,27 +75,27 @@ fun ImportLinkDialog(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = stringResource(Res.string.import_link_dialog_subtitle),
+                    text = "Transfer playlists directly from Spotify, Apple Music, YouTube Music, Deezer, and other streaming services into Pulse Music.",
                     style = typo().bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color(0xFF8E8E93),
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Supported platform chips
+                // Supported platform chips in grey and white AMOLED styling
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    listOf("Spotify", "Apple Music", "Gaana", "YouTube Music", "JioSaavn", "Deezer", "Amazon Music").forEach { service ->
+                    listOf("Spotify", "Apple Music", "YouTube Music", "Deezer", "JioSaavn", "Amazon Music").forEach { service ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            color = Color(0xFF222226),
                         ) {
                             Text(
                                 text = service,
                                 style = typo().labelSmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = Color.White,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             )
                         }
@@ -105,11 +109,20 @@ fun ImportLinkDialog(
                     onValueChange = { urlText = it },
                     placeholder = {
                         Text(
-                            text = stringResource(Res.string.import_link_placeholder),
+                            text = "Paste playlist URL (e.g. spotify.com/playlist/...)",
                             style = typo().bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            color = Color(0xFF8E8E93),
                         )
                     },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color(0xFF2C2C2E),
+                        cursorColor = Color.White,
+                        focusedContainerColor = Color(0xFF222226),
+                        unfocusedContainerColor = Color(0xFF222226),
+                    ),
                     trailingIcon = {
                         if (urlText.isNotBlank()) {
                             IconButton(onClick = { urlText = "" }) {
@@ -117,7 +130,7 @@ fun ImportLinkDialog(
                                     imageVector = SimpIcons.Close,
                                     contentDescription = "Clear",
                                     modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = Color(0xFF8E8E93),
                                 )
                             }
                         }
@@ -139,12 +152,12 @@ fun ImportLinkDialog(
                 },
                 enabled = urlText.isNotBlank(),
             ) {
-                Text(text = stringResource(Res.string.import_data))
+                Text(text = "Import", color = if (urlText.isNotBlank()) Color.White else Color(0xFF8E8E93))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(Res.string.cancel))
+                Text(text = "Cancel", color = Color(0xFF8E8E93))
             }
         },
     )

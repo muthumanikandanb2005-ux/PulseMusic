@@ -2833,6 +2833,10 @@ internal class MediaServiceHandlerImpl(
         currentPositionMillis: Long,
     ) {
         coroutineScope.launch {
+            val dailyAnalytics = dataStoreManager.dailyAnalyticsEnabled.first()
+            if (!dailyAnalytics) {
+                return@launch
+            }
             val trackingEnabled = dataStoreManager.localTrackingEnabled.first() == TRUE
             if (!trackingEnabled) {
                 return@launch

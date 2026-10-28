@@ -148,7 +148,15 @@ tasks.named<hydraulic.conveyor.gradle.WriteConveyorConfigTask>("writeConveyorCon
 compose.desktop {
     application {
         mainClass = "com.pulse.music.MainKt"
-        jvmArgs += "--add-opens=java.base/java.nio=ALL-UNNAMED"
+        jvmArgs += listOf(
+            "--add-opens=java.base/java.nio=ALL-UNNAMED",
+            "-XX:+UseG1GC",
+            "-Xms64m",
+            "-Xmx1024m",
+            "-XX:+TieredCompilation",
+            "-Dcompose.swing.render.on.graphics=true",
+            "-Dcompose.interop.blending=true",
+        )
 
         nativeDistributions {
             appResourcesRootDir = rootDir.resolve("mpv-natives/")

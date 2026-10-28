@@ -420,6 +420,8 @@ fun SettingScreen(
     val hideVolumeBar by viewModel.hideVolumeBar.collectAsStateWithLifecycle()
     val hideSongStatus by viewModel.hideSongStatus.collectAsStateWithLifecycle()
     val analyticsEnabled by viewModel.analyticsEnabled.collectAsStateWithLifecycle()
+    val dailyAnalyticsEnabled by viewModel.dailyAnalyticsEnabled.collectAsStateWithLifecycle()
+    var showImportPlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var smartAudioAlignment by rememberSaveable { mutableStateOf(true) }
 
     var showYouTubeAccountDialog by rememberSaveable { mutableStateOf(false) }
@@ -1320,7 +1322,7 @@ fun SettingScreen(
             }
 
             // GROUP 10: YOUR DATA
-            if (matchesSearch("Your Data", "Replay", "Work out genres", "Export data", "Import data")) {
+            if (matchesSearch("Your Data", "Replay", "Daily Analytics", "Import playlist", "Work out genres", "Export data", "Import data")) {
                 item(key = "card_your_data") {
                     PulseSettingsHeader(title = "YOUR DATA")
                     PulseSettingsCard {
@@ -1331,6 +1333,23 @@ fun SettingScreen(
                             showChevron = true,
                             onClick = {
                                 navController.navigate(AnalyticsDestination)
+                            },
+                        )
+                        PulseSettingDivider()
+                        PulseSettingRow(
+                            title = "Daily Analytics",
+                            subtitle = "Track daily listening habits, stats, and personalized daily insights",
+                            leadingIcon = SimpIcons.GraphicEq,
+                            switchState = (dailyAnalyticsEnabled to { viewModel.setDailyAnalyticsEnabled(it) }),
+                        )
+                        PulseSettingDivider()
+                        PulseSettingRow(
+                            title = "Import playlist from other streaming apps",
+                            subtitle = "Import playlists from Spotify, Apple Music, YouTube Music, or M3U",
+                            leadingIcon = SimpIcons.Download,
+                            showChevron = true,
+                            onClick = {
+                                showImportLinkDialog = true
                             },
                         )
                         PulseSettingDivider()

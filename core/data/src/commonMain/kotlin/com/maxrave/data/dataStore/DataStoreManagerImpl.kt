@@ -1,4 +1,4 @@
-﻿package com.maxrave.data.dataStore
+package com.maxrave.data.dataStore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -1997,6 +1997,19 @@ internal class DataStoreManagerImpl(
         }
     }
 
+    override val dailyAnalyticsEnabled: Flow<Boolean> =
+        settingsDataStore.data.map { preferences ->
+            preferences[DAILY_ANALYTICS_ENABLED] ?: true
+        }
+
+    override suspend fun setDailyAnalyticsEnabled(enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[DAILY_ANALYTICS_ENABLED] = enabled
+            }
+        }
+    }
+
     override val blogNotificationEnabled: Flow<String> =
         settingsDataStore.data.map { preferences ->
             preferences[BLOG_NOTIFICATION_ENABLED] ?: TRUE
@@ -2234,6 +2247,7 @@ internal class DataStoreManagerImpl(
         val LASTFM_SCROBBLE_ENABLED = stringPreferencesKey("lastfm_scrobble_enabled")
 
         val LOCAL_TRACKING_ENABLED = stringPreferencesKey("local_tracking_enabled")
+        val DAILY_ANALYTICS_ENABLED = booleanPreferencesKey("daily_analytics_enabled")
 
         val BLOG_NOTIFICATION_ENABLED = stringPreferencesKey("blog_notification_enabled")
 

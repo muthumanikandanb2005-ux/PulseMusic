@@ -369,6 +369,7 @@ class SettingsViewModel(
         getHideVolumeBar()
         getHideSongStatus()
         getAnalyticsEnabled()
+        getDailyAnalyticsEnabled()
         getExplicitContentEnabled()
         getDiscordLoggedIn()
         getDiscordRichPresenceEnabled()
@@ -2498,6 +2499,25 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.putString(DataStoreManager.ANALYTICS_ENABLED, if (enabled) "true" else "false")
             _analyticsEnabled.emit(enabled)
+        }
+    }
+
+    // Daily Analytics On / Off
+    private val _dailyAnalyticsEnabled = MutableStateFlow(true)
+    val dailyAnalyticsEnabled: StateFlow<Boolean> = _dailyAnalyticsEnabled.asStateFlow()
+
+    fun getDailyAnalyticsEnabled() {
+        viewModelScope.launch {
+            dataStoreManager.dailyAnalyticsEnabled.collect { value ->
+                _dailyAnalyticsEnabled.emit(value)
+            }
+        }
+    }
+
+    fun setDailyAnalyticsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.setDailyAnalyticsEnabled(enabled)
+            _dailyAnalyticsEnabled.emit(enabled)
         }
     }
 }
