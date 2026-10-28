@@ -1,90 +1,90 @@
-{
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v3.3.1",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v3.3.1",
-  "tag_name": "v3.3.1",
-  "name": "Pulse Music v3.3.1 - Instant Desktop Launch, Live Artwork Switching, Daily Analytics & Playlist Importer",
-  "draft": false,
-  "prerelease": false,
-  "published_at": "2026-10-28T19:35:00Z",
-  "body": "# Pulse Music v3.3.1 - Instant Desktop Launch, Live Artwork Switching, Daily Analytics & Playlist Importer\n\nOfficial multi-platform release and OTA update for **Android**, **Windows**, **Orion Store**, and **Obtainium**.\n\n---\n\n### ⚡ Instant Windows App Launch (<5s Cold Start)\n- **Asynchronous LibMPV & Audio Engine Preload**: Removed blocking `createdAtStart = true` and eliminated `runBlocking` calls on DataStore during Koin dependency injection, allowing the main window to render immediately without stalls.\n- **Deferred Background Services**: Offloaded Sentry, VersionManager check, and Last.fm init off the primary EDT dispatch thread.\n- **Optimized JVM GC & Tiered Compilation**: Configured `-XX:+TieredCompilation`, `-XX:+UseG1GC`, and Compose Swing hardware acceleration in desktop application launch parameters.\n\n### 🎨 Instant Album Artwork & Track Metadata Switching\n- **Zero-Latency Artwork Transitions**: Enabled 25% in-memory Coil cache and disabled desktop image crossfade (`crossfade(false)`), allowing instant 0ms switching when navigating between songs.\n- **Shared OkHttpClient Connection Pool**: Replaced per-request HTTP client generation with a shared Desktop OkHttpClient singleton.\n\n### 📊 Daily Analytics Toggle\n- **User Privacy Control**: Added \"Daily Analytics\" toggle under Settings > YOUR DATA, allowing users to enable or disable listening history and daily tracking across Android and Desktop.\n\n### 🔄 Import Playlist from Other Streaming Services\n- **Seamless Streaming Import**: Added direct option in Settings to import playlists from Spotify, Apple Music, YouTube Music, Deezer, and more.\n- **AMOLED Dark Grey & White Design**: Re-styled import dialog with pure dark AMOLED `#000000`, card container `#161618`, `#222226` input fields, and `#FFFFFF` typography.\n\n### 🎵 Smooth Playback & Catalog Optimizations\n- **Non-blocking Queue Updates**: Removed artificial loop delays and parallelized track state updates during playback queue restoration.\n",
-  "assets": [
-    {
-      "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-Universal.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 61295480
-    },
-    {
-      "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-arm64-v8a.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 33424120
-    },
-    {
-      "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-armeabi-v7a.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 33388200
-    },
-    {
-      "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-x86_64.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 34889600
-    },
-    {
-      "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-Windows-x64-Setup.exe",
-      "content_type": "application/x-msdownload",
-      "size": 183315200
-    },
-    {
-      "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-Windows-x64-Setup.zip",
-      "content_type": "application/zip",
-      "size": 182845600
-    },
-    {
-      "name": "PulseMusic-v3.3.1-windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-windows-x64-Setup.exe",
-      "content_type": "application/x-msdownload",
-      "size": 183315200
-    },
-    {
-      "name": "PulseMusic-v3.3.1-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-Windows-x64-Setup.zip",
-      "content_type": "application/zip",
-      "size": 182845600
-    },
-    {
-      "name": "PulseMusic-v3.3.1-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-Universal.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 61295480
-    },
-    {
-      "name": "PulseMusic-v3.3.1-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-arm64-v8a.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 33424120
-    },
-    {
-      "name": "PulseMusic-v3.3.1-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-armeabi-v7a.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 33388200
-    },
-    {
-      "name": "PulseMusic-v3.3.1-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-x86_64.apk",
-      "content_type": "application/vnd.android.package-archive",
-      "size": 34889600
-    },
-    {
-      "name": "SHA256SUMS.txt",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/SHA256SUMS.txt",
-      "content_type": "text/plain; charset=utf-8",
-      "size": 1180
-    }
-  ]
+﻿{
+    "url":  "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v3.3.1",
+    "html_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v3.3.1",
+    "tag_name":  "v3.3.1",
+    "name":  "Pulse Music v3.3.1 - Instant Desktop Launch, Live Artwork Switching, Daily Analytics \u0026 Playlist Importer",
+    "draft":  false,
+    "prerelease":  false,
+    "published_at":  "2026-10-28T19:35:00Z",
+    "body":  "# Pulse Music v3.3.1 - Instant Desktop Launch, Live Artwork Switching, Daily Analytics \u0026 Playlist Importer\n\nOfficial multi-platform release and OTA update for **Android**, **Windows**, **Orion Store**, and **Obtainium**.\n\n---\n\n### âš¡ Instant Windows App Launch (\u003c5s Cold Start)\n- **Asynchronous LibMPV \u0026 Audio Engine Preload**: Removed blocking `createdAtStart = true` and eliminated `runBlocking` calls on DataStore during Koin dependency injection, allowing the main window to render immediately without stalls.\n- **Deferred Background Services**: Offloaded Sentry, VersionManager check, and Last.fm init off the primary EDT dispatch thread.\n- **Optimized JVM GC \u0026 Tiered Compilation**: Configured `-XX:+TieredCompilation`, `-XX:+UseG1GC`, and Compose Swing hardware acceleration in desktop application launch parameters.\n\n### ðŸŽ¨ Instant Album Artwork \u0026 Track Metadata Switching\n- **Zero-Latency Artwork Transitions**: Enabled 25% in-memory Coil cache and disabled desktop image crossfade (`crossfade(false)`), allowing instant 0ms switching when navigating between songs.\n- **Shared OkHttpClient Connection Pool**: Replaced per-request HTTP client generation with a shared Desktop OkHttpClient singleton.\n\n### ðŸ“Š Daily Analytics Toggle\n- **User Privacy Control**: Added \"Daily Analytics\" toggle under Settings \u003e YOUR DATA, allowing users to enable or disable listening history and daily tracking across Android and Desktop.\n\n### ðŸ”„ Import Playlist from Other Streaming Services\n- **Seamless Streaming Import**: Added direct option in Settings to import playlists from Spotify, Apple Music, YouTube Music, Deezer, and more.\n- **AMOLED Dark Grey \u0026 White Design**: Re-styled import dialog with pure dark AMOLED `#000000`, card container `#161618`, `#222226` input fields, and `#FFFFFF` typography.\n\n### ðŸŽµ Smooth Playback \u0026 Catalog Optimizations\n- **Non-blocking Queue Updates**: Removed artificial loop delays and parallelized track state updates during playback queue restoration.\n",
+    "assets":  [
+                   {
+                       "name":  "PulseMusic-Universal.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-Universal.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  61289803
+                   },
+                   {
+                       "name":  "PulseMusic-arm64-v8a.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-arm64-v8a.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  33420746
+                   },
+                   {
+                       "name":  "PulseMusic-armeabi-v7a.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-armeabi-v7a.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  33384883
+                   },
+                   {
+                       "name":  "PulseMusic-x86_64.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-x86_64.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  34886225
+                   },
+                   {
+                       "name":  "PulseMusic-Windows-x64-Setup.exe",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-Windows-x64-Setup.exe",
+                       "content_type":  "application/x-msdownload",
+                       "size":  183299616
+                   },
+                   {
+                       "name":  "PulseMusic-Windows-x64-Setup.zip",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-Windows-x64-Setup.zip",
+                       "content_type":  "application/zip",
+                       "size":  182829004
+                   },
+                   {
+                       "name":  "PulseMusic-v3.3.1-windows-x64-Setup.exe",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-windows-x64-Setup.exe",
+                       "content_type":  "application/x-msdownload",
+                       "size":  183299616
+                   },
+                   {
+                       "name":  "PulseMusic-v3.3.1-Windows-x64-Setup.zip",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-Windows-x64-Setup.zip",
+                       "content_type":  "application/zip",
+                       "size":  182829004
+                   },
+                   {
+                       "name":  "PulseMusic-v3.3.1-Universal.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-Universal.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  61289803
+                   },
+                   {
+                       "name":  "PulseMusic-v3.3.1-arm64-v8a.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-arm64-v8a.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  33420746
+                   },
+                   {
+                       "name":  "PulseMusic-v3.3.1-armeabi-v7a.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-armeabi-v7a.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  33384883
+                   },
+                   {
+                       "name":  "PulseMusic-v3.3.1-x86_64.apk",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/PulseMusic-v3.3.1-x86_64.apk",
+                       "content_type":  "application/vnd.android.package-archive",
+                       "size":  34886225
+                   },
+                   {
+                       "name":  "SHA256SUMS.txt",
+                       "browser_download_url":  "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v3.3.1/SHA256SUMS.txt",
+                       "content_type":  "text/plain; charset=utf-8",
+                       "size":  1168
+                   }
+               ]
 }
