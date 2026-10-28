@@ -1,0 +1,6 @@
+Pulse Music v3.3.1:
+- Instant Windows App Launch: Cold start accelerated to <5s with non-blocking libmpv init and deferred background tasks
+- Instant Desktop Artwork Switching: Zero-latency 0ms album cover and track title transitions with 25% memory cache
+- Daily Analytics Toggle: Complete user privacy control with on/off switch in Settings > Your Data
+- Import Playlists: Seamless import from Spotify, Apple Music, YouTube Music, and Deezer in Settings
+- Butter-Smooth Playback: G1GC JVM optimization, parallelized queue updates, and eliminated audio pauses

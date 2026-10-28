@@ -75,7 +75,15 @@ Builds:
     gradle:
       - yes
 
+  - versionName: 3.3.1
+    versionCode: 99
+    commit: v3.3.1
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 3.3.0
-CurrentCode: 98
+CurrentVersion: 3.3.1
+CurrentCode: 99
