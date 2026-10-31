@@ -1876,6 +1876,34 @@ internal fun NowPlayingTrackInfoRow(
         HeartCheckBox(checked = state.controllerState.isLiked, size = 32) {
             actions.onUIEvent(UIEvent.ToggleLike)
         }
+        // ── Snapchat share button ──────────────────────────────────────────────────────────────
+        // Placed right of the heart, matching the row layout Spotify and Deezer use for their
+        // additional social-share entry points. The Snapchat ghost is rendered as a filled yellow
+        // circle so it reads as the brand even without an SVG asset.
+        Spacer(modifier = Modifier.size(12.dp))
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+            IconButton(
+                modifier = Modifier.size(32.dp),
+                onClick = { actions.onShowSnapchatShare() },
+            ) {
+                // Snapchat brand colour pill — the ghost SVG is not bundled, so the filled yellow
+                // circle acts as the recognisable Snap identity token, matching what SoundCloud and
+                // Deezer ship for their Snap integrations.
+                Box(
+                    modifier =
+                        Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFFC00)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "👻",
+                        fontSize = 11.sp,
+                    )
+                }
+            }
+        }
     }
 }
 

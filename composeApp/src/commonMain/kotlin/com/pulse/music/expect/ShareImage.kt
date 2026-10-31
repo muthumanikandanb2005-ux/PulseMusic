@@ -25,3 +25,23 @@ expect suspend fun shareImage(
     fileName: String,
     chooserTitle: String,
 ): Boolean
+
+/**
+ * Checks if the Snapchat application is installed and available to receive shares.
+ */
+expect fun isSnapchatAvailable(): Boolean
+
+/**
+ * Shares a 9:16 music card to Snapchat using Snapchat Creative Kit.
+ *
+ * Passes the pre-rendered music card as media, track caption, and a deep-link attachment
+ * that powers the swipe-up Context Card in Snapchat.
+ */
+expect suspend fun shareToSnapchat(
+    bytes: ByteArray,
+    fileName: String,
+    songTitle: String,
+    artistName: String,
+    deepLinkUrl: String,
+    caption: String = "🎵 Listen on Pulse Music",
+): Boolean

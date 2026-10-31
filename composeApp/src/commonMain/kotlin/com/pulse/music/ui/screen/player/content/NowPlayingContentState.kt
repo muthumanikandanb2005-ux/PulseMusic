@@ -153,4 +153,6 @@ class NowPlayingContentActions(
     val onMoveQueueItem: (from: Int, to: Int) -> Unit,
     /** Removes one queue entry. `index` is an absolute index into [NowPlayingContentState.artworkQueue]. */
     val onRemoveQueueItem: (index: Int) -> Unit,
+    /** Opens the Snapchat music-card share sheet for the currently playing track. */
+    val onShowSnapchatShare: () -> Unit = {},
 )

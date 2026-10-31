@@ -43,6 +43,11 @@
     <queries>
         <package android:name="com.pulse.music" />
     </queries>
+    <!-- Snapchat Creative Kit: allow resolving the Creative Kit intent and querying if Snapchat
+         is installed so the share button is only shown when the app is present. -->
+    <queries>
+        <package android:name="com.snapchat.android" />
+    </queries>
     <queries>
         <intent>
             <action android:name="androidx.media3.session.MediaSessionService" />
@@ -92,6 +97,18 @@
                 <action android:name="androidx.car.app.media.action.SHOW_MEDIA_PLAYBACK" />
 
                 <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Snapchat Creative Kit: deep-link so Snapchat's swipe-up context card
+                 can re-open the specific song in Pulse Music. Scheme = "pulsemusic",
+                 host = "song", query param = "videoId". -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="pulsemusic"
+                    android:host="song" />
             </intent-filter>
 
             <!-- Youtube filter -->

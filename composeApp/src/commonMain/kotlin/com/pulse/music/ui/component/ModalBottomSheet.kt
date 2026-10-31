@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.component
+package com.pulse.music.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -129,6 +129,7 @@ import com.manikandan.domain.utils.toListName
 import com.maxrave.logger.Logger
 import com.pulse.music.expect.copyToClipboard
 import com.pulse.music.expect.shareUrl
+import com.pulse.music.ui.component.share.ShareMusicCardSheet
 import com.pulse.music.expect.ui.persistPickedImage
 import com.pulse.music.expect.ui.photoPickerResult
 import com.pulse.music.extension.displayNameRes
@@ -1451,6 +1452,7 @@ fun NowPlayingBottomSheet(
     var sleepTimerWarning by remember { mutableStateOf(false) }
     var isBottomSheetVisible by rememberSaveable { mutableStateOf(false) }
     var changePlaybackSpeedPitch by remember { mutableStateOf(false) }
+    var showShareMusicCard by remember { mutableStateOf(false) }
     val crossfadeEnabled by dataStoreManager.crossfadeEnabled.collectAsState(DataStoreManager.FALSE)
 
     LaunchedEffect(uiState) {
@@ -1545,6 +1547,18 @@ fun NowPlayingBottomSheet(
             text = {
                 Text(text = stringResource(Res.string.sleep_timer_warning), style = typo().bodyMedium)
             },
+        )
+    }
+
+    if (showShareMusicCard) {
+        ShareMusicCardSheet(
+            songTitle = uiState.songUIState.title,
+            artistName = uiState.songUIState.listArtists.toListName().connectArtists(),
+            artworkUrl = uiState.songUIState.thumbnails,
+            seedColor = seed,
+            videoId = uiState.songUIState.videoId,
+            albumName = uiState.songUIState.album?.name,
+            onDismiss = { showShareMusicCard = false },
         )
     }
 
@@ -1898,7 +1912,7 @@ fun NowPlayingBottomSheet(
                         icon = SimpIcons.Share,
                         text = Res.string.share,
                     ) {
-                        viewModel.onUIEvent(NowPlayingBottomSheetUIEvent.Share)
+                        showShareMusicCard = true
                     }
                     EndOfModalBottomSheet()
                 }

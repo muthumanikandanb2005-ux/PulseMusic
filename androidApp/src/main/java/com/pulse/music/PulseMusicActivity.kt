@@ -113,6 +113,25 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Logger.d("PulseMusicActivity", "onNewIntent: $intent")
+
+        // Snapchat Creative Kit deep-link: pulsemusic://song?videoId=<id>
+        // When the user swipes up on the Snap card, Snapchat fires this URI; we translate it to
+        // the standard simpmusic://watch?v=<id> form that SharedViewModel already understands.
+        val snapDeepLink = intent.data?.takeIf { it.scheme == "pulsemusic" && it.host == "song" }
+        if (snapDeepLink != null) {
+            val videoId = snapDeepLink.getQueryParameter("videoId")
+            if (!videoId.isNullOrBlank()) {
+                viewModel.setIntent(
+                    GenericIntent(
+                        action = Intent.ACTION_VIEW,
+                        data = "simpmusic://watch?v=$videoId".toUri().toKmpUriOrNull(),
+                        type = null,
+                    ),
+                )
+                return
+            }
+        }
+
         val rawData = sanitizeIntentUri(
             intent.data
                 ?: intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri()

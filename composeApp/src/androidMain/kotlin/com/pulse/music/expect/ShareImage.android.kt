@@ -93,3 +93,77 @@ actual suspend fun shareImage(
             false
         }
     }
+
+actual fun isSnapchatAvailable(): Boolean {
+    val context: AppCompatActivity = runCatching { getKoin().get<AppCompatActivity>() }.getOrNull() ?: return false
+    return runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.getPackageInfo("com.snapchat.android", android.content.pm.PackageManager.PackageInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo("com.snapchat.android", 0)
+        }
+        true
+    }.getOrDefault(false)
+}
+
+actual suspend fun shareToSnapchat(
+    bytes: ByteArray,
+    fileName: String,
+    songTitle: String,
+    artistName: String,
+    deepLinkUrl: String,
+    caption: String,
+): Boolean =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            val context: AppCompatActivity = getKoin().get()
+
+            // 1. Write the card to the app's cache directory
+            val dir = File(context.cacheDir, "snapchat_cards").apply { mkdirs() }
+            val file = File(dir, fileName)
+            file.writeBytes(bytes)
+
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", file)
+
+            // 2. Build Snapchat Creative Kit share intent
+            // Snapchat's Creative Kit intent action targets com.snapchat.android
+            val snapIntent =
+                Intent("com.snapchat.android.CREATIVE_KIT_SDK_SHARE").apply {
+                    setPackage("com.snapchat.android")
+                    // Photo payload
+                    putExtra("com.snapchat.android.sdk.creative.media_uri", uri)
+                    // Caption
+                    putExtra("com.snapchat.android.sdk.creative.caption_text", caption)
+                    // Context card swipe-up attachment link
+                    putExtra("com.snapchat.android.sdk.creative.attachment_url", deepLinkUrl)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(FLAG_ACTIVITY_NEW_TASK)
+                }
+
+            if (snapIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(snapIntent)
+                true
+            } else {
+                // Fallback: standard ACTION_SEND targeted to Snapchat package
+                val fallbackIntent =
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = MIME_PNG
+                        setPackage("com.snapchat.android")
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        putExtra(Intent.EXTRA_TEXT, "$caption\n$deepLinkUrl")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(FLAG_ACTIVITY_NEW_TASK)
+                    }
+                if (fallbackIntent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(fallbackIntent)
+                    true
+                } else {
+                    false
+                }
+            }
+        }.getOrElse { error ->
+            Logger.e(TAG, "Could not share to Snapchat: ${error.message}")
+            false
+        }
+    }

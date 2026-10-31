@@ -91,3 +91,14 @@ private fun revealInFileManager(file: File) {
             .isSuccess
     }
 }
+
+actual fun isSnapchatAvailable(): Boolean = false
+
+actual suspend fun shareToSnapchat(
+    bytes: ByteArray,
+    fileName: String,
+    songTitle: String,
+    artistName: String,
+    deepLinkUrl: String,
+    caption: String,
+): Boolean = false

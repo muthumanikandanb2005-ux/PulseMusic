@@ -85,6 +85,7 @@ import com.pulse.music.ui.component.InfoPlayerBottomSheet
 import com.pulse.music.ui.component.NowPlayingBottomSheet
 import com.pulse.music.ui.component.QueueBottomSheet
 import com.pulse.music.ui.component.VoteLyricsDialog
+import com.pulse.music.ui.component.share.ShareMusicCardSheet
 import com.pulse.music.ui.icon.KeyboardArrowDown
 import com.pulse.music.ui.icon.SimpIcons
 import com.pulse.music.ui.navigation.destination.list.ArtistDestination
@@ -407,6 +408,11 @@ fun NowPlayingScreenContent(
 
     // NEW: Add to Playlist state
     var showAddToPlaylistDirectly by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    // Spotify-style Music Card & Snapchat Share Sheet
+    var showShareMusicCardSheet by rememberSaveable {
         mutableStateOf(false)
     }
 
@@ -736,6 +742,7 @@ fun NowPlayingScreenContent(
             onRemoveQueueItem = { index ->
                 mediaPlayerHandler.removeMediaItem(index)
             },
+            onShowSnapchatShare = { showShareMusicCardSheet = true },
         )
 
     // Below `state`/`actions`: the landscape lyrics layout renders the current style's own track row
@@ -914,6 +921,19 @@ fun NowPlayingScreenContent(
             onDismiss = {
                 showVoteDialog = false
             },
+        )
+    }
+
+    // ── Spotify-style Music Card & Snapchat Share Sheet ─────────────────────────────────
+    if (showShareMusicCardSheet) {
+        ShareMusicCardSheet(
+            songTitle = screenDataState.nowPlayingTitle,
+            artistName = screenDataState.artistName,
+            artwork = screenDataState.bitmap,
+            seedColor = startColor.value,
+            videoId = nowPlayingVideoId.orEmpty(),
+            albumName = screenDataState.songInfoData?.album,
+            onDismiss = { showShareMusicCardSheet = false },
         )
     }
 

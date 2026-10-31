@@ -18,6 +18,7 @@ dependencyResolutionManagement {
         maven { url = uri("https://jitpack.io") }
         maven("https://jogamp.org/deployment/maven")
         maven(url = "https://raw.githubusercontent.com/bravepipeproject/maven-repo/master/repository")
+        maven("https://storage.googleapis.com/snap-kit-build/maven")
     }
 }
 
