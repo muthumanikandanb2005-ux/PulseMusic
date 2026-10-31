@@ -21,7 +21,7 @@ object VersionManager {
     fun getVersionCode(): Int = try {
         BuildKonfig.versionCode
     } catch (_: Exception) {
-        100
+        101
     }
 
     private fun removeDevSuffix(versionName: String): String {

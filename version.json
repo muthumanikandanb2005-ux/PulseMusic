@@ -1,88 +1,88 @@
 {
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.0.0",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.0.0",
-  "tag_name": "v4.0.0",
-  "name": "Pulse Music v4.0.0 - Snapchat Creative Kit, Spotify-Style Music Share & Next-Gen Smart Playback",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.0.1",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.0.1",
+  "tag_name": "v4.0.1",
+  "name": "Pulse Music v4.0.1 - Snapchat Snap Sharing, Spotify Share Button & Windows YouTube Login",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-10-31T16:33:40Z",
-  "body": "# Pulse Music v4.0.0 - Snapchat Creative Kit, Spotify-Style Music Share & Next-Gen Smart Playback\n\nOfficial major release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, and **Obtainium**.\n\n---\n\n### \ud83d\udc7b Snapchat Creative Kit Integration\n- **Direct Snapchat Stories Sharing**: Tap the Snapchat share icon on any song to launch directly into Snapchat Camera with a rich media sticker and instant deep-link playback URL (`pulsemusic://song?videoId=...`).\n- **Interactive Deep Linking**: Tapping shared Pulse stories immediately opens and resumes the track inside Pulse Music on recipient devices.\n\n### \ud83c\udfa8 Spotify-Style 9:16 Music Card Sharing\n- **Dynamic Ambient Color Glow**: High-resolution 9:16 vertical cards with album artwork glow that dynamically matches the album color palette.\n- **Pulse Audio Soundwave Barcode**: Custom brand-exclusive soundwave barcode with interactive swatches and high-contrast typography.\n- **One-Tap Export & Direct Share**: Save card to Gallery, copy playback link, or share directly to system apps and Snapchat.\n\n### \u23ed\ufe0f Smart Queue & Playback Skipping Fixes\n- **No More Replaying on Skip**: User-initiated track skip (`seekToNext()` / `seekToPrevious()`) now properly bypasses single-track repeat (`REPEAT_MODE_ONE`) to always advance to the next song in the queue.\n- **100% Pure Radio Discovery**: Discovery ratio is defaulted to 100% fresh recommendations, eliminating repetitive liked song looping during radio playback.\n- **History-Preserving Shuffle**: Appending songs to the queue in shuffle mode no longer resets playback history or reshuffles already played songs.\n- **Seamless Autoplay & Endless Queue**: Defaulted endless queue to active with automatic fallback to related radio recommendations when playlist ends.\n- **Queue Deduplication**: Eliminated duplicate song entries when appending recommendations or loading more catalog items.\n\n### \u26a1 Performance & Stability\n- **Windows x64 Signed Setup**: Updated installer signed with digital certificates and zero cold-start delay.\n- **Android Multi-ABI Support**: Optimized builds for universal, arm64-v8a, armeabi-v7a, and x86_64 architectures.\n",
+  "published_at": "2026-10-31T17:39:14Z",
+  "body": "# Pulse Music v4.0.1 - Snapchat Snap Sharing, Spotify Share Button & Windows YouTube Login\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, and **Obtainium**.\n\n---\n\n### \ud83d\udc7b Snapchat Creative Kit - Real Snap Sharing\n- **Opens Directly as a Snap**: Sharing album cards and lyrics opens Snapchat's Snap preview and camera editor directly, never defaulting to 1-on-1 private Chat.\n- **Lyrics Card Snap Sharing**: Share interactive formatted lyrics cards directly to Snapchat with custom background colors, dynamic typography, and deep link playback context.\n- **Spotify-Style 9:16 Music Card Snap**: High-resolution 9:16 vertical cards with album artwork glow and custom brand soundwave barcodes.\n\n### \ud83c\udfa8 Spotify-Style Share Button\n- **Exact Spotify Placement**: Dedicated Share button placed directly below the album artwork next to the heart/like button on the Now Playing screen.\n- **One-Tap Access**: Immediate access to the Spotify-style music card and Snapchat share options with a single tap.\n\n### \ud83d\udcbb Windows Desktop YouTube Login Fix\n- **Native Login UI**: Complete desktop YouTube login connection panel with guided 3-step setup and browser integration.\n- **One-Click Clipboard Paste**: Instant paste and automatic sanitization supporting raw cookies, cURL commands, HTTP headers, and Netscape format.\n- **Real-Time Token Validation**: Live badge verification for essential auth tokens (`SAPISID`, `__Secure-3PAPISID`, `LOGIN_INFO`, `SID`).\n- **Full Account Sync**: Persistent cookie storage ensuring user playlists and liked songs sync reliably on Windows.\n\n### \u23ed\ufe0f Smart Queue & Playback Stability\n- **Skip Logic**: User skips bypass single-track repeat to reliably progress through the queue.\n- **Radio Recommendations**: 100% discovery ratio to eliminate repetitive looping of liked songs.\n",
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 61538020
+      "size": 61531427
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 33668960
+      "size": 33662362
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 33633104
+      "size": 33626500
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 35134445
+      "size": 35127844
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/x-msdownload",
-      "size": 183369360
+      "size": 183399416
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 182895782
+      "size": 182928212
     },
     {
-      "name": "PulseMusic-v4.0.0-windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-v4.0.0-windows-x64-Setup.exe",
+      "name": "PulseMusic-v4.0.1-windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-v4.0.1-windows-x64-Setup.exe",
       "content_type": "application/x-msdownload",
-      "size": 183369360
+      "size": 183399416
     },
     {
-      "name": "PulseMusic-v4.0.0-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-v4.0.0-Windows-x64-Setup.zip",
+      "name": "PulseMusic-v4.0.1-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-v4.0.1-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 182895782
+      "size": 182928212
     },
     {
-      "name": "PulseMusic-v4.0.0-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-v4.0.0-Universal.apk",
+      "name": "PulseMusic-v4.0.1-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-v4.0.1-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 61538020
+      "size": 61531427
     },
     {
-      "name": "PulseMusic-v4.0.0-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-v4.0.0-arm64-v8a.apk",
+      "name": "PulseMusic-v4.0.1-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-v4.0.1-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 33668960
+      "size": 33662362
     },
     {
-      "name": "PulseMusic-v4.0.0-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-v4.0.0-armeabi-v7a.apk",
+      "name": "PulseMusic-v4.0.1-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-v4.0.1-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 33633104
+      "size": 33626500
     },
     {
-      "name": "PulseMusic-v4.0.0-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/PulseMusic-v4.0.0-x86_64.apk",
+      "name": "PulseMusic-v4.0.1-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/PulseMusic-v4.0.1-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 35134445
+      "size": 35127844
     },
     {
       "name": "SHA256SUMS.txt",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.0/SHA256SUMS.txt",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.0.1/SHA256SUMS.txt",
       "content_type": "text/plain; charset=utf-8",
       "size": 1176
     }
