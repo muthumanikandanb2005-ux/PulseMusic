@@ -47,8 +47,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulse.music.Platform
+import com.pulse.music.expect.isSnapchatAvailable
 import com.pulse.music.expect.saveImageToDevice
 import com.pulse.music.expect.shareImage
+import com.pulse.music.expect.shareToSnapchat
 import com.pulse.music.expect.ui.rememberSaveImagePermission
 import com.pulse.music.expect.ui.toPngByteArray
 import com.pulse.music.getPlatform
@@ -79,6 +81,8 @@ import simpmusic.composeapp.generated.resources.share_lyrics_share_action
 import simpmusic.composeapp.generated.resources.share_lyrics_share_failed
 import kotlin.random.Random
 
+private val SnapYellow = Color(0xFFFFFC00)
+
 /**
  * Pick up to [MAX_SHARE_LYRIC_LINES] consecutive lines, preview the card they make, then save or
  * share it.
@@ -99,6 +103,7 @@ fun ShareLyricsSheet(
     artwork: ImageBitmap?,
     seedColor: Color,
     initialLineIndex: Int,
+    videoId: String = "",
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -217,6 +222,39 @@ fun ShareLyricsSheet(
                                     val bytes = captureController.captureAsync().await().toPngByteArray()
                                     val ok = bytes != null && shareImage(bytes, fileName, chooserTitle)
                                     if (!ok) showToast(shareFailedMessage, ToastGravity.Bottom)
+                                    busy = false
+                                }
+                            }
+                        },
+                        onShareSnapchat = {
+                            if (!busy) {
+                                busy = true
+                                scope.launch {
+                                    runCatching {
+                                        val bytes = captureController.captureAsync().await().toPngByteArray()
+                                        if (bytes != null) {
+                                            val deepLinkUrl =
+                                                if (videoId.isNotBlank()) "pulsemusic://song?videoId=$videoId"
+                                                else "https://github.com/muthumanikandanb2005-ux/PulseMusic"
+                                            val ok = shareToSnapchat(
+                                                bytes = bytes,
+                                                fileName = fileName,
+                                                songTitle = songTitle,
+                                                artistName = artistName,
+                                                deepLinkUrl = deepLinkUrl,
+                                                caption = "🎵 $songTitle — $artistName | Lyrics",
+                                            )
+                                            if (!ok) {
+                                                showToast("Snapchat not installed or unavailable", ToastGravity.Bottom)
+                                            } else {
+                                                onDismiss()
+                                            }
+                                        } else {
+                                            showToast(shareFailedMessage, ToastGravity.Bottom)
+                                        }
+                                    }.onFailure {
+                                        showToast(shareFailedMessage, ToastGravity.Bottom)
+                                    }
                                     busy = false
                                 }
                             }
@@ -389,6 +427,7 @@ private fun ShareLyricsPreview(
     captureModifier: Modifier,
     onSave: () -> Unit,
     onShare: () -> Unit,
+    onShareSnapchat: () -> Unit,
 ) {
     val selectedLines =
         remember(selection.range, lines) {
@@ -425,7 +464,18 @@ private fun ShareLyricsPreview(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isSnapchatAvailable()) {
+                ShareLyricsPill(
+                    text = "Snapchat",
+                    container = SnapYellow,
+                    label = Color.Black,
+                    onClick = onShareSnapchat,
+                )
+            }
             ShareLyricsPill(
                 text = stringResource(Res.string.share_lyrics_save),
                 icon = SimpIcons.Download,

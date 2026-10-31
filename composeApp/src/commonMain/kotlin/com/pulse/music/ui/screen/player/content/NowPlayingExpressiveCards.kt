@@ -874,6 +874,7 @@ internal fun ExpressiveBelowTheFold(
 
     state.screenData.lyricsData?.let { lyricsData ->
         if (showShareLyricsSheet) {
+            val videoId = state.artworkQueue.getOrNull(state.currentOrderIndex)?.videoId ?: state.screenData.songInfoData?.videoId ?: ""
             ShareLyricsSheet(
                 lines = lyricsData.toShareLyricsLines(),
                 songTitle = state.screenData.nowPlayingTitle,
@@ -881,6 +882,7 @@ internal fun ExpressiveBelowTheFold(
                 artwork = state.screenData.bitmap,
                 seedColor = state.startColor.value,
                 initialLineIndex = state.currentLyricLineIndex,
+                videoId = videoId,
                 onDismiss = { showShareLyricsSheet = false },
             )
         }

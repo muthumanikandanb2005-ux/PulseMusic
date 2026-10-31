@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.screen.player.content.applemusic
+package com.pulse.music.ui.screen.player.content.applemusic
 
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -265,6 +265,7 @@ internal fun AppleMusicLyricsView(
         }
 
         if (showShareSheet && lyricsData != null) {
+            val videoId = state.artworkQueue.getOrNull(state.currentOrderIndex)?.videoId ?: state.screenData.songInfoData?.videoId ?: ""
             ShareLyricsSheet(
                 lines = lyricsData.toShareLyricsLines(),
                 songTitle = state.screenData.nowPlayingTitle,
@@ -274,6 +275,7 @@ internal fun AppleMusicLyricsView(
                 artwork = state.screenData.bitmap,
                 seedColor = state.startColor.value,
                 initialLineIndex = state.currentLyricLineIndex,
+                videoId = videoId,
                 onDismiss = { showShareSheet = false },
             )
         }

@@ -259,7 +259,7 @@ fun ShareMusicCardSheet(
                         Text(text = "👻", fontSize = 18.sp)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = if (busy) "Preparing Card…" else "Share to Snapchat",
+                            text = if (busy) "Preparing Snap…" else "Share as a Snap to Snapchat",
                             color = Color.Black,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,

@@ -3248,15 +3248,17 @@ fun DevLogInBottomSheet(
                     value = value,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     onValueChange = { value = it },
-                    maxLines = 1,
+                    minLines = 2,
+                    maxLines = 6,
                 )
                 Spacer(modifier = Modifier.height(5.dp))
                 TextButton(
                     onClick = {
-                        if (value.isNotEmpty() && value.isNotBlank()) {
+                        val cleaned = value.trim()
+                        if (cleaned.isNotEmpty()) {
                             showToast(runBlocking { getString(Res.string.processing) }, ToastGravity.Bottom)
                             onDismiss()
-                            onDone(value)
+                            onDone(cleaned)
                         } else {
                             showToast(runBlocking { getString(Res.string.can_not_be_empty) }, ToastGravity.Bottom)
                         }

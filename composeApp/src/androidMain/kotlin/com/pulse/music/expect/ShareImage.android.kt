@@ -1,8 +1,10 @@
 package com.pulse.music.expect
 
+import android.app.PendingIntent
 import android.content.ContentValues
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -126,41 +128,119 @@ actual suspend fun shareToSnapchat(
 
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", file)
 
-            // 2. Build Snapchat Creative Kit share intent
-            // Snapchat's Creative Kit intent action targets com.snapchat.android
-            val snapIntent =
-                Intent("com.snapchat.android.CREATIVE_KIT_SDK_SHARE").apply {
-                    setPackage("com.snapchat.android")
-                    // Photo payload
-                    putExtra("com.snapchat.android.sdk.creative.media_uri", uri)
-                    // Caption
-                    putExtra("com.snapchat.android.sdk.creative.caption_text", caption)
-                    // Context card swipe-up attachment link
-                    putExtra("com.snapchat.android.sdk.creative.attachment_url", deepLinkUrl)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(FLAG_ACTIVITY_NEW_TASK)
+            // Explicitly grant read URI permission to Snapchat process
+            context.grantUriPermission(
+                "com.snapchat.android",
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+
+            // 2. Try official SnapCreative SDK via reflection if initialized
+            try {
+                val snapCreativeClass = Class.forName("com.snapchat.kit.sdk.SnapCreative")
+                val getApiMethod = snapCreativeClass.getMethod("getApi", android.content.Context::class.java)
+                val snapApi = getApiMethod.invoke(null, context)
+
+                val photoContentClass = Class.forName("com.snapchat.kit.sdk.creative.models.SnapPhotoContent")
+                val getMediaFactoryMethod = snapCreativeClass.getMethod("getMediaFactory", android.content.Context::class.java)
+                val mediaFactory = getMediaFactoryMethod.invoke(null, context)
+
+                val getSnapPhotoFromFileMethod = mediaFactory.javaClass.getMethod("getSnapPhotoFromFile", File::class.java)
+                val snapPhotoFile = getSnapPhotoFromFileMethod.invoke(mediaFactory, file)
+
+                val snapPhotoContent = photoContentClass.getConstructor(snapPhotoFile.javaClass).newInstance(snapPhotoFile)
+                if (caption.isNotBlank()) {
+                    photoContentClass.getMethod("setCaptionText", String::class.java).invoke(snapPhotoContent, caption)
+                }
+                if (deepLinkUrl.isNotBlank()) {
+                    photoContentClass.getMethod("setAttachmentUrl", String::class.java).invoke(snapPhotoContent, deepLinkUrl)
                 }
 
-            if (snapIntent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(snapIntent)
-                true
-            } else {
-                // Fallback: standard ACTION_SEND targeted to Snapchat package
-                val fallbackIntent =
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = MIME_PNG
-                        setPackage("com.snapchat.android")
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        putExtra(Intent.EXTRA_TEXT, "$caption\n$deepLinkUrl")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        addFlags(FLAG_ACTIVITY_NEW_TASK)
+                val sendMethod = snapApi.javaClass.getMethod("send", Class.forName("com.snapchat.kit.sdk.creative.models.SnapContent"))
+                sendMethod.invoke(snapApi, snapPhotoContent)
+                Logger.d(TAG, "Shared to Snapchat Snap editor via SnapCreative SDK")
+                return@runCatching true
+            } catch (sdkError: Throwable) {
+                Logger.d(TAG, "SnapCreative SDK reflection skipped: ${sdkError.message}")
+            }
+
+            // 3. Official Snapchat Creative Kit Lite "Share to Preview" Intent
+            // Targeting snapchat://creativekit/preview opens Snapchat directly into the
+            // Snap preview/editor screen where the media is rendered as a Snap, never as a chat message.
+            val previewUri = Uri.parse("snapchat://creativekit/preview")
+            val snapPreviewIntent =
+                Intent(Intent.ACTION_SEND).apply {
+                    setPackage("com.snapchat.android")
+                    setDataAndType(previewUri, MIME_PNG)
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra("CLIENT_ID", "com.pulse.music")
+                    putExtra("CLIENT_APP_NAME", "Pulse Music")
+                    if (caption.isNotBlank()) {
+                        putExtra("captionText", caption)
+                        putExtra("caption", caption)
                     }
-                if (fallbackIntent.resolveActivity(context.packageManager) != null) {
-                    context.startActivity(fallbackIntent)
-                    true
-                } else {
-                    false
+                    if (deepLinkUrl.isNotBlank()) {
+                        putExtra("attachmentUrl", deepLinkUrl)
+                        putExtra("attachment_url", deepLinkUrl)
+                    }
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    putExtra(
+                        "RESULT_INTENT_EXTRA",
+                        PendingIntent.getActivity(
+                            context,
+                            1001,
+                            Intent(),
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                PendingIntent.FLAG_IMMUTABLE
+                            } else {
+                                PendingIntent.FLAG_ONE_SHOT
+                            },
+                        ),
+                    )
                 }
+
+            if (snapPreviewIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(snapPreviewIntent)
+                Logger.d(TAG, "Opened Snapchat Snap Preview screen")
+                return@runCatching true
+            }
+
+            // 4. Fallback to Creative Kit Lite "Share to Camera" with sticker/overlay
+            val cameraUri = Uri.parse("snapchat://creativekit/camera")
+            val snapCameraIntent =
+                Intent(Intent.ACTION_SEND).apply {
+                    setPackage("com.snapchat.android")
+                    setDataAndType(cameraUri, MIME_PNG)
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra("CLIENT_ID", "com.pulse.music")
+                    putExtra("CLIENT_APP_NAME", "Pulse Music")
+                    if (caption.isNotBlank()) {
+                        putExtra("captionText", caption)
+                        putExtra("caption", caption)
+                    }
+                    if (deepLinkUrl.isNotBlank()) {
+                        putExtra("attachmentUrl", deepLinkUrl)
+                        putExtra("attachment_url", deepLinkUrl)
+                    }
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+            if (snapCameraIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(snapCameraIntent)
+                Logger.d(TAG, "Opened Snapchat Camera Snap screen")
+                return@runCatching true
+            }
+
+            // 5. Direct launch of preview intent (in case queries block resolveActivity)
+            try {
+                context.startActivity(snapPreviewIntent)
+                Logger.d(TAG, "Direct launch of snapPreviewIntent succeeded")
+                true
+            } catch (e: Exception) {
+                Logger.e(TAG, "Could not start Snapchat as a Snap: ${e.message}")
+                false
             }
         }.getOrElse { error ->
             Logger.e(TAG, "Could not share to Snapchat: ${error.message}")

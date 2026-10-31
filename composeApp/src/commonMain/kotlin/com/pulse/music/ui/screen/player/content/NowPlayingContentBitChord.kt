@@ -610,6 +610,7 @@ fun NowPlayingContentBitChord(
 
         if (showShareLyricsSheet) {
             state.screenData.lyricsData?.let { lData ->
+                val videoId = state.artworkQueue.getOrNull(state.currentOrderIndex)?.videoId ?: state.screenData.songInfoData?.videoId ?: ""
                 ShareLyricsSheet(
                     lines = lData.toShareLyricsLines(),
                     songTitle = state.screenData.nowPlayingTitle,
@@ -617,6 +618,7 @@ fun NowPlayingContentBitChord(
                     artwork = state.screenData.bitmap,
                     seedColor = state.startColor.value,
                     initialLineIndex = state.currentLyricLineIndex,
+                    videoId = videoId,
                     onDismiss = { showShareLyricsSheet = false },
                 )
             }

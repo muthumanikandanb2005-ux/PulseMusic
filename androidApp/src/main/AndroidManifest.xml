@@ -47,6 +47,10 @@
          is installed so the share button is only shown when the app is present. -->
     <queries>
         <package android:name="com.snapchat.android" />
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:scheme="snapchat" android:host="creativekit" android:mimeType="image/*" />
+        </intent>
     </queries>
     <queries>
         <intent>

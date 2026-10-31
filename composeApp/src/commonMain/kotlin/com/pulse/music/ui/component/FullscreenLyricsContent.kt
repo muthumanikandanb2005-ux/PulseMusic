@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.component
+package com.pulse.music.ui.component
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.AnimatedVisibility
@@ -787,6 +787,7 @@ fun FullscreenLyricsContent(
 
     screenDataState.lyricsData?.let { lyricsData ->
         if (showShareLyricsSheet) {
+            val videoId = sharedViewModel.nowPlayingState.value?.songEntity?.videoId ?: screenDataState.songInfoData?.videoId ?: ""
             ShareLyricsSheet(
                 lines = lyricsData.toShareLyricsLines(),
                 songTitle = screenDataState.nowPlayingTitle,
@@ -794,6 +795,7 @@ fun FullscreenLyricsContent(
                 artwork = screenDataState.bitmap,
                 seedColor = color,
                 initialLineIndex = shareTimedLineIndexes.activeIndexAt(timelineState.current - fullscreenLyricsOffsetMs),
+                videoId = videoId,
                 onDismiss = { showShareLyricsSheet = false },
             )
         }

@@ -1713,6 +1713,7 @@ fun NowPlayingContentSpotify(
 
     state.screenData.lyricsData?.let { lyricsData ->
         if (showShareLyricsSheet) {
+            val videoId = state.artworkQueue.getOrNull(state.currentOrderIndex)?.videoId ?: state.screenData.songInfoData?.videoId ?: ""
             ShareLyricsSheet(
                 lines = lyricsData.toShareLyricsLines(),
                 songTitle = state.screenData.nowPlayingTitle,
@@ -1720,6 +1721,7 @@ fun NowPlayingContentSpotify(
                 artwork = state.screenData.bitmap,
                 seedColor = state.startColor.value,
                 initialLineIndex = state.currentLyricLineIndex,
+                videoId = videoId,
                 onDismiss = { showShareLyricsSheet = false },
             )
         }
@@ -1876,32 +1878,21 @@ internal fun NowPlayingTrackInfoRow(
         HeartCheckBox(checked = state.controllerState.isLiked, size = 32) {
             actions.onUIEvent(UIEvent.ToggleLike)
         }
-        // ── Snapchat share button ──────────────────────────────────────────────────────────────
-        // Placed right of the heart, matching the row layout Spotify and Deezer use for their
-        // additional social-share entry points. The Snapchat ghost is rendered as a filled yellow
-        // circle so it reads as the brand even without an SVG asset.
+        // ── Share button (Same as Spotify) ────────────────────────────────────────────────────────
+        // Positioned immediately below the album artwork next to the heart, matching Spotify's exact
+        // Now Playing layout. Tapping opens the music card and Snapchat share sheet.
         Spacer(modifier = Modifier.size(12.dp))
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
             IconButton(
                 modifier = Modifier.size(32.dp),
                 onClick = { actions.onShowSnapchatShare() },
             ) {
-                // Snapchat brand colour pill — the ghost SVG is not bundled, so the filled yellow
-                // circle acts as the recognisable Snap identity token, matching what SoundCloud and
-                // Deezer ship for their Snap integrations.
-                Box(
-                    modifier =
-                        Modifier
-                            .size(22.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFFC00)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "👻",
-                        fontSize = 11.sp,
-                    )
-                }
+                Icon(
+                    imageVector = SimpIcons.Share,
+                    contentDescription = "Share",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
     }
