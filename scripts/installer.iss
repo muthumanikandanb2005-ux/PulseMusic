@@ -1,5 +1,5 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "3.3.1"
+#define MyAppVersion "4.0.0"
 #define MyAppPublisher "Pulse Music Studio"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"
@@ -18,7 +18,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=PulseMusic-v3.3.1-windows-x64-Setup
+OutputBaseFilename=PulseMusic-v4.0.0-windows-x64-Setup
 SetupIconFile=..\desktopApp\PulseMusic.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -32,11 +32,11 @@ SignTool=signtool
 SignedUninstaller=yes
 VersionInfoCompany=Pulse Music Studio
 VersionInfoDescription=Pulse Music Desktop Setup
-VersionInfoVersion=3.3.1.0
-VersionInfoTextVersion=3.3.1
+VersionInfoVersion=4.0.0.0
+VersionInfoTextVersion=4.0.0
 VersionInfoCopyright=Copyright (C) 2026 Pulse Music Studio
 VersionInfoProductName=Pulse Music
-VersionInfoProductVersion=3.3.1.0
+VersionInfoProductVersion=4.0.0.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
