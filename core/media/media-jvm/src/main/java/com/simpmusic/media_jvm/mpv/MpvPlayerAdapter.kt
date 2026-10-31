@@ -532,7 +532,10 @@ class MpvPlayerAdapter(
                 Logger.d(TAG, "seekToNext: committing incoming (A+1), then advancing to A+2")
                 commitIncomingAsCurrent()
             }
-            if (hasNextMediaItem()) {
+            val nextIndex = getNextMediaItemIndex(isUserSkip = true)
+            if (nextIndex >= 0 && (nextIndex != localCurrentMediaItemIndex || playlist.size > 1)) {
+                seekTo(nextIndex, 0)
+            } else if (hasNextMediaItem()) {
                 seekTo(getNextMediaItemIndex(), 0)
             } else if (wasCrossfading) {
                 // A+1 was the last track — stay on it; it is already promoted and announced.
@@ -558,14 +561,19 @@ class MpvPlayerAdapter(
                 Logger.d(TAG, "seekToPrevious: pos=${cachedPosition}ms > ${positionThresholdMs}ms — seeking to start")
                 currentPlayer?.seekTo(0)
                 cachedPosition = 0
-            } else if (hasPreviousMediaItem()) {
-                Logger.d(TAG, "seekToPrevious: pos=${cachedPosition}ms <= ${positionThresholdMs}ms — going to previous track")
-                val prevIndex = getPreviousMediaItemIndex()
-                seekTo(prevIndex, 0)
             } else {
-                Logger.d(TAG, "seekToPrevious: No previous item, seeking to start")
-                currentPlayer?.seekTo(0)
-                cachedPosition = 0
+                val prevIndex = getPreviousMediaItemIndex(isUserSkip = true)
+                if (prevIndex >= 0 && (prevIndex != localCurrentMediaItemIndex || playlist.size > 1)) {
+                    Logger.d(TAG, "seekToPrevious: pos=${cachedPosition}ms <= ${positionThresholdMs}ms — going to previous track index=$prevIndex")
+                    seekTo(prevIndex, 0)
+                } else if (hasPreviousMediaItem()) {
+                    val idx = getPreviousMediaItemIndex()
+                    seekTo(idx, 0)
+                } else {
+                    Logger.d(TAG, "seekToPrevious: No previous item, seeking to start")
+                    currentPlayer?.seekTo(0)
+                    cachedPosition = 0
+                }
             }
         }
     }
@@ -581,10 +589,14 @@ class MpvPlayerAdapter(
 
             // Always go to the previous track — skips the 3-second "seek to start"
             // rule used by seekToPrevious().
-            if (hasPreviousMediaItem()) {
-                val prevIndex = getPreviousMediaItemIndex()
+            val prevIndex = getPreviousMediaItemIndex(isUserSkip = true)
+            if (prevIndex >= 0 && (prevIndex != localCurrentMediaItemIndex || playlist.size > 1)) {
                 Logger.d(TAG, "seekToPreviousMediaItem: jumping to previous index=$prevIndex")
                 seekTo(prevIndex, 0)
+            } else if (hasPreviousMediaItem()) {
+                val prevIdx = getPreviousMediaItemIndex()
+                Logger.d(TAG, "seekToPreviousMediaItem: jumping to previous index=$prevIdx")
+                seekTo(prevIdx, 0)
             } else {
                 Logger.d(TAG, "seekToPreviousMediaItem: No previous item — no-op")
             }
@@ -625,7 +637,7 @@ class MpvPlayerAdapter(
         playlist.add(mediaItem)
 
         if (internalShuffleModeEnabled) {
-            createShuffleOrder()
+            appendToShuffleOrder(playlist.size - 1)
         }
 
         notifyTimelineChanged("TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED")
@@ -884,12 +896,26 @@ class MpvPlayerAdapter(
                 }
         }
 
-    private fun getNextMediaItemIndex(): Int =
-        when (internalRepeatMode) {
-            PlayerConstants.REPEAT_MODE_ONE -> {
+    private fun getNextMediaItemIndex(isUserSkip: Boolean = false): Int =
+        when {
+            // When user explicitly skips ("Next"), always advance to the next track even in REPEAT_MODE_ONE
+            isUserSkip && internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
+                if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
+                    val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
+                    val nextShufflePos = (currentShufflePos + 1) % shuffleOrder.size
+                    shuffleOrder.getOrNull(nextShufflePos) ?: ((localCurrentMediaItemIndex + 1) % playlist.size)
+                } else {
+                    if (playlist.size > 1) {
+                        (localCurrentMediaItemIndex + 1) % playlist.size
+                    } else {
+                        localCurrentMediaItemIndex
+                    }
+                }
+            }
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
                 localCurrentMediaItemIndex
             }
-            PlayerConstants.REPEAT_MODE_ALL -> {
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ALL -> {
                 if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
                     val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
                     val nextShufflePos = (currentShufflePos + 1) % shuffleOrder.size
@@ -908,21 +934,40 @@ class MpvPlayerAdapter(
                     val nextShufflePos = currentShufflePos + 1
                     if (nextShufflePos < shuffleOrder.size) {
                         shuffleOrder.getOrNull(nextShufflePos) ?: localCurrentMediaItemIndex
+                    } else if (isUserSkip && shuffleOrder.isNotEmpty()) {
+                        shuffleOrder.firstOrNull() ?: localCurrentMediaItemIndex
                     } else {
                         localCurrentMediaItemIndex
                     }
                 } else {
-                    (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
+                    if (isUserSkip && localCurrentMediaItemIndex >= playlist.size - 1 && playlist.size > 1) {
+                        0
+                    } else {
+                        (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
+                    }
                 }
             }
         }
 
-    private fun getPreviousMediaItemIndex(): Int =
-        when (internalRepeatMode) {
-            PlayerConstants.REPEAT_MODE_ONE -> {
+    private fun getPreviousMediaItemIndex(isUserSkip: Boolean = false): Int =
+        when {
+            isUserSkip && internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
+                if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
+                    val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
+                    val prevShufflePos = if (currentShufflePos > 0) currentShufflePos - 1 else shuffleOrder.size - 1
+                    shuffleOrder.getOrNull(prevShufflePos) ?: ((localCurrentMediaItemIndex - 1 + playlist.size) % playlist.size)
+                } else {
+                    if (playlist.size > 1) {
+                        (localCurrentMediaItemIndex - 1 + playlist.size) % playlist.size
+                    } else {
+                        localCurrentMediaItemIndex
+                    }
+                }
+            }
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
                 localCurrentMediaItemIndex
             }
-            PlayerConstants.REPEAT_MODE_ALL -> {
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ALL -> {
                 if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
                     val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
                     val prevShufflePos =
@@ -946,11 +991,17 @@ class MpvPlayerAdapter(
                     val prevShufflePos = currentShufflePos - 1
                     if (prevShufflePos >= 0) {
                         shuffleOrder.getOrNull(prevShufflePos) ?: localCurrentMediaItemIndex
+                    } else if (isUserSkip && shuffleOrder.isNotEmpty()) {
+                        shuffleOrder.lastOrNull() ?: localCurrentMediaItemIndex
                     } else {
                         localCurrentMediaItemIndex
                     }
                 } else {
-                    (localCurrentMediaItemIndex - 1).coerceAtLeast(0)
+                    if (isUserSkip && localCurrentMediaItemIndex <= 0 && playlist.size > 1) {
+                        playlist.size - 1
+                    } else {
+                        (localCurrentMediaItemIndex - 1).coerceAtLeast(0)
+                    }
                 }
             }
         }
@@ -1809,6 +1860,7 @@ class MpvPlayerAdapter(
             crossfadeEnabled &&
                 !crossfadeSuppressed &&
                 hasNextMediaItem() &&
+                internalRepeatMode != PlayerConstants.REPEAT_MODE_ONE &&
                 !isCurrentTrackVideo() &&
                 !isNextTrackVideo() &&
                 !isCurrentTrackTooShortForCrossfade() &&
@@ -2902,6 +2954,31 @@ class MpvPlayerAdapter(
                 shuffleIndices[origIndex] = shuffledPos
             }
         }
+    }
+
+    private fun appendToShuffleOrder(newIndex: Int) {
+        if (playlist.isEmpty() || newIndex !in playlist.indices) return
+        if (shuffleOrder.isEmpty()) {
+            createShuffleOrder()
+            return
+        }
+        val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
+        val remainingRange = (currentShufflePos + 1)..shuffleOrder.size
+        val insertPos = if (remainingRange.first < remainingRange.last) {
+            remainingRange.random()
+        } else {
+            shuffleOrder.size
+        }
+        shuffleOrder.add(insertPos, newIndex)
+
+        shuffleIndices.clear()
+        shuffleIndices.addAll(List(playlist.size) { 0 })
+        shuffleOrder.forEachIndexed { shuffledPos, origIndex ->
+            if (origIndex < shuffleIndices.size) {
+                shuffleIndices[origIndex] = shuffledPos
+            }
+        }
+        Logger.d(TAG, "Appended index $newIndex to shuffle order at $insertPos: $shuffleOrder")
     }
 
     private fun getShuffledMediaItemList(): List<GenericMediaItem> {

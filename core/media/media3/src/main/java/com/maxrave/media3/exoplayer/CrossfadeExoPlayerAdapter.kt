@@ -874,7 +874,11 @@ internal class CrossfadeExoPlayerAdapter(
                 Logger.d(TAG, "seekToNext: committing incoming (A+1), then advancing to A+2")
                 commitIncomingAsCurrentInternal()
             }
-            if (hasNextMediaItem()) {
+            val nextIndex = getNextMediaItemIndex(isUserSkip = true)
+            if (nextIndex >= 0 && (nextIndex != localCurrentMediaItemIndex || playlist.size > 1)) {
+                internalPlayWhenReady = true
+                seekTo(nextIndex, 0)
+            } else if (hasNextMediaItem()) {
                 internalPlayWhenReady = true
                 seekTo(getNextMediaItemIndex(), 0)
             } else if (wasCrossfading) {
@@ -901,14 +905,20 @@ internal class CrossfadeExoPlayerAdapter(
             if (position > positionThresholdMs) {
                 Logger.d(TAG, "seekToPrevious: pos=${position}ms > ${positionThresholdMs}ms — seeking to start")
                 seekTo(0)
-            } else if (hasPreviousMediaItem()) {
-                Logger.d(TAG, "seekToPrevious: pos=${position}ms <= ${positionThresholdMs}ms — going to previous track")
-                val prevIndex = getPreviousMediaItemIndex()
-                internalPlayWhenReady = true
-                seekTo(prevIndex, 0)
             } else {
-                Logger.d(TAG, "seekToPrevious: No previous item, seeking to start")
-                seekTo(0)
+                val prevIndex = getPreviousMediaItemIndex(isUserSkip = true)
+                if (prevIndex >= 0 && (prevIndex != localCurrentMediaItemIndex || playlist.size > 1)) {
+                    Logger.d(TAG, "seekToPrevious: pos=${position}ms <= ${positionThresholdMs}ms — going to previous track index=$prevIndex")
+                    internalPlayWhenReady = true
+                    seekTo(prevIndex, 0)
+                } else if (hasPreviousMediaItem()) {
+                    val idx = getPreviousMediaItemIndex()
+                    internalPlayWhenReady = true
+                    seekTo(idx, 0)
+                } else {
+                    Logger.d(TAG, "seekToPrevious: No previous item, seeking to start")
+                    seekTo(0)
+                }
             }
         }
     }
@@ -923,11 +933,16 @@ internal class CrossfadeExoPlayerAdapter(
 
             // Always advance to the previous track regardless of `cachedPosition` —
             // skips the 3-second "seek to start" rule used by seekToPrevious().
-            if (hasPreviousMediaItem()) {
-                val prevIndex = getPreviousMediaItemIndex()
+            val prevIndex = getPreviousMediaItemIndex(isUserSkip = true)
+            if (prevIndex >= 0 && (prevIndex != localCurrentMediaItemIndex || playlist.size > 1)) {
                 Logger.d(TAG, "seekToPreviousMediaItem: jumping to previous index=$prevIndex")
                 internalPlayWhenReady = true
                 seekTo(prevIndex, 0)
+            } else if (hasPreviousMediaItem()) {
+                val idx = getPreviousMediaItemIndex()
+                Logger.d(TAG, "seekToPreviousMediaItem: jumping to previous index=$idx")
+                internalPlayWhenReady = true
+                seekTo(idx, 0)
             } else {
                 Logger.d(TAG, "seekToPreviousMediaItem: No previous item — no-op")
             }
@@ -969,7 +984,7 @@ internal class CrossfadeExoPlayerAdapter(
         playlist.add(mediaItem)
 
         if (internalShuffleModeEnabled) {
-            createShuffleOrder()
+            appendToShuffleOrder(playlist.size - 1)
         }
 
         notifyTimelineChanged("TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED")
@@ -1236,12 +1251,26 @@ internal class CrossfadeExoPlayerAdapter(
                 }
         }
 
-    private fun getNextMediaItemIndex(): Int =
-        when (internalRepeatMode) {
-            PlayerConstants.REPEAT_MODE_ONE -> {
+    private fun getNextMediaItemIndex(isUserSkip: Boolean = false): Int =
+        when {
+            // When user explicitly skips ("Next"), always advance to the next track even in REPEAT_MODE_ONE
+            isUserSkip && internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
+                if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
+                    val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
+                    val nextShufflePos = (currentShufflePos + 1) % shuffleOrder.size
+                    shuffleOrder.getOrNull(nextShufflePos) ?: ((localCurrentMediaItemIndex + 1) % playlist.size)
+                } else {
+                    if (playlist.size > 1) {
+                        (localCurrentMediaItemIndex + 1) % playlist.size
+                    } else {
+                        localCurrentMediaItemIndex
+                    }
+                }
+            }
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
                 localCurrentMediaItemIndex
             }
-            PlayerConstants.REPEAT_MODE_ALL -> {
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ALL -> {
                 if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
                     val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
                     val nextShufflePos = (currentShufflePos + 1) % shuffleOrder.size
@@ -1260,21 +1289,41 @@ internal class CrossfadeExoPlayerAdapter(
                     val nextShufflePos = currentShufflePos + 1
                     if (nextShufflePos < shuffleOrder.size) {
                         shuffleOrder.getOrNull(nextShufflePos) ?: localCurrentMediaItemIndex
+                    } else if (isUserSkip && shuffleOrder.isNotEmpty()) {
+                        // User explicitly skipping past the end of shuffle: wrap around
+                        shuffleOrder.firstOrNull() ?: localCurrentMediaItemIndex
                     } else {
                         localCurrentMediaItemIndex
                     }
                 } else {
-                    (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
+                    if (isUserSkip && localCurrentMediaItemIndex >= playlist.size - 1 && playlist.size > 1) {
+                        0 // Wrap around when user skips at the end
+                    } else {
+                        (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
+                    }
                 }
             }
         }
 
-    private fun getPreviousMediaItemIndex(): Int =
-        when (internalRepeatMode) {
-            PlayerConstants.REPEAT_MODE_ONE -> {
+    private fun getPreviousMediaItemIndex(isUserSkip: Boolean = false): Int =
+        when {
+            isUserSkip && internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
+                if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
+                    val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
+                    val prevShufflePos = if (currentShufflePos > 0) currentShufflePos - 1 else shuffleOrder.size - 1
+                    shuffleOrder.getOrNull(prevShufflePos) ?: ((localCurrentMediaItemIndex - 1 + playlist.size) % playlist.size)
+                } else {
+                    if (playlist.size > 1) {
+                        (localCurrentMediaItemIndex - 1 + playlist.size) % playlist.size
+                    } else {
+                        localCurrentMediaItemIndex
+                    }
+                }
+            }
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ONE -> {
                 localCurrentMediaItemIndex
             }
-            PlayerConstants.REPEAT_MODE_ALL -> {
+            internalRepeatMode == PlayerConstants.REPEAT_MODE_ALL -> {
                 if (internalShuffleModeEnabled && shuffleOrder.isNotEmpty()) {
                     val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
                     val prevShufflePos =
@@ -1298,11 +1347,17 @@ internal class CrossfadeExoPlayerAdapter(
                     val prevShufflePos = currentShufflePos - 1
                     if (prevShufflePos >= 0) {
                         shuffleOrder.getOrNull(prevShufflePos) ?: localCurrentMediaItemIndex
+                    } else if (isUserSkip && shuffleOrder.isNotEmpty()) {
+                        shuffleOrder.lastOrNull() ?: localCurrentMediaItemIndex
                     } else {
                         localCurrentMediaItemIndex
                     }
                 } else {
-                    (localCurrentMediaItemIndex - 1).coerceAtLeast(0)
+                    if (isUserSkip && localCurrentMediaItemIndex <= 0 && playlist.size > 1) {
+                        playlist.size - 1
+                    } else {
+                        (localCurrentMediaItemIndex - 1).coerceAtLeast(0)
+                    }
                 }
             }
         }
@@ -2104,6 +2159,7 @@ internal class CrossfadeExoPlayerAdapter(
             crossfadeEnabled &&
                 !crossfadeSuppressed &&
                 hasNextMediaItem() &&
+                internalRepeatMode != PlayerConstants.REPEAT_MODE_ONE &&
                 !isCrossfading &&
                 !isCurrentTrackVideo() &&
                 !isNextTrackVideo() &&
@@ -3187,6 +3243,31 @@ internal class CrossfadeExoPlayerAdapter(
             TAG,
             "Inserted index $insertedOriginalIndex into shuffle at position $insertPos (after shuffle pos $afterShufflePos)",
         )
+    }
+
+    private fun appendToShuffleOrder(newIndex: Int) {
+        if (playlist.isEmpty() || newIndex !in playlist.indices) return
+        if (shuffleOrder.isEmpty()) {
+            createShuffleOrder()
+            return
+        }
+        val currentShufflePos = shuffleIndices.getOrNull(localCurrentMediaItemIndex) ?: 0
+        val remainingRange = (currentShufflePos + 1)..shuffleOrder.size
+        val insertPos = if (remainingRange.first < remainingRange.last) {
+            remainingRange.random()
+        } else {
+            shuffleOrder.size
+        }
+        shuffleOrder.add(insertPos, newIndex)
+
+        shuffleIndices.clear()
+        shuffleIndices.addAll(List(playlist.size) { 0 })
+        shuffleOrder.forEachIndexed { shuffledPos, origIndex ->
+            if (origIndex < shuffleIndices.size) {
+                shuffleIndices[origIndex] = shuffledPos
+            }
+        }
+        Logger.d(TAG, "Appended index $newIndex to shuffle order at $insertPos: $shuffleOrder")
     }
 
     private fun getShuffledMediaItemList(): List<GenericMediaItem> {

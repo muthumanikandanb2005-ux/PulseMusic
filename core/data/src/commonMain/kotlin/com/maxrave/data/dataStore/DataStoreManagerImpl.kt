@@ -113,7 +113,7 @@ internal class DataStoreManagerImpl(
 
     override val discoveryRatio: Flow<Float> =
         settingsDataStore.data.map { preferences ->
-            preferences[DISCOVERY_RATIO] ?: 0.20f
+            preferences[DISCOVERY_RATIO] ?: 1.0f
         }
 
     override suspend fun setDiscoveryRatio(ratio: Float) {
@@ -1395,7 +1395,7 @@ internal class DataStoreManagerImpl(
 
     override val endlessQueue =
         settingsDataStore.data.map { preferences ->
-            preferences[ENDLESS_QUEUE] ?: FALSE
+            preferences[ENDLESS_QUEUE] ?: TRUE
         }
 
     override suspend fun setEndlessQueue(endlessQueue: Boolean) {

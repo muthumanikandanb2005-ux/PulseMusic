@@ -215,7 +215,7 @@ internal class MediaServiceHandlerImpl(
     private val _castState = MutableStateFlow(GenericCastState.NOT_CASTING)
     override val castState: StateFlow<GenericCastState> = _castState.asStateFlow()
 
-    private val _discoveryRatio = MutableStateFlow(0.20f)
+    private val _discoveryRatio = MutableStateFlow(1.0f)
     override val discoveryRatio: StateFlow<Float> = _discoveryRatio.asStateFlow()
 
     override fun setDiscoveryRatio(ratio: Float) {
@@ -1111,6 +1111,11 @@ internal class MediaServiceHandlerImpl(
 
             PlayerEvent.Next -> {
                 resetCrossfade()
+                val currentIdx = player.currentMediaItemIndex
+                val totalItems = player.mediaItemCount
+                if (totalItems - currentIdx <= 3 || !player.hasNextMediaItem()) {
+                    loadMore()
+                }
                 player.seekToNext()
             }
 
@@ -1707,20 +1712,23 @@ internal class MediaServiceHandlerImpl(
                         }
                 }
             }
-        } else if (isEndlessQueueCached) {
-            Logger.w(TAG, "loadMore: Endless Queue")
+        } else {
+            Logger.w(TAG, "loadMore: Endless Queue / Continuation null fallback")
             val lastTrack =
                 queueData.value.data.listTracks
                     .lastOrNull() ?: return
-            _queueData.update {
-                it.copy(
-                    queueState = QueueData.StateSource.STATE_INITIALIZED,
-                    data = it.data.copy(playlistId = "RDAMVM${lastTrack.videoId}"),
-                )
+            val radioId = "RDAMVM${lastTrack.videoId}"
+            if (radioId != queueData.value.data.playlistId) {
+                _queueData.update {
+                    it.copy(
+                        queueState = QueueData.StateSource.STATE_INITIALIZED,
+                        data = it.data.copy(playlistId = radioId),
+                    )
+                }
+                reorderShuffledQueue(player.getCurrentMediaTimeLine())
+                Logger.d("Check loadMore", "queueData: ${queueData.value}")
+                getRelated(lastTrack.videoId)
             }
-            reorderShuffledQueue(player.getCurrentMediaTimeLine())
-            Logger.d("Check loadMore", "queueData: ${queueData.value}")
-            getRelated(lastTrack.videoId)
         }
     }
 
@@ -1739,15 +1747,15 @@ internal class MediaServiceHandlerImpl(
 
                             if (familiar.isNotEmpty()) {
                                 val familiarRatio = (1f - ratio).coerceIn(0f, 1f)
-                                val targetFamiliarPerBatch = ((familiarRatio / ratio.coerceAtLeast(0.05f))).toInt().coerceIn(1, 6)
+                                val targetFamiliarPerBatch = ((familiarRatio / ratio.coerceAtLeast(0.05f))).toInt().coerceIn(1, 4)
                                 val result = arrayListOf<Track>()
                                 var fIdx = 0
                                 var dIdx = 0
                                 while (dIdx < discoveryTracks.size || fIdx < familiar.size) {
+                                    if (dIdx < discoveryTracks.size) result.add(discoveryTracks[dIdx++])
                                     repeat(targetFamiliarPerBatch) {
                                         if (fIdx < familiar.size) result.add(familiar[fIdx++])
                                     }
-                                    if (dIdx < discoveryTracks.size) result.add(discoveryTracks[dIdx++])
                                     if (result.size >= 50) break
                                 }
                                 result
@@ -1872,15 +1880,27 @@ internal class MediaServiceHandlerImpl(
         listTrack: ArrayList<Track>,
         isAddToQueue: Boolean,
     ) {
-        Logger.d("Queue", listTrack.map { it.title }.toString())
+        val currentVideoIds = _queueData.value.data.listTracks.map { it.videoId }.toSet()
+        val uniqueList = if (!isAddToQueue) listTrack.filter { it.videoId !in currentVideoIds } else listTrack
+        if (uniqueList.isEmpty() && listTrack.isNotEmpty() && !isAddToQueue) {
+            _queueData.update {
+                it.copy(
+                    queueState = QueueData.StateSource.STATE_INITIALIZED,
+                )
+            }
+            return
+        }
+        val tracksToAdd = if (!isAddToQueue) ArrayList(uniqueList) else listTrack
+
+        Logger.d("Queue", tracksToAdd.map { it.title }.toString())
         _queueData.update {
             it.copy(
                 queueState = QueueData.StateSource.STATE_INITIALIZING,
             )
         }
         val catalogMetadata: ArrayList<Track> = arrayListOf()
-        for (i in 0 until listTrack.size) {
-            val track = listTrack[i]
+        for (i in 0 until tracksToAdd.size) {
+            val track = tracksToAdd[i]
             var thumbUrl =
                 track.thumbnails?.lastOrNull()?.url
                     ?: "http://i.ytimg.com/vi/${track.videoId}/maxresdefault.jpg"
@@ -2811,8 +2831,7 @@ internal class MediaServiceHandlerImpl(
             nowPlayingState.value.songEntity?.let { updateDiscordRpc(it) }
         }
         queueData.value.data.listTracks.let { list ->
-            if ((list.size > 3 || isEndlessQueueCached) &&
-                list.size - player.currentMediaItemIndex < 3 &&
+            if (list.size - player.currentMediaItemIndex < 4 &&
                 list.size - player.currentMediaItemIndex >= 0 &&
                 queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZED
             ) {

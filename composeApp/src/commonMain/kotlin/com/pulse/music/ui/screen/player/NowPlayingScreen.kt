@@ -932,7 +932,7 @@ fun NowPlayingScreenContent(
             artwork = screenDataState.bitmap,
             seedColor = startColor.value,
             videoId = nowPlayingVideoId.orEmpty(),
-            albumName = screenDataState.songInfoData?.album,
+            albumName = nowPlayingState?.songEntity?.albumName,
             onDismiss = { showShareMusicCardSheet = false },
         )
     }
