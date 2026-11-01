@@ -456,7 +456,7 @@ fun LyricsView(
     // would be four copies of the same lookup. Re-checked against isLyricsBlurSupported() even
     // though Settings hides the option below Android 12 — a DataStore restored from a backup, or
     // carried to another device, can still hold APPLE_MUSIC on a phone that cannot draw it.
-    val lyricsStyle by dataStoreManager.lyricsStyle.collectAsStateWithLifecycle(DataStoreManager.LYRICS_STYLE_PULSE_NEON)
+    val lyricsStyle by dataStoreManager.lyricsStyle.collectAsStateWithLifecycle(DataStoreManager.LYRICS_STYLE_CLASSIC)
     val isPulseNeonStyle = lyricsStyle == DataStoreManager.LYRICS_STYLE_PULSE_NEON
     val appleStyle = lyricsStyle == DataStoreManager.LYRICS_STYLE_APPLE_MUSIC && isLyricsBlurSupported()
     val isLavender = LocalIsPearlLavenderTheme.current
@@ -563,8 +563,8 @@ fun LyricsView(
         // is only possible if there is empty space below it to scroll into. Without this tail the
         // list simply runs out of content and the closing lines pile up against the bottom edge,
         // so the final third of every song reads bottom-anchored instead of top-anchored.
-        val tailPadding = if (appleStyle) maxHeight * 0.72f else if (isPulseNeonStyle) maxHeight * 0.45f else 0.dp
-        val topPadding = if (isPulseNeonStyle) maxHeight * 0.35f else 0.dp
+        val tailPadding = if (appleStyle) maxHeight * 0.72f else 0.dp
+        val topPadding = 0.dp
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -646,9 +646,7 @@ fun LyricsView(
                                         currentTimeMs = if (index == currentLineIndex) current.current - lyricsOffsetMs else 0L,
                                         isCurrent = index == currentLineIndex,
                                         customFontSize = if (isPulseNeonStyle) 26.sp else if (appleStyle) AppleMusicLyricFontSize else null,
-                                        glow = if (isPulseNeonStyle && index == currentLineIndex) {
-                                            Shadow(color = Color.White.copy(alpha = 0.35f), blurRadius = 14f)
-                                        } else if (appleStyle && index == currentLineIndex) {
+                                        glow = if (appleStyle && index == currentLineIndex) {
                                             AppleMusicActiveLineGlow
                                         } else null,
                                         pendingColorOverride = if (isLavender) (if (isDark) Color(0xFFC4B6D8) else Color(0xFF7D6E9A)) else if (isPulseNeonStyle) Color.White.copy(alpha = 0.35f) else if (appleStyle) AppleMusicPendingWordColor else null,
@@ -780,7 +778,7 @@ fun LyricsView(
                         }
                     }
 
-                    if (appleStyle || isPulseNeonStyle || isLyricsBlurSupported()) {
+                    if (appleStyle) {
                         // The whole wrapper is the tap target — original line AND translation — the
                         // way AMLL's .lyricLineWrapper is, rather than each Text separately. The
                         // press shows as a tinted rounded panel; indication is null because a
@@ -839,7 +837,7 @@ fun LyricsView(
             }
             footerContent?.let { footer ->
                 item {
-                    if (appleStyle || isPulseNeonStyle || isLyricsBlurSupported()) {
+                    if (appleStyle) {
                         // Same gutter as the lyrics, and dimmed — but NOT blurred. Blur means
                         // "further away in the song"; the caption is not part of the song at all,
                         // it is a note about where the words came from. Blurring it made it look
@@ -933,7 +931,6 @@ fun LyricsLineItem(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PulseNeonLyricsLineItem(
     originalWords: String,
@@ -965,20 +962,15 @@ fun PulseNeonLyricsLineItem(
     } else Color(0xFF94A3B8).copy(alpha = 0.35f)
 
     val scale by animateFloatAsState(
-        targetValue = if (isCurrent) 1.02f else 0.96f,
-        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
-        label = "PulseHybridScale",
+        targetValue = if (isCurrent) 1.02f else 0.98f,
+        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        label = "PulseScale",
     )
     val alpha by animateFloatAsState(
         targetValue = if (isCurrent) 1.0f else 0.40f,
-        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-        label = "PulseHybridAlpha",
+        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+        label = "PulseAlpha",
     )
-
-    val words = remember(originalWords) {
-        originalWords.split(Regex("\\s+")).filter { it.isNotBlank() }
-    }
-    val lineDurationMs = (lineEndTimeMs - lineStartTimeMs).coerceAtLeast(1000L)
 
     Column(
         modifier = modifier
@@ -990,55 +982,22 @@ fun PulseNeonLyricsLineItem(
             }
             .padding(vertical = 4.dp),
     ) {
-        // Soft translucent backdrop for active line without harsh border or square box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    if (isCurrent) {
-                        Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    } else {
-                        Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                    }
-                ),
+                .padding(horizontal = 16.dp, vertical = if (isCurrent) 8.dp else 6.dp),
         ) {
             Column {
-                if (words.size <= 1 || !isCurrent) {
-                    Text(
-                        text = originalWords,
-                        style = TextStyle(
-                            fontSize = if (isCurrent) 26.sp else 20.sp,
-                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
-                            lineHeight = if (isCurrent) 34.sp else 28.sp,
-                            letterSpacing = (-0.3).sp,
-                            shadow = if (isCurrent) {
-                                Shadow(
-                                    color = if (isLavender) Color(0xFFA788FA).copy(alpha = 0.4f) else Color(0xFF38BDF8).copy(alpha = 0.5f),
-                                    blurRadius = 16f,
-                                )
-                            } else null,
-                        ),
-                        color = if (isCurrent) activeColor else inactiveColor,
-                    )
-                } else {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        words.forEachIndexed { wordIdx, wordText ->
-                            val wordStart = lineStartTimeMs + (lineDurationMs * wordIdx / words.size)
-                            val wordEnd = lineStartTimeMs + (lineDurationMs * (wordIdx + 1) / words.size)
-                            val isWordActive = currentTimeMs in wordStart until wordEnd
-                            val isWordPast = currentTimeMs >= wordEnd
-
-                            PulseNeonWordItem(
-                                wordText = wordText,
-                                isWordActive = isWordActive,
-                                isWordPast = isWordPast,
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = originalWords,
+                    style = TextStyle(
+                        fontSize = if (isCurrent) 26.sp else 20.sp,
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                        lineHeight = if (isCurrent) 34.sp else 28.sp,
+                        letterSpacing = (-0.3).sp,
+                    ),
+                    color = if (isCurrent) activeColor else inactiveColor,
+                )
 
                 if (!romanizedWords.isNullOrEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1068,70 +1027,6 @@ fun PulseNeonLyricsLineItem(
             }
         }
     }
-}
-
-@Composable
-private fun PulseNeonWordItem(
-    wordText: String,
-    isWordActive: Boolean,
-    isWordPast: Boolean,
-) {
-    val isLavender = LocalIsPearlLavenderTheme.current
-    val isDark = isSystemInDarkTheme()
-
-    val activeColor = if (isLavender) {
-        if (isDark) Color.White else Color(0xFF6B5B8F)
-    } else Color.White
-
-    val pastColor = if (isLavender) {
-        if (isDark) Color.White.copy(alpha = 0.95f) else Color(0xFF6B5B8F).copy(alpha = 0.95f)
-    } else Color.White.copy(alpha = 0.95f)
-
-    val inactiveColor = if (isLavender) {
-        if (isDark) Color(0xFFC4B6D8) else Color(0xFF7D6E9A)
-    } else Color.White.copy(alpha = 0.40f)
-
-    val wordScale by animateFloatAsState(
-        targetValue = if (isWordActive) 1.08f else if (isWordPast) 1.0f else 0.98f,
-        animationSpec = tween(120, easing = FastOutSlowInEasing),
-        label = "wordScale",
-    )
-
-    val wordColor = when {
-        isWordActive -> activeColor
-        isWordPast -> pastColor
-        else -> inactiveColor
-    }
-
-    val wordGlow = when {
-        isWordActive -> Shadow(
-            color = if (isLavender) Color(0xFFA788FA).copy(alpha = 0.6f) else Color(0xFF38BDF8),
-            blurRadius = 24f,
-            offset = Offset.Zero,
-        )
-        isWordPast -> Shadow(
-            color = if (isLavender) Color(0xFFA788FA).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.25f),
-            blurRadius = 8f,
-            offset = Offset.Zero,
-        )
-        else -> null
-    }
-
-    Text(
-        text = wordText,
-        style = TextStyle(
-            fontSize = 26.sp,
-            fontWeight = if (isWordActive) FontWeight.ExtraBold else FontWeight.Bold,
-            lineHeight = 34.sp,
-            letterSpacing = (-0.3).sp,
-            shadow = wordGlow,
-        ),
-        color = wordColor,
-        modifier = Modifier.graphicsLayer {
-            scaleX = wordScale
-            scaleY = wordScale
-        },
-    )
 }
 
 

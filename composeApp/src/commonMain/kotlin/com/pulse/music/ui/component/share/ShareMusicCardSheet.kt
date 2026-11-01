@@ -97,7 +97,7 @@ fun ShareMusicCardSheet(
     var busy by remember { mutableStateOf(false) }
 
     val trackUrl = if (videoId.isNotBlank()) "https://music.youtube.com/watch?v=$videoId" else "https://github.com/muthumanikandanb2005-ux/PulseMusic"
-    val deepLinkUrl = if (videoId.isNotBlank()) "pulsemusic://song?videoId=$videoId" else trackUrl
+    val deepLinkUrl = trackUrl
 
     val fileName = remember(songTitle) {
         val safeName = songTitle.ifBlank { "song" }.take(30).map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")

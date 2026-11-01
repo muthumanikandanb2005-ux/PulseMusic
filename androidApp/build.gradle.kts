@@ -174,9 +174,6 @@ dependencies {
     // Easy Permissions
     implementation(libs.easypermissions)
 
-    // Snapchat Creative Kit
-    implementation("com.snapchat.kit.sdk:creative:1.13.2")
-
     // Legacy Support
     implementation(libs.legacy.support.v4)
     // Coroutines

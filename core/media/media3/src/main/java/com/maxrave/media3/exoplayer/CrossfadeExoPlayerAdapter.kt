@@ -1279,7 +1279,7 @@ internal class CrossfadeExoPlayerAdapter(
                     if (localCurrentMediaItemIndex < playlist.size - 1) {
                         localCurrentMediaItemIndex + 1
                     } else {
-                        0
+                        localCurrentMediaItemIndex
                     }
                 }
             }
@@ -1289,18 +1289,11 @@ internal class CrossfadeExoPlayerAdapter(
                     val nextShufflePos = currentShufflePos + 1
                     if (nextShufflePos < shuffleOrder.size) {
                         shuffleOrder.getOrNull(nextShufflePos) ?: localCurrentMediaItemIndex
-                    } else if (isUserSkip && shuffleOrder.isNotEmpty()) {
-                        // User explicitly skipping past the end of shuffle: wrap around
-                        shuffleOrder.firstOrNull() ?: localCurrentMediaItemIndex
                     } else {
                         localCurrentMediaItemIndex
                     }
                 } else {
-                    if (isUserSkip && localCurrentMediaItemIndex >= playlist.size - 1 && playlist.size > 1) {
-                        0 // Wrap around when user skips at the end
-                    } else {
-                        (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
-                    }
+                    (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
                 }
             }
         }

@@ -234,7 +234,7 @@ fun ShareLyricsSheet(
                                         val bytes = captureController.captureAsync().await().toPngByteArray()
                                         if (bytes != null) {
                                             val deepLinkUrl =
-                                                if (videoId.isNotBlank()) "pulsemusic://song?videoId=$videoId"
+                                                if (videoId.isNotBlank()) "https://music.youtube.com/watch?v=$videoId"
                                                 else "https://github.com/muthumanikandanb2005-ux/PulseMusic"
                                             val ok = shareToSnapchat(
                                                 bytes = bytes,

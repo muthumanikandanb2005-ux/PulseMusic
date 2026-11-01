@@ -247,9 +247,14 @@ internal class MediaServiceHandlerImpl(
     private var consecutivePlayerErrors = 0
 
     @Volatile
-    private var isEndlessQueueCached: Boolean = false
+    private var isEndlessQueueCached: Boolean = true
     @Volatile
     private var isExplicitContentEnabledCached: Boolean = true
+
+    // Session track history to prevent ever repeating songs
+    private val sessionSeenVideoIds = java.util.Collections.synchronizedSet(LinkedHashSet<String>())
+    // Used radio seed tracks to continuously rotate recommendations
+    private val usedRadioSeedVideoIds = java.util.Collections.synchronizedSet(LinkedHashSet<String>())
 
     private var watchTimeList: ArrayList<Float> = arrayListOf()
 
@@ -1113,7 +1118,7 @@ internal class MediaServiceHandlerImpl(
                 resetCrossfade()
                 val currentIdx = player.currentMediaItemIndex
                 val totalItems = player.mediaItemCount
-                if (totalItems - currentIdx <= 3 || !player.hasNextMediaItem()) {
+                if (totalItems - currentIdx <= 5 || !player.hasNextMediaItem()) {
                     loadMore()
                 }
                 player.seekToNext()
@@ -1677,102 +1682,98 @@ internal class MediaServiceHandlerImpl(
                                     )
                                 }
                             } else {
-                                _queueData.update {
-                                    it.copy(
-                                        data =
-                                            it.data.copy(
-                                                continuation = null,
-                                            ),
-                                    )
-                                }
                                 if (isEndlessQueueCached) {
-                                    Logger.w(TAG, "loadMore: Endless Queue")
-                                    val lastTrack =
-                                        queueData.value.data.listTracks
-                                            .lastOrNull() ?: return@launch
-                                    val radioId = "RDAMVM${lastTrack.videoId}"
-                                    if (radioId == queueData.value.data.playlistId) {
-                                        Logger.w(TAG, "loadMore: Already in radio mode")
-                                        return@launch
-                                    }
+                                    fetchNextEndlessQueueBatch()
+                                } else {
                                     _queueData.update {
                                         it.copy(
                                             data =
                                                 it.data.copy(
-                                                    playlistId = radioId,
+                                                    continuation = null,
                                                 ),
                                             queueState = QueueData.StateSource.STATE_INITIALIZED,
                                         )
                                     }
-                                    reorderShuffledQueue(player.getCurrentMediaTimeLine())
-                                    Logger.d("Check loadMore", "queueData: ${queueData.value}")
-                                    getRelated(lastTrack.videoId)
                                 }
                             }
                         }
                 }
             }
         } else {
-            Logger.w(TAG, "loadMore: Endless Queue / Continuation null fallback")
-            val lastTrack =
-                queueData.value.data.listTracks
-                    .lastOrNull() ?: return
-            val radioId = "RDAMVM${lastTrack.videoId}"
-            if (radioId != queueData.value.data.playlistId) {
-                _queueData.update {
-                    it.copy(
-                        queueState = QueueData.StateSource.STATE_INITIALIZED,
-                        data = it.data.copy(playlistId = radioId),
-                    )
-                }
-                reorderShuffledQueue(player.getCurrentMediaTimeLine())
-                Logger.d("Check loadMore", "queueData: ${queueData.value}")
-                getRelated(lastTrack.videoId)
+            if (isEndlessQueueCached) {
+                fetchNextEndlessQueueBatch()
             }
         }
     }
 
+    private fun fetchNextEndlessQueueBatch() {
+        val tracks = queueData.value.data.listTracks
+        if (tracks.isEmpty()) return
+        val currentIdx = player.currentMediaItemIndex.coerceIn(0, tracks.size - 1)
+        val windowTracks = tracks.subList(currentIdx, tracks.size)
+        val seedTrack = windowTracks.firstOrNull { it.videoId !in usedRadioSeedVideoIds }
+            ?: tracks.firstOrNull { it.videoId !in usedRadioSeedVideoIds }
+            ?: tracks.getOrNull(currentIdx)
+            ?: tracks.lastOrNull()
+            ?: return
+
+        usedRadioSeedVideoIds.add(seedTrack.videoId)
+        val radioId = "RDAMVM${seedTrack.videoId}"
+        _queueData.update {
+            it.copy(
+                queueState = QueueData.StateSource.STATE_INITIALIZING,
+                data = it.data.copy(playlistId = radioId),
+            )
+        }
+        reorderShuffledQueue(player.getCurrentMediaTimeLine())
+        Logger.d(TAG, "fetchNextEndlessQueueBatch: seeding from ${seedTrack.title} (${seedTrack.videoId})")
+        getRelated(seedTrack.videoId)
+    }
+
     override fun getRelated(videoId: String) {
-        if (queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZING) return
         coroutineScope.launch {
             songRepository.getRelatedData(videoId).collect { response ->
                 when (response) {
                     is Resource.Success -> {
-                        val discoveryTracks = response.data?.first?.toCollection(arrayListOf()) ?: arrayListOf()
-                        val ratio = _discoveryRatio.value
-                        val blendedTracks = if (ratio < 0.95f && discoveryTracks.isNotEmpty()) {
-                            val familiar = runCatching {
-                                songRepository.getLikedSongs().firstOrNull()?.toArrayListTrack()
-                            }.getOrNull()?.shuffled()?.filter { f -> !queueData.value.data.listTracks.any { it.videoId == f.videoId } } ?: emptyList()
+                        val discoveryTracks = response.data?.first ?: emptyList()
+                        val nextContinuation = response.data?.second
 
-                            if (familiar.isNotEmpty()) {
-                                val familiarRatio = (1f - ratio).coerceIn(0f, 1f)
-                                val targetFamiliarPerBatch = ((familiarRatio / ratio.coerceAtLeast(0.05f))).toInt().coerceIn(1, 4)
-                                val result = arrayListOf<Track>()
-                                var fIdx = 0
-                                var dIdx = 0
-                                while (dIdx < discoveryTracks.size || fIdx < familiar.size) {
-                                    if (dIdx < discoveryTracks.size) result.add(discoveryTracks[dIdx++])
-                                    repeat(targetFamiliarPerBatch) {
-                                        if (fIdx < familiar.size) result.add(familiar[fIdx++])
-                                    }
-                                    if (result.size >= 50) break
-                                }
-                                result
-                            } else {
-                                discoveryTracks
+                        val currentIdx = player.currentMediaItemIndex
+                        val refTracks = queueData.value.data.listTracks.let { list ->
+                            val start = (currentIdx - 2).coerceAtLeast(0)
+                            val end = (currentIdx + 3).coerceAtMost(list.size)
+                            if (start < end) list.subList(start, end) else list
+                        }
+
+                        val currentQueueIds = queueData.value.data.listTracks.map { it.videoId }.toSet()
+                        // 1. Must not already be in current queue
+                        val unqueuedTracks = discoveryTracks.filter { it.videoId !in currentQueueIds }
+                        // 2. Must not be in sessionSeenVideoIds (never repeat played/skipped songs)
+                        val unseenTracks = unqueuedTracks.filter { it.videoId !in sessionSeenVideoIds }
+                        val pool = if (unseenTracks.isNotEmpty()) unseenTracks else unqueuedTracks
+
+                        // 3. Must match the same language as current playing context
+                        val languageMatched = pool.filter { TrackLanguageFilter.isCompatibleLanguage(it, refTracks) }
+                        val tracksToAdd = if (languageMatched.isNotEmpty()) languageMatched else pool
+
+                        if (tracksToAdd.isNotEmpty()) {
+                            tracksToAdd.forEach { sessionSeenVideoIds.add(it.videoId) }
+                            loadMoreCatalog(ArrayList(tracksToAdd))
+                            _queueData.update {
+                                it.copy(
+                                    data = it.data.copy(
+                                        continuation = nextContinuation,
+                                    ),
+                                    queueState = QueueData.StateSource.STATE_INITIALIZED,
+                                )
                             }
                         } else {
-                            discoveryTracks
-                        }
-                        loadMoreCatalog(blendedTracks)
-                        _queueData.update {
-                            it.copy(
-                                data =
-                                    it.data.copy(
-                                        continuation = response.data?.second,
-                                    ),
-                            )
+                            _queueData.update {
+                                it.copy(
+                                    queueState = QueueData.StateSource.STATE_INITIALIZED,
+                                )
+                            }
+                            fetchNextEndlessQueueBatch()
                         }
                     }
 
@@ -1800,6 +1801,7 @@ internal class MediaServiceHandlerImpl(
                 data = queueData,
             )
         }
+        queueData.listTracks.forEach { sessionSeenVideoIds.add(it.videoId) }
         // Snapshot which tracks came from the album, for the crossfade rule. Taken at load time
         // because endless queue appends to this same queue afterwards, and those additions are not
         // album tracks — that boundary is exactly where crossfade should resume.
@@ -1856,6 +1858,7 @@ internal class MediaServiceHandlerImpl(
 
     override fun reset() {
         _queueData.value = QueueData()
+        usedRadioSeedVideoIds.clear()
     }
 
     override suspend fun load(
@@ -1888,9 +1891,13 @@ internal class MediaServiceHandlerImpl(
                     queueState = QueueData.StateSource.STATE_INITIALIZED,
                 )
             }
+            if (isEndlessQueueCached) {
+                fetchNextEndlessQueueBatch()
+            }
             return
         }
         val tracksToAdd = if (!isAddToQueue) ArrayList(uniqueList) else listTrack
+        tracksToAdd.forEach { sessionSeenVideoIds.add(it.videoId) }
 
         Logger.d("Queue", tracksToAdd.map { it.title }.toString())
         _queueData.update {
@@ -2831,7 +2838,7 @@ internal class MediaServiceHandlerImpl(
             nowPlayingState.value.songEntity?.let { updateDiscordRpc(it) }
         }
         queueData.value.data.listTracks.let { list ->
-            if (list.size - player.currentMediaItemIndex < 4 &&
+            if (list.size - player.currentMediaItemIndex < 5 &&
                 list.size - player.currentMediaItemIndex >= 0 &&
                 queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZED
             ) {

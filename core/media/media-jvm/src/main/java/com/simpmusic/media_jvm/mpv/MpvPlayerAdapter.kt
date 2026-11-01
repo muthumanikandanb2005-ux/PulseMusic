@@ -924,7 +924,7 @@ class MpvPlayerAdapter(
                     if (localCurrentMediaItemIndex < playlist.size - 1) {
                         localCurrentMediaItemIndex + 1
                     } else {
-                        0
+                        localCurrentMediaItemIndex
                     }
                 }
             }
@@ -934,17 +934,11 @@ class MpvPlayerAdapter(
                     val nextShufflePos = currentShufflePos + 1
                     if (nextShufflePos < shuffleOrder.size) {
                         shuffleOrder.getOrNull(nextShufflePos) ?: localCurrentMediaItemIndex
-                    } else if (isUserSkip && shuffleOrder.isNotEmpty()) {
-                        shuffleOrder.firstOrNull() ?: localCurrentMediaItemIndex
                     } else {
                         localCurrentMediaItemIndex
                     }
                 } else {
-                    if (isUserSkip && localCurrentMediaItemIndex >= playlist.size - 1 && playlist.size > 1) {
-                        0
-                    } else {
-                        (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
-                    }
+                    (localCurrentMediaItemIndex + 1).coerceAtMost(playlist.size - 1)
                 }
             }
         }
