@@ -107,7 +107,15 @@ Builds:
     gradle:
       - yes
 
+  - versionName: 4.0.3
+    versionCode: 103
+    commit: v4.0.3
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 4.0.2
-CurrentCode: 102
+CurrentVersion: 4.0.3
+CurrentCode: 103
