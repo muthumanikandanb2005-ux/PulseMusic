@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.component
+package com.pulse.music.ui.component
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.MarqueeAnimationMode
@@ -238,12 +238,16 @@ fun LibraryItem(
                             }
                         }
                     } else if (state.type is LibraryItemType.CanvasSong) {
+                        val radioString = stringResource(Res.string.radio)
                         LazyRow(
                             Modifier.padding(
                                 top = 10.dp,
                             ),
                         ) {
-                            items(state.data) { item ->
+                            items(
+                                items = state.data,
+                                key = { item -> (item as? SongEntity)?.videoId ?: item.hashCode().toString() },
+                            ) { item ->
                                 val song = item as? SongEntity ?: return@items
                                 Box(
                                     Modifier
@@ -257,7 +261,7 @@ fun LibraryItem(
                                                     listTracks = arrayListOf(firstQueue),
                                                     firstPlayedTrack = firstQueue,
                                                     playlistId = "RDAMVM${firstQueue.videoId}",
-                                                    playlistName = "\"${song.title}\" ${runBlocking { getString(Res.string.radio) }}",
+                                                    playlistName = "\"${song.title}\" $radioString",
                                                     playlistType = DomainPlaylistType.RADIO,
                                                     continuation = null,
                                                 ),
@@ -342,7 +346,18 @@ fun LibraryItem(
                     } else {
                         if (state.data.isNotEmpty()) {
                             LazyRow {
-                                items(items = state.data) { item ->
+                                items(
+                                    items = state.data,
+                                    key = { item ->
+                                        when (item) {
+                                            is LocalPlaylistEntity -> "local_${item.id}"
+                                            is PlaylistsResult -> "yt_${item.browseId}"
+                                            is AlbumEntity -> "album_${item.browseId}"
+                                            is ArtistEntity -> "artist_${item.channelId}"
+                                            else -> item.hashCode().toString()
+                                        }
+                                    },
+                                ) { item ->
                                     Box(modifier = Modifier.animateItem()) {
                                         HomeItemContentPlaylist(
                                             onClick = {

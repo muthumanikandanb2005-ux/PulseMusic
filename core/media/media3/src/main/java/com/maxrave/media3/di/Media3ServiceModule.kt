@@ -508,12 +508,12 @@ private fun provideLoadControl(): LoadControl =
     DefaultLoadControl
         .Builder()
         .setBufferDurationsMs(
-            50_000,
-            180_000,
-            1_200,
-            2_500,
+            30_000,
+            90_000,
+            800,
+            1_500,
         )
-        .setBackBuffer(60_000, true)
+        .setBackBuffer(30_000, true)
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 

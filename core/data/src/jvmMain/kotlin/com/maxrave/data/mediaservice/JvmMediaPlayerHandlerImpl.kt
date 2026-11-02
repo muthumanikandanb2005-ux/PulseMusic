@@ -1087,7 +1087,7 @@ class JvmMediaPlayerHandlerImpl(
                 // faster made it worse. The smoothed value is derived from the wall clock, so it
                 // differs on every tick and nothing is swallowed. Rate is now free to choose, and
                 // twice as many even steps reads better than half as many.
-                val tickIntervalMs = 50L
+                val tickIntervalMs = 200L
                 var sinceLastPositionSaveMs = 0L
                 while (true) {
                     delay(tickIntervalMs)

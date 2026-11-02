@@ -51,6 +51,10 @@
             <action android:name="android.intent.action.SEND" />
             <data android:scheme="snapchat" android:host="creativekit" android:mimeType="image/*" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:scheme="snapchat" android:host="creativekit" android:mimeType="*/*" />
+        </intent>
     </queries>
     <queries>
         <intent>

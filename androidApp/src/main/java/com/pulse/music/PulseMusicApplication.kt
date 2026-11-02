@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import multiplatform.network.cmptoast.AppContext
 import okhttp3.OkHttpClient
 import okio.FileSystem
+import okio.Path.Companion.toOkioPath
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.component.KoinComponent
@@ -149,7 +150,7 @@ class PulseMusicApplication :
             .diskCache(
                 DiskCache
                     .Builder()
-                    .directory(FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "image_cache")
+                    .directory(context.cacheDir.resolve("image_cache").toOkioPath())
                     .maxSizeBytes(512L * 1024 * 1024)
                     .build(),
             ).crossfade(true)

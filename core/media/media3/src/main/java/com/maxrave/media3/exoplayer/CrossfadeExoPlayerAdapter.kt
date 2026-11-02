@@ -103,7 +103,16 @@ internal class CrossfadeExoPlayerAdapter(
 
     // ========== Crossfade Settings (loaded from DataStore) ==========
 
+    @Volatile
+    private var cachedEnableFloatOutput = false
+
     init {
+        coroutineScope.launch {
+            dataStoreManager.getString(DataStoreManager.OUTPUT_PRECISION).collect { precision ->
+                cachedEnableFloatOutput = (precision == "32")
+                Logger.d(TAG, "Cached float output precision 32-bit: $cachedEnableFloatOutput")
+            }
+        }
         coroutineScope.launch {
             dataStoreManager.crossfadeEnabled.collect { enabled ->
                 crossfadeEnabled = (enabled == DataStoreManager.TRUE)
@@ -576,17 +585,13 @@ internal class CrossfadeExoPlayerAdapter(
                 ): AudioSink =
                     DefaultAudioSink
                         .Builder(context)
-                        .setEnableFloatOutput(
-                            runBlocking {
-                                dataStoreManager.getString(DataStoreManager.OUTPUT_PRECISION).firstOrNull() == "32"
-                            }
-                        )
+                        .setEnableFloatOutput(cachedEnableFloatOutput)
                         .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                         .setAudioTrackBufferSizeProvider(
                             DefaultAudioTrackBufferSizeProvider.Builder()
-                                .setPcmBufferMultiplicationFactor(10)
-                                .setMinPcmBufferDurationUs(500_000)
-                                .setMaxPcmBufferDurationUs(2_000_000)
+                                .setPcmBufferMultiplicationFactor(4)
+                                .setMinPcmBufferDurationUs(250_000)
+                                .setMaxPcmBufferDurationUs(1_000_000)
                                 .build()
                         )
                         .setAudioProcessorChain(
@@ -627,12 +632,12 @@ internal class CrossfadeExoPlayerAdapter(
                     DefaultLoadControl
                         .Builder()
                         .setBufferDurationsMs(
-                            60_000,
-                            180_000,
-                            2_500,
-                            5_000,
+                            30_000,
+                            90_000,
+                            800,
+                            1_500,
                         )
-                        .setBackBuffer(60_000, true)
+                        .setBackBuffer(30_000, true)
                         .setPrioritizeTimeOverSizeThresholds(true)
                         .build(),
                 ).setWakeMode(C.WAKE_MODE_NETWORK)

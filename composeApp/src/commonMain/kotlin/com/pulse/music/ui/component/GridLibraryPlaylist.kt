@@ -1,4 +1,4 @@
-﻿package com.pulse.music.ui.component
+package com.pulse.music.ui.component
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.MarqueeAnimationMode
@@ -195,7 +195,19 @@ internal inline fun <reified T> GridLibraryPlaylist(
                             }
                         }
                     }
-                    items(list) { item ->
+                    items(
+                        items = list,
+                        key = { item ->
+                            when (item) {
+                                is ChartItem -> "chart_${item.ytPlaylistId}"
+                                is LocalPlaylistEntity -> "local_${item.id}"
+                                is PlaylistsResult -> "yt_${item.browseId}"
+                                is AlbumEntity -> "album_${item.browseId}"
+                                is PlaylistEntity -> "playlist_${item.id}"
+                                else -> item.hashCode().toString()
+                            }
+                        },
+                    ) { item ->
                         if (item !is PlaylistType) {
                             return@items
                         }
