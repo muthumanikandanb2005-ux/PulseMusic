@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="160dp"
+    android:layout_height="160dp"
+    android:background="@drawable/widget_card_surface"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Preferences"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null"
+            android:src="@drawable/round_more_vert_24"
+            android:tint="#888888" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="10dp"
+        android:gravity="bottom|center_horizontal"
+        android:orientation="horizontal">
+
+        <ImageView android:layout_width="4dp" android:layout_height="14dp" android:background="@drawable/widget_preview_line" android:contentDescription="@null" />
+        <ImageView android:layout_width="4dp" android:layout_height="24dp" android:layout_marginStart="4dp" android:background="@drawable/widget_preview_line" android:contentDescription="@null" />
+        <ImageView android:layout_width="4dp" android:layout_height="32dp" android:layout_marginStart="4dp" android:background="@drawable/widget_preview_line" android:contentDescription="@null" />
+        <ImageView android:layout_width="4dp" android:layout_height="18dp" android:layout_marginStart="4dp" android:background="@drawable/widget_preview_line" android:contentDescription="@null" />
+        <ImageView android:layout_width="4dp" android:layout_height="28dp" android:layout_marginStart="4dp" android:background="@drawable/widget_preview_line" android:contentDescription="@null" />
+        <ImageView android:layout_width="4dp" android:layout_height="36dp" android:layout_marginStart="4dp" android:background="@drawable/widget_preview_line" android:contentDescription="@null" />
+        <ImageView android:layout_width="4dp" android:layout_height="20dp" android:layout_marginStart="4dp" android:background="@drawable/widget_preview_line" android:contentDescription="@null" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="What kind of music\nare you looking for?"
+        android:textColor="#CCCCCC"
+        android:textSize="11sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_shortcut_tile"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:text="Genres ▾"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="@drawable/widget_shortcut_tile"
+            android:contentDescription="@null"
+            android:padding="5dp"
+            android:src="@drawable/round_search_24"
+            android:tint="#FFFFFF" />
+    </LinearLayout>
+</LinearLayout>

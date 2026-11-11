@@ -1,0 +1,68 @@
+package com.manikandan.data.di
+
+import com.manikandan.common.AppIdentity
+import com.manikandan.common.Config
+import com.manikandan.data.listentogether.ListenTogetherPlaybackBridge
+import com.manikandan.data.listentogether.ListenTogetherPrefs
+import com.manikandan.data.listentogether.ListenTogetherRepositoryImpl
+import com.manikandan.domain.repository.ListenTogetherRepository
+import com.manikandan.domain.manager.DataStoreManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+import org.pulsemusic.listentogether.ListenTogetherClient
+import org.pulsemusic.listentogether.ListenTogetherSession
+
+/**
+ * Listen Together lives for as long as the app does, not as long as its screen.
+ *
+ * The session was originally created inside the ViewModel, which meant leaving the screen tore the
+ * socket down and left the room — while playback, the thing the room is about, kept running in the
+ * background. Singletons here, and the screen merely observes them.
+ */
+val listenTogetherModule =
+    module {
+        single {
+            val dataStore = get<DataStoreManager>()
+            val serviceScope = get<CoroutineScope>(named(Config.SERVICE_SCOPE))
+            var cachedServerUrl = ""
+            serviceScope.launch {
+                runCatching {
+                    dataStore.getString(ListenTogetherPrefs.SERVER_URL).collect { url ->
+                        cachedServerUrl = url.orEmpty()
+                    }
+                }
+            }
+            ListenTogetherClient(
+                clientVersion = "Pulse",
+                userAgent = "okhttp/4.12.0",
+                // Read per connection attempt without blocking threads
+                serverUrl = {
+                    cachedServerUrl
+                },
+            )
+        }
+
+        single { ListenTogetherSession(client = get()) }
+
+        // The boundary: everything above this line speaks domain types only.
+        single<ListenTogetherRepository> {
+            ListenTogetherRepositoryImpl(
+                session = get(),
+                dataStore = get<DataStoreManager>(),
+                scope = get<CoroutineScope>(named(Config.SERVICE_SCOPE)),
+            )
+        }
+
+        single {
+            ListenTogetherPlaybackBridge(
+                repository = get(),
+                session = get(),
+                handler = get(),
+                scope = get<CoroutineScope>(named(Config.SERVICE_SCOPE)),
+            )
+        }
+    }

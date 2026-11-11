@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:background="@drawable/widget_pill_surface"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp">
+
+    <ImageView
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/widget_preview_circle"
+        android:contentDescription="@null"
+        android:src="@drawable/round_music_note_24"
+        android:tint="#FFFFFF"
+        android:padding="8dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2:14 / 3:45"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="14dp"
+            android:layout_marginTop="3dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="3dp"
+                android:layout_height="8dp"
+                android:background="@drawable/widget_preview_line"
+                android:contentDescription="@null" />
+            <ImageView
+                android:layout_width="3dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/widget_preview_line"
+                android:contentDescription="@null" />
+            <ImageView
+                android:layout_width="3dp"
+                android:layout_height="10dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/widget_preview_line"
+                android:contentDescription="@null" />
+            <ImageView
+                android:layout_width="3dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/widget_preview_line"
+                android:contentDescription="@null" />
+            <ImageView
+                android:layout_width="3dp"
+                android:layout_height="12dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/widget_preview_line"
+                android:contentDescription="@null" />
+            <ImageView
+                android:layout_width="3dp"
+                android:layout_height="6dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/widget_preview_line"
+                android:contentDescription="@null" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="@drawable/widget_play_disc"
+        android:contentDescription="@null"
+        android:padding="7dp"
+        android:src="@drawable/rounded_play_arrow_24" />
+</LinearLayout>

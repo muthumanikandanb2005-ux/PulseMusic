@@ -1,0 +1,6 @@
+Pulse Music v3.1.8:
+- Fixed update rate limit by prioritizing zero-limit CDN and raw GitHub endpoints
+- Resolved 64-bit ID deserialization and content-type handling for OTA update checks
+- Accurate lyrics matching: strictly rejects instrumental tracks and mismatched songs
+- Listen Together reconnection fix: purged stale session tokens and reduced handshake timeouts
+- Background audio stability improvements across Android & Windows

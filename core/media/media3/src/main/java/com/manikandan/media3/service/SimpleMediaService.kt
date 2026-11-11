@@ -1,0 +1,447 @@
+package com.manikandan.media3.service
+
+import android.app.Activity
+import android.app.ActivityManager
+import android.app.ActivityManager.RunningAppProcessInfo
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.net.wifi.WifiManager
+import android.os.Binder
+import android.os.Build
+import android.os.IBinder
+import android.os.PowerManager
+import androidx.core.content.getSystemService
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaController
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionToken
+import androidx.media3.ui.DefaultMediaDescriptionAdapter
+import androidx.media3.ui.PlayerNotificationManager
+import com.google.common.util.concurrent.MoreExecutors
+import com.manikandan.common.MEDIA_NOTIFICATION
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.mediaservice.handler.MediaPlayerHandler
+import com.manikandan.logger.Logger
+import com.manikandan.media3.R
+import com.manikandan.media3.extension.toCommandButton
+import com.manikandan.media3.utils.CoilBitmapLoader
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.seconds
+
+@UnstableApi
+internal class SimpleMediaService :
+    MediaLibraryService(),
+    KoinComponent {
+    private val coroutineScope by inject<CoroutineScope>(named(com.manikandan.common.Config.SERVICE_SCOPE))
+    // Session-level player from DI: the ForwardingPlayer wrapped with Cast support in the
+    // full build (plain ForwardingPlayer in the FOSS build).
+    private val player: Player by inject<Player>(qualifier = named(com.manikandan.common.Config.MAIN_PLAYER))
+    private val coilBitmapLoader: CoilBitmapLoader by inject<CoilBitmapLoader>()
+
+    private var mediaSession: MediaLibrarySession? = null
+
+    private val simpleMediaSessionCallback: MediaLibrarySession.Callback by inject<MediaLibrarySession.Callback>()
+
+    private val simpleMediaServiceHandler: MediaPlayerHandler by inject<MediaPlayerHandler>()
+    private val dataStoreManager: DataStoreManager by inject<DataStoreManager>()
+
+    private val binder = MusicBinder()
+
+    private var pauseTimeoutJob: Job? = null
+    private val pauseGracePeriodMs = 120_000L // 2 minutes (120 seconds) grace period before releasing foreground / stopping
+
+    private val powerManager by lazy { getSystemService<PowerManager>() }
+    private val wifiManager by lazy { applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager }
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+
+    private fun acquireLocks() {
+        try {
+            if (wakeLock == null) {
+                wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PulseMusic:PlaybackWakeLock")?.apply {
+                    setReferenceCounted(false)
+                }
+            }
+            if (wakeLock?.isHeld == false) {
+                wakeLock?.acquire()
+            }
+            if (wifiLock == null) {
+                val wifiMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+                } else {
+                    @Suppress("DEPRECATION")
+                    WifiManager.WIFI_MODE_FULL_HIGH_PERF
+                }
+                wifiLock = wifiManager?.createWifiLock(wifiMode, "PulseMusic:PlaybackWifiLock")?.apply {
+                    setReferenceCounted(false)
+                }
+            }
+            if (wifiLock?.isHeld == false) {
+                wifiLock?.acquire()
+            }
+        } catch (e: Exception) {
+            Logger.w("Service", "Error acquiring locks: ${e.message}")
+        }
+    }
+
+    private fun releaseLocks() {
+        try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+            if (wifiLock?.isHeld == true) wifiLock?.release()
+        } catch (e: Exception) {
+            Logger.w("Service", "Error releasing locks: ${e.message}")
+        }
+    }
+
+    inner class MusicBinder : Binder() {
+        val service: SimpleMediaService
+            get() = this@SimpleMediaService
+
+        fun setActivitySession(
+            context: Context,
+            activity: Class<out Activity>,
+        ) {
+            mediaSession?.setSessionActivity(
+                PendingIntent.getActivity(
+                    context,
+                    0,
+                    Intent(context, activity),
+                    PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder {
+        Logger.w("Service", "Simple Media Service Bound")
+        return super.onBind(intent) ?: binder
+    }
+
+    @UnstableApi
+    override fun onCreate() {
+        super.onCreate()
+        Logger.w("Service", "Simple Media Service Created")
+
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider(
+                this,
+                { MEDIA_NOTIFICATION.NOTIFICATION_ID },
+                MEDIA_NOTIFICATION.NOTIFICATION_CHANNEL_ID,
+                R.string.notification_channel_name,
+            ).apply {
+                setSmallIcon(R.drawable.mono)
+            },
+        )
+
+        if (mediaSession == null) {
+            mediaSession =
+                provideMediaLibrarySession(
+                    this,
+                    player,
+                    simpleMediaSessionCallback,
+                )
+        }
+
+        simpleMediaServiceHandler.onUpdateNotification = { list ->
+            val commandButtonList = list.map { it.toCommandButton(this) }
+            mediaSession?.setMediaButtonPreferences(
+                commandButtonList,
+            )
+        }
+
+        val sessionToken = SessionToken(this, ComponentName(this, SimpleMediaService::class.java))
+        val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+        controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
+
+        // Foreground service notification is exclusively managed by MediaLibraryService via
+        // DefaultMediaNotificationProvider registered above, ensuring Android 14/15/16 compliance
+        // without dual-notification conflicts.
+
+        simpleMediaServiceHandler.onUpdateNotification = { list ->
+            val commandButtonList = list.map { it.toCommandButton(this) }
+            mediaSession?.setMediaButtonPreferences(
+                commandButtonList,
+            )
+        }
+
+        setupUsbDacRouting()
+    }
+
+    @UnstableApi
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
+        Logger.w("Service", "Simple Media Service Received Action: ${intent?.action}")
+        super.onStartCommand(intent, flags, startId)
+        return START_NOT_STICKY
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
+
+    @UnstableApi
+    override fun onUpdateNotification(
+        session: MediaSession,
+        startInForegroundRequired: Boolean,
+    ) {
+        val isPlaying = session.player.playWhenReady &&
+            session.player.playbackState != Player.STATE_IDLE &&
+            session.player.playbackState != Player.STATE_ENDED
+
+        if (isPlaying) {
+            acquireLocks()
+            // Actively playing: cancel pause timeout and maintain active foreground notification
+            pauseTimeoutJob?.cancel()
+            pauseTimeoutJob = null
+            super.onUpdateNotification(session, true)
+        } else {
+            // Playback is paused or idle: do NOT immediately detach foreground notification!
+            // Xiaomi HyperOS Mini Capsules / Dynamic Island require ongoing media session in foreground.
+            // Hold foreground service for a 2-minute grace period before allowing detach / stop.
+            if (session.player.currentMediaItem != null) {
+                acquireLocks()
+                if (pauseTimeoutJob == null || pauseTimeoutJob?.isActive == false) {
+                    pauseTimeoutJob = coroutineScope.launch {
+                        Logger.d("Service", "Playback paused. Holding foreground status for 2 minutes...")
+                        delay(pauseGracePeriodMs)
+                        Logger.d("Service", "2-minute pause grace period elapsed. Releasing foreground status.")
+                        pauseTimeoutJob = null
+                        releaseLocks()
+                        if (!session.player.playWhenReady) {
+                            try {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                    stopForeground(STOP_FOREGROUND_DETACH)
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    stopForeground(false)
+                                }
+                            } catch (e: Exception) {
+                                Logger.w("Service", "Error stopping foreground: ${e.message}")
+                            }
+                        }
+                    }
+                }
+                // Keep notification ongoing in foreground while grace period is active
+                val keepForeground = pauseTimeoutJob?.isActive == true
+                super.onUpdateNotification(session, startInForegroundRequired || keepForeground)
+            } else {
+                releaseLocks()
+                super.onUpdateNotification(session, startInForegroundRequired)
+            }
+        }
+    }
+
+    @UnstableApi
+    fun release() {
+        pauseTimeoutJob?.cancel()
+        pauseTimeoutJob = null
+        releaseLocks()
+        Logger.w("Service", "Starting release process")
+        runBlocking {
+            try {
+                // Release MediaSession and ensure playback is completely stopped
+                mediaSession?.run {
+                    this.player.pause()
+                    this.player.playWhenReady = false
+                    this.player.stop()
+                    this.release()
+                }
+                // Release handler (contains coroutines and jobs, which also releases the adapter)
+                simpleMediaServiceHandler.release()
+                mediaSession = null
+                Logger.w("Service", "Simple Media Service Released")
+            } catch (e: Exception) {
+                Logger.e("Service", "Error during release: ${e.message}")
+            }
+        }
+    }
+
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
+    private var preferUsbDacJob: Job? = null
+    private var audioDeviceCallback: AudioDeviceCallback? = null
+
+    private fun setupUsbDacRouting() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            preferUsbDacJob?.cancel()
+            preferUsbDacJob = coroutineScope.launch {
+                dataStoreManager.getString(DataStoreManager.PREFER_USB_DAC).collect { preferUsb ->
+                    updatePreferredAudioDevice(preferUsb == "true")
+                }
+            }
+            audioDeviceCallback = object : AudioDeviceCallback() {
+                override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
+                    checkAndUpdateUsbRouting()
+                }
+                override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
+                    checkAndUpdateUsbRouting()
+                }
+            }
+            try {
+                audioManager?.registerAudioDeviceCallback(audioDeviceCallback, null)
+            } catch (e: Exception) {
+                Logger.w("Service", "Failed to register audio device callback: ${e.message}")
+            }
+        }
+    }
+
+    private fun checkAndUpdateUsbRouting() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            coroutineScope.launch {
+                val preferUsb = dataStoreManager.getString(DataStoreManager.PREFER_USB_DAC).firstOrNull() == "true"
+                updatePreferredAudioDevice(preferUsb)
+            }
+        }
+    }
+
+    private fun updatePreferredAudioDevice(preferUsb: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                if (preferUsb) {
+                    val devices = audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                    val usbDevice = devices?.firstOrNull {
+                        it.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                            it.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                            it.type == AudioDeviceInfo.TYPE_USB_ACCESSORY
+                    }
+                    if (usbDevice != null) {
+                        Logger.d("Service", "Routing audio to USB DAC: ${usbDevice.productName}")
+                        (player as? ExoPlayer)?.setPreferredAudioDevice(usbDevice)
+                    } else {
+                        (player as? ExoPlayer)?.setPreferredAudioDevice(null)
+                    }
+                } else {
+                    (player as? ExoPlayer)?.setPreferredAudioDevice(null)
+                }
+            } catch (e: Exception) {
+                Logger.w("Service", "Failed to set preferred audio device: ${e.message}")
+            }
+        }
+    }
+
+    @UnstableApi
+    override fun onDestroy() {
+        pauseTimeoutJob?.cancel()
+        pauseTimeoutJob = null
+        releaseLocks()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && audioDeviceCallback != null) {
+            try {
+                audioManager?.unregisterAudioDeviceCallback(audioDeviceCallback)
+            } catch (e: Exception) {
+                Logger.w("Service", "Failed to unregister audio device callback: ${e.message}")
+            }
+            audioDeviceCallback = null
+        }
+        preferUsbDacJob?.cancel()
+        preferUsbDacJob = null
+        super.onDestroy()
+        Logger.w("Service", "Simple Media Service Destroyed")
+        release()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        Logger.w("Service", "Simple Media Service Trim Memory Level: $level")
+        simpleMediaServiceHandler.mayBeSaveRecentSong()
+    }
+
+    @UnstableApi
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Logger.w("Service", "Simple Media Service Task Removed")
+        val shouldStop = runBlocking {
+            val kill = dataStoreManager.killServiceOnExit.firstOrNull() == DataStoreManager.TRUE
+            val stopRecents = dataStoreManager.getString(DataStoreManager.STOP_ON_CLOSE_RECENTS).firstOrNull() == "true"
+            kill || stopRecents
+        }
+        if (shouldStop) {
+            Logger.w("Service", "Stop music on close from recents enabled — stopping playback and foreground service.")
+            try {
+                player.pause()
+                player.playWhenReady = false
+                player.stop()
+                release()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+                stopSelf()
+            } catch (e: Exception) {
+                Logger.e("Service", "Error stopping service on task removed: ${e.message}")
+            }
+            return
+        }
+        if (player.isPlaying || player.playWhenReady) {
+            // Keep playing uninterrupted in background
+            Logger.d("Service", "App task removed while playing — keep service alive in foreground.")
+            return
+        }
+        // When task is removed and playback is paused or idle, cleanly stop foreground and terminate
+        // so the service does not remain in RAM and never resumes playback automatically without permission.
+        Logger.w("Service", "App task removed while paused/idle — cleanly stopping playback service.")
+        try {
+            pauseTimeoutJob?.cancel()
+            pauseTimeoutJob = null
+            releaseLocks()
+            player.pause()
+            player.playWhenReady = false
+            player.stop()
+            release()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+            stopSelf()
+        } catch (e: Exception) {
+            Logger.e("Service", "Error stopping service on task removed: ${e.message}")
+        }
+    }
+
+    // Can't inject by Koin because it depend on service
+    @UnstableApi
+    private fun provideMediaLibrarySession(
+        service: MediaLibraryService,
+        player: Player,
+        callback: MediaLibrarySession.Callback,
+    ): MediaLibrarySession =
+        MediaLibrarySession
+            .Builder(
+                service,
+                player,
+                callback,
+            ).setId(this.javaClass.name)
+            .setBitmapLoader(coilBitmapLoader)
+            .build()
+
+    private fun isAppInForeground(): Boolean {
+        val appProcessInfo = RunningAppProcessInfo()
+        ActivityManager.getMyMemoryState(appProcessInfo)
+        return appProcessInfo.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+    }
+}

@@ -1,0 +1,22 @@
+package com.manikandan.data.di
+
+import com.manikandan.common.Config
+import com.manikandan.data.mediaservice.createMediaServiceHandler
+import com.manikandan.domain.mediaservice.handler.MediaPlayerHandler
+import kotlinx.coroutines.CoroutineScope
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+
+val mediaHandlerModule =
+    module {
+        single<MediaPlayerHandler> {
+            createMediaServiceHandler(
+                dataStoreManager = get(),
+                songRepository = get(),
+                streamRepository = get(),
+                localPlaylistRepository = get(),
+                analyticsRepository = get(),
+                coroutineScope = get<CoroutineScope>(named(Config.SERVICE_SCOPE)),
+            )
+        }
+    }

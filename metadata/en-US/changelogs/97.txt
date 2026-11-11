@@ -1,0 +1,8 @@
+Pulse Music v3.2.9:
+- Zero-Freeze Continuous Playback: Completely eliminated the Android UI freeze and touch lockup after playing 1 song by decoupling user drag gestures from programmatic track advancement.
+- Instant Windows Desktop Transitions: Instantaneous track title, artist name, and album artwork updates on song skip and track transitions with zero latency.
+- Listen Healthy & Hearing Protection: Built-in WHO 85dB safe headphone volume limiter (auto-capping at 75%), customizable ear break alerts (30m, 45m, 60m, 90m, 120m), and continuous exposure monitor.
+- Smart Song Discovery Mix: Dynamic Discovery slider in Settings and Queue sheet to balance familiar favorites with new algorithmic recommendations.
+- Synchronized Multilingual Romanization & Ambient Glow: Beautiful synced lyrics light and artwork palette glow across all supported languages and scripts.
+- Pure Dark AMOLED, Pastel Pearl Lavender, Light & System Default themes.
+- Designed & Developed by Manikandan.

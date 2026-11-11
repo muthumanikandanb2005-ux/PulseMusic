@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_waveform_pill_description"
+    android:initialLayout="@layout/widget_preview_waveform_pill"
+    android:previewLayout="@layout/widget_preview_waveform_pill"
+    android:resizeMode="horizontal"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:minWidth="240dp"
+    android:minHeight="48dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="48dp"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

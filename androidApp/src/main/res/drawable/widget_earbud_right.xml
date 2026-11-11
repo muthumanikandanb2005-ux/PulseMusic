@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Earbud head (mirrored) -->
+    <path
+        android:fillColor="#EAEAEA"
+        android:pathData="M24,14c4.4,0 8,3.6 8,8 0,3.3 -2,6.1 -4.9,7.3l1.9,10.7c0.2,1.1 -0.6,2 -1.7,2h-2.6c-1.1,0 -1.9,-0.9 -1.7,-2l1.9,-10.7c-2.9,-1.2 -4.9,-4 -4.9,-7.3 0,-4.4 3.6,-8 8,-8z" />
+    <!-- Speaker mesh -->
+    <path
+        android:fillColor="#555555"
+        android:pathData="M24,18c1.7,0 3,1.3 3,3s-1.3,3 -3,3 -3,-1.3 -3,-3 1.3,-3 3,-3z" />
+</vector>

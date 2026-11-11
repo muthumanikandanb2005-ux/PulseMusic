@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget labels and descriptions live here, not in composeResources: the entries in res/xml
+  reference them as @string/… and only Android resources resolve there. Not on Crowdin as a
+  result — these are the few strings the picker reads before any Compose code runs.
+-->
+<resources>
+    <string name="widget_turntable_label">Turntable</string>
+    <string name="widget_turntable_description">Album art with play and skip</string>
+    <string name="widget_playlists_label">Playlists</string>
+    <string name="widget_playlists_description">Now playing with controls, over your recently added</string>
+    <string name="widget_insights_label">Listening insights</string>
+    <string name="widget_insights_description">Listening time, play count and your 30-day top songs and artists</string>
+    <string name="widget_insights_time">listening time</string>
+    <string name="widget_insights_plays">plays</string>
+    <string name="widget_insights_top_songs">Top songs · 30 days</string>
+    <string name="widget_insights_top_artists">Top artists · 30 days</string>
+    <string name="widget_recently_added">Recently added</string>
+
+    <!-- Futuristic Mobile Widgets -->
+    <string name="widget_vertical_capsule_label">Capsule Controls</string>
+    <string name="widget_vertical_capsule_description">Vertical pill with Home, Next, and Now Playing</string>
+
+    <string name="widget_horizontal_pill_label">Media Bar Capsule</string>
+    <string name="widget_horizontal_pill_description">Slim horizontal pill with complete playback controls</string>
+
+    <string name="widget_genre_selector_label">Genre Quick Selector</string>
+    <string name="widget_genre_selector_description">Quick launch Pop, Rock, Electronic, and Jazz music</string>
+
+    <string name="widget_volume_orb_label">Volume &amp; Track Orb</string>
+    <string name="widget_volume_orb_description">Volume indicator with glowing light spheres and active track</string>
+
+    <string name="widget_preferences_chart_label">Preferences &amp; Equalizer</string>
+    <string name="widget_preferences_chart_description">Weekly frequency equalizer chart with genre picker and search</string>
+
+    <string name="widget_listen_together_label">Social Listening Pill</string>
+    <string name="widget_listen_together_description">Friend avatars, audio soundwave, and group listening</string>
+
+    <string name="widget_waveform_pill_label">Waveform Player Pill</string>
+    <string name="widget_waveform_pill_description">Dynamic audio waveform mini player with track time</string>
+
+    <string name="widget_favorites_trending_label">Favorites &amp; Trending</string>
+    <string name="widget_favorites_trending_description">Favorites timeline and trending albums feed</string>
+
+    <string name="widget_device_battery_label">Earbuds &amp; Device Battery</string>
+    <string name="widget_device_battery_description">Connected wireless headphones and dual earbud battery gauges</string>
+
+    <string name="widget_listening_statistic_label">Listening Statistics</string>
+    <string name="widget_listening_statistic_description">Peak listening hours, trend graph, and average time</string>
+</resources>

@@ -1,0 +1,7 @@
+Pulse Music v4.0.6 (Build 106) — Multi-Platform Release & Orion Store OTA:
+- Vibrant Expressive Player: Round circle album image theme with Material 3 Expressive circular progressive arc, glowing indicator head, and synchronized lyrics directly below the controls.
+- Audio Multitasking & Stability: Eliminated audio breaks/stuttering when multitasking, closing apps, or switching apps with increased PCM AudioTrack buffers and extended ExoPlayer caching.
+- Butter-Smooth Playback: Instant play/pause/skip responsiveness with no freezing or watchdog timeouts.
+- Real-Time Live Widgets: All 10 Android Home Screen widgets display real Pulse data (live track titles, artists, timestamps, Bluetooth device names, battery gauges, and listening stats).
+- Launcher Widget Previews: Matching preview layouts for all 10 widgets in the Android launcher widget picker.
+- WiFi & WakeLock Resilience: Sustained socket connections across background pause grace periods.

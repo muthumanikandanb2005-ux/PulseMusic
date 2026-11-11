@@ -1,0 +1,391 @@
+package com.manikandan.data.repository
+
+import com.manikandan.data.db.MusicDatabase
+import com.manikandan.data.db.datasource.LocalDataSource
+import com.manikandan.data.io.fileSystem
+import com.manikandan.domain.data.entities.NotificationEntity
+import com.manikandan.domain.data.model.cookie.CookieItem
+import com.manikandan.domain.data.type.RecentlyType
+import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.CommonRepository
+import com.manikandan.common.SUPPORTED_MUSIC_LANGUAGE
+import com.manikandan.kotlinytmusicscraper.YouTube
+import com.manikandan.kotlinytmusicscraper.models.YouTubeLocale
+import com.manikandan.logger.Logger
+import com.manikandan.spotify.Spotify
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okio.IOException
+import okio.Path.Companion.toPath
+import okio.buffer
+import okio.use
+import org.pulsemusic.aiservice.AIHost
+import org.pulsemusic.aiservice.AiClient
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+
+internal class CommonRepositoryImpl(
+    private val coroutineScope: CoroutineScope,
+    private val database: MusicDatabase,
+    private val localDataSource: LocalDataSource,
+    private val youTube: YouTube,
+    private val spotify: Spotify,
+    private val aiClient: AiClient,
+) : CommonRepository {
+    @OptIn(ExperimentalTime::class)
+    override fun init(
+        cookiePath: String,
+        dataStoreManager: DataStoreManager,
+    ) {
+        youTube.cookiePath = cookiePath.toPath()
+        coroutineScope.launch {
+            val resetSpotifyToken =
+                launch {
+                    dataStoreManager.setSpotifyClientToken("")
+                    dataStoreManager.setSpotifyPersonalToken("")
+                    dataStoreManager.setSpotifyClientTokenExpires(Clock.System.now().epochSeconds)
+                    dataStoreManager.setSpotifyPersonalTokenExpires(Clock.System.now().epochSeconds)
+                }
+            val localeJob =
+                launch {
+                    combine(
+                        dataStoreManager.location,
+                        dataStoreManager.musicLanguage,
+                        dataStoreManager.language,
+                    ) { location, musicLanguage, language ->
+                        Triple(location, musicLanguage, language)
+                    }.collectLatest { (location, musicLanguage, language) ->
+                        val effectiveHl =
+                            if (musicLanguage != "auto" && musicLanguage.isNotBlank()) {
+                                musicLanguage
+                            } else {
+                                try {
+                                    language.substring(0..1)
+                                } catch (e: Exception) {
+                                    "en"
+                                }
+                            }
+                        val effectiveGl =
+                            if (musicLanguage != "auto" && musicLanguage.isNotBlank()) {
+                                SUPPORTED_MUSIC_LANGUAGE.getDefaultRegionForCode(musicLanguage) ?: location
+                            } else {
+                                location
+                            }
+                        youTube.locale = YouTubeLocale(effectiveGl, effectiveHl)
+                        Logger.d("YouTubeLocale", "Configured locale: gl=$effectiveGl, hl=$effectiveHl (musicLanguage=$musicLanguage)")
+                    }
+                }
+            val ytCookieJob =
+                launch {
+                    val currentCookie = dataStoreManager.cookie.first()
+                    if (currentCookie.isEmpty()) {
+                        localDataSource.getUsedGoogleAccount()?.let { acc ->
+                            val cache = acc.cache
+                            if (!cache.isNullOrEmpty()) {
+                                Logger.i("CommonRepository", "Restoring YouTube account from DB: ${acc.email}")
+                                dataStoreManager.setCookie(cache, acc.pageId, acc.authUser)
+                                dataStoreManager.setLoggedIn(true)
+                                youTube.cookie = cache
+                                youTube.pageId = acc.pageId
+                                youTube.authUser = acc.authUser
+                            }
+                        }
+                    } else {
+                        youTube.cookie = currentCookie
+                    }
+                    dataStoreManager.cookie.distinctUntilChanged().collectLatest { cookie ->
+                        youTube.cookie = cookie.ifEmpty { null }
+                        Logger.d("YouTube", "Updated youTube.cookie (isNullOrEmpty=${cookie.isEmpty()})")
+                    }
+                }
+            val pageIdJob =
+                launch {
+                    dataStoreManager.pageId.distinctUntilChanged().collectLatest { pageId ->
+                        youTube.pageId = pageId.ifEmpty { null }
+                        Logger.d("YouTube", "New pageId")
+                        localDataSource.getUsedGoogleAccount()?.netscapeCookie?.let {
+                            writeTextToFile(it, cookiePath)
+                            Logger.w("YouTube", "Wrote cookie to file")
+                        }
+                    }
+                }
+            val authUserJob =
+                launch {
+                    dataStoreManager.authUser.distinctUntilChanged().collectLatest { authUser ->
+                        youTube.authUser = authUser
+                        Logger.d("YouTube", "New authUser")
+                    }
+                }
+            val usingProxy =
+                launch {
+                    combine(
+                        combine(
+                            dataStoreManager.usingProxy,
+                            dataStoreManager.proxyType,
+                            dataStoreManager.proxyHost,
+                            dataStoreManager.proxyPort,
+                        ) { usingProxy, proxyType, proxyHost, proxyPort ->
+                            (usingProxy == DataStoreManager.TRUE) to ProxyData(proxyType, proxyHost, proxyPort, "", "")
+                        },
+                        dataStoreManager.proxyUsername,
+                        dataStoreManager.proxyPassword,
+                    ) { (enabled, baseData), username, password ->
+                        enabled to baseData.copy(username = username, password = password)
+                    }.distinctUntilChanged().collectLatest { (usingProxy, data) ->
+                        if (usingProxy) {
+                            withContext(Dispatchers.IO) {
+                                // Set SOCKS proxy authenticator if credentials are provided
+                                if (data.type == DataStoreManager.ProxyType.PROXY_TYPE_SOCKS &&
+                                    data.username.isNotEmpty() && data.password.isNotEmpty()
+                                ) {
+                                    setProxyAuthenticator(data.username, data.password)
+                                } else {
+                                    clearProxyAuthenticator()
+                                }
+                                youTube.setProxy(
+                                    data.type == DataStoreManager.ProxyType.PROXY_TYPE_HTTP,
+                                    data.host,
+                                    data.port,
+                                )
+                                spotify.setProxy(
+                                    data.type == DataStoreManager.ProxyType.PROXY_TYPE_HTTP,
+                                    data.host,
+                                    data.port,
+                                )
+                            }
+                        } else {
+                            clearProxyAuthenticator()
+                            youTube.removeProxy()
+                            spotify.removeProxy()
+                        }
+                    }
+                }
+            val dataSyncIdJob =
+                launch {
+                    dataStoreManager.dataSyncId.collectLatest { dataSyncId ->
+                        youTube.dataSyncId = dataSyncId
+                    }
+                }
+            val visitorDataJob =
+                launch {
+                    dataStoreManager.visitorData.collectLatest { visitorData ->
+                        youTube.visitorData = visitorData
+                    }
+                }
+            // Observe job: push cached TIDAL credentials from DataStore into YouTube.
+            // Only override when non-blank — credentials are not hard-coded, so an empty cache
+            // just leaves TIDAL disabled until the remote config is fetched.
+            val tidalCredentialJob =
+                launch {
+                    combine(
+                        dataStoreManager.tidalClientId,
+                        dataStoreManager.tidalClientSecret,
+                    ) { id, secret -> id to secret }
+                        .distinctUntilChanged()
+                        .collectLatest { (id, secret) ->
+                            if (id.isNotBlank()) youTube.tidalClientId = id
+                            if (secret.isNotBlank()) youTube.tidalClientSecret = secret
+                        }
+                }
+            // Fetch job: pull the latest TIDAL credentials from GitHub raw on each launch
+            // (async, non-blocking). On success we persist into DataStore; the observe job
+            // above then propagates the new values into YouTube reactively.
+            val tidalRemoteConfigJob =
+                launch {
+                    youTube
+                        .getTidalRemoteConfig()
+                        .onSuccess { config ->
+                            // Persist only non-blank fields so a malformed/partial file never
+                            // wipes a previously cached value. No need to diff against the current
+                            // value — the observe job's distinctUntilChanged already prevents
+                            // redundant pushes into YouTube.
+                            config.tidalClientId
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { dataStoreManager.setTidalClientId(it) }
+                            config.tidalClientSecret
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { dataStoreManager.setTidalClientSecret(it) }
+                        }.onFailure {
+                            Logger.e("RemoteConfig", "TIDAL remote config fetch failed: ${it.message}")
+                        }
+                }
+            val aiClientProviderJob =
+                launch {
+                    dataStoreManager.aiProvider.collectLatest { provider ->
+                        aiClient.host =
+                            when (provider) {
+                                DataStoreManager.AI_PROVIDER_GEMINI -> AIHost.GEMINI
+                                DataStoreManager.AI_PROVIDER_OPENAI -> AIHost.OPENAI
+                                DataStoreManager.AI_PROVIDER_CUSTOM_OPENAI -> AIHost.CUSTOM_OPENAI
+                                else -> AIHost.GEMINI // Default to Gemini if not set
+                            }
+                    }
+                }
+            val aiClientApiKeyJob =
+                launch {
+                    dataStoreManager.aiApiKey.collectLatest { apiKey ->
+                        aiClient.apiKey =
+                            apiKey.ifEmpty {
+                                null
+                            }
+                    }
+                }
+            val aiCustomModelIdJob =
+                launch {
+                    dataStoreManager.customModelId.collectLatest { modelId ->
+                        aiClient.customModelId =
+                            modelId.ifEmpty {
+                                null
+                            }
+                    }
+                }
+            val aiCustomBaseUrlJob =
+                launch {
+                    dataStoreManager.customOpenAIBaseUrl.collectLatest { baseUrl ->
+                        aiClient.customBaseUrl =
+                            baseUrl.ifEmpty {
+                                null
+                            }
+                    }
+                }
+            val aiCustomHeadersJob =
+                launch {
+                    dataStoreManager.customOpenAIHeaders.collectLatest { headers ->
+                        aiClient.customHeaders =
+                            if (headers.isNotEmpty()) {
+                                try {
+                                    // Parse JSON format: {"key1":"value1","key2":"value2"}
+                                    headers
+                                        .trim()
+                                        .removeSurrounding("{", "}")
+                                        .split(",")
+                                        .mapNotNull { pair ->
+                                            val parts = pair.split(":")
+                                            if (parts.size == 2) {
+                                                parts[0].trim().removeSurrounding("\"") to
+                                                    parts[1].trim().removeSurrounding("\"")
+                                            } else {
+                                                null
+                                            }
+                                        }.toMap()
+                                } catch (e: Exception) {
+                                    Logger.e("CommonRepository", "Failed to parse custom headers: ${e.message}")
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+                    }
+                }
+
+            localeJob.join()
+            ytCookieJob.join()
+            pageIdJob.join()
+            authUserJob.join()
+            usingProxy.join()
+            dataSyncIdJob.join()
+            visitorDataJob.join()
+            resetSpotifyToken.join()
+            aiClientProviderJob.join()
+            aiClientApiKeyJob.join()
+            aiCustomModelIdJob.join()
+            aiCustomBaseUrlJob.join()
+            aiCustomHeadersJob.join()
+        }
+    }
+
+    // Database
+    override fun closeDatabase() {
+        database.close()
+    }
+
+    override fun getDatabasePath() =
+        com.manikandan.data.db
+            .getDatabasePath()
+
+    override suspend fun databaseDaoCheckpoint() = localDataSource.checkpoint()
+
+    // Recently data
+    override fun getAllRecentData(): Flow<List<RecentlyType>> =
+        flow {
+            emit(localDataSource.getAllRecentData())
+        }.flowOn(Dispatchers.IO)
+
+    // Notifications
+    override suspend fun insertNotification(notificationEntity: NotificationEntity) =
+        withContext(Dispatchers.IO) {
+            localDataSource.insertNotification(notificationEntity)
+        }
+
+    override suspend fun getAllNotifications(): Flow<List<NotificationEntity>?> =
+        flow {
+            emit(localDataSource.getAllNotification())
+        }.flowOn(Dispatchers.IO)
+
+    override suspend fun isNotificationExists(link: String): Boolean =
+        withContext(Dispatchers.IO) {
+            localDataSource.countNotificationByLink(link) > 0
+        }
+
+    override suspend fun deleteNotification(id: Long) =
+        withContext(Dispatchers.IO) {
+            localDataSource.deleteNotification(id)
+        }
+
+    override suspend fun writeTextToFile(
+        text: String,
+        filePath: String,
+    ): Boolean {
+        try {
+            fileSystem().sink(filePath.toPath()).buffer().use { sink ->
+                sink.writeUtf8(text)
+                sink.close()
+                return true
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            return false
+        }
+    }
+
+    /**
+     * Original from YTDLnis app
+     */
+    override suspend fun getCookiesFromInternalDatabase(
+        url: String,
+        packageName: String,
+    ): CookieItem =
+        withContext(Dispatchers.IO) {
+            return@withContext getCookies(
+                url,
+                packageName,
+            )
+        }
+}
+
+private data class ProxyData(
+    val type: DataStoreManager.ProxyType,
+    val host: String,
+    val port: Int,
+    val username: String,
+    val password: String,
+)
+
+expect fun setProxyAuthenticator(username: String, password: String)
+
+expect fun clearProxyAuthenticator()
+
+expect fun getCookies(
+    url: String,
+    packageName: String,
+): CookieItem

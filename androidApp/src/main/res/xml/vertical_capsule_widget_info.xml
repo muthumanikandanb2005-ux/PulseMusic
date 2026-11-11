@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_vertical_capsule_description"
+    android:initialLayout="@layout/widget_preview_vertical_capsule"
+    android:previewLayout="@layout/widget_preview_vertical_capsule"
+    android:resizeMode="vertical"
+    android:targetCellWidth="1"
+    android:targetCellHeight="3"
+    android:minWidth="60dp"
+    android:minHeight="160dp"
+    android:minResizeWidth="60dp"
+    android:minResizeHeight="120dp"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

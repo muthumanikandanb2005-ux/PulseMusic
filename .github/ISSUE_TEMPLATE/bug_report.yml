@@ -1,0 +1,104 @@
+name: Bug Report
+description: Report a reproducible issue or bug in Pulse Music
+labels: [ "bug:unconfirmed" ]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **Important:**  
+        Please search existing issues before submitting to ensure this bug has not already been reported.
+
+  - type: checkboxes
+    id: duplicate_check
+    attributes:
+      label: Duplicate Check
+      description: Confirm you searched both open and closed issues.
+      options:
+        - label: I confirm I searched for existing reports and found no duplicates.
+          required: true
+
+  - type: textarea
+    id: bug_description
+    attributes:
+      label: Describe the Bug
+      placeholder: Clearly describe the problem you encountered in Pulse Music.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open Pulse Music
+        2. Navigate to...
+        3. Tap on...
+        4. Observe bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      placeholder: Describe what should have happened instead.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Pulse Music App Version
+      placeholder: e.g. v3.2.9 (Build 97)
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### 📱 Device & Environment Information
+        Please provide details about your device and operating system.
+
+  - type: input
+    id: os_version
+    attributes:
+      label: Operating System & Version
+      placeholder: e.g. Android 15 / Windows 11 23H2
+    validations:
+      required: true
+
+  - type: input
+    id: device_model
+    attributes:
+      label: Device Model
+      placeholder: e.g. Google Pixel 8 Pro / Dell XPS 15
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: custom_rom
+    attributes:
+      label: Custom ROM (Android)
+      description: Check this if you are using a custom Android ROM.
+      options:
+        - label: I am using a custom ROM
+
+  - type: input
+    id: rom_name
+    attributes:
+      label: Custom ROM Name (if applicable)
+      description: Only fill this out if you checked the box above.
+      placeholder: e.g. LineageOS 21, crDroid, PixelOS
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Screen Recordings (Optional)
+      placeholder: Drag and drop screenshots or videos to help explain the issue.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log / Stack Trace Details (Optional)
+      placeholder: Paste crash logs or error stack traces here.

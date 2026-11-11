@@ -1,0 +1,10 @@
+Pulse Music v4.0.5 (Build 105) — Multi-Platform Release & Orion Store OTA:
+- 10 Android Home Screen Widgets: Added Capsule Controls, Media Bar Capsule, Genre Quick Selector, Volume & Track Orb, Preferences & Equalizer, Social Listening Pill, Waveform Player Pill, Favorites & Trending Albums, Earbuds & Device Battery, and Listening Statistics widgets.
+- "Vibrant Expressive" Player Screen: Behance-inspired music player UI design with Material 3 Expressive theme, moving multi-colour ambient light, elevated squircle artwork, bouncy expressive controls, and lyrics depth blur.
+- Moving Ambient Light for Pulse Player: Integrated fluid dynamic moving ambient lighting matching album artwork in the Pulse player screen.
+- Regional Language Skip Continuity: Skipping songs during Tamil, Telugu, Hindi, Malayalam, Kannada, or Punjabi playback stays strictly in the user's regional language without drifting to English songs.
+- Rapid Skipping Anti-Freeze Engine: Proactive 10-track pre-buffering, asynchronous catalog ingestion, and automatic error advance allowing seamless skipping of 100+ songs with zero freezes.
+- Snapchat Direct Snap Sharing: Sharing songs directly opens Snapchat's Snap camera/editor without errors or chat routing.
+- Daily Song Analytics Storage Saver: Added On/Off toggle in Settings to pause playback recording and save storage, plus instant history cleanup.
+- Instant 120ms Album Color Sync: Color transitions synchronize with album art instantly upon song change.
+- Universal Depth-of-Field Lyrics Blur: Soft background blur across all player styles for focused lyric readability.

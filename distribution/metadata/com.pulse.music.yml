@@ -1,0 +1,161 @@
+Categories:
+  - Multimedia
+  - Audio
+License: GPL-3.0-or-later
+AuthorName: MUTHU MANIKANDAN B
+SourceCode: https://github.com/muthumanikandanb2005-ux/PulseMusic
+IssueTracker: https://github.com/muthumanikandanb2005-ux/PulseMusic/issues
+Changelog: https://github.com/muthumanikandanb2005-ux/PulseMusic/releases
+AutoName: Pulse Music
+Summary: Ad-free music player with synced lyrics, 85dB ear care & zero freeze
+Description: |-
+  Pulse Music is a next-generation open-source music player and streaming application designed for pure, uninterrupted listening pleasure on Android and Windows. Built with Compose Multiplatform, Pulse delivers a silky-smooth, ad-free experience powered by advanced audio technologies.
+
+  Features:
+  * Listen Healthy & 85dB WHO safe headphone volume limiter
+  * Dynamic Song Discovery Mix slider and smart radio blending
+  * Asynchronous zero-lock continuous playback engine with 0 freezes
+  * Real-time Apple Music and Spotify hybrid styled synchronized lyrics
+  * Multilingual romanization for 12+ scripts (Japanese, Korean, Chinese, Tamil, Hindi, Arabic)
+  * Dynamic ambient lighting matched to album artwork
+  * 10-band equalizer, AutoEq headphone presets, and spatial 8D audio
+  * Pure Dark AMOLED, Pastel Pearl Lavender, Light & System Default themes
+  * Android Auto support and Windows desktop companion app
+  * Ad-free, 100% privacy-first and open source
+
+RepoType: git
+Repo: https://github.com/muthumanikandanb2005-ux/PulseMusic.git
+
+Builds:
+  - versionName: 3.2.5
+    versionCode: 93
+    commit: v3.2.5
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 3.2.6
+    versionCode: 94
+    commit: v3.2.6
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 3.2.7
+    versionCode: 95
+    commit: v3.2.7
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 3.2.8
+    versionCode: 96
+    commit: v3.2.8
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 3.2.9
+    versionCode: 97
+    commit: v3.2.9
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 3.3.0
+    versionCode: 98
+    commit: v3.3.0
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 3.3.1
+    versionCode: 99
+    commit: v3.3.1
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.0
+    versionCode: 100
+    commit: v4.0.0
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.1
+    versionCode: 101
+    commit: v4.0.1
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.2
+    versionCode: 102
+    commit: v4.0.2
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.3
+    versionCode: 103
+    commit: v4.0.3
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.4
+    versionCode: 104
+    commit: v4.0.4
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.5
+    versionCode: 105
+    commit: v4.0.5
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.6
+    versionCode: 106
+    commit: v4.0.6
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.7
+    versionCode: 107
+    commit: v4.0.7
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+  - versionName: 4.0.8
+    versionCode: 108
+    commit: v4.0.8
+    subdir: androidApp
+    submodules: true
+    gradle:
+      - yes
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 4.0.8
+CurrentCode: 108

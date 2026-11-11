@@ -1,0 +1,5 @@
+Pulse Music v3.3.0:
+- Lightning-Fast Stream Extraction: Tier 1 on-device cipher decryption for instant playback start with zero buffering delay
+- Continuous YouTube Account Sync: Full continuous synchronization of user playlists, liked songs, and listening history
+- Instant Playlist & Search Playback: Eliminated network stalling when tapping playlist songs and search results
+- Ultra-Smooth Dynamic Lyrics Light: Frame-rate synchronized light animations and responsive neon glows
