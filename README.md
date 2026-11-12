@@ -6,7 +6,7 @@
   <p>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/stargazers"><img src="https://img.shields.io/github/stars/muthumanikandanb2005-ux/PulseMusic?style=for-the-badge&color=F59E0B&logo=star&logoColor=white&label=Stars" alt="GitHub Stars" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest"><img src="https://img.shields.io/github/v/release/muthumanikandanb2005-ux/PulseMusic?style=for-the-badge&color=00D2FF&label=Release" alt="Latest Release" /></a>
-    <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases"><img src="https://img.shields.io/github/downloads/muthumanikandanb2005-ux/PulseMusic/total?style=for-the-badge&color=10B981&label=Downloads" alt="Total Downloads" /></a>
+    <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases"><img src="https://img.shields.io/badge/Downloads-40k%2B-10B981?style=for-the-badge" alt="Total Downloads: 40k+" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Proprietary-EA580C.svg?style=for-the-badge" alt="License: Proprietary" /></a>
     <a href="https://github.com/RookieEnough/Orion-Data/issues/1819"><img src="https://img.shields.io/badge/Orion%20Store-Approved-8B5CF6?style=for-the-badge" alt="Orion Store" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic#install-via-obtainium"><img src="https://img.shields.io/badge/Obtainium-Supported-3B82F6?style=for-the-badge&logo=android&logoColor=white" alt="Obtainium" /></a>
