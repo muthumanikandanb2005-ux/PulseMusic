@@ -826,7 +826,6 @@ fun HomeTopAppBar(
             in 17..21 -> stringResource(Res.string.good_evening)
             else -> stringResource(Res.string.good_night)
         }
-    val subtitleText = "Owned and developed by Manikandan"
     TopAppBar(
         windowInsets =
             TopAppBarDefaults.windowInsets.exclude(
@@ -854,7 +853,7 @@ fun HomeTopAppBar(
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = subtitleText,
+                    text = greeting,
                     style = typo().bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium,

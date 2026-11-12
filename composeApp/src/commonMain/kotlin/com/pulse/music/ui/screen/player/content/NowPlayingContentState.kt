@@ -59,12 +59,20 @@ fun String.stripRichSyncTimestamps(): String =
         .replace(WHITESPACE_REGEX, " ")
         .trim()
 
-// Codec label for the Apple Music style's progress-bar badge. Shows "Lossless" for Apple Music quality
-// or high-bitrate AAC/Opus/FLAC streams, matching Apple Music.
-internal fun String?.toAudioCodecLabel(bitrate: Int? = null, itag: Int? = null): String? {
+// Codec label for the progress-bar badge. Shows "FLAC" for FLAC quality
+// or high-bitrate AAC/Opus/FLAC streams, matching Apple Music and audiophile players.
+internal fun String?.toAudioCodecLabel(
+    bitrate: Int? = null,
+    itag: Int? = null,
+    mimeType: String? = null,
+): String? {
     val codec = this ?: ""
+    val mime = mimeType ?: ""
     return when {
-        itag == ITAG.AUDIO_FLAC_LOSSLESS || codec.contains("flac", ignoreCase = true) -> "Hi-Res FLAC"
+        itag == ITAG.AUDIO_FLAC_LOSSLESS ||
+            codec.contains("flac", ignoreCase = true) ||
+            mime.contains("flac", ignoreCase = true) ||
+            codec.equals("flac", ignoreCase = true) -> "FLAC"
         codec.contains("alac", ignoreCase = true) || itag == ITAG.AUDIO_AAC_VERY_HIGH || itag == ITAG.AUDIO_OPUS_VERY_HIGH || (bitrate != null && bitrate >= 250000) -> "Lossless"
         codec.contains("opus", ignoreCase = true) -> if (bitrate != null && bitrate >= 150000) "Lossless" else "OPUS"
         codec.contains("mp4a", ignoreCase = true) || codec.contains("aac", ignoreCase = true) -> if (bitrate != null && bitrate >= 250000) "Lossless" else "AAC"

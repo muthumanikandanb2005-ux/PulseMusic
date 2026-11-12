@@ -259,7 +259,7 @@ fun MiniPlayer(
 
     val formatState by sharedViewModel.format.collectAsStateWithLifecycle(null)
     val audioQualityLabel = remember(formatState) {
-        formatState?.codecs.toAudioCodecLabel(formatState?.bitrate, formatState?.itag) ?: "HQ"
+        formatState?.codecs.toAudioCodecLabel(formatState?.bitrate, formatState?.itag, formatState?.mimeType) ?: "HQ"
     }
     val nowPlayingScreenData by sharedViewModel.nowPlayingScreenData.collectAsStateWithLifecycle()
     val lyrics = nowPlayingScreenData.lyricsData?.lyrics
@@ -1428,18 +1428,20 @@ fun QualityBadge(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
+    val isFlac = label.contains("flac", ignoreCase = true)
+    val badgeColor = if (isFlac) Color(0xFFFFD700) else tint
     Box(
         modifier =
             modifier
                 .clip(RoundedCornerShape(4.dp))
-                .background(tint.copy(alpha = 0.15f))
+                .background(if (isFlac) Color(0xFFFFD700).copy(alpha = 0.22f) else tint.copy(alpha = 0.15f))
                 .padding(horizontal = 4.dp, vertical = 1.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            style = typo().labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
-            color = tint,
+            style = typo().labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.ExtraBold),
+            color = badgeColor,
             maxLines = 1,
         )
     }

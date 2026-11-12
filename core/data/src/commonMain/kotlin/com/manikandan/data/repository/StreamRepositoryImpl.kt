@@ -222,22 +222,26 @@ internal class StreamRepositoryImpl(
                     Logger.d("Stream", "expireInSeconds ${response.streamingData?.expiresInSeconds}")
                     Logger.w("Stream", "expired at ${now().plusSeconds(response.streamingData?.expiresInSeconds?.toLong() ?: 0L)}")
                     val durationSecond = response.videoDetails?.lengthSeconds?.toIntOrNull()
+                    val isFlacStream = (audioFormat?.mimeType?.contains("flac", ignoreCase = true) == true) ||
+                        (itag == ITAG.AUDIO_FLAC_LOSSLESS && !isVideo)
                     val formatEntity =
                         NewFormatEntity(
                             videoId = if (VIDEO_QUALITY.itags.contains(format?.itag)) "${MERGING_DATA_TYPE.VIDEO}$videoId" else videoId,
-                            itag = format?.itag ?: itag,
-                            mimeType =
+                            itag = if (isFlacStream) ITAG.AUDIO_FLAC_LOSSLESS else (format?.itag ?: itag),
+                            mimeType = if (isFlacStream && audioFormat?.mimeType?.contains("flac", ignoreCase = true) == true) "audio/flac" else (
                                 Regex("""([^;]+);\s*codecs=["']([^"']+)["']""")
                                     .find(
                                         format?.mimeType ?: "",
                                     )?.groupValues
-                                    ?.getOrNull(1) ?: format?.mimeType ?: "",
-                            codecs =
+                                    ?.getOrNull(1) ?: format?.mimeType ?: ""
+                            ),
+                            codecs = if (isFlacStream) "flac" else (
                                 Regex("""([^;]+);\s*codecs=["']([^"']+)["']""")
                                     .find(
                                         format?.mimeType ?: "",
                                     )?.groupValues
-                                    ?.getOrNull(2) ?: format?.mimeType ?: "",
+                                    ?.getOrNull(2) ?: format?.mimeType ?: ""
+                            ),
                             bitrate = format?.bitrate,
                             sampleRate = format?.audioSampleRate,
                             contentLength = format?.contentLength,

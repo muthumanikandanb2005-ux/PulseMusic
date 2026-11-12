@@ -558,6 +558,7 @@ internal fun AppleMusicTimesRow(
             // background, not bare text floating between the two times. It is the TALLER of the two
             // states, so it is what the slot's height ends up being — see the note above.
             if (!state.hideSongStatus) {
+                val isFlac = codec?.contains("flac", ignoreCase = true) == true
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -568,27 +569,38 @@ internal fun AppleMusicTimesRow(
                             modifier =
                                 Modifier
                                     .clip(RoundedCornerShape(9.dp))
-                                    .background(Color.White.copy(alpha = 0.16f))
+                                    .background(
+                                        if (isFlac)
+                                            Color(0xFFFFD700).copy(alpha = 0.22f)
+                                        else
+                                            Color.White.copy(alpha = 0.16f)
+                                    )
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                         ) {
                             Icon(
                                 imageVector = PulseIcons.GraphicEq,
                                 contentDescription = "",
-                                tint = Color.White.copy(alpha = 0.9f),
+                                tint = if (isFlac) Color(0xFFFFD700) else Color.White.copy(alpha = 0.9f),
                                 modifier = Modifier.size(15.dp),
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             // orEmpty(), not codec!!: the null check drives the alpha above rather than
                             // guarding this branch, so there is nothing here for the compiler to
                             // smart-cast. It also renders while alpha is 0, which is the point.
-                            Text(text = codec.orEmpty(), style = typography.badge.copy(color = Color.White.copy(alpha = 0.9f)))
+                            Text(
+                                text = codec.orEmpty(),
+                                style = typography.badge.copy(
+                                    color = if (isFlac) Color(0xFFFFD700) else Color.White.copy(alpha = 0.9f),
+                                    fontWeight = if (isFlac) FontWeight.ExtraBold else FontWeight.Bold,
+                                )
+                            )
                         }
                     }
                     AudioOutputDeviceBadge(
-                        softAccent = Color(0xFFE5E5EA),
-                        containerColor = Color.White.copy(alpha = 0.14f),
-                        borderColor = Color.White.copy(alpha = 0.20f),
-                        contentColor = Color.White.copy(alpha = 0.90f),
+                        softAccent = if (isFlac) Color(0xFFFFD700) else Color(0xFFE5E5EA),
+                        containerColor = if (isFlac) Color(0xFFFFD700).copy(alpha = 0.18f) else Color.White.copy(alpha = 0.14f),
+                        borderColor = if (isFlac) Color(0xFFFFD700).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.20f),
+                        contentColor = if (isFlac) Color(0xFFFFD700) else Color.White.copy(alpha = 0.90f),
                         shape = RoundedCornerShape(9.dp),
                         fontSize = typography.badge.fontSize,
                         iconSize = 13.dp,

@@ -104,12 +104,12 @@ internal class CrossfadeExoPlayerAdapter(
     // ========== Crossfade Settings (loaded from DataStore) ==========
 
     @Volatile
-    private var cachedEnableFloatOutput = false
+    private var cachedEnableFloatOutput = true
 
     init {
         coroutineScope.launch {
             dataStoreManager.getString(DataStoreManager.OUTPUT_PRECISION).collect { precision ->
-                cachedEnableFloatOutput = (precision == "32" || precision == "24")
+                cachedEnableFloatOutput = (precision != "16")
                 Logger.d(TAG, "Cached float output precision 24/32-bit: $cachedEnableFloatOutput")
             }
         }
@@ -594,13 +594,13 @@ internal class CrossfadeExoPlayerAdapter(
                 ): AudioSink =
                     DefaultAudioSink
                         .Builder(context)
-                        .setEnableFloatOutput(cachedEnableFloatOutput)
+                        .setEnableFloatOutput(true)
                         .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                         .setAudioTrackBufferSizeProvider(
                             DefaultAudioTrackBufferSizeProvider.Builder()
                                 .setPcmBufferMultiplicationFactor(8)
-                                .setMinPcmBufferDurationUs(1_500_000)
-                                .setMaxPcmBufferDurationUs(3_000_000)
+                                .setMinPcmBufferDurationUs(2_000_000)
+                                .setMaxPcmBufferDurationUs(5_000_000)
                                 .build()
                         )
                         .setAudioProcessorChain(

@@ -689,7 +689,7 @@ fun NowPlayingScreenContent(
             // `audio/webm; codecs="opus"` with a regex and stores the two halves in SEPARATE
             // columns: mimeType keeps "audio/webm", codecs keeps "opus". Asking mimeType for the
             // codec therefore never matched anything and the badge never rendered, on any track.
-            audioCodecLabel = formatState?.codecs.toAudioCodecLabel(formatState?.bitrate, formatState?.itag),
+            audioCodecLabel = formatState?.codecs.toAudioCodecLabel(formatState?.bitrate, formatState?.itag, formatState?.mimeType),
             ambientModeEnabled = ambientModeSetting != DataStoreManager.FALSE,
             ambientColor = if (ambientGlowColor.isSpecified) ambientGlowColor else spotShadowColor,
             ambientSecondaryColor = if (ambientSecondaryColor.isSpecified) ambientSecondaryColor else spotShadowColor,

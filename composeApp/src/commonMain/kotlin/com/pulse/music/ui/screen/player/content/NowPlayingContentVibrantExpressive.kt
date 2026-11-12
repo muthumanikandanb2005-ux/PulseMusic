@@ -545,15 +545,16 @@ private fun NowPlayingVibrantExpressiveLayout(
                     AudioOutputDeviceBadge()
 
                     state.audioCodecLabel?.let { codec ->
+                        val isFlac = codec.contains("flac", ignoreCase = true)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = colorScheme.surfaceContainerHighest,
+                            color = if (isFlac) Color(0xFFFFD700).copy(alpha = 0.20f) else colorScheme.surfaceContainerHighest,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         ) {
                             Text(
                                 text = codec,
-                                style = typo().labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = colorScheme.primary,
+                                style = typo().labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                color = if (isFlac) Color(0xFFFFD700) else colorScheme.primary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             )
                         }

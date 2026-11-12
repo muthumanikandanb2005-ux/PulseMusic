@@ -884,26 +884,32 @@ internal fun BitChordTrackInfoRow(
                 )
 
                 if (!hideSongStatus) {
-                    // Lossless/Hi-Res/Codec badge pill
+                    val isFlac = codec.contains("flac", ignoreCase = true)
+                    // Lossless/Hi-Res/FLAC Codec badge pill
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White.copy(alpha = 0.12f))
+                            .background(
+                                if (isFlac)
+                                    Color(0xFFFFD700).copy(alpha = 0.22f)
+                                else
+                                    Color.White.copy(alpha = 0.12f)
+                            )
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                     ) {
                         Text(
                             text = codec,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                             ),
-                            color = accentColor,
+                            color = if (isFlac) Color(0xFFFFD700) else accentColor,
                         )
                     }
 
                     // Audio Output Device Indicator pill (Soft pastel colours)
                     AudioOutputDeviceBadge(
-                        softAccent = accentColor,
+                        softAccent = if (isFlac) Color(0xFFFFD700) else accentColor,
                         fontSize = 9.sp,
                         iconSize = 11.dp,
                     )
