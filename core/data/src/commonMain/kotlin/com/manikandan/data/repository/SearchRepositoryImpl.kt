@@ -41,7 +41,7 @@ internal class SearchRepositoryImpl(
                 query = searchHistory.query,
                 category = "SONG",
                 resultsCount = 0,
-                appVersion = "4.1.5"
+                appVersion = "4.1.6"
             )
         }.flowOn(Dispatchers.IO)
 
@@ -83,7 +83,7 @@ internal class SearchRepositoryImpl(
                             query = query,
                             category = "SONG",
                             resultsCount = distinctSongs.size,
-                            appVersion = "4.1.5"
+                            appVersion = "4.1.6"
                         )
                         emit(Resource.Success<ArrayList<SongsResult>>(distinctSongs))
                     }.onFailure { e ->

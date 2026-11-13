@@ -1,4 +1,4 @@
-﻿package com.manikandan.data.repository
+package com.manikandan.data.repository
 
 import com.manikandan.common.ITAG
 import com.manikandan.common.MERGING_DATA_TYPE
@@ -229,7 +229,7 @@ internal class StreamRepositoryImpl(
                         format = if (isFlacStream) "FLAC Lossless" else (audioFormat?.mimeType ?: "AUDIO/AAC"),
                         latencyMs = 80L,
                         status = 200,
-                        appVersion = "4.1.5"
+                        appVersion = "4.1.6"
                     )
                     val formatEntity =
                         NewFormatEntity(
@@ -298,10 +298,10 @@ internal class StreamRepositoryImpl(
                                 val q =
                                     "$title $author"
                                         .replace(
-                                            Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
+                                            Regex("\\((feat\\.|ft.|c�ng v?i|con|mukana|com|avec|?????: ) "),
                                             " ",
                                         ).replace(
-                                            Regex("( và | & | и | e | und |, |和| dan)"),
+                                            Regex("( v� | & | ? | e | und |, |?| dan)"),
                                             " ",
                                         ).replace("  ", " ")
                                         .replace(Regex("([()])"), "")

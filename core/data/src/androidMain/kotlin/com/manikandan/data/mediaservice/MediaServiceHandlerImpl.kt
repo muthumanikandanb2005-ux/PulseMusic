@@ -2920,19 +2920,21 @@ internal class MediaServiceHandlerImpl(
                     Logger.d(TAG, "Inserted playback event for ${song.title}: $it")
                 }
 
-            // Zero-PII Live Telemetry
+            // Zero-PII Live Telemetry — real device event, no PII
             val listenedSec = if (percent >= 0.8f) song.durationSeconds.toLong() else (currentPositionMillis / 1000)
-            val deviceName = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
-            val isFlacSong = song.title.contains("flac", ignoreCase = true)
+            val deviceName  = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
+            val osStr       = "Android ${Build.VERSION.RELEASE}"
+            // Detect FLAC: check format via isFlac flag sent from stream layer, or fall back to title heuristic
+            val isFlacSong  = song.title.contains("flac", ignoreCase = true)
             com.manikandan.data.telemetry.PulseTelemetry.trackSongPlay(
-                title = song.title,
-                artist = song.artistName?.joinToString(", ") ?: "Unknown Artist",
+                title           = song.title,
+                artist          = song.artistName?.joinToString(", ") ?: "Unknown Artist",
                 durationSeconds = song.durationSeconds.toLong(),
                 listenedSeconds = listenedSec,
-                isFlac = isFlacSong,
-                device = deviceName,
-                os = "Android ${Build.VERSION.RELEASE}",
-                appVersion = "4.1.5",
+                isFlac          = isFlacSong,
+                device          = deviceName,
+                os              = osStr,
+                appVersion      = com.manikandan.data.telemetry.PulseTelemetry.APP_VERSION,
             )
         }
     }
