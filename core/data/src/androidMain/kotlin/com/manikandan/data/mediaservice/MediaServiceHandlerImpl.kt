@@ -750,6 +750,19 @@ internal class MediaServiceHandlerImpl(
                             )
                         }
                         updateDiscordRpc(songEntity)
+                        // Immediate song play telemetry at playback start (100% reliable tracking)
+                        val deviceName = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
+                        val isFlac = songEntity.title.contains("flac", ignoreCase = true)
+                        com.manikandan.data.telemetry.PulseTelemetry.trackSongPlay(
+                            title = songEntity.title,
+                            artist = songEntity.artistName?.joinToString(", ") ?: "Unknown Artist",
+                            durationSeconds = songEntity.durationSeconds.toLong(),
+                            listenedSeconds = 1L,
+                            isFlac = isFlac,
+                            device = deviceName,
+                            os = "Android ${Build.VERSION.RELEASE}",
+                            appVersion = com.manikandan.data.telemetry.PulseTelemetry.APP_VERSION,
+                        )
                         // Launched separately: "now playing" is a network round trip, and this job
                         // still has the rest of the track state to publish.
                         coroutineScope.launch { lastfmScrobbler.onTrackStarted(songEntity) }
@@ -778,6 +791,19 @@ internal class MediaServiceHandlerImpl(
                             )
                         }
                         updateDiscordRpc(songEntity)
+                        // Immediate song play telemetry at playback start (100% reliable tracking)
+                        val deviceName = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
+                        val isFlac = songEntity.title.contains("flac", ignoreCase = true)
+                        com.manikandan.data.telemetry.PulseTelemetry.trackSongPlay(
+                            title = songEntity.title,
+                            artist = songEntity.artistName?.joinToString(", ") ?: "Unknown Artist",
+                            durationSeconds = songEntity.durationSeconds.toLong(),
+                            listenedSeconds = 1L,
+                            isFlac = isFlac,
+                            device = deviceName,
+                            os = "Android ${Build.VERSION.RELEASE}",
+                            appVersion = com.manikandan.data.telemetry.PulseTelemetry.APP_VERSION,
+                        )
                         // Launched separately: "now playing" is a network round trip, and this job
                         // still has the rest of the track state to publish.
                         coroutineScope.launch { lastfmScrobbler.onTrackStarted(songEntity) }

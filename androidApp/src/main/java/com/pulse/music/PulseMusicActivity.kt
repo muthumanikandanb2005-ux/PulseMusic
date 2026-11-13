@@ -232,6 +232,20 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
             putString(SELECTED_LANGUAGE, AppCompatDelegate.getApplicationLocales().toLanguageTags())
         }
 
+        // Initialize Live Zero-PII App Usage Telemetry session on launch
+        runCatching {
+            val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
+            val osVersion = "Android ${Build.VERSION.RELEASE}"
+            val arch = if (Build.SUPPORTED_ABIS.isNotEmpty()) Build.SUPPORTED_ABIS[0] else "arm64-v8a"
+            com.manikandan.data.telemetry.PulseTelemetry.trackSession(
+                device = deviceModel,
+                os = osVersion,
+                arch = arch,
+                sessionMinutes = 1,
+                appVersion = com.manikandan.data.telemetry.PulseTelemetry.APP_VERSION,
+            )
+        }
+
         enableEdgeToEdge(
             navigationBarStyle =
                 SystemBarStyle.dark(
