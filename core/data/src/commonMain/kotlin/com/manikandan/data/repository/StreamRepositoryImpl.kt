@@ -224,6 +224,13 @@ internal class StreamRepositoryImpl(
                     val durationSecond = response.videoDetails?.lengthSeconds?.toIntOrNull()
                     val isFlacStream = (audioFormat?.mimeType?.contains("flac", ignoreCase = true) == true) ||
                         (itag == ITAG.AUDIO_FLAC_LOSSLESS && !isVideo)
+                    com.manikandan.data.telemetry.PulseTelemetry.trackStreamRequest(
+                        endpoint = "/stream/youtube",
+                        format = if (isFlacStream) "FLAC Lossless" else (audioFormat?.mimeType ?: "AUDIO/AAC"),
+                        latencyMs = 80L,
+                        status = 200,
+                        appVersion = "4.1.5"
+                    )
                     val formatEntity =
                         NewFormatEntity(
                             videoId = if (VIDEO_QUALITY.itags.contains(format?.itag)) "${MERGING_DATA_TYPE.VIDEO}$videoId" else videoId,

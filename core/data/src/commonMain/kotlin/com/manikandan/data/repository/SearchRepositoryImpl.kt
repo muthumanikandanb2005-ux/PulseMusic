@@ -37,6 +37,12 @@ internal class SearchRepositoryImpl(
     override fun insertSearchHistory(searchHistory: SearchHistory): Flow<Long> =
         flow {
             emit(localDataSource.insertSearchHistory(searchHistory))
+            com.manikandan.data.telemetry.PulseTelemetry.trackSearch(
+                query = searchHistory.query,
+                category = "SONG",
+                resultsCount = 0,
+                appVersion = "4.1.5"
+            )
         }.flowOn(Dispatchers.IO)
 
     override suspend fun deleteSearchHistory() =
@@ -72,7 +78,14 @@ internal class SearchRepositoryImpl(
                                 }
                         }
 
-                        emit(Resource.Success<ArrayList<SongsResult>>(ArrayList(listSongs.distinctBy { it.videoId })))
+                        val distinctSongs = ArrayList(listSongs.distinctBy { it.videoId })
+                        com.manikandan.data.telemetry.PulseTelemetry.trackSearch(
+                            query = query,
+                            category = "SONG",
+                            resultsCount = distinctSongs.size,
+                            appVersion = "4.1.5"
+                        )
+                        emit(Resource.Success<ArrayList<SongsResult>>(distinctSongs))
                     }.onFailure { e ->
                         Logger.d("Search", "Error: ${e.message}")
                         emit(Resource.Error<ArrayList<SongsResult>>(e.message.toString()))

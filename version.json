@@ -1,56 +1,56 @@
 {
-  "version": "4.1.4",
-  "versionCode": 114,
-  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-arm64-v8a.apk",
-  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-arm64-v8a.apk",
-  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.1.4/PulseMusic-arm64-v8a.apk",
-  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.1.4/PulseMusic-arm64-v8a.apk",
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.1.4",
-  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.1.4",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.1.4",
-  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.1.4",
-  "tag_name": "v4.1.4",
-  "name": "Pulse Music v4.1.4 - Dynamic HomeScreen Greeting, FLAC Audiophile Badge & 32-Bit Audio",
+  "version": "4.1.5",
+  "versionCode": 115,
+  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-arm64-v8a.apk",
+  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-arm64-v8a.apk",
+  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.1.5/PulseMusic-arm64-v8a.apk",
+  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.1.5/PulseMusic-arm64-v8a.apk",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.1.5",
+  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.1.5",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.1.5",
+  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.1.5",
+  "tag_name": "v4.1.5",
+  "name": "Pulse Music v4.1.5 - In-App Telemetry & Real-Time Performance Analytics",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-11-12T08:16:57Z",
-  "body": "# Pulse Music v4.1.4 - Dynamic HomeScreen Greeting, FLAC Audiophile Badge & 32-Bit Audio\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83c\udf05 Dynamic Time-Based HomeScreen Greeting\n- **Personalized Header Greetings**: HomeScreen header now dynamically greets you according to the time of day: `Good Morning`, `Good Afternoon`, `Good Evening`, and `Good Night` (fully localized across 25+ languages).\n- **Clean Interface**: Streamlined the top bar for a cleaner, modern layout.\n\n### \ud83c\udfa7 Audiophile FLAC Quality Badge\n- **Real-Time FLAC Indicator**: When playing FLAC or high-res lossless streams, a prominent golden FLAC badge is displayed across Now Playing (Apple Music, BitChord, M3 Expressive styles) and MiniPlayer.\n- **Accurate Codec Detection**: Stream repository and format entities directly recognize and tag native FLAC lossless audio.\n\n### \ud83d\udd0a 32-Bit Float PCM Studio Audio Pipeline\n- **Floating Point Audio Output**: Enabled 32-bit float PCM audio (`AudioFormat.ENCODING_PCM_FLOAT`) by default in the audio renderer, eliminating digital clipping and unlocking studio-grade dynamic range.\n- **Expanded Audio Buffers**: Doubled AudioTrack PCM buffer duration (up to 5,000,000 \u00b5s) for completely glitch-free, high-bitrate lossless and FLAC streaming.\n\n### \ud83d\udee1\ufe0f Binary Security & Decompilation Lock\n- Built with R8 code shrinking, aggressive obfuscation, and active `PrivateAppIntegrityLock`.\n\n### \ud83d\ude80 Universal Global OTA Broadcast\n- Existing users will immediately detect **v4.1.4** via `version.json` and receive the one-tap in-app update.\n- Updated Orion Store & F-Droid repository indexes.\n",
+  "published_at": "2026-11-13T17:10:00Z",
+  "body": "# Pulse Music v4.1.5 - In-App Telemetry & Real-Time Performance Analytics\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### 📡 In-App Live Telemetry & Zero-PII Performance Analytics\n- **Live App Insights**: Telemetry integration that records song playback completions, search query trends, stream latency, and active session health.\n- **Strict Privacy Guarantee**: 100% Zero-PII — no personal names, email addresses, exact IP addresses, or credentials are ever collected or stored.\n- **Private Owner Telemetry**: Real-time stats stream securely to the owner-protected dashboard (`owner-telemetry.html`).\n\n### ⚡ Real-Time Live Download Tracking & GitHub Sync\n- Verified real-time GitHub release counter synchronized directly via GitHub APIs with zero synthetic data.\n\n### 🎵 Audio Engine Refinements\n- Continued optimization of 32-bit float PCM audio pipeline and FLAC stream metadata detection.\n",
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
       "size": 58006000
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
       "size": 30136898
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
       "size": 30101026
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
       "size": 31602362
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/x-msdownload",
       "size": 183496768
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.4/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.1.5/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 183025399
+      "size": 183496768
     }
   ]
 }

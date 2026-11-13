@@ -6,8 +6,8 @@
   <p>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/stargazers"><img src="https://img.shields.io/github/stars/muthumanikandanb2005-ux/PulseMusic?style=for-the-badge&color=F59E0B&logo=star&logoColor=white&label=Stars" alt="GitHub Stars" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/latest"><img src="https://img.shields.io/github/v/release/muthumanikandanb2005-ux/PulseMusic?style=for-the-badge&color=00D2FF&label=Release" alt="Latest Release" /></a>
-    <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases"><img src="https://img.shields.io/github/downloads/muthumanikandanb2005-ux/PulseMusic/total?style=for-the-badge&color=10B981&logo=github&label=Downloads" alt="Realtime GitHub Downloads" /></a>
-    <a href="https://pulsemusic-75581-main.netlify.app/"><img src="https://img.shields.io/badge/All%20Platforms-40k%2B%20Installs-8B5CF6?style=for-the-badge&logo=android&logoColor=white" alt="40k+ Total Platform Installs" /></a>
+    <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/releases"><img src="https://img.shields.io/github/downloads/muthumanikandanb2005-ux/PulseMusic/total?style=for-the-badge&color=10B981&logo=github&label=Realtime%20Downloads" alt="Realtime GitHub Downloads" /></a>
+    <a href="https://pulsemusic-landing.vercel.app/"><img src="https://img.shields.io/badge/Live%20Telemetry-Active-8B5CF6?style=for-the-badge&logo=android&logoColor=white" alt="Live Telemetry Active" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Proprietary-EA580C.svg?style=for-the-badge" alt="License: Proprietary" /></a>
     <a href="https://github.com/RookieEnough/Orion-Data/issues/1819"><img src="https://img.shields.io/badge/Orion%20Store-Approved-8B5CF6?style=for-the-badge" alt="Orion Store" /></a>
     <a href="https://github.com/muthumanikandanb2005-ux/PulseMusic#install-via-obtainium"><img src="https://img.shields.io/badge/Obtainium-Supported-3B82F6?style=for-the-badge&logo=android&logoColor=white" alt="Obtainium" /></a>
