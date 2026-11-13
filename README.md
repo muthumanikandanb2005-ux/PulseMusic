@@ -22,12 +22,12 @@
 | :--- | :--- | :--- |
 | **Official Online Web Player (Instant Streaming)** | [🌐 **pulse-webplayer.netlify.app**](https://pulse-webplayer.netlify.app/) | Any Web Browser, Windows, Mac, Linux, iOS, Android (No Download Needed) |
 | **Official App Landing Site** | [📱 **pulsemusic-75581-main.netlify.app**](https://pulsemusic-75581-main.netlify.app/) | App Overview, Screenshots, Features & Release Notes |
-| **Android Universal (Recommended)** | [📥 **PulseMusic-Universal.apk**](https://pulsemusic-75581-main.netlify.app/dl.html?pkg=universal) | All Android Phones & Tablets (All ABIs) |
-| **Android 64-bit Optimized** | [📥 **PulseMusic-arm64-v8a.apk**](https://pulsemusic-75581-main.netlify.app/dl.html?pkg=arm64) | Modern Android Phones (Pixel, Galaxy, OnePlus, Xiaomi) |
-| **Windows 10 / 11 Installer** | [💻 **PulseMusic-Windows-x64-Setup.exe**](https://pulsemusic-75581-main.netlify.app/dl.html?pkg=windows) | Windows 64-bit Setup Installer |
-| **Windows Portable Archive** | [📦 **PulseMusic-Windows-x64-Setup.zip**](https://pulsemusic-75581-main.netlify.app/dl.html?pkg=zip) | Standalone Portable Windows Version |
-| **Android Legacy 32-bit** | [📥 **PulseMusic-armeabi-v7a.apk**](https://pulsemusic-75581-main.netlify.app/dl.html?pkg=armeabi) | Older 32-bit Android Hardware |
-| **Android Emulator / Intel / AMD** | [📥 **PulseMusic-x86_64.apk**](https://pulsemusic-75581-main.netlify.app/dl.html?pkg=x86_64) | Chromebooks, Windows WSA, Android x86 |
+| **Android Universal (Recommended)** | [📥 **PulseMusic-Universal.apk**](https://pulsemusic-landing.vercel.app/dl.html?pkg=universal) | All Android Phones & Tablets (All ABIs) |
+| **Android 64-bit Optimized** | [📥 **PulseMusic-arm64-v8a.apk**](https://pulsemusic-landing.vercel.app/dl.html?pkg=arm64) | Modern Android Phones (Pixel, Galaxy, OnePlus, Xiaomi) |
+| **Windows 10 / 11 Installer** | [💻 **PulseMusic-Windows-x64-Setup.exe**](https://pulsemusic-landing.vercel.app/dl.html?pkg=windows) | Windows 64-bit Setup Installer |
+| **Windows Portable Archive** | [📦 **PulseMusic-Windows-x64-Setup.zip**](https://pulsemusic-landing.vercel.app/dl.html?pkg=zip) | Standalone Portable Windows Version |
+| **Android Legacy 32-bit** | [📥 **PulseMusic-armeabi-v7a.apk**](https://pulsemusic-landing.vercel.app/dl.html?pkg=armeabi) | Older 32-bit Android Hardware |
+| **Android Emulator / Intel / AMD** | [📥 **PulseMusic-x86_64.apk**](https://pulsemusic-landing.vercel.app/dl.html?pkg=x86_64) | Chromebooks, Windows WSA, Android x86 |
 
 </div>
 
