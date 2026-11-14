@@ -1924,7 +1924,7 @@ class SharedViewModel(
                             else -> {
                                 Logger.w(tag, "Get AI Translate Lyrics Error: ${it.message}, trying Lyrica")
                                 val curSong = nowPlayingState.value?.songEntity
-                                val artistName = nowPlayingState.value?.songInfoData?.artistName ?: ""
+                                val artistName = curSong?.artistName?.joinToString(", ") ?: ""
                                 if (curSong != null) {
                                     lyricsCanvasRepository
                                         .getLyricaTranslatedLyrics(
@@ -1960,7 +1960,7 @@ class SharedViewModel(
             } else {
                 // No custom AI API key set -> use built-in Lyrica AI translation
                 val curSong = nowPlayingState.value?.songEntity
-                val artistName = nowPlayingState.value?.songInfoData?.artistName ?: ""
+                val artistName = curSong?.artistName?.joinToString(", ") ?: ""
                 if (curSong != null) {
                     lyricsCanvasRepository
                         .getLyricaTranslatedLyrics(
