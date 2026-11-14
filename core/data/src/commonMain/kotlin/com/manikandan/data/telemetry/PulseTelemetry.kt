@@ -30,7 +30,7 @@ import kotlin.random.Random
  */
 object PulseTelemetry {
 
-    const val APP_VERSION = "4.1.7"
+    const val APP_VERSION = "4.1.8"
 
     private const val ENDPOINT = "https://pulsemusic-landing.vercel.app/api/track"
 

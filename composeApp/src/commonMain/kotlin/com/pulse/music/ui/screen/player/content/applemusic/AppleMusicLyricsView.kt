@@ -210,7 +210,7 @@ internal fun AppleMusicLyricsView(
                             horizontalAlignment = Alignment.End,
                             modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 8.dp),
                         ) {
-                            if (lyricsData.translatedLyrics?.second == LyricsProvider.AI) {
+                            if (lyricsData.translatedLyrics?.second == LyricsProvider.AI || lyricsData.translatedLyrics?.second == LyricsProvider.LYRICA) {
                                 Text(
                                     text = stringResource(Res.string.ai_translated),
                                     style = typography.footer,
@@ -354,7 +354,7 @@ private fun appleMusicLyricsProviderText(lyricsData: NowPlayingScreenData.Lyrics
         LyricsProvider.OFFLINE -> stringResource(Res.string.offline_mode)
         LyricsProvider.BETTER_LYRICS -> stringResource(Res.string.lyrics_provider_betterlyrics)
         LyricsProvider.BINI_LYRICS -> "BiniLyrics"
-        LyricsProvider.LYRICA -> "Lyrica (AI Synced)"
+        LyricsProvider.LYRICA -> stringResource(Res.string.lyrics_provider_lyrica)
         LyricsProvider.AI -> ""
         LyricsProvider.MUSIXMATCH -> "Musixmatch"
     }

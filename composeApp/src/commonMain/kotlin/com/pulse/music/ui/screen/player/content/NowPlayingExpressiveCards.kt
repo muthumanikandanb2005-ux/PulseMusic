@@ -586,7 +586,7 @@ internal fun ExpressiveBelowTheFold(
                             style = typo().labelMedium,
                             color = Color.White,
                         )
-                        if (state.screenData.lyricsData?.translatedLyrics?.second == LyricsProvider.AI) {
+                        if (state.screenData.lyricsData?.translatedLyrics?.second == LyricsProvider.AI || state.screenData.lyricsData?.translatedLyrics?.second == LyricsProvider.LYRICA) {
                             Spacer(modifier = Modifier.width(8.dp))
                             AIBadge()
                         }

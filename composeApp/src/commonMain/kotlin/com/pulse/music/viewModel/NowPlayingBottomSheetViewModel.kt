@@ -13,6 +13,7 @@ import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.manager.DataStoreManager.Values.BETTER_LYRICS
 import com.manikandan.domain.manager.DataStoreManager.Values.BINI_LYRICS
 import com.manikandan.domain.manager.DataStoreManager.Values.LRCLIB
+import com.manikandan.domain.manager.DataStoreManager.Values.LYRICA
 import com.manikandan.domain.manager.DataStoreManager.Values.PULSEMUSIC
 import com.manikandan.domain.manager.DataStoreManager.Values.YOUTUBE
 import com.manikandan.domain.mediaservice.handler.DownloadHandler
@@ -127,6 +128,10 @@ class NowPlayingBottomSheetViewModel(
 
                             BINI_LYRICS -> {
                                 _uiState.update { it.copy(mainLyricsProvider = BINI_LYRICS) }
+                            }
+
+                            LYRICA -> {
+                                _uiState.update { it.copy(mainLyricsProvider = LYRICA) }
                             }
 
                             else -> {
@@ -342,7 +347,7 @@ class NowPlayingBottomSheetViewModel(
                 }
 
                 is NowPlayingBottomSheetUIEvent.ChangeLyricsProvider -> {
-                    if (listOf(PULSEMUSIC, YOUTUBE, LRCLIB, BETTER_LYRICS, BINI_LYRICS).contains(ev.lyricsProvider)) {
+                    if (listOf(PULSEMUSIC, YOUTUBE, LRCLIB, BETTER_LYRICS, BINI_LYRICS, LYRICA).contains(ev.lyricsProvider)) {
                         dataStoreManager.setLyricsProvider(ev.lyricsProvider)
                     } else {
                         return@launch

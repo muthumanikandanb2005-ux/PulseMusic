@@ -727,6 +727,7 @@ interface DataStoreManager {
         const val LRCLIB = "lrclib"
         const val BETTER_LYRICS = "better_lyrics"
         const val BINI_LYRICS = "bini_lyrics"
+        const val LYRICA = "lyrica"
         const val SPOTIFY = "spotify"
         const val MUSIXMATCH = "musixmatch"
         const val DEFAULT_LRCLIB_CLIENT_ID = "Q577SzaQFl01aTiReKY9NKgkcENPwiaHVceaOk4p8JQ"

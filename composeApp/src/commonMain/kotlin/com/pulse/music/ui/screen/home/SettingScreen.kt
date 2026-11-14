@@ -1176,19 +1176,32 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Lyrics sources",
-                            subtitle = "BiniLyrics, BetterLyrics, BetterLyrics Portato, PaxSenix, PaxSenix: Spotify, PaxSenix: Musixmatch, LyricsPlus, Pulse Music, Unison, YouTube captions, YouTube Music, Megalobiz, KuGou, LRCLIB, Musixmatch, Genius",
+                            subtitle = "Lyrica (Multi-Provider AI), BiniLyrics, LRCLIB, PaxSenix, YouTube Captions, Musixmatch, Genius",
                             leadingIcon = PulseIcons.Help,
                             showChevron = true,
                             onClick = {
-                                val providers = listOf("BiniLyrics (lrc.red)", "LRCLIB (Default)", "YouTube Captions", "Genius / Musixmatch")
+                                val providers = listOf("Lyrica (Multi-Provider AI Synced)", "BiniLyrics (lrc.red)", "LRCLIB (Default)", "YouTube Captions", "Genius / Musixmatch")
                                 viewModel.setAlertData(
                                     SettingAlertState(
                                         title = "Main Lyrics Provider",
                                         selectOne = SettingAlertState.SelectData(
-                                            listSelect = providers.map { (it.contains("BiniLyrics") && mainLyricsProvider == DataStoreManager.BINI_LYRICS) to it },
+                                            listSelect = providers.map { providerName ->
+                                                val isSelected = when {
+                                                    providerName.contains("Lyrica") -> mainLyricsProvider == DataStoreManager.LYRICA
+                                                    providerName.contains("BiniLyrics") -> mainLyricsProvider == DataStoreManager.BINI_LYRICS
+                                                    providerName.contains("LRCLIB") -> mainLyricsProvider == DataStoreManager.LRCLIB || (mainLyricsProvider != DataStoreManager.LYRICA && mainLyricsProvider != DataStoreManager.BINI_LYRICS)
+                                                    else -> false
+                                                }
+                                                isSelected to providerName
+                                            },
                                         ),
                                         confirm = strChange to { state ->
-                                            val chosen = if (state.selectOne?.getSelected()?.contains("BiniLyrics") == true) DataStoreManager.BINI_LYRICS else DataStoreManager.LRCLIB
+                                            val selectedText = state.selectOne?.getSelected() ?: ""
+                                            val chosen = when {
+                                                selectedText.contains("Lyrica") -> DataStoreManager.LYRICA
+                                                selectedText.contains("BiniLyrics") -> DataStoreManager.BINI_LYRICS
+                                                else -> DataStoreManager.LRCLIB
+                                            }
                                             viewModel.setLyricsProvider(chosen)
                                         },
                                         dismiss = strCancel,

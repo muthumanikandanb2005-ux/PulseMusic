@@ -1151,7 +1151,7 @@ class SharedViewModel(
                     },
             )
 
-        if (isTranslatedLyrics && lyricsProvider != LyricsProvider.AI) {
+        if (isTranslatedLyrics && lyricsProvider != LyricsProvider.AI && lyricsProvider != LyricsProvider.LYRICA) {
             // Skip sync validation for AI translations — timestamps are copied programmatically
             val originalLyrics = _nowPlayingScreenData.value.lyricsData?.lyrics
             val originalLines = originalLyrics?.lines
@@ -1404,22 +1404,35 @@ class SharedViewModel(
                 }
             }
         }
-        // 2. Fetch from preferred lyrics provider (BiniLyrics or LRCLIB)
+        // 2. Fetch from preferred lyrics provider (Lyrica, BiniLyrics or LRCLIB)
         viewModelScope.launch {
             val preferredProvider = dataStoreManager.lyricsProvider.first()
-            if (preferredProvider == DataStoreManager.BINI_LYRICS) {
-                getBiniLyrics(
-                    song = song.copy(videoId = cleanVideoId),
-                    artist = (artist ?: ""),
-                    duration = duration,
-                    fallbackToLrclib = true,
-                )
-            } else {
-                getLrclibLyrics(
-                    song = song.copy(videoId = cleanVideoId),
-                    artist = (artist ?: ""),
-                    duration = duration,
-                )
+            when (preferredProvider) {
+                DataStoreManager.LYRICA -> {
+                    getLyricaLyrics(
+                        song = song.copy(videoId = cleanVideoId),
+                        artist = (artist ?: ""),
+                        duration = duration,
+                        fallbackToLrclib = true,
+                    )
+                }
+
+                DataStoreManager.BINI_LYRICS -> {
+                    getBiniLyrics(
+                        song = song.copy(videoId = cleanVideoId),
+                        artist = (artist ?: ""),
+                        duration = duration,
+                        fallbackToLrclib = true,
+                    )
+                }
+
+                else -> {
+                    getLrclibLyrics(
+                        song = song.copy(videoId = cleanVideoId),
+                        artist = (artist ?: ""),
+                        duration = duration,
+                    )
+                }
             }
         }
     }
@@ -1701,6 +1714,7 @@ class SharedViewModel(
         song: SongEntity,
         artist: String,
         duration: Int,
+        fallbackToLrclib: Boolean = true,
     ) {
         val targetVideoId = song.videoId.removePrefix(MERGING_DATA_TYPE.VIDEO)
         lyricsJob?.cancel()
@@ -1739,20 +1753,29 @@ class SharedViewModel(
                             )
                         }
                         else -> {
-                            // Check local Room database as offline / network error fallback
-                            val localSaved = lyricsCanvasRepository.getSavedLyrics(targetVideoId).firstOrNull()
-                            if (localSaved != null) {
-                                val curId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                                    ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                                if (curId == targetVideoId) {
-                                    val lyricsData = localSaved.toLyrics()
-                                    updateLyrics(
-                                        targetVideoId,
-                                        duration,
-                                        lyricsData,
-                                        false,
-                                        LyricsProvider.LRCLIB,
-                                    )
+                            if (fallbackToLrclib) {
+                                Logger.d(tag, "Lyrica yielded no lyrics for ${song.title}, falling back to LRCLIB")
+                                getLrclibLyrics(
+                                    song = song,
+                                    artist = artist,
+                                    duration = duration,
+                                )
+                            } else {
+                                // Check local Room database as offline / network error fallback
+                                val localSaved = lyricsCanvasRepository.getSavedLyrics(targetVideoId).firstOrNull()
+                                if (localSaved != null) {
+                                    val curId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                                        ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                                    if (curId == targetVideoId) {
+                                        val lyricsData = localSaved.toLyrics()
+                                        updateLyrics(
+                                            targetVideoId,
+                                            duration,
+                                            lyricsData,
+                                            false,
+                                            LyricsProvider.LRCLIB,
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -1563,7 +1563,13 @@ fun NowPlayingBottomSheet(
 
     if (mainLyricsProvider) {
         var selected by remember {
-            mutableIntStateOf(if (uiState.mainLyricsProvider == DataStoreManager.BINI_LYRICS) 2 else 1)
+            mutableIntStateOf(
+                when (uiState.mainLyricsProvider) {
+                    DataStoreManager.LYRICA -> 3
+                    DataStoreManager.BINI_LYRICS -> 2
+                    else -> 1
+                }
+            )
         }
 
         AlertDialog(
@@ -1577,6 +1583,18 @@ fun NowPlayingBottomSheet(
             },
             text = {
                 Column {
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 4.dp)
+                                .fillMaxWidth()
+                                .clickable { selected = 3 },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected == 3, onClick = { selected = 3 })
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Text(text = "Lyrica (Multi-Provider AI Synced)", style = typo().labelSmall)
+                    }
                     Row(
                         modifier =
                             Modifier
@@ -1606,10 +1624,13 @@ fun NowPlayingBottomSheet(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        val provider = when (selected) {
+                            3 -> DataStoreManager.LYRICA
+                            2 -> DataStoreManager.BINI_LYRICS
+                            else -> DataStoreManager.LRCLIB
+                        }
                         viewModel.onUIEvent(
-                            NowPlayingBottomSheetUIEvent.ChangeLyricsProvider(
-                                if (selected == 2) DataStoreManager.BINI_LYRICS else DataStoreManager.LRCLIB,
-                            ),
+                            NowPlayingBottomSheetUIEvent.ChangeLyricsProvider(provider),
                         )
                         mainLyricsProvider = false
                     },
