@@ -710,6 +710,10 @@ internal fun ExpressiveBelowTheFold(
                                         "BiniLyrics"
                                     }
 
+                                    LyricsProvider.LYRICA -> {
+                                        "Lyrica (AI Synced)"
+                                    }
+
                                     else -> {
                                         ""
                                     }

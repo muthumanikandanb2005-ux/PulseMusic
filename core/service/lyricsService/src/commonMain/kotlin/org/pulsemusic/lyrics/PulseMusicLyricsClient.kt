@@ -18,6 +18,7 @@ import org.pulsemusic.lyrics.models.response.BaseResponse
 import org.pulsemusic.lyrics.models.response.BetterLyricsResponse
 import org.pulsemusic.lyrics.models.response.BiniLyricsSearchResponse
 import org.pulsemusic.lyrics.models.response.LrclibObject
+import org.pulsemusic.lyrics.models.response.LyricaResponse
 import org.pulsemusic.lyrics.models.response.LyricsResponse
 import org.pulsemusic.lyrics.models.response.SpotifyLyricsApiResponse
 import org.pulsemusic.lyrics.models.response.toLibraryLyrics
@@ -323,6 +324,116 @@ class PulseMusicLyricsClient {
                 throw Exception(body.message ?: "No lyrics returned from Spotify Lyrics API")
             }
             body.toLibraryLyrics()
+        }
+
+    suspend fun searchLyricaLyrics(
+        q_track: String,
+        q_artist: String,
+        durationSeconds: Int? = null,
+        translateLanguage: String? = null,
+        romanize: Boolean = false,
+        customBaseUrl: String? = null,
+    ): Result<org.pulsemusic.lyrics.domain.Lyrics?> =
+        runCatching {
+            val response = lyricsService.searchLyricaLyrics(
+                track = q_track,
+                artist = q_artist,
+                timestamps = true,
+                word = true,
+                translate = !translateLanguage.isNullOrBlank(),
+                romanize = romanize,
+                language = translateLanguage ?: "en",
+                customBaseUrl = customBaseUrl,
+            )
+            if (response.status.value !in 200..299) {
+                return@runCatching null
+            }
+            val parsed = response.body<LyricaResponse>()
+            val data = parsed.data ?: return@runCatching null
+
+            val timed = data.timed_lyrics
+            if (!timed.isNullOrEmpty()) {
+                val lines = timed.mapNotNull { t ->
+                    val text = (t.text ?: "").trim()
+                    if (text.isNotBlank()) {
+                        org.pulsemusic.lyrics.domain.Lyrics.LyricsX.Line(
+                            startTimeMs = t.start_time.toString(),
+                            endTimeMs = t.end_time.toString(),
+                            words = text,
+                        )
+                    } else null
+                }
+                if (lines.isNotEmpty()) {
+                    return@runCatching org.pulsemusic.lyrics.domain.Lyrics(
+                        lyrics = org.pulsemusic.lyrics.domain.Lyrics.LyricsX(
+                            lines = lines,
+                            syncType = "LINE_SYNCED",
+                        ),
+                    )
+                }
+            }
+
+            val raw = data.lyrics
+            if (!raw.isNullOrBlank()) {
+                if (raw.contains(Regex("""\[\d+:\d+"""))) {
+                    return@runCatching parseSyncedLyrics(raw)
+                } else {
+                    return@runCatching parseUnsyncedLyrics(raw)
+                }
+            }
+
+            null
+        }
+
+    suspend fun getLyricaTranslatedLyrics(
+        q_track: String,
+        q_artist: String,
+        targetLanguage: String,
+        customBaseUrl: String? = null,
+    ): Result<org.pulsemusic.lyrics.domain.Lyrics?> =
+        runCatching {
+            val response = lyricsService.searchLyricaLyrics(
+                track = q_track,
+                artist = q_artist,
+                timestamps = true,
+                word = true,
+                translate = true,
+                language = targetLanguage,
+                customBaseUrl = customBaseUrl,
+            )
+            if (response.status.value !in 200..299) return@runCatching null
+            val parsed = response.body<LyricaResponse>()
+            val data = parsed.data ?: return@runCatching null
+            val timed = data.timed_lyrics
+            if (!timed.isNullOrEmpty()) {
+                val translatedLines = timed.mapNotNull { t ->
+                    val text = t.translated?.trim()?.ifBlank { null } ?: t.text?.trim()?.ifBlank { null }
+                    if (text != null) {
+                        org.pulsemusic.lyrics.domain.Lyrics.LyricsX.Line(
+                            startTimeMs = t.start_time.toString(),
+                            endTimeMs = t.end_time.toString(),
+                            words = text,
+                        )
+                    } else null
+                }
+                if (translatedLines.isNotEmpty()) {
+                    return@runCatching org.pulsemusic.lyrics.domain.Lyrics(
+                        lyrics = org.pulsemusic.lyrics.domain.Lyrics.LyricsX(
+                            lines = translatedLines,
+                            syncType = "LINE_SYNCED",
+                        ),
+                    )
+                }
+            }
+            val raw = data.translated_lyrics ?: data.lyrics
+            if (!raw.isNullOrBlank()) {
+                if (raw.contains(Regex("""\[\d+:\d+"""))) {
+                    return@runCatching parseSyncedLyrics(raw)
+                } else {
+                    return@runCatching parseUnsyncedLyrics(raw)
+                }
+            }
+            null
         }
 
     suspend fun searchAMArtist(

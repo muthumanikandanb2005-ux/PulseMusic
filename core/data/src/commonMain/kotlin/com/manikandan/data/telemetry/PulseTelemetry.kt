@@ -26,11 +26,11 @@ import kotlin.random.Random
  *   - Fail-safe (exception swallowed silently)
  *   - Minimal (no polling, no continuous streaming)
  *
- * Version: 4.1.6 — Live data only, persisted to private GitHub Gist store.
+ * Version: 4.1.7 — Live data only, persisted to private GitHub Gist store.
  */
 object PulseTelemetry {
 
-    const val APP_VERSION = "4.1.6"
+    const val APP_VERSION = "4.1.7"
 
     private const val ENDPOINT = "https://pulsemusic-landing.vercel.app/api/track"
 

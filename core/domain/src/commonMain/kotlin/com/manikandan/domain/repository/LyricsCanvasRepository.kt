@@ -85,6 +85,22 @@ interface LyricsCanvasRepository {
         isrc: String? = null,
     ): Flow<Resource<Lyrics>>
 
+    fun getLyricaLyrics(
+        artist: String,
+        track: String,
+        duration: Int? = null,
+        translateLanguage: String? = null,
+        romanize: Boolean = false,
+        customBaseUrl: String? = null,
+    ): Flow<Resource<Lyrics>>
+
+    fun getLyricaTranslatedLyrics(
+        artist: String,
+        track: String,
+        targetLanguage: String,
+        customBaseUrl: String? = null,
+    ): Flow<Resource<Lyrics>>
+
     /** Fetch the artist's name-logo image + dominant color from the hidden catalog. */
     fun getArtistLogo(artistName: String): Flow<Resource<ArtistLogo>>
 

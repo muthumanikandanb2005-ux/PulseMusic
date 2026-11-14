@@ -673,6 +673,78 @@ internal class LyricsCanvasRepositoryImpl(
             }
         }.flowOn(Dispatchers.IO)
 
+    override fun getLyricaLyrics(
+        artist: String,
+        track: String,
+        duration: Int?,
+        translateLanguage: String?,
+        romanize: Boolean,
+        customBaseUrl: String?,
+    ): Flow<Resource<Lyrics>> =
+        flow {
+            Logger.w("Lyrics", "getLyricaLyrics: $artist $track $duration $translateLanguage")
+            val qartist = cleanArtistForLyrics(artist)
+            val qtrack = cleanTrackTitleForLyrics(track)
+            var result = pulseMusicLyrics.searchLyricaLyrics(
+                q_track = qtrack,
+                q_artist = qartist,
+                durationSeconds = duration,
+                translateLanguage = translateLanguage,
+                romanize = romanize,
+                customBaseUrl = customBaseUrl,
+            ).getOrNull()
+
+            if (result == null && (qtrack != track.trim() || qartist != artist.trim())) {
+                result = pulseMusicLyrics.searchLyricaLyrics(
+                    q_track = track.trim(),
+                    q_artist = artist.trim(),
+                    durationSeconds = duration,
+                    translateLanguage = translateLanguage,
+                    romanize = romanize,
+                    customBaseUrl = customBaseUrl,
+                ).getOrNull()
+            }
+
+            if (result != null) {
+                emit(Resource.Success<Lyrics>(result.toLyrics()))
+            } else {
+                emit(Resource.Error<Lyrics>("No Lyrica lyrics found"))
+            }
+        }.flowOn(Dispatchers.IO)
+
+    override fun getLyricaTranslatedLyrics(
+        artist: String,
+        track: String,
+        targetLanguage: String,
+        customBaseUrl: String?,
+    ): Flow<Resource<Lyrics>> =
+        flow {
+            Logger.w("Lyrics", "getLyricaTranslatedLyrics: $artist $track $targetLanguage")
+            val qartist = cleanArtistForLyrics(artist)
+            val qtrack = cleanTrackTitleForLyrics(track)
+            var result = pulseMusicLyrics.getLyricaTranslatedLyrics(
+                q_track = qtrack,
+                q_artist = qartist,
+                targetLanguage = targetLanguage,
+                customBaseUrl = customBaseUrl,
+            ).getOrNull()
+
+            if (result == null && (qtrack != track.trim() || qartist != artist.trim())) {
+                result = pulseMusicLyrics.getLyricaTranslatedLyrics(
+                    q_track = track.trim(),
+                    q_artist = artist.trim(),
+                    targetLanguage = targetLanguage,
+                    customBaseUrl = customBaseUrl,
+                ).getOrNull()
+            }
+
+            if (result != null) {
+                emit(Resource.Success<Lyrics>(result.toLyrics()))
+            } else {
+                emit(Resource.Error<Lyrics>("No Lyrica translated lyrics found"))
+            }
+        }.flowOn(Dispatchers.IO)
+
     override fun getArtistLogo(artistName: String): Flow<Resource<ArtistLogo>> =
         flow {
             pulseMusicLyrics

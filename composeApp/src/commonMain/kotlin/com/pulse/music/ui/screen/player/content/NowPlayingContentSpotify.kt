@@ -1388,6 +1388,10 @@ fun NowPlayingContentSpotify(
                                                         "BiniLyrics"
                                                     }
 
+                                                    LyricsProvider.LYRICA -> {
+                                                        "Lyrica (AI Synced)"
+                                                    }
+
                                                     else -> {
                                                         ""
                                                     }

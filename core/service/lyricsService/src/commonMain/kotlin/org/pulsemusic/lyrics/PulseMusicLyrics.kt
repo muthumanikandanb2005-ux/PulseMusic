@@ -258,6 +258,31 @@ class PulseMusicLyrics {
             header(HttpHeaders.UserAgent, "PulseMusic/3.2.3")
         }
 
+    suspend fun searchLyricaLyrics(
+        track: String,
+        artist: String,
+        timestamps: Boolean = true,
+        word: Boolean = true,
+        translate: Boolean = true,
+        romanize: Boolean = false,
+        language: String = "en",
+        customBaseUrl: String? = null,
+    ): HttpResponse {
+        val base = customBaseUrl?.trim()?.trimEnd('/')?.ifBlank { null }
+            ?: "https://pulsemusic-landing.vercel.app/api/lyrica"
+        return httpClient.get(base) {
+            header(HttpHeaders.Accept, "application/json")
+            header(HttpHeaders.UserAgent, "PulseMusic/4.1.7 (Lyrica Integration)")
+            parameter("song", track.trim())
+            parameter("artist", artist.trim())
+            if (timestamps) parameter("timestamps", "true")
+            if (word) parameter("word", "true")
+            if (translate) parameter("translate", "true")
+            if (romanize) parameter("romanize", "true")
+            parameter("language", language)
+        }
+    }
+
     suspend fun getSpotifyLyricsFromApi(
         endpoint: String,
         trackId: String? = null,

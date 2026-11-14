@@ -354,6 +354,7 @@ private fun appleMusicLyricsProviderText(lyricsData: NowPlayingScreenData.Lyrics
         LyricsProvider.OFFLINE -> stringResource(Res.string.offline_mode)
         LyricsProvider.BETTER_LYRICS -> stringResource(Res.string.lyrics_provider_betterlyrics)
         LyricsProvider.BINI_LYRICS -> "BiniLyrics"
+        LyricsProvider.LYRICA -> "Lyrica (AI Synced)"
         LyricsProvider.AI -> ""
         LyricsProvider.MUSIXMATCH -> "Musixmatch"
     }
