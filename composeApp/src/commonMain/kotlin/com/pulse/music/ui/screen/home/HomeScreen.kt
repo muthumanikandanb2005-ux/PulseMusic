@@ -4,7 +4,13 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.scale
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -819,13 +825,36 @@ fun HomeTopAppBar(
             val date = now().time
             date.hour
         }
-    val greeting =
+    val (greetingText, greetingIcon) =
         when (hour) {
-            in 5..11 -> stringResource(Res.string.good_morning)
-            in 12..16 -> stringResource(Res.string.good_afternoon)
-            in 17..21 -> stringResource(Res.string.good_evening)
-            else -> stringResource(Res.string.good_night)
+            in 5..11 -> stringResource(Res.string.good_morning) to "☀️"
+            in 12..16 -> stringResource(Res.string.good_afternoon) to "🌤️"
+            in 17..21 -> stringResource(Res.string.good_evening) to "🌅"
+            else -> stringResource(Res.string.good_night) to "🌙"
         }
+    val effectiveUserName = profileName.trim().ifEmpty { accountName?.trim().orEmpty() }
+    val greeting = if (effectiveUserName.isNotBlank()) "$greetingIcon $greetingText, $effectiveUserName" else "$greetingIcon $greetingText"
+
+    val pulseTransition = rememberInfiniteTransition(label = "PulseLogoDot")
+    val dotAlpha by pulseTransition.animateFloat(
+        initialValue = 0.65f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "DotAlpha",
+    )
+    val dotScale by pulseTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "DotScale",
+    )
+
     TopAppBar(
         windowInsets =
             TopAppBarDefaults.windowInsets.exclude(
@@ -837,9 +866,10 @@ fun HomeTopAppBar(
                     Box(
                         modifier =
                             Modifier
-                                .size(10.dp)
+                                .size(9.dp)
+                                .scale(dotScale)
                                 .clip(CircleShape)
-                                .background(Color(0xFFFA2D48)),
+                                .background(Color(0xFFFA2D48).copy(alpha = dotAlpha)),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -936,7 +966,10 @@ fun QuickPicks(
     ) {
         Text(
             text = stringResource(Res.string.let_s_start_with_a_radio),
-            style = typo().bodySmall,
+            style = typo().bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                letterSpacing = 0.3.sp,
+            ),
         )
         val discoveryRatio by sharedViewModel.discoveryRatio.collectAsStateWithLifecycle()
         val discoveryPercent = (discoveryRatio * 100).toInt()
