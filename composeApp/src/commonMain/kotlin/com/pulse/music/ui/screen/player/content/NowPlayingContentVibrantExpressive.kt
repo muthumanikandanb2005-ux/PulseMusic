@@ -1,7 +1,9 @@
 package com.pulse.music.ui.screen.player.content
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import com.pulse.music.expect.ui.MediaPlayerView
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -401,25 +403,93 @@ private fun NowPlayingVibrantExpressiveLayout(
                     shape = CircleShape,
                     color = colorScheme.surfaceContainerHigh,
                 ) {
-                    HorizontalPager(
-                        state = state.artworkPagerState,
-                        modifier = Modifier.fillMaxSize(),
-                    ) { page ->
-                        val track = state.artworkQueue.getOrNull(page)
-                        val thumbUrl = track?.thumbnails?.lastOrNull()?.url
-                            ?: state.screenData.thumbnailURL
-
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalPlatformContext.current)
-                                .data(thumbUrl)
-                                .crossfade(200)
-                                .memoryCachePolicy(CachePolicy.ENABLED)
-                                .diskCachePolicy(CachePolicy.ENABLED)
-                                .build(),
-                            contentDescription = track?.title ?: state.screenData.nowPlayingTitle,
-                            contentScale = ContentScale.Crop,
+                    if (state.artworkQueue.isNotEmpty()) {
+                        HorizontalPager(
+                            state = state.artworkPagerState,
                             modifier = Modifier.fillMaxSize(),
-                        )
+                        ) { page ->
+                            val track = state.artworkQueue.getOrNull(page)
+                            val isCurrentArtworkPage = (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage)
+                            val pageHasCanvas = isCurrentArtworkPage && state.screenData.canvasData != null
+                            if (pageHasCanvas) {
+                                Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "vibrantCanvas") { isVideo ->
+                                    if (isVideo == true) {
+                                        state.screenData.canvasData?.url?.let { url ->
+                                            MediaPlayerView(
+                                                url = url,
+                                                cropToBounds = true,
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        }
+                                    } else {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                                .data(state.screenData.canvasData?.url)
+                                                .crossfade(200)
+                                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                                .diskCachePolicy(CachePolicy.ENABLED)
+                                                .build(),
+                                            contentDescription = track?.title ?: state.screenData.nowPlayingTitle,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                    }
+                                }
+                            } else {
+                                val thumbUrl = track?.thumbnails?.lastOrNull()?.url
+                                    ?: (if (isCurrentArtworkPage) state.screenData.thumbnailURL else null)
+
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                                        .data(thumbUrl)
+                                        .crossfade(200)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .build(),
+                                    contentDescription = track?.title ?: state.screenData.nowPlayingTitle,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                    } else {
+                        if (state.screenData.canvasData != null) {
+                            Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "vibrantCanvasSingle") { isVideo ->
+                                if (isVideo == true) {
+                                    state.screenData.canvasData?.url?.let { url ->
+                                        MediaPlayerView(
+                                            url = url,
+                                            cropToBounds = true,
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                    }
+                                } else {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                                            .data(state.screenData.canvasData?.url)
+                                            .crossfade(200)
+                                            .memoryCachePolicy(CachePolicy.ENABLED)
+                                            .diskCachePolicy(CachePolicy.ENABLED)
+                                            .build(),
+                                        contentDescription = state.screenData.nowPlayingTitle,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                            }
+                        } else {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalPlatformContext.current)
+                                    .data(state.screenData.thumbnailURL)
+                                    .crossfade(200)
+                                    .memoryCachePolicy(CachePolicy.ENABLED)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .build(),
+                                contentDescription = state.screenData.nowPlayingTitle,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                 }
             }

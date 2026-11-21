@@ -124,6 +124,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import com.pulse.music.ui.theme.LocalIsPearlLavenderTheme
 
 import com.manikandan.common.Config.MAIN_PLAYER
+import androidx.compose.animation.Crossfade
+import com.pulse.music.expect.ui.MediaPlayerView
 import com.pulse.music.expect.ui.MediaPlayerViewWithSubtitle
 import com.pulse.music.ui.icon.Fullscreen
 import com.pulse.music.ui.screen.player.content.expressive.WavySeekBar
@@ -770,13 +772,108 @@ private fun BitChordArtworkHero(
                 beyondViewportPageCount = 1,
             ) { page ->
                 val track: Track? = state.artworkQueue.getOrNull(page)
-                val rawUrl = track?.thumbnails?.lastOrNull()?.url
-                    ?: track?.thumbnails?.firstOrNull()?.url
-                    ?: (if (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage) state.screenData.thumbnailURL else null)
+                val isCurrentArtworkPage = page == state.currentOrderIndex || page == state.artworkPagerState.currentPage
+                val pageHasCanvas = isCurrentArtworkPage && state.screenData.canvasData != null
+                if (pageHasCanvas) {
+                    Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "bitchordCanvas") { isVideo ->
+                        if (isVideo == true) {
+                            state.screenData.canvasData?.url?.let { url ->
+                                MediaPlayerView(
+                                    url = url,
+                                    cropToBounds = true,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        } else {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalPlatformContext.current)
+                                    .data(state.screenData.canvasData?.url)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .memoryCachePolicy(CachePolicy.ENABLED)
+                                    .crossfade(300)
+                                    .build(),
+                                contentDescription = track?.title ?: "Artwork",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                onSuccess = {
+                                    if (isCurrentArtworkPage) {
+                                        actions.onArtworkBitmap(it.result.image.toImageBitmap())
+                                    }
+                                },
+                                error = rememberHolderPainter(),
+                                placeholder = rememberHolderPainter(),
+                            )
+                        }
+                    }
+                } else {
+                    val rawUrl = track?.thumbnails?.lastOrNull()?.url
+                        ?: track?.thumbnails?.firstOrNull()?.url
+                        ?: (if (isCurrentArtworkPage) state.screenData.thumbnailURL else null)
+                    var artworkUrl by remember(rawUrl) {
+                        mutableStateOf(getHighResArtworkUrl(rawUrl))
+                    }
+
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(artworkUrl)
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .crossfade(300)
+                            .build(),
+                        contentDescription = track?.title ?: "Artwork",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onSuccess = {
+                            if (isCurrentArtworkPage) {
+                                actions.onArtworkBitmap(it.result.image.toImageBitmap())
+                            }
+                        },
+                        onError = {
+                            val fallback = artworkUrl?.replace("maxresdefault", "hqdefault")
+                            if (fallback != null && fallback != artworkUrl) {
+                                artworkUrl = fallback
+                            }
+                        },
+                        error = rememberHolderPainter(),
+                        placeholder = rememberHolderPainter(),
+                    )
+                }
+            }
+        } else {
+            if (state.screenData.canvasData != null) {
+                Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "bitchordCanvasSingle") { isVideo ->
+                    if (isVideo == true) {
+                        state.screenData.canvasData?.url?.let { url ->
+                            MediaPlayerView(
+                                url = url,
+                                cropToBounds = true,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    } else {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(state.screenData.canvasData?.url)
+                                .diskCachePolicy(CachePolicy.ENABLED)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .crossfade(300)
+                                .build(),
+                            contentDescription = "Artwork",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            onSuccess = {
+                                actions.onArtworkBitmap(it.result.image.toImageBitmap())
+                            },
+                            error = rememberHolderPainter(),
+                            placeholder = rememberHolderPainter(),
+                        )
+                    }
+                }
+            } else {
+                val rawUrl = state.screenData.thumbnailURL
                 var artworkUrl by remember(rawUrl) {
                     mutableStateOf(getHighResArtworkUrl(rawUrl))
                 }
-
                 AsyncImage(
                     model = ImageRequest.Builder(LocalPlatformContext.current)
                         .data(artworkUrl)
@@ -784,13 +881,11 @@ private fun BitChordArtworkHero(
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .crossfade(300)
                         .build(),
-                    contentDescription = track?.title ?: "Artwork",
+                    contentDescription = "Artwork",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     onSuccess = {
-                        if (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage) {
-                            actions.onArtworkBitmap(it.result.image.toImageBitmap())
-                        }
+                        actions.onArtworkBitmap(it.result.image.toImageBitmap())
                     },
                     onError = {
                         val fallback = artworkUrl?.replace("maxresdefault", "hqdefault")
@@ -802,33 +897,6 @@ private fun BitChordArtworkHero(
                     placeholder = rememberHolderPainter(),
                 )
             }
-        } else {
-            val rawUrl = state.screenData.thumbnailURL
-            var artworkUrl by remember(rawUrl) {
-                mutableStateOf(getHighResArtworkUrl(rawUrl))
-            }
-            AsyncImage(
-                model = ImageRequest.Builder(LocalPlatformContext.current)
-                    .data(artworkUrl)
-                    .diskCachePolicy(CachePolicy.ENABLED)
-                    .memoryCachePolicy(CachePolicy.ENABLED)
-                    .crossfade(300)
-                    .build(),
-                contentDescription = "Artwork",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                onSuccess = {
-                    actions.onArtworkBitmap(it.result.image.toImageBitmap())
-                },
-                onError = {
-                    val fallback = artworkUrl?.replace("maxresdefault", "hqdefault")
-                    if (fallback != null && fallback != artworkUrl) {
-                        artworkUrl = fallback
-                    }
-                },
-                error = rememberHolderPainter(),
-                placeholder = rememberHolderPainter(),
-            )
         }
     }
 }
