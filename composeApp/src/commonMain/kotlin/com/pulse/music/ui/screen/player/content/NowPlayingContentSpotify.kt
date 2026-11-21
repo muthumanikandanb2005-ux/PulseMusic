@@ -432,18 +432,8 @@ fun NowPlayingContentSpotify(
                                     state.screenData.canvasData?.url?.let { url ->
                                         MediaPlayerView(
                                             url = url,
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxHeight()
-                                                    .then(
-                                                        if (getPlatform() == Platform.Desktop) {
-                                                            Modifier
-                                                        } else {
-                                                            Modifier
-                                                                .wrapContentWidth(unbounded = true, align = Alignment.CenterHorizontally)
-                                                                .align(Alignment.Center)
-                                                        },
-                                                    ),
+                                            cropToBounds = true,
+                                            modifier = Modifier.fillMaxSize(),
                                         )
                                     }
                                 } else if (isVideo == false) {

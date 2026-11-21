@@ -2162,7 +2162,7 @@ class SettingsViewModel(
     private var _spotifyCanvas: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val spotifyCanvas: StateFlow<Boolean> = _spotifyCanvas
 
-    private var _amAnimatedArtwork: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    private var _amAnimatedArtwork: MutableStateFlow<Boolean> = MutableStateFlow(true)
     val amAnimatedArtwork: StateFlow<Boolean> = _amAnimatedArtwork
 
     fun getSpotifyLyrics() {
@@ -2236,7 +2236,7 @@ class SettingsViewModel(
     fun getAMAnimatedArtwork() {
         viewModelScope.launch {
             dataStoreManager.amAnimatedArtwork.collect {
-                _amAnimatedArtwork.emit(it == DataStoreManager.TRUE)
+                _amAnimatedArtwork.emit(it != DataStoreManager.FALSE)
             }
         }
     }
@@ -2353,13 +2353,13 @@ class SettingsViewModel(
     }
 
     // Play Animated Cover Over Cellular
-    private val _playAnimOverCellular = MutableStateFlow(false)
+    private val _playAnimOverCellular = MutableStateFlow(true)
     val playAnimOverCellular: StateFlow<Boolean> = _playAnimOverCellular.asStateFlow()
 
     fun getPlayAnimOverCellular() {
         viewModelScope.launch {
             dataStoreManager.getString(DataStoreManager.PLAY_ANIM_CELLULAR).collect { value ->
-                _playAnimOverCellular.emit(value == "true")
+                _playAnimOverCellular.emit(value != "false")
             }
         }
     }

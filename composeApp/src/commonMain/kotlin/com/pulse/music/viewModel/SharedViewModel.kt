@@ -323,11 +323,12 @@ class SharedViewModel(
                             log("Timeline job ${(it.first.total.toString() + it.second.songEntity?.videoId).hashCode()}")
                             val nowPlaying = it.second
                             val timeline = it.first
-                            if (timeline.total > 0 && nowPlaying.songEntity != null) {
+                            if (timeline.total > 0) {
                                 if (nowPlaying.mediaItem.isSong() && nowPlayingScreenData.value.canvasData == null) {
-                                    Logger.w(tag, "Duration is ${timeline.total}")
-                                    Logger.w(tag, "MediaId is ${nowPlaying.mediaItem.mediaId}")
-                                    getCanvas(nowPlaying.mediaItem.mediaId, (timeline.total / 1000).toInt())
+                                    val accurateDuration = (timeline.total / 1000).toInt()
+                                    val targetMediaId = nowPlaying.mediaItem.mediaId.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                                    Logger.w(tag, "Duration is ${timeline.total}, query canvas for $targetMediaId ($accurateDuration s)")
+                                    getCanvas(targetMediaId, accurateDuration)
                                 }
                                 nowPlaying.songEntity?.let { song ->
                                     val vid = song.videoId.removePrefix(MERGING_DATA_TYPE.VIDEO)
@@ -467,6 +468,20 @@ class SharedViewModel(
                     }
                     lyricsJob = launch {
                         getLyricsFromFormat(state.mediaItem.isVideo(), songForLyrics, durationSec)
+                    }
+
+                    // Save song entity to DB for canvas and lyrics queries
+                    launch(Dispatchers.IO) {
+                        try {
+                            songRepository.insertSong(songForLyrics).firstOrNull()
+                        } catch (e: Exception) {
+                            Logger.e(tag, "Failed to cache song entity: ${e.message}")
+                        }
+                    }
+
+                    // Eagerly trigger canvas fetch for the new song!
+                    if (state.mediaItem.isSong()) {
+                        getCanvas(videoId, durationSec)
                     }
                 }
         }
@@ -656,9 +671,10 @@ class SharedViewModel(
         videoId: String,
         duration: Int,
     ) {
-        Logger.w(tag, "Start getCanvas: $videoId $duration")
-//        canvasJob?.cancel()
-        viewModelScope.launch {
+        val cleanVideoId = videoId.removePrefix(MERGING_DATA_TYPE.VIDEO)
+        Logger.w(tag, "Start getCanvas: $cleanVideoId $duration")
+        canvasJob?.cancel()
+        canvasJob = viewModelScope.launch {
             val playOverCellular = dataStoreManager.getString(DataStoreManager.PLAY_ANIM_CELLULAR).firstOrNull() != "false"
             if (!playOverCellular && isCellularNetwork()) {
                 Logger.d(tag, "Skipping canvas video over cellular (play_anim_cellular is false)")
@@ -668,13 +684,15 @@ class SharedViewModel(
             // animated artwork first, and a Spotify canvas only if that found nothing AND the user
             // has that switch on too. Neither switch touches the other — a track with no animated
             // artwork still gets its canvas, and turning Spotify off still means no canvas at all.
+            val amEnabled = dataStoreManager.amAnimatedArtwork.first() != FALSE
+            val spotifyEnabled = dataStoreManager.spotifyCanvas.first() == TRUE
             val sources =
                 buildList {
-                    if (dataStoreManager.amAnimatedArtwork.first() == TRUE) {
-                        add(lyricsCanvasRepository.getAMAnimatedArtwork(videoId))
+                    if (amEnabled) {
+                        add(lyricsCanvasRepository.getAMAnimatedArtwork(cleanVideoId))
                     }
-                    if (dataStoreManager.spotifyCanvas.first() == TRUE) {
-                        add(lyricsCanvasRepository.getCanvas(dataStoreManager, videoId, duration))
+                    if (spotifyEnabled) {
+                        add(lyricsCanvasRepository.getCanvas(dataStoreManager, cleanVideoId, duration))
                     }
                 }
             if (sources.isEmpty()) return@launch
@@ -684,7 +702,8 @@ class SharedViewModel(
                 if (resolved) break
                 source.cancellable().collect { response ->
                     val data = response.data
-                    if (response is Resource.Success && data != null && nowPlayingState.value?.mediaItem?.mediaId == videoId) {
+                    val currentId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                    if (response is Resource.Success && data != null && currentId == cleanVideoId) {
                         resolved = true
                         _canvas.value = data
                         _nowPlayingScreenData.update {
@@ -697,9 +716,9 @@ class SharedViewModel(
                             )
                         }
                         // Save canvas video url
-                        if (data.isVideo) lyricsCanvasRepository.updateCanvasUrl(videoId, data.canvasUrl)
+                        if (data.isVideo) lyricsCanvasRepository.updateCanvasUrl(cleanVideoId, data.canvasUrl)
                         // Save canvas thumb url
-                        data.canvasThumbUrl?.let { lyricsCanvasRepository.updateCanvasThumbUrl(videoId, it) }
+                        data.canvasThumbUrl?.let { lyricsCanvasRepository.updateCanvasThumbUrl(cleanVideoId, it) }
                     } else {
                         log("Get canvas miss from a source: ${response.message}", LogLevel.WARN)
                     }
@@ -707,13 +726,16 @@ class SharedViewModel(
             }
 
             if (!resolved) {
-                nowPlayingState.value?.songEntity?.canvasUrl?.let { url ->
+                val currentId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                val cachedUrl = nowPlayingState.value?.songEntity?.canvasUrl
+                    ?: songRepository.getSongById(cleanVideoId).firstOrNull()?.canvasUrl
+                if (cachedUrl != null && currentId == cleanVideoId) {
                     _nowPlayingScreenData.update {
                         it.copy(
                             canvasData =
                                 NowPlayingScreenData.CanvasData(
-                                    isVideo = url.isCanvasVideoUrl(),
-                                    url = url,
+                                    isVideo = cachedUrl.isCanvasVideoUrl(),
+                                    url = cachedUrl,
                                 ),
                         )
                     }

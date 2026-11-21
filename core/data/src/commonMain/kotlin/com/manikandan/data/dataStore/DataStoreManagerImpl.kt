@@ -1043,7 +1043,7 @@ internal class DataStoreManagerImpl(
 
     override val amAnimatedArtwork: Flow<String> =
         settingsDataStore.data.map { preferences ->
-            preferences[AM_ANIMATED_ARTWORK] ?: FALSE
+            preferences[AM_ANIMATED_ARTWORK] ?: TRUE
         }
 
     override suspend fun setAMAnimatedArtwork(enabled: Boolean) {

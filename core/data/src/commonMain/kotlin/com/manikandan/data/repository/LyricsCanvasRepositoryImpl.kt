@@ -249,7 +249,11 @@ internal class LyricsCanvasRepositoryImpl(
      */
     override fun getAMAnimatedArtwork(videoId: String): Flow<Resource<CanvasResult>> =
         flow {
-            val song = localDataSource.getSong(videoId)
+            var song = localDataSource.getSong(videoId)
+            if (song == null) {
+                kotlinx.coroutines.delay(250)
+                song = localDataSource.getSong(videoId)
+            }
             if (song == null) {
                 Logger.e(AM_ARTWORK_TAG, "Not found $videoId")
                 emit(Resource.Error<CanvasResult>("Song not found"))
