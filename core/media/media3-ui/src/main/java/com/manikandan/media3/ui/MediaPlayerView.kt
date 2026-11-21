@@ -150,7 +150,8 @@ fun MediaPlayerView(
                 .setLoadControl(
                     DefaultLoadControl
                         .Builder()
-                        .setPrioritizeTimeOverSizeThresholds(false)
+                        .setBufferDurationsMs(5_000, 25_000, 500, 1_000)
+                        .setPrioritizeTimeOverSizeThresholds(true)
                         .build(),
                 ).setMediaSourceFactory(
                     DefaultMediaSourceFactory(cacheDataSourceFactory),

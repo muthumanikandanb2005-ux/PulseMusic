@@ -51,8 +51,24 @@ class PulseMusicApplication :
     private val dataStoreManager: DataStoreManager by inject()
     private lateinit var autoBackupScheduler: AutoBackupScheduler
     private val sharedOkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .build()
+        val httpCacheDir = java.io.File(cacheDir, "coil_http_cache")
+        val httpCache = try {
+            okhttp3.Cache(httpCacheDir, 64L * 1024 * 1024)
+        } catch (e: Exception) {
+            null
+        }
+        val pool = okhttp3.ConnectionPool(12, 5, java.util.concurrent.TimeUnit.MINUTES)
+        val dispatcher = okhttp3.Dispatcher().apply {
+            maxRequests = 64
+            maxRequestsPerHost = 16
+        }
+        val builder = OkHttpClient.Builder()
+            .connectionPool(pool)
+            .dispatcher(dispatcher)
+        if (httpCache != null) {
+            builder.cache(httpCache)
+        }
+        builder.build()
     }
 
     override fun onCreate() {
@@ -155,6 +171,6 @@ class PulseMusicApplication :
                     .directory(context.cacheDir.resolve("image_cache").toOkioPath())
                     .maxSizeBytes(512L * 1024 * 1024)
                     .build(),
-            ).crossfade(true)
+            ).crossfade(150)
             .build()
 }
