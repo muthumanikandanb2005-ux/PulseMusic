@@ -1060,7 +1060,7 @@ internal class MediaServiceHandlerImpl(
                 // the beginning (#2152). The position is otherwise only saved on pause /
                 // track change / release, which misses uninterrupted background playback.
                 val positionPersistIntervalMs = 20_000L
-                val tickIntervalMs = 250L
+                val tickIntervalMs = 50L
                 var sinceLastPositionSaveMs = 0L
                 while (true) {
                     delay(tickIntervalMs)

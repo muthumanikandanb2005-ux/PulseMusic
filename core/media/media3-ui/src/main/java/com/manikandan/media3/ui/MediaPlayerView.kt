@@ -125,6 +125,11 @@ fun MediaPlayerView(
                     super.onIsPlayingChanged(isPlaying)
                     keepScreenOn = isPlaying
                 }
+
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    super.onPlayerError(error)
+                    Logger.e("MediaPlayerView", "Canvas ExoPlayer error: ${error.message}", error)
+                }
             }
         }
 
@@ -135,7 +140,13 @@ fun MediaPlayerView(
                 CacheDataSink
                     .Factory()
                     .setCache(canvasCache)
-            val upstreamFactory = DefaultDataSource.Factory(context, DefaultHttpDataSource.Factory())
+            val httpDataSourceFactory =
+                DefaultHttpDataSource.Factory()
+                    .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .setAllowCrossProtocolRedirects(true)
+                    .setConnectTimeoutMs(15000)
+                    .setReadTimeoutMs(15000)
+            val upstreamFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
             val downStreamFactory = FileDataSource.Factory()
             val cacheDataSourceFactory =
                 CacheDataSource
@@ -157,23 +168,31 @@ fun MediaPlayerView(
                     DefaultMediaSourceFactory(cacheDataSourceFactory),
                 ).build()
                 .apply {
+                    volume = 0f // Canvas video is a silent looping visual background
+                    videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
                     addListener(playerListener)
-                    videoScalingMode = C.VIDEO_SCALING_MODE_DEFAULT
                 }
         }
 
-    // Create a MediaSource
+    // Create a MediaSource with explicit MimeType if known (.m3u8 or .mp4)
     val mediaSource =
         remember(url) {
-            MediaItem.fromUri(url)
+            val builder = MediaItem.Builder().setUri(url)
+            if (url.contains(".m3u8", ignoreCase = true)) {
+                builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+            } else if (url.contains(".mp4", ignoreCase = true)) {
+                builder.setMimeType(androidx.media3.common.MimeTypes.VIDEO_MP4)
+            }
+            builder.build()
         }
 
     // Set MediaSource to ExoPlayer
     LaunchedEffect(mediaSource) {
         exoPlayer.setMediaItem(mediaSource)
+        exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
+        exoPlayer.playWhenReady = true
         exoPlayer.prepare()
         exoPlayer.play()
-        exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
     }
 
     // Manage lifecycle events
@@ -189,11 +208,15 @@ fun MediaPlayerView(
     }
 
     val presentationState = rememberPresentationState(exoPlayer)
+
     if (cropToBounds) {
         // Center scale-to-cover (ContentScale.Crop) into whatever frame the caller gives us.
         // resizeWithContentScale keeps the true video aspect ratio (no stretch), scales it
         // to fully cover the frame using the real videoSizeDp, then clips the overflow.
-        Box(modifier = modifier.graphicsLayer { clip = true }) {
+        Box(
+            modifier = modifier.graphicsLayer { clip = true },
+            contentAlignment = Alignment.Center,
+        ) {
             PlayerSurface(
                 player = exoPlayer,
                 surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
@@ -205,14 +228,12 @@ fun MediaPlayerView(
                             sourceSizeDp = presentationState.videoSizeDp,
                         ),
             )
-
-            if (presentationState.coverSurface) {
-                // Cover the surface that is being prepared with a shutter
-                Box(Modifier.matchParentSize().background(Color.Black))
-            }
         }
     } else {
-        Box(modifier = modifier.graphicsLayer { clip = true }) {
+        Box(
+            modifier = modifier.graphicsLayer { clip = true },
+            contentAlignment = Alignment.Center,
+        ) {
             PlayerSurface(
                 player = exoPlayer,
                 surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
@@ -222,11 +243,6 @@ fun MediaPlayerView(
                         .width(with(density) { widthPx.toDp() })
                         .align(Alignment.Center),
             )
-
-            if (presentationState.coverSurface) {
-                // Cover the surface that is being prepared with a shutter
-                Box(Modifier.background(Color.Black))
-            }
         }
     }
 }

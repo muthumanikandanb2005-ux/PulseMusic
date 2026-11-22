@@ -65,11 +65,12 @@ fun parseSyncedLyrics(data: String): Lyrics {
         }
         linesLyrics[i] = current.copy(endTimeMs = nextStart.toString())
     }
+    val hasRichSync = linesLyrics.any { it.words?.contains(Regex("""<\d{1,2}:\d{2}""")) == true }
     return Lyrics(
         lyrics =
             Lyrics.LyricsX(
                 lines = linesLyrics,
-                syncType = "LINE_SYNCED",
+                syncType = if (hasRichSync) "RICH_SYNCED" else "LINE_SYNCED",
             ),
     )
 }
@@ -99,8 +100,8 @@ fun parseRichSyncLyrics(data: String): Lyrics {
         println("[parseRichSyncLyrics] First line sample: ${lyricsLines.first()}")
     }
 
-    // Regex to match [MM:SS.mm] format (flexible with 1-2 digits)
-    val regex = Regex("\\[(\\d{1,2}):(\\d{2})\\.(\\d{2,3})\\](.+)")
+    // Regex to match [MM:SS.mm] or [MM:SS:mm] format (flexible with 1-2 digits for minutes)
+    val regex = Regex("\\[(\\d{1,2}):(\\d{2})[.:](\\d{2,3})\\](.+)")
     // Strip a leading voice marker (e.g. "v1:", "v2:") that some lyrics
     // providers prepend before the first word timestamp, so it doesn't leak
     // into the word content and stick to the first word.

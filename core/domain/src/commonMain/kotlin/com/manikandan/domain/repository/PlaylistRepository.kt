@@ -90,4 +90,12 @@ interface PlaylistRepository {
      * @return Country Code -> YouTube Music Playlist ID
      */
     fun getChartPlaylist(): Flow<Resource<List<ChartItem>>>
+
+    fun getSpotifyPlaylists(): Flow<List<PlaylistsResult>?>
+
+    fun getSpotifyTrendingPlaylists(): Flow<List<PlaylistsResult>?>
+
+    fun getSpotifyRecentlyPlayed(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?>
+
+    suspend fun syncSpotifyPlaylists(spdc: String): Result<Int>
 }

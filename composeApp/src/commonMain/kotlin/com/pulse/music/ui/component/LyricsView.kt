@@ -104,7 +104,7 @@ private const val TAG = "LyricsView"
 // and JvmMediaPlayerHandlerImpl both tick on `tickIntervalMs`). It is the ceiling on how far the interpolated
 // playhead below is allowed to run ahead of the last real tick, so a stalled tick — paused
 // playback, a wedged player — can never drift further than the granularity we already live with.
-private const val PLAYHEAD_TICK_MS = 350L
+private const val PLAYHEAD_TICK_MS = 100L
 
 // A rich-synced line followed by a silence at least this long gets a row of dots standing in for
 // the instrumental, the way Apple Music marks one. Rich sync only: it is the one format that knows

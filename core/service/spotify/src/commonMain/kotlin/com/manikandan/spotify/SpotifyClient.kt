@@ -167,7 +167,9 @@ class SpotifyClient {
         spotifyClient.get("https://open.spotify.com/get_access_token?reason=transport&productType=web_player") {
             userAgent(USER_AGENT)
             contentType(ContentType.Application.Json)
-            header("Cookie", "sp_dc=$spdc")
+            if (spdc.isNotBlank()) {
+                header("Cookie", "sp_dc=$spdc")
+            }
         }
 
     suspend fun getSpotifyLyrics(
@@ -239,6 +241,33 @@ class SpotifyClient {
             ),
         )
     }
+
+    suspend fun getSpotifyUserProfile(token: String) =
+        spotifyClient.get("https://api.spotify.com/v1/me") {
+            userAgent(USER_AGENT)
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+    suspend fun getSpotifyUserPlaylists(token: String, limit: Int = 50) =
+        spotifyClient.get("https://api.spotify.com/v1/me/playlists") {
+            userAgent(USER_AGENT)
+            header(HttpHeaders.Authorization, "Bearer $token")
+            parameter("limit", limit)
+        }
+
+    suspend fun getSpotifyRecentlyPlayed(token: String, limit: Int = 20) =
+        spotifyClient.get("https://api.spotify.com/v1/me/player/recently-played") {
+            userAgent(USER_AGENT)
+            header(HttpHeaders.Authorization, "Bearer $token")
+            parameter("limit", limit)
+        }
+
+    suspend fun getSpotifyFeaturedPlaylists(token: String, limit: Int = 20) =
+        spotifyClient.get("https://api.spotify.com/v1/browse/featured-playlists") {
+            userAgent(USER_AGENT)
+            header(HttpHeaders.Authorization, "Bearer $token")
+            parameter("limit", limit)
+        }
 
     suspend fun getSpotifyClientToken() =
         jsonClient.post("https://clienttoken.spotify.com/v1/clienttoken") {

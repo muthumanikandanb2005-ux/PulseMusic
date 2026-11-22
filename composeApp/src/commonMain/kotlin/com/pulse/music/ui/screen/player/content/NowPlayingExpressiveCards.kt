@@ -161,7 +161,7 @@ internal fun ExpressiveArtworkCardPage(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val pageTrack = state.artworkQueue.getOrNull(page)
-    val isCurrentArtworkPage = page == state.currentOrderIndex
+    val isCurrentArtworkPage = page == state.currentOrderIndex || page == state.artworkPagerState.currentPage
     val pageHasCanvas = isCurrentArtworkPage && state.screenData.canvasData != null
     // While a video plays, the card frame itself shrinks to the video's 16:9 — no letterbox
     // bands inside a square card. Every page shares the ratio so the pager height matches the

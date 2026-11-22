@@ -77,6 +77,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -684,15 +686,18 @@ class SharedViewModel(
             // animated artwork first, and a Spotify canvas only if that found nothing AND the user
             // has that switch on too. Neither switch touches the other — a track with no animated
             // artwork still gets its canvas, and turning Spotify off still means no canvas at all.
+            val currentSong = nowPlayingState.value?.songEntity
+                ?: nowPlayingState.value?.track?.toSongEntity()
+                ?: songRepository.getSongById(cleanVideoId).firstOrNull()
             val amEnabled = dataStoreManager.amAnimatedArtwork.first() != FALSE
-            val spotifyEnabled = dataStoreManager.spotifyCanvas.first() == TRUE
+            val spotifyEnabled = dataStoreManager.spotifyCanvas.first() != FALSE
             val sources =
                 buildList {
-                    if (amEnabled) {
-                        add(lyricsCanvasRepository.getAMAnimatedArtwork(cleanVideoId))
-                    }
                     if (spotifyEnabled) {
-                        add(lyricsCanvasRepository.getCanvas(dataStoreManager, cleanVideoId, duration))
+                        add(lyricsCanvasRepository.getCanvas(dataStoreManager, cleanVideoId, duration, currentSong))
+                    }
+                    if (amEnabled) {
+                        add(lyricsCanvasRepository.getAMAnimatedArtwork(cleanVideoId, currentSong))
                     }
                 }
             if (sources.isEmpty()) return@launch
@@ -1426,37 +1431,178 @@ class SharedViewModel(
                 }
             }
         }
-        // 2. Fetch from preferred lyrics provider (Lyrica, BiniLyrics or LRCLIB)
-        viewModelScope.launch {
-            val preferredProvider = dataStoreManager.lyricsProvider.first()
-            when (preferredProvider) {
-                DataStoreManager.LYRICA -> {
-                    getLyricaLyrics(
-                        song = song.copy(videoId = cleanVideoId),
-                        artist = (artist ?: ""),
-                        duration = duration,
-                        fallbackToLrclib = true,
-                    )
+        // 2. Fetch lyrics using smart cascading:
+        // Priority 1: Rich-synced (word-by-word) lyrics from BiniLyrics or Lyrica
+        // Priority 2: Line-synced lyrics from Lyrica, LRCLIB, BiniLyrics, or YouTube
+        // Priority 3: Plain unsynced lyrics
+        fetchSmartLyrics(
+            song = song.copy(videoId = cleanVideoId),
+            artist = (artist ?: ""),
+            duration = duration,
+        )
+    }
+
+    private fun fetchSmartLyrics(
+        song: SongEntity,
+        artist: String,
+        duration: Int,
+    ) {
+        val targetVideoId = song.videoId.removePrefix(MERGING_DATA_TYPE.VIDEO)
+        lyricsJob?.cancel()
+        lyricsJob = viewModelScope.launch {
+            coroutineScope {
+                val preferredProvider = dataStoreManager.lyricsProvider.first()
+                Logger.d(tag, "fetchSmartLyrics: start high priority smart search for $targetVideoId (${song.title}), preferred=$preferredProvider")
+
+                // Query High-Priority Rich Synced providers (BiniLyrics & Lyrica) in parallel for ultra-fast response
+                val biniDeferred = async<Lyrics?> {
+                    try {
+                        lyricsCanvasRepository.getBiniLyrics(
+                            artist = artist,
+                            track = song.title,
+                            duration = duration,
+                            isrc = null,
+                        ).firstOrNull()?.data
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
 
-                DataStoreManager.BINI_LYRICS -> {
-                    getBiniLyrics(
-                        song = song.copy(videoId = cleanVideoId),
-                        artist = (artist ?: ""),
-                        duration = duration,
-                        fallbackToLrclib = true,
-                    )
+                val lyricaDeferred = async<Lyrics?> {
+                    try {
+                        lyricsCanvasRepository.getLyricaLyrics(
+                            artist = artist,
+                            track = song.title,
+                            duration = duration,
+                        ).firstOrNull()?.data
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
 
-                else -> {
-                    getLrclibLyrics(
-                        song = song.copy(videoId = cleanVideoId),
-                        artist = (artist ?: ""),
-                        duration = duration,
-                    )
+                val biniData: Lyrics? = biniDeferred.await()
+                val lyricaData: Lyrics? = lyricaDeferred.await()
+
+                val currentSongId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                    ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                if (currentSongId != null && currentSongId != targetVideoId) return@coroutineScope
+
+                val isBiniRich = biniData != null && !biniData.lines.isNullOrEmpty() && biniData.syncType == "RICH_SYNCED"
+                val isLyricaRich = lyricaData != null && !lyricaData.lines.isNullOrEmpty() && lyricaData.syncType == "RICH_SYNCED"
+
+                // Priority 1: High-priority RICH_SYNCED (word-by-word) lyrics from BiniLyrics or Lyrica
+                if (isBiniRich && isLyricaRich) {
+                    if (preferredProvider == DataStoreManager.LYRICA) {
+                        Logger.d(tag, "Found RICH_SYNCED lyrics from Lyrica for ${song.title}!")
+                        applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
+                    } else {
+                        Logger.d(tag, "Found RICH_SYNCED lyrics from BiniLyrics for ${song.title}!")
+                        applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
+                    }
+                    return@coroutineScope
+                } else if (isBiniRich) {
+                    Logger.d(tag, "Found RICH_SYNCED lyrics from BiniLyrics for ${song.title}!")
+                    applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
+                    return@coroutineScope
+                } else if (isLyricaRich) {
+                    Logger.d(tag, "Found RICH_SYNCED lyrics from Lyrica for ${song.title}!")
+                    applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
+                    return@coroutineScope
                 }
+
+                // Priority 2: Line-synced lyrics from BiniLyrics or Lyrica
+                val biniLineSynced = biniData != null && !biniData.lines.isNullOrEmpty() && biniData.syncType == "LINE_SYNCED"
+                val lyricaLineSynced = lyricaData != null && !lyricaData.lines.isNullOrEmpty() && lyricaData.syncType == "LINE_SYNCED"
+
+                if (biniLineSynced && lyricaLineSynced) {
+                    if (preferredProvider == DataStoreManager.LYRICA) {
+                        Logger.d(tag, "Applying LINE_SYNCED lyrics from Lyrica for ${song.title}")
+                        applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
+                    } else {
+                        Logger.d(tag, "Applying LINE_SYNCED lyrics from BiniLyrics for ${song.title}")
+                        applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
+                    }
+                    return@coroutineScope
+                } else if (biniLineSynced) {
+                    Logger.d(tag, "Applying LINE_SYNCED lyrics from BiniLyrics for ${song.title}")
+                    applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
+                    return@coroutineScope
+                } else if (lyricaLineSynced) {
+                    Logger.d(tag, "Applying LINE_SYNCED lyrics from Lyrica for ${song.title}")
+                    applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
+                    return@coroutineScope
+                }
+
+                // Priority 3: Fallback to LRCLIB
+                val lrclibRes = lyricsCanvasRepository.getLrclibLyricsData(
+                    sartist = artist,
+                    strack = song.title,
+                    duration = duration,
+                ).firstOrNull()
+                val lrclibData: Lyrics? = lrclibRes?.data
+                if (lrclibRes is Resource.Success && lrclibData != null && !lrclibData.lines.isNullOrEmpty()) {
+                    Logger.d(tag, "Applying LINE_SYNCED lyrics from LRCLIB for ${song.title}")
+                    applyResolvedLyrics(targetVideoId, duration, lrclibData, LyricsProvider.LRCLIB)
+                    return@coroutineScope
+                }
+
+                // Priority 4: Fallback to unsynced candidates from BiniLyrics or Lyrica
+                val biniCandidate: Lyrics? = biniData?.takeIf { !it.lines.isNullOrEmpty() }
+                val lyricaCandidate: Lyrics? = lyricaData?.takeIf { !it.lines.isNullOrEmpty() }
+                val bestCandidate: Pair<Lyrics, LyricsProvider>? = if (preferredProvider == DataStoreManager.LYRICA) {
+                    if (lyricaCandidate != null) {
+                        lyricaCandidate to LyricsProvider.LYRICA
+                    } else if (biniCandidate != null) {
+                        biniCandidate to LyricsProvider.BINI_LYRICS
+                    } else {
+                        null
+                    }
+                } else {
+                    if (biniCandidate != null) {
+                        biniCandidate to LyricsProvider.BINI_LYRICS
+                    } else if (lyricaCandidate != null) {
+                        lyricaCandidate to LyricsProvider.LYRICA
+                    } else {
+                        null
+                    }
+                }
+                if (bestCandidate != null) {
+                    applyResolvedLyrics(targetVideoId, duration, bestCandidate.first, bestCandidate.second)
+                    return@coroutineScope
+                }
+
+                // Fallback to YouTube captions
+                getYouTubeCaption(targetVideoId, song, artist, duration, fallbackToSaved = true)
             }
         }
+    }
+
+    private suspend fun applyResolvedLyrics(
+        targetVideoId: String,
+        duration: Int,
+        data: Lyrics,
+        provider: LyricsProvider,
+    ) {
+        val currentVideoId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+            ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+        if (currentVideoId != null && currentVideoId.isNotEmpty() && targetVideoId != currentVideoId) {
+            Logger.w(tag, "applyResolvedLyrics: target $targetVideoId != current $currentVideoId, ignoring")
+            return
+        }
+        updateLyrics(
+            targetVideoId,
+            duration,
+            data,
+            false,
+            provider,
+        )
+        insertLyrics(
+            data.toLyricsEntity(targetVideoId),
+        )
+        getAITranslationLyrics(
+            targetVideoId,
+            data,
+        )
     }
 
     private suspend fun getPulseMusicLyrics(
@@ -1911,14 +2057,15 @@ class SharedViewModel(
         lyrics: Lyrics,
     ) {
         Logger.d(tag, "Get AI Translation Lyrics for $videoId")
-        if (dataStoreManager.useAITranslation.first() == TRUE &&
-            dataStoreManager.enableTranslateLyric.first() == FALSE
-        ) {
+        val translationEnabled = dataStoreManager.useAITranslation.first() == TRUE ||
+            dataStoreManager.enableTranslateLyric.first() == TRUE
+        if (translationEnabled) {
+            val targetLanguage = dataStoreManager.translationLanguage.first()
             val savedTranslatedLyrics =
                 lyricsCanvasRepository
                     .getSavedTranslatedLyrics(
                         videoId,
-                        dataStoreManager.translationLanguage.first(),
+                        targetLanguage,
                     ).firstOrNull()
             if (savedTranslatedLyrics != null) {
                 Logger.d(tag, "Get Saved Translated Lyrics")
@@ -1929,97 +2076,27 @@ class SharedViewModel(
                     true,
                     LyricsProvider.AI,
                 )
-            } else if (dataStoreManager.aiApiKey.first().isNotEmpty()) {
-                // Convert RICH_SYNCED to LINE_SYNCED before sending to AI
-                // AI should only work with line-level or plain lyrics
-                val lyricsForAi =
-                    if (lyrics.syncType == "RICH_SYNCED") {
-                        lyrics.toSyncedLyrics()
-                    } else {
-                        lyrics
-                    }
-                lyricsCanvasRepository
-                    .getAITranslationLyrics(
-                        lyricsForAi,
-                        dataStoreManager.translationLanguage.first(),
-                    ).cancellable()
-                    .collectLatest {
-                        val data = it.data
-                        when (it) {
-                            is Resource.Success if (data != null) -> {
-                                Logger.d(tag, "Get AI Translate Lyrics Success")
-                                lyricsCanvasRepository.insertTranslatedLyrics(
-                                    TranslatedLyricsEntity(
-                                        videoId = videoId,
-                                        language = dataStoreManager.translationLanguage.first(),
-                                        error = false,
-                                        lines = data.lines,
-                                        syncType = data.syncType,
-                                    ),
-                                )
-                                updateLyrics(
-                                    videoId,
-                                    0,
-                                    data,
-                                    true,
-                                    LyricsProvider.AI,
-                                )
-                            }
-
-                            else -> {
-                                Logger.w(tag, "Get AI Translate Lyrics Error: ${it.message}, trying Lyrica")
-                                val curSong = nowPlayingState.value?.songEntity
-                                val artistName = curSong?.artistName?.joinToString(", ") ?: ""
-                                if (curSong != null) {
-                                    lyricsCanvasRepository
-                                        .getLyricaTranslatedLyrics(
-                                            artist = artistName,
-                                            track = curSong.title,
-                                            targetLanguage = dataStoreManager.translationLanguage.first(),
-                                        ).collectLatest { lyricaRes ->
-                                            val lData = lyricaRes.data
-                                            if (lyricaRes is Resource.Success && lData != null && !lData.lines.isNullOrEmpty()) {
-                                                Logger.d(tag, "Get Lyrica Translated Lyrics Success")
-                                                lyricsCanvasRepository.insertTranslatedLyrics(
-                                                    TranslatedLyricsEntity(
-                                                        videoId = videoId,
-                                                        language = dataStoreManager.translationLanguage.first(),
-                                                        error = false,
-                                                        lines = lData.lines,
-                                                        syncType = lData.syncType,
-                                                    ),
-                                                )
-                                                updateLyrics(
-                                                    videoId,
-                                                    0,
-                                                    lData,
-                                                    true,
-                                                    LyricsProvider.LYRICA,
-                                                )
-                                            }
-                                        }
-                                }
-                            }
-                        }
-                    }
             } else {
-                // No custom AI API key set -> use built-in Lyrica AI translation
+                // First try Lyrica AI translation (built-in, free, high quality, line-synced)
                 val curSong = nowPlayingState.value?.songEntity
                 val artistName = curSong?.artistName?.joinToString(", ") ?: ""
-                if (curSong != null) {
+                val trackTitle = curSong?.title ?: ""
+                var lyricaSuccess = false
+                if (curSong != null && artistName.isNotEmpty() && trackTitle.isNotEmpty()) {
                     lyricsCanvasRepository
                         .getLyricaTranslatedLyrics(
                             artist = artistName,
-                            track = curSong.title,
-                            targetLanguage = dataStoreManager.translationLanguage.first(),
+                            track = trackTitle,
+                            targetLanguage = targetLanguage,
                         ).collectLatest { lyricaRes ->
                             val lData = lyricaRes.data
                             if (lyricaRes is Resource.Success && lData != null && !lData.lines.isNullOrEmpty()) {
-                                Logger.d(tag, "Get Lyrica Translated Lyrics Success (Zero Key)")
+                                lyricaSuccess = true
+                                Logger.d(tag, "Get Lyrica Translated Lyrics Success")
                                 lyricsCanvasRepository.insertTranslatedLyrics(
                                     TranslatedLyricsEntity(
                                         videoId = videoId,
-                                        language = dataStoreManager.translationLanguage.first(),
+                                        language = targetLanguage,
                                         error = false,
                                         lines = lData.lines,
                                         syncType = lData.syncType,
@@ -2031,6 +2108,36 @@ class SharedViewModel(
                                     lData,
                                     true,
                                     LyricsProvider.LYRICA,
+                                )
+                            }
+                        }
+                }
+                // Fallback to custom AI API key (Gemini / OpenAI etc.) if Lyrica didn't find translation
+                if (!lyricaSuccess && dataStoreManager.aiApiKey.first().isNotEmpty()) {
+                    val lyricsForAi = if (lyrics.syncType == "RICH_SYNCED") lyrics.toSyncedLyrics() else lyrics
+                    lyricsCanvasRepository
+                        .getAITranslationLyrics(
+                            lyricsForAi,
+                            targetLanguage,
+                        ).cancellable()
+                        .collectLatest { aiRes ->
+                            val data = aiRes.data
+                            if (aiRes is Resource.Success && data != null) {
+                                lyricsCanvasRepository.insertTranslatedLyrics(
+                                    TranslatedLyricsEntity(
+                                        videoId = videoId,
+                                        language = targetLanguage,
+                                        error = false,
+                                        lines = data.lines,
+                                        syncType = data.syncType,
+                                    ),
+                                )
+                                updateLyrics(
+                                    videoId,
+                                    0,
+                                    data,
+                                    true,
+                                    LyricsProvider.AI,
                                 )
                             }
                         }

@@ -787,7 +787,7 @@ private fun AppleMusicArtworkPage(
     onToggleSubtitle: () -> Unit,
 ) {
     val pageTrack = state.artworkQueue.getOrNull(page)
-    val isCurrentPage = page == state.currentOrderIndex
+    val isCurrentPage = page == state.currentOrderIndex || page == state.artworkPagerState.currentPage
     val pageShowsCanvasOrVideo =
         isCurrentPage && (state.screenData.canvasData != null || (state.screenData.isVideo && state.shouldShowVideo))
 

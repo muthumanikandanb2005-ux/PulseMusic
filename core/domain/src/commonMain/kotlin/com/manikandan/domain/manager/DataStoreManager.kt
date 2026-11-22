@@ -209,6 +209,14 @@ interface DataStoreManager {
 
     suspend fun setSpdc(spdc: String)
 
+    val spotifyAccountName: Flow<String>
+
+    suspend fun setSpotifyAccountName(name: String)
+
+    val spotifyAccountThumbUrl: Flow<String>
+
+    suspend fun setSpotifyAccountThumbUrl(url: String)
+
     /**
      * Whether following an artist in the app also subscribes to their YouTube channel.
      *

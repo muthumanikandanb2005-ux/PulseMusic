@@ -193,6 +193,58 @@ fun NowPlayingContentBitChord(
                     },
                 ),
         ) {
+        val hasCanvas = state.screenData.canvasData != null
+        val isCanvasVideo = state.screenData.canvasData?.isVideo == true
+
+        // Fullscreen Canvas Backdrop Layer (Spotify-style fullscreen visual playback)
+        if (hasCanvas) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                    ) {
+                        if (state.mainScrollState.value == 0) {
+                            actions.onToggleControls()
+                        }
+                    },
+            ) {
+                if (isCanvasVideo) {
+                    state.screenData.canvasData?.url?.let { url ->
+                        MediaPlayerView(
+                            url = url,
+                            cropToBounds = true,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(state.screenData.canvasData?.url)
+                            .crossfade(400)
+                            .build(),
+                        contentDescription = "Canvas",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                // Gradient scrim overlay: ensures top bar, song info, seekbar, and controls are 100% readable while keeping video crisp
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.0f to Color.Black.copy(alpha = 0.35f),
+                                0.15f to Color.Transparent,
+                                0.65f to Color.Transparent,
+                                0.85f to Color.Black.copy(alpha = 0.45f),
+                                1.0f to Color.Black.copy(alpha = 0.75f),
+                            ),
+                        ),
+                )
+            }
+        }
         val primaryGlow = if (state.ambientColor.isSpecified && state.ambientColor != Color.Transparent && state.ambientColor != Color.Black) {
             state.ambientColor
         } else if (state.spotShadowColor.isSpecified && state.spotShadowColor != Color.Transparent && state.spotShadowColor != Color.White) {
@@ -217,8 +269,8 @@ fun NowPlayingContentBitChord(
             label = "BitChordAmbientSecondaryColor",
         )
 
-        // Moving multi-colour ambient light effect in background of Pulse Player matching album image
-        if (state.ambientModeEnabled) {
+        // Moving multi-colour ambient light effect in background of Pulse Player matching album image (disabled during Canvas video)
+        if (!hasCanvas && state.ambientModeEnabled) {
             Box(modifier = Modifier.fillMaxSize()) {
                 MovingAmbientLightBackground(
                     primaryColor = animatedAmbientColor,
@@ -248,7 +300,7 @@ fun NowPlayingContentBitChord(
             }
         }
 
-        // Soft breathing ambient glow behind artwork matching album image
+        // Soft breathing ambient glow behind artwork matching album image (disabled during Canvas video)
         val breatheTransition = rememberInfiniteTransition(label = "ArtworkAmbientBreathe")
         val breatheScale by breatheTransition.animateFloat(
             initialValue = 0.96f,
@@ -268,7 +320,7 @@ fun NowPlayingContentBitChord(
             ),
             label = "BreatheAlpha",
         )
-        if (state.ambientModeEnabled || isLavender) {
+        if (!hasCanvas && (state.ambientModeEnabled || isLavender)) {
             val fallbackA = Color(0xFFA788FA)
             val fallbackB = if (isDark) Color(0xFFF288C6) else Color(0xFFF2B8C6)
             val glowStop1 = if (animatedAmbientColor != Color.Black && animatedAmbientColor.isSpecified) animatedAmbientColor else fallbackA
@@ -701,6 +753,25 @@ private fun BitChordArtworkHero(
     isPlaying: Boolean,
     modifier: Modifier = Modifier.fillMaxWidth().aspectRatio(1f),
 ) {
+    if (state.screenData.canvasData != null) {
+        // Fullscreen Canvas is active: keep center area transparent so fullscreen video shines through unobstructed (Spotify style)
+        Box(
+            modifier = modifier
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                ) {
+                    if (state.mainScrollState.value == 0) {
+                        actions.onToggleControls()
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            // Transparent tap-to-toggle target
+        }
+        return
+    }
+
     var isVideoMode by rememberSaveable(state.screenData.thumbnailURL) {
         mutableStateOf(state.shouldShowVideo)
     }
@@ -778,11 +849,25 @@ private fun BitChordArtworkHero(
                     Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "bitchordCanvas") { isVideo ->
                         if (isVideo == true) {
                             state.screenData.canvasData?.url?.let { url ->
-                                MediaPlayerView(
-                                    url = url,
-                                    cropToBounds = true,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    val fallbackArt = track?.thumbnails?.lastOrNull()?.url ?: state.screenData.thumbnailURL
+                                    if (fallbackArt != null) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                                .data(fallbackArt)
+                                                .crossfade(200)
+                                                .build(),
+                                            contentDescription = track?.title ?: "Artwork",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop,
+                                        )
+                                    }
+                                    MediaPlayerView(
+                                        url = url,
+                                        cropToBounds = true,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
                             }
                         } else {
                             AsyncImage(
@@ -844,11 +929,24 @@ private fun BitChordArtworkHero(
                 Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "bitchordCanvasSingle") { isVideo ->
                     if (isVideo == true) {
                         state.screenData.canvasData?.url?.let { url ->
-                            MediaPlayerView(
-                                url = url,
-                                cropToBounds = true,
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                if (state.screenData.thumbnailURL != null) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                                            .data(state.screenData.thumbnailURL)
+                                            .crossfade(200)
+                                            .build(),
+                                        contentDescription = "Artwork",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop,
+                                    )
+                                }
+                                MediaPlayerView(
+                                    url = url,
+                                    cropToBounds = true,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
                     } else {
                         AsyncImage(

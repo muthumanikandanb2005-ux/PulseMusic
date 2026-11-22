@@ -35,11 +35,44 @@ import pulsemusic.composeapp.generated.resources.music_video
 import pulsemusic.composeapp.generated.resources.new_release
 import pulsemusic.composeapp.generated.resources.song
 import pulsemusic.composeapp.generated.resources.view_count
+import com.manikandan.common.Config
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
+import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
+import com.manikandan.domain.data.model.spotify.SpotifyRecentTrack
+import com.manikandan.domain.mediaservice.handler.PlaylistType
+import com.manikandan.domain.mediaservice.handler.QueueData
+import com.manikandan.domain.repository.LocalPlaylistRepository
+import com.manikandan.domain.repository.PlaylistRepository
+import com.manikandan.domain.repository.SearchRepository
+import com.manikandan.domain.utils.toTrack
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 class HomeViewModel(
     private val dataStoreManager: DataStoreManager,
     private val homeRepository: HomeRepository,
+    private val searchRepository: SearchRepository,
+    private val playlistRepository: PlaylistRepository,
+    private val localPlaylistRepository: LocalPlaylistRepository,
 ) : BaseViewModel() {
+    private val _spotifyRecentlyPlayed: MutableStateFlow<List<SpotifyRecentTrack>> = MutableStateFlow(emptyList())
+    val spotifyRecentlyPlayed: StateFlow<List<SpotifyRecentTrack>> = _spotifyRecentlyPlayed.asStateFlow()
+
+    private val _spotifyPlaylists: MutableStateFlow<List<PlaylistsResult>> = MutableStateFlow(emptyList())
+    val spotifyPlaylists: StateFlow<List<PlaylistsResult>> = _spotifyPlaylists.asStateFlow()
+
+    private val _spotifyTrending: MutableStateFlow<List<PlaylistsResult>> = MutableStateFlow(emptyList())
+    val spotifyTrending: StateFlow<List<PlaylistsResult>> = _spotifyTrending.asStateFlow()
+
+    val isSpotifyLoggedIn: StateFlow<Boolean> =
+        dataStoreManager
+            .spdc
+            .map { it.isNotBlank() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
     private val _homeItemList: MutableStateFlow<List<HomeItem>> =
         MutableStateFlow(arrayListOf())
     val homeItemList: StateFlow<List<HomeItem>> = _homeItemList
@@ -178,6 +211,107 @@ class HomeViewModel(
             job5.join()
             job6.join()
         }
+        viewModelScope.launch {
+            dataStoreManager.spdc.distinctUntilChanged().collectLatest { spdc ->
+                if (spdc.isNotBlank()) {
+                    loadSpotifyHomeData()
+                } else {
+                    _spotifyRecentlyPlayed.value = emptyList()
+                    _spotifyPlaylists.value = emptyList()
+                    _spotifyTrending.value = emptyList()
+                }
+            }
+        }
+    }
+
+    fun loadSpotifyHomeData() {
+        viewModelScope.launch {
+            val spdc = dataStoreManager.spdc.first()
+            if (spdc.isBlank()) {
+                _spotifyRecentlyPlayed.value = emptyList()
+                _spotifyPlaylists.value = emptyList()
+                _spotifyTrending.value = emptyList()
+                return@launch
+            }
+            // Fetch user playlists
+            playlistRepository.getSpotifyPlaylists().collect { list ->
+                if (list != null) {
+                    _spotifyPlaylists.value = list
+                }
+            }
+            // Fetch recently played tracks
+            playlistRepository.getSpotifyRecentlyPlayed().collect { list ->
+                if (list != null) {
+                    _spotifyRecentlyPlayed.value = list
+                }
+            }
+            // Fetch trending playlists
+            playlistRepository.getSpotifyTrendingPlaylists().collect { list ->
+                if (list != null) {
+                    _spotifyTrending.value = list
+                }
+            }
+        }
+    }
+
+    fun playSpotifyTrack(track: SpotifyRecentTrack) {
+        viewModelScope.launch {
+            val query = "${track.title} ${track.artist}".trim()
+            loading.value = true
+            searchRepository.getSearchDataSong(query).collect { res ->
+                val firstResult = res.data?.firstOrNull()
+                if (firstResult != null) {
+                    val targetTrack = firstResult.toTrack()
+                    setQueueData(
+                        QueueData.Data(
+                            listTracks = arrayListOf(targetTrack),
+                            firstPlayedTrack = targetTrack,
+                            playlistId = "RDAMVM${targetTrack.videoId}",
+                            playlistName = "\"${track.title}\" Radio",
+                            playlistType = PlaylistType.RADIO,
+                            continuation = null,
+                        ),
+                    )
+                    loadMediaItem(
+                        targetTrack,
+                        type = Config.SONG_CLICK,
+                    )
+                } else {
+                    showSnackBarErrorState.emit("Could not find track: ${track.title}")
+                }
+                loading.value = false
+            }
+        }
+    }
+
+    fun openSpotifyPlaylist(
+        playlist: PlaylistsResult,
+        onNavigateLocal: (Long) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val spotifyId = playlist.browseId
+            val allLocal = localPlaylistRepository.getAllLocalPlaylists().firstOrNull()
+            val existing = allLocal?.find { it.youtubePlaylistId == spotifyId }
+            if (existing != null) {
+                onNavigateLocal(existing.id)
+            } else {
+                localPlaylistRepository.insertLocalPlaylist(
+                    LocalPlaylistEntity(
+                        title = playlist.title,
+                        thumbnail = playlist.thumbnails?.firstOrNull()?.url,
+                        youtubePlaylistId = spotifyId,
+                    ),
+                    "Created playlist",
+                ).collect {
+                    val updated = localPlaylistRepository.getAllLocalPlaylists().firstOrNull()?.find {
+                        it.youtubePlaylistId == spotifyId
+                    }
+                    if (updated != null) {
+                        onNavigateLocal(updated.id)
+                    }
+                }
+            }
+        }
     }
 
     fun doneShowLogInAlert(neverShowAgain: Boolean = false) {
@@ -192,6 +326,7 @@ class HomeViewModel(
     fun getHomeItemList(params: String? = null) {
         loading.value = true
         _homeListState.value = ListState.LOADING
+        loadSpotifyHomeData()
         homeJob?.cancel()
         homeJob =
             viewModelScope.launch {

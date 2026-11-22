@@ -351,7 +351,7 @@ fun NowPlayingContentSpotify(
                     },
                 ) { page ->
                     val pageTrack = state.artworkQueue.getOrNull(page)
-                    val isCurrentArtworkPage = page == state.currentOrderIndex
+                    val isCurrentArtworkPage = page == state.currentOrderIndex || page == state.artworkPagerState.currentPage
                     val pageHasCanvas = isCurrentArtworkPage && state.screenData.canvasData != null
 
                     // Per-page palette state for the gradient backdrop.

@@ -2,6 +2,7 @@
 
 import androidx.lifecycle.viewModelScope
 import com.manikandan.domain.manager.DataStoreManager
+import com.manikandan.domain.repository.PlaylistRepository
 import com.pulse.music.viewModel.base.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import org.pulsemusic.lastfm.completeLogin
 
 class LogInViewModel(
     private val dataStoreManager: DataStoreManager,
+    private val playlistRepository: PlaylistRepository,
 ) : BaseViewModel() {
     private val _spotifyStatus: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val spotifyStatus: StateFlow<Boolean> get() = _spotifyStatus
@@ -25,18 +27,26 @@ class LogInViewModel(
     private val _fullYouTubeCookies: MutableStateFlow<List<Pair<String, String?>>> = MutableStateFlow(emptyList())
     val fullYouTubeCookies: StateFlow<List<Pair<String, String?>>> get() = _fullYouTubeCookies.asStateFlow()
 
-    fun saveSpotifySpdc(cookie: String) {
+    fun saveSpotifySpdc(cookieOrSpdc: String) {
         viewModelScope.launch {
-            cookie
-                .split("; ")
-                .filter { it.isNotEmpty() }
-                .associate {
-                    val (key, value) = it.split("=")
-                    key to value
-                }.let {
-                    dataStoreManager.setSpdc(it["sp_dc"] ?: "")
-                    _spotifyStatus.value = true
-                }
+            val spdcValue = if (cookieOrSpdc.contains("sp_dc=")) {
+                cookieOrSpdc
+                    .split(";")
+                    .map { it.trim() }
+                    .firstOrNull { it.startsWith("sp_dc=") }
+                    ?.substringAfter("sp_dc=")
+                    ?: ""
+            } else {
+                cookieOrSpdc.trim()
+            }
+
+            if (spdcValue.isNotEmpty()) {
+                dataStoreManager.setSpdc(spdcValue)
+                dataStoreManager.setSpotifyCanvas(true)
+                // Sync Spotify playlists and profile
+                playlistRepository.syncSpotifyPlaylists(spdcValue)
+                _spotifyStatus.value = true
+            }
         }
     }
 

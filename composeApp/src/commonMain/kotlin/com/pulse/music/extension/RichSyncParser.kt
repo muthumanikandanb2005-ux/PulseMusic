@@ -44,8 +44,8 @@ fun parseRichSyncWords(
     println("[parseRichSyncWords] Input preview: ${words.take(100)}")
 
     // Strategy: Find all timestamps first, then extract text between them
-    // Regex to match timestamp only: <MM:SS.mm> or <MM:SS.mmm>
-    val timestampRegex = Regex("""<(\d{2}):(\d{2})\.(\d{2,3})>""")
+    // Regex to match timestamp: <M:SS.mm>, <MM:SS.mm>, <M:SS:mm>, or <MM:SS.mmm>
+    val timestampRegex = Regex("""<(\d{1,2}):(\d{2})[.:](\d{2,3})>""")
 
     val wordTimings = mutableListOf<WordTiming>()
 

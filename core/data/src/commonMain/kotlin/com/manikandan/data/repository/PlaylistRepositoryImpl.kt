@@ -9,10 +9,12 @@ import com.manikandan.data.parser.parseLibraryPlaylist
 import com.manikandan.data.parser.parseNextLibraryPlaylist
 import com.manikandan.data.parser.parsePlaylistData
 import com.manikandan.domain.data.entities.ArtistEntity
+import com.manikandan.domain.data.entities.LocalPlaylistEntity
 import com.manikandan.domain.data.entities.PlaylistEntity
 import com.manikandan.domain.data.entities.SetVideoIdEntity
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.entities.YourYouTubePlaylistList
+import com.manikandan.spotify.Spotify
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.browse.playlist.Author
 import com.manikandan.domain.data.model.browse.playlist.PlaylistBrowse
@@ -51,6 +53,7 @@ internal class PlaylistRepositoryImpl(
     private val localDataSource: LocalDataSource,
     private val youTube: YouTube,
 ) : PlaylistRepository {
+    private val spotify = Spotify()
     override fun getAllPlaylists(limit: Int): Flow<List<PlaylistEntity>> =
         flow {
             emit(localDataSource.getAllPlaylists(limit))
@@ -789,4 +792,141 @@ internal class PlaylistRepositoryImpl(
                     emit(Resource.Error<List<ChartItem>>(exception.message ?: "Unknown error"))
                 }
         }.flowOn(Dispatchers.IO)
+
+    override fun getSpotifyPlaylists(): Flow<List<PlaylistsResult>?> =
+        flow {
+            val spdc = dataStoreManager.spdc.first()
+            if (spdc.isBlank()) {
+                emit(emptyList())
+                return@flow
+            }
+            val playlistsRes = spotify.fetchPlaylistsWithSpdc(spdc)
+            if (playlistsRes.isSuccess) {
+                val items = playlistsRes.getOrNull() ?: emptyList()
+                val results = items.map { item ->
+                    PlaylistsResult(
+                        author = item.owner?.displayName ?: "Spotify",
+                        browseId = "spotify:${item.id}",
+                        category = "Spotify Playlist",
+                        itemCount = "${item.tracks?.total ?: 0}",
+                        resultType = "Playlist",
+                        thumbnails = item.images.map { img ->
+                            Thumbnail(
+                                height = img.height ?: 300,
+                                width = img.width ?: 300,
+                                url = img.url,
+                            )
+                        },
+                        title = item.name,
+                    )
+                }
+                emit(results)
+            } else {
+                emit(emptyList())
+            }
+        }.flowOn(Dispatchers.IO)
+
+    override fun getSpotifyTrendingPlaylists(): Flow<List<PlaylistsResult>?> =
+        flow {
+            val spdc = dataStoreManager.spdc.first()
+            if (spdc.isBlank()) {
+                emit(emptyList())
+                return@flow
+            }
+            val trendingRes = spotify.fetchFeaturedPlaylistsWithSpdc(spdc, limit = 20)
+            if (trendingRes.isSuccess) {
+                val items = trendingRes.getOrNull() ?: emptyList()
+                val results = items.map { item ->
+                    PlaylistsResult(
+                        author = item.owner?.displayName ?: "Spotify",
+                        browseId = "spotify:${item.id}",
+                        category = "Trending on Spotify",
+                        itemCount = "${item.tracks?.total ?: 0}",
+                        resultType = "Playlist",
+                        thumbnails = item.images.map { img ->
+                            Thumbnail(
+                                height = img.height ?: 300,
+                                width = img.width ?: 300,
+                                url = img.url,
+                            )
+                        },
+                        title = item.name,
+                    )
+                }
+                emit(results)
+            } else {
+                emit(emptyList())
+            }
+        }.flowOn(Dispatchers.IO)
+
+    override fun getSpotifyRecentlyPlayed(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?> =
+        flow {
+            val spdc = dataStoreManager.spdc.first()
+            if (spdc.isBlank()) {
+                emit(emptyList())
+                return@flow
+            }
+            val recentlyRes = spotify.fetchRecentlyPlayedWithSpdc(spdc, limit = 20)
+            if (recentlyRes.isSuccess) {
+                val items = recentlyRes.getOrNull() ?: emptyList()
+                val results = items.mapNotNull { item ->
+                    val track = item.track ?: return@mapNotNull null
+                    com.manikandan.domain.data.model.spotify.SpotifyRecentTrack(
+                        id = track.id,
+                        title = track.name,
+                        artist = track.artists.joinToString(", ") { it.name },
+                        thumbnail = track.album?.images?.firstOrNull()?.url,
+                        playedAt = item.playedAt,
+                    )
+                }
+                emit(results)
+            } else {
+                emit(emptyList())
+            }
+        }.flowOn(Dispatchers.IO)
+
+    override suspend fun syncSpotifyPlaylists(spdc: String): Result<Int> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                if (spdc.isBlank()) return@runCatching 0
+
+                // 1. Sync User Profile (display name & avatar)
+                val profileRes = spotify.fetchUserProfileWithSpdc(spdc)
+                if (profileRes.isSuccess) {
+                    val profile = profileRes.getOrNull()
+                    if (profile != null) {
+                        profile.displayName?.let { name ->
+                            dataStoreManager.setSpotifyAccountName(name)
+                        }
+                        profile.images.firstOrNull()?.url?.let { thumb ->
+                            dataStoreManager.setSpotifyAccountThumbUrl(thumb)
+                        }
+                    }
+                }
+
+                // 2. Fetch User Playlists
+                val playlistsRes = spotify.fetchPlaylistsWithSpdc(spdc)
+                val playlists = playlistsRes.getOrThrow()
+                var insertedCount = 0
+
+                for (pl in playlists) {
+                    val spotifyId = "spotify:${pl.id}"
+                    val existing = localDataSource.getLocalPlaylistByYoutubePlaylistId(spotifyId)
+                    val thumbUrl = pl.images.firstOrNull()?.url
+                    if (existing == null) {
+                        localDataSource.insertLocalPlaylist(
+                            LocalPlaylistEntity(
+                                title = pl.name,
+                                thumbnail = thumbUrl,
+                                youtubePlaylistId = spotifyId,
+                            ),
+                        )
+                        insertedCount++
+                    } else if (thumbUrl != null && existing.thumbnail.isNullOrEmpty()) {
+                        localDataSource.updateLocalPlaylistThumbnail(thumbUrl, existing.id)
+                    }
+                }
+                insertedCount
+            }
+        }
 }

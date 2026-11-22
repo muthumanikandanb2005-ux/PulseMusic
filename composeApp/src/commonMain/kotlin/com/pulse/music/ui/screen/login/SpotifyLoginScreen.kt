@@ -115,25 +115,6 @@ fun SpotifyLoginScreen(
                 state,
                 Config.SPOTIFY_LOG_IN_URL,
                 aboveContent = {
-                    FloatingActionButton(
-                        onClick = {
-                            showCookiesBottomSheet = true
-                        },
-                        containerColor = Color(0xFF40D96A),
-                        modifier =
-                            Modifier
-                                .align(
-                                    Alignment.BottomStart,
-                                ).padding(innerPadding)
-                                .padding(
-                                    25.dp,
-                                ),
-                    ) {
-                        Icon(
-                            PulseIcons.Cookie,
-                            "Cookies",
-                        )
-                    }
                     if (devLoginSheet) {
                         DevLogInBottomSheet(
                             onDismiss = {
@@ -143,8 +124,6 @@ fun SpotifyLoginScreen(
                                 devLoginSheet = false
                                 val spdcText = "sp_dc=$spdc"
                                 viewModel.saveSpotifySpdc(spdcText)
-                                viewModel.makeToast(getStringBlocking(Res.string.login_success))
-                                navController.navigateUp()
                             },
                             type = DevLogInType.Spotify,
                         )
@@ -162,29 +141,26 @@ fun SpotifyLoginScreen(
                 },
             ) { url ->
                 val cookie = cookieManager.getCookie(url)
-                cookie.takeIf {
-                    it.isNotEmpty()
-                }?.let { cookie ->
+                if (cookie.isNotEmpty()) {
                     val cookies =
-                        cookie.split("; ").map {
-                            val (key, value) = it.split("=")
-                            key to value
+                        cookie.split("; ").mapNotNull {
+                            val idx = it.indexOf('=')
+                            if (idx > 0) it.substring(0, idx).trim() to it.substring(idx + 1).trim() else null
                         }
                     viewModel.setFullSpotifyCookies(cookies)
                 }
-                // Some login flows land on the status page with a query string appended
-                // (e.g. /en/status?flow_ctx=...). Anchoring right after `status` made those
-                // URLs fail the match silently, so sp_dc was never saved and auto-login
-                // appeared to do nothing.
-                val statusUrl = Regex("^https://accounts\\.spotify\\.com/(?:[^/]+/)?status(?:\\?.*)?$")
-                if (statusUrl.matches(url)) {
-                    cookie
-                        .takeIf {
-                            it.isNotEmpty()
-                        }?.let {
-                            viewModel.saveSpotifySpdc(it)
-                        }
-                    cookieManager.removeAllCookies()
+
+                val spdcCookie = cookie.takeIf { it.contains("sp_dc=") }
+                    ?: cookieManager.getCookie("https://open.spotify.com").takeIf { it.contains("sp_dc=") }
+                    ?: cookieManager.getCookie("https://accounts.spotify.com").takeIf { it.contains("sp_dc=") }
+
+                val isCompletionUrl = url.startsWith("https://open.spotify.com") ||
+                    url.contains("status") ||
+                    url.contains("overview") ||
+                    (!url.contains("/login") && !url.contains("/authorize"))
+
+                if (spdcCookie != null && isCompletionUrl) {
+                    viewModel.saveSpotifySpdc(spdcCookie)
                 }
             }
         }

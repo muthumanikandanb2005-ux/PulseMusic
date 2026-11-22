@@ -773,6 +773,7 @@ enum class LibraryChipType {
     CHART,
     YOUTUBE_MUSIC_PLAYLIST,
     YOUTUBE_MIX_FOR_YOU,
+    SPOTIFY_PLAYLIST,
     LOCAL_PLAYLIST,
     FAVORITE_PLAYLIST,
     DOWNLOADED_PLAYLIST,
@@ -785,6 +786,7 @@ enum class LibraryChipType {
             UNIFIED_SHELF -> "unified_shelf"
             YOUTUBE_MUSIC_PLAYLIST -> "youtube_music_playlist"
             YOUTUBE_MIX_FOR_YOU -> "youtube_mix_for_you"
+            SPOTIFY_PLAYLIST -> "spotify_playlist"
             LOCAL_PLAYLIST -> "local_playlist"
             FAVORITE_PLAYLIST -> "favorite_playlist"
             DOWNLOADED_PLAYLIST -> "downloaded_playlist"
@@ -800,6 +802,7 @@ enum class LibraryChipType {
                 "unified_shelf" -> UNIFIED_SHELF
                 "youtube_music_playlist" -> YOUTUBE_MUSIC_PLAYLIST
                 "youtube_mix_for_you" -> YOUTUBE_MIX_FOR_YOU
+                "spotify_playlist" -> SPOTIFY_PLAYLIST
                 "local_playlist" -> LOCAL_PLAYLIST
                 "favorite_playlist" -> FAVORITE_PLAYLIST
                 "downloaded_playlist" -> DOWNLOADED_PLAYLIST

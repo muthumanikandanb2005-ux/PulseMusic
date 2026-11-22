@@ -137,12 +137,14 @@ fun LibraryScreen(
     val density = LocalDensity.current
 
     val loggedIn by viewModel.youtubeLoggedIn.collectAsStateWithLifecycle(initialValue = false)
+    val spotifyLoggedIn by viewModel.spotifyLoggedIn.collectAsStateWithLifecycle(initialValue = false)
     // Wrapped and its recaps are built entirely from playback_event, so the chip follows the same
     // setting the Analytics tab does.
     val localTrackingEnabled by viewModel.localTrackingEnabled.collectAsStateWithLifecycle(initialValue = false)
     val monthlyRecaps by viewModel.monthlyRecaps.collectAsStateWithLifecycle()
     val nowPlaying by viewModel.nowPlayingVideoId.collectAsStateWithLifecycle()
     val youTubePlaylist by viewModel.youTubePlaylist.collectAsStateWithLifecycle()
+    val spotifyPlaylists by viewModel.spotifyPlaylists.collectAsStateWithLifecycle()
     val listCanvasSong by viewModel.listCanvasSong.collectAsStateWithLifecycle()
     val yourLocalPlaylist by viewModel.yourLocalPlaylist.collectAsStateWithLifecycle()
     val favoritePlaylist by viewModel.favoritePlaylist.collectAsStateWithLifecycle()
@@ -182,6 +184,10 @@ fun LibraryScreen(
         when (currentFilter) {
             LibraryChipType.YOUTUBE_MUSIC_PLAYLIST -> {
                 viewModel.getYouTubePlaylist()
+            }
+
+            LibraryChipType.SPOTIFY_PLAYLIST -> {
+                viewModel.getSpotifyPlaylists()
             }
 
             // Mix for you has its own nav tab now. The filter is persisted, so a build upgraded
@@ -301,6 +307,18 @@ fun LibraryScreen(
                     onScrolling = onScrolling,
                 ) {
                     viewModel.getYouTubePlaylist()
+                }
+            }
+
+            LibraryChipType.SPOTIFY_PLAYLIST -> {
+                GridLibraryPlaylist(
+                    navController,
+                    innerPadding.copy(top = topAppBarHeight),
+                    spotifyPlaylists,
+                    emptyText = Res.string.no_playlists_added,
+                    onScrolling = onScrolling,
+                ) {
+                    viewModel.getSpotifyPlaylists()
                 }
             }
 
@@ -604,6 +622,9 @@ fun LibraryScreen(
                 if (type == LibraryChipType.YOUTUBE_MUSIC_PLAYLIST && !loggedIn) {
                     return@forEach
                 }
+                if (type == LibraryChipType.SPOTIFY_PLAYLIST && !spotifyLoggedIn) {
+                    return@forEach
+                }
                 // Nothing to recap without the plays — gated exactly as the YouTube chip above
                 // is gated on being logged in.
                 if (type == LibraryChipType.WRAPPED && !localTrackingEnabled) {
@@ -617,6 +638,7 @@ fun LibraryScreen(
                             LibraryChipType.YOUR_LIBRARY -> stringResource(Res.string.your_library)
                             LibraryChipType.YOUTUBE_MUSIC_PLAYLIST -> stringResource(Res.string.your_youtube_playlists)
                             LibraryChipType.YOUTUBE_MIX_FOR_YOU -> stringResource(Res.string.mix_for_you)
+                            LibraryChipType.SPOTIFY_PLAYLIST -> "Spotify Playlists"
                             LibraryChipType.LOCAL_PLAYLIST -> stringResource(Res.string.your_playlists)
                             LibraryChipType.FAVORITE_PLAYLIST -> stringResource(Res.string.favorite_playlists)
                             LibraryChipType.DOWNLOADED_PLAYLIST -> stringResource(Res.string.downloaded_playlists)

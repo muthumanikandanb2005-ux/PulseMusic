@@ -1,6 +1,7 @@
 ﻿package com.manikandan.domain.repository
 
 import com.manikandan.domain.data.entities.LyricsEntity
+import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.entities.TranslatedLyricsEntity
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.browse.artist.ArtistLogo
@@ -36,13 +37,17 @@ interface LyricsCanvasRepository {
         dataStoreManager: DataStoreManager,
         videoId: String,
         duration: Int,
+        fallbackSong: SongEntity? = null,
     ): Flow<Resource<CanvasResult>>
 
     /**
      * Animated album artwork from the hidden AM catalog, returned as the same [CanvasResult] a
      * Spotify canvas produces and stored in the same columns. Needs no login.
      */
-    fun getAMAnimatedArtwork(videoId: String): Flow<Resource<CanvasResult>>
+    fun getAMAnimatedArtwork(
+        videoId: String,
+        fallbackSong: SongEntity? = null,
+    ): Flow<Resource<CanvasResult>>
 
     suspend fun updateCanvasUrl(
         videoId: String,

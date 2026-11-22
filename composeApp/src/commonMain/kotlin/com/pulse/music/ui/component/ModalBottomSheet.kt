@@ -1565,9 +1565,9 @@ fun NowPlayingBottomSheet(
         var selected by remember {
             mutableIntStateOf(
                 when (uiState.mainLyricsProvider) {
-                    DataStoreManager.LYRICA -> 3
-                    DataStoreManager.BINI_LYRICS -> 2
-                    else -> 1
+                    DataStoreManager.LYRICA -> 2
+                    DataStoreManager.LRCLIB -> 3
+                    else -> 1 // Default to BINI_LYRICS (High Priority Rich Synced)
                 }
             )
         }
@@ -1588,24 +1588,12 @@ fun NowPlayingBottomSheet(
                             Modifier
                                 .padding(horizontal = 4.dp)
                                 .fillMaxWidth()
-                                .clickable { selected = 3 },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == 3, onClick = { selected = 3 })
-                        Spacer(modifier = Modifier.size(10.dp))
-                        Text(text = "Lyrica (Multi-Provider AI Synced)", style = typo().labelSmall)
-                    }
-                    Row(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 4.dp)
-                                .fillMaxWidth()
                                 .clickable { selected = 1 },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = selected == 1, onClick = { selected = 1 })
                         Spacer(modifier = Modifier.size(10.dp))
-                        Text(text = stringResource(Res.string.lrclib), style = typo().labelSmall)
+                        Text(text = "BiniLyrics (lrc.red - High Priority Rich Synced)", style = typo().labelSmall)
                     }
                     Row(
                         modifier =
@@ -1617,7 +1605,19 @@ fun NowPlayingBottomSheet(
                     ) {
                         RadioButton(selected = selected == 2, onClick = { selected = 2 })
                         Spacer(modifier = Modifier.size(10.dp))
-                        Text(text = "BiniLyrics (lrc.red)", style = typo().labelSmall)
+                        Text(text = "Lyrica (Multi-Provider AI Synced)", style = typo().labelSmall)
+                    }
+                    Row(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 4.dp)
+                                .fillMaxWidth()
+                                .clickable { selected = 3 },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected == 3, onClick = { selected = 3 })
+                        Spacer(modifier = Modifier.size(10.dp))
+                        Text(text = stringResource(Res.string.lrclib), style = typo().labelSmall)
                     }
                 }
             },
@@ -1625,8 +1625,8 @@ fun NowPlayingBottomSheet(
                 TextButton(
                     onClick = {
                         val provider = when (selected) {
-                            3 -> DataStoreManager.LYRICA
-                            2 -> DataStoreManager.BINI_LYRICS
+                            1 -> DataStoreManager.BINI_LYRICS
+                            2 -> DataStoreManager.LYRICA
                             else -> DataStoreManager.LRCLIB
                         }
                         viewModel.onUIEvent(

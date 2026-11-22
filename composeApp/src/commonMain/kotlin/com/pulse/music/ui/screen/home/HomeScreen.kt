@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -145,6 +146,7 @@ import com.pulse.music.ui.icon.Notifications
 import com.pulse.music.ui.icon.Settings
 import com.pulse.music.ui.icon.Tune
 import com.pulse.music.ui.icon.PulseIcons
+import com.pulse.music.ui.icon.PlayArrow
 import com.pulse.music.ui.navigation.destination.home.HomeDestination
 import com.pulse.music.ui.navigation.destination.home.ListenTogetherDestination
 import com.pulse.music.ui.navigation.destination.home.MoodDestination
@@ -154,6 +156,9 @@ import com.pulse.music.ui.navigation.destination.home.SettingsDestination
 import com.pulse.music.ui.navigation.destination.library.LibraryDynamicPlaylistDestination
 import com.pulse.music.ui.navigation.destination.list.ArtistDestination
 import com.pulse.music.ui.navigation.destination.list.PlaylistDestination
+import com.pulse.music.ui.navigation.destination.list.LocalPlaylistDestination
+import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
+import com.manikandan.domain.data.model.spotify.SpotifyRecentTrack
 import com.pulse.music.ui.screen.library.LibraryDynamicPlaylistType
 import com.pulse.music.ui.theme.desktopPanelDark
 import com.pulse.music.ui.theme.typo
@@ -265,6 +270,10 @@ fun HomeScreen(
     val params by viewModel.params.collectAsStateWithLifecycle()
     val homeListState by viewModel.homeListState.collectAsStateWithLifecycle()
     val continuation by viewModel.continuation.collectAsStateWithLifecycle()
+    val isSpotifyLoggedIn by viewModel.isSpotifyLoggedIn.collectAsStateWithLifecycle()
+    val spotifyRecentlyPlayed by viewModel.spotifyRecentlyPlayed.collectAsStateWithLifecycle()
+    val spotifyPlaylists by viewModel.spotifyPlaylists.collectAsStateWithLifecycle()
+    val spotifyTrending by viewModel.spotifyTrending.collectAsStateWithLifecycle()
 
     val openAppTime by sharedViewModel.openAppTime.collectAsStateWithLifecycle()
     val shareLyricsPermissions by sharedViewModel.shareSavedLyrics.collectAsStateWithLifecycle()
@@ -537,6 +546,37 @@ fun HomeScreen(
                                             url = accountInfo?.second ?: "",
                                         )
                                         Spacer(Modifier.height(8.dp))
+                                    }
+                                    if (index == 0 && isSpotifyLoggedIn) {
+                                        if (spotifyRecentlyPlayed.isNotEmpty()) {
+                                            SpotifyRecentlyPlayedSection(
+                                                tracks = spotifyRecentlyPlayed,
+                                                onTrackClick = { viewModel.playSpotifyTrack(it) },
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                        }
+                                        if (spotifyPlaylists.isNotEmpty()) {
+                                            SpotifyPlaylistsSection(
+                                                playlists = spotifyPlaylists,
+                                                onPlaylistClick = { pl ->
+                                                    viewModel.openSpotifyPlaylist(pl) { localId ->
+                                                        navController.navigate(LocalPlaylistDestination(localId))
+                                                    }
+                                                },
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                        }
+                                        if (spotifyTrending.isNotEmpty()) {
+                                            SpotifyTrendingSection(
+                                                trending = spotifyTrending,
+                                                onPlaylistClick = { pl ->
+                                                    viewModel.openSpotifyPlaylist(pl) { localId ->
+                                                        navController.navigate(LocalPlaylistDestination(localId))
+                                                    }
+                                                },
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                        }
                                     }
                                     if (item.title == stringResource(Res.string.quick_picks)) {
                                         AnimatedVisibility(
@@ -1350,6 +1390,303 @@ fun HomeUpdateNotificationCard(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SpotifyRecentlyPlayedSection(
+    tracks: List<SpotifyRecentTrack>,
+    onTrackClick: (SpotifyRecentTrack) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 6.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1DB954)),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "SPOTIFY",
+                style = typo().labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp,
+                ),
+                color = Color(0xFF1DB954),
+            )
+        }
+        Text(
+            text = "Last Played on Spotify",
+            style = typo().headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "Jump back into your recent tracks",
+            style = typo().bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            ),
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp),
+        ) {
+            items(tracks, key = { it.id + "_" + (it.playedAt ?: "") }) { track ->
+                val thumbUrl = track.thumbnail
+                Column(
+                    modifier = Modifier
+                        .width(130.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onTrackClick(track) },
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(130.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(thumbUrl)
+                                .crossfade(200)
+                                .build(),
+                            contentDescription = track.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = rememberHolderPainter(),
+                            error = rememberHolderPainter(),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(6.dp)
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.7f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = PulseIcons.PlayArrow,
+                                contentDescription = "Play",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = track.title,
+                        style = typo().bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = track.artist,
+                        style = typo().bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SpotifyPlaylistsSection(
+    playlists: List<PlaylistsResult>,
+    onPlaylistClick: (PlaylistsResult) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 6.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1DB954)),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "SPOTIFY LIBRARY",
+                style = typo().labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp,
+                ),
+                color = Color(0xFF1DB954),
+            )
+        }
+        Text(
+            text = "Your Spotify Playlists & Folders",
+            style = typo().headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "Playlists and folders from your Spotify account",
+            style = typo().bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            ),
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp),
+        ) {
+            items(playlists, key = { it.browseId }) { pl ->
+                val thumbUrl = pl.thumbnails?.firstOrNull()?.url
+                Column(
+                    modifier = Modifier
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onPlaylistClick(pl) },
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(thumbUrl)
+                                .crossfade(200)
+                                .build(),
+                            contentDescription = pl.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = rememberHolderPainter(),
+                            error = rememberHolderPainter(),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = pl.title,
+                        style = typo().bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val count = pl.itemCount
+                    Text(
+                        text = if (!count.isNullOrEmpty() && count != "0") "$count tracks" else "Spotify Playlist",
+                        style = typo().bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SpotifyTrendingSection(
+    trending: List<PlaylistsResult>,
+    onPlaylistClick: (PlaylistsResult) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 6.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1DB954)),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "SPOTIFY TRENDING",
+                style = typo().labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp,
+                ),
+                color = Color(0xFF1DB954),
+            )
+        }
+        Text(
+            text = "Trending on Spotify",
+            style = typo().headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "Featured playlists and viral charts right now",
+            style = typo().bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            ),
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp),
+        ) {
+            items(trending, key = { it.browseId }) { pl ->
+                val thumbUrl = pl.thumbnails?.firstOrNull()?.url
+                Column(
+                    modifier = Modifier
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onPlaylistClick(pl) },
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(thumbUrl)
+                                .crossfade(200)
+                                .build(),
+                            contentDescription = pl.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = rememberHolderPainter(),
+                            error = rememberHolderPainter(),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = pl.title,
+                        style = typo().bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val count = pl.itemCount
+                    Text(
+                        text = if (!count.isNullOrEmpty() && count != "0") "$count tracks" else pl.author,
+                        style = typo().bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }

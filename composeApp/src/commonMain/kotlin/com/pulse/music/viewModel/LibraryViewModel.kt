@@ -85,6 +85,10 @@ class LibraryViewModel(
         MutableStateFlow(LocalResource.Loading())
     val youTubePlaylist: StateFlow<LocalResource<List<PlaylistsResult>>> get() = _youTubePlaylist.asStateFlow()
 
+    private val _spotifyPlaylists: MutableStateFlow<LocalResource<List<PlaylistsResult>>> =
+        MutableStateFlow(LocalResource.Loading())
+    val spotifyPlaylists: StateFlow<LocalResource<List<PlaylistsResult>>> get() = _spotifyPlaylists.asStateFlow()
+
     private val _youTubeMixForYou: MutableStateFlow<LocalResource<List<PlaylistsResult>>> =
         MutableStateFlow(LocalResource.Loading())
     val youTubeMixForYou: StateFlow<LocalResource<List<PlaylistsResult>>> get() = _youTubeMixForYou.asStateFlow()
@@ -127,6 +131,8 @@ class LibraryViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val youtubeLoggedIn = dataStoreManager.loggedIn.mapLatest { it == DataStoreManager.TRUE }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val spotifyLoggedIn = dataStoreManager.spdc.mapLatest { it.isNotEmpty() }
 
     /**
      * Whether the Wrapped chip has anything behind it.
@@ -158,8 +164,17 @@ class LibraryViewModel(
                         }
                     }
                 }
+            val spotifyJob =
+                launch {
+                    dataStoreManager.spdc.distinctUntilChanged().collect { spdc ->
+                        if (spdc.isNotEmpty()) {
+                            getSpotifyPlaylists()
+                        }
+                    }
+                }
             currentScreenJob.join()
             cookieJob.join()
+            spotifyJob.join()
         }
     }
 
@@ -205,6 +220,15 @@ class LibraryViewModel(
         viewModelScope.launch {
             playlistRepository.getLibraryPlaylist().collect { data ->
                 _youTubePlaylist.value = LocalResource.Success(data ?: emptyList())
+            }
+        }
+    }
+
+    fun getSpotifyPlaylists() {
+        _spotifyPlaylists.value = LocalResource.Loading()
+        viewModelScope.launch {
+            playlistRepository.getSpotifyPlaylists().collect { data ->
+                _spotifyPlaylists.value = LocalResource.Success(data ?: emptyList())
             }
         }
     }

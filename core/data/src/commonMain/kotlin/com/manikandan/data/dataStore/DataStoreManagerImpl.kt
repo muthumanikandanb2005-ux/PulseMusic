@@ -26,6 +26,7 @@ import com.manikandan.domain.manager.DataStoreManager.Values.REPEAT_ALL
 import com.manikandan.domain.manager.DataStoreManager.Values.REPEAT_MODE_OFF
 import com.manikandan.domain.manager.DataStoreManager.Values.REPEAT_ONE
 import com.manikandan.domain.data.model.lyrics.RomanizationLanguage
+import com.manikandan.domain.manager.DataStoreManager.Values.BINI_LYRICS
 import com.manikandan.domain.manager.DataStoreManager.Values.LRCLIB
 import com.manikandan.domain.manager.DataStoreManager.Values.PULSEMUSIC
 import com.manikandan.domain.manager.DataStoreManager.Values.TRUE
@@ -604,7 +605,7 @@ internal class DataStoreManagerImpl(
 
     override val lyricsProvider =
         settingsDataStore.data.map { preferences ->
-            preferences[LYRICS_PROVIDER] ?: LRCLIB
+            preferences[LYRICS_PROVIDER] ?: BINI_LYRICS
         }
 
     override suspend fun setLyricsProvider(provider: String) {
@@ -714,6 +715,32 @@ internal class DataStoreManagerImpl(
         withContext(Dispatchers.IO) {
             settingsDataStore.edit { settings ->
                 settings[SPDC] = spdc
+            }
+        }
+    }
+
+    override val spotifyAccountName: Flow<String> =
+        settingsDataStore.data.map { preferences ->
+            preferences[SPOTIFY_ACCOUNT_NAME] ?: ""
+        }
+
+    override suspend fun setSpotifyAccountName(name: String) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[SPOTIFY_ACCOUNT_NAME] = name
+            }
+        }
+    }
+
+    override val spotifyAccountThumbUrl: Flow<String> =
+        settingsDataStore.data.map { preferences ->
+            preferences[SPOTIFY_ACCOUNT_THUMB_URL] ?: ""
+        }
+
+    override suspend fun setSpotifyAccountThumbUrl(url: String) {
+        withContext(Dispatchers.IO) {
+            settingsDataStore.edit { settings ->
+                settings[SPOTIFY_ACCOUNT_THUMB_URL] = url
             }
         }
     }
@@ -1024,7 +1051,7 @@ internal class DataStoreManagerImpl(
 
     override val spotifyCanvas: Flow<String> =
         settingsDataStore.data.map { preferences ->
-            preferences[SPOTIFY_CANVAS] ?: FALSE
+            preferences[SPOTIFY_CANVAS] ?: TRUE
         }
 
     override suspend fun setSpotifyCanvas(spotifyCanvas: Boolean) {
@@ -2172,6 +2199,8 @@ internal class DataStoreManagerImpl(
         val VIDEO_QUALITY = stringPreferencesKey("video_quality")
         val PLAYER_VOLUME = floatPreferencesKey("player_volume")
         val SPDC = stringPreferencesKey("sp_dc")
+        val SPOTIFY_ACCOUNT_NAME = stringPreferencesKey("spotify_account_name")
+        val SPOTIFY_ACCOUNT_THUMB_URL = stringPreferencesKey("spotify_account_thumb_url")
         val SPOTIFY_LYRICS = stringPreferencesKey("spotify_lyrics")
         val SPOTIFY_LYRICS_API_URL = stringPreferencesKey("spotify_lyrics_api_url")
         val LRCLIB_CLIENT_ID = stringPreferencesKey("lrclib_client_id")

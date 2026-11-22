@@ -6,6 +6,7 @@ import com.manikandan.data.db.datasource.LocalDataSource
 import com.manikandan.data.mapping.toCanvasResult
 import com.manikandan.data.mapping.toLyrics
 import com.manikandan.domain.data.entities.LyricsEntity
+import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.entities.TranslatedLyricsEntity
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.browse.artist.ArtistLogo
@@ -113,131 +114,99 @@ internal class LyricsCanvasRepositoryImpl(
         dataStoreManager: DataStoreManager,
         videoId: String,
         duration: Int,
+        fallbackSong: SongEntity?,
     ): Flow<Resource<CanvasResult>> =
         flow {
             runCatching {
-                localDataSource.getSong(videoId).let { song ->
-                    val q =
-                        "${song?.title} ${song?.artistName?.firstOrNull() ?: ""}"
-                            .replace(
-                                Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                                " ",
-                            ).replace(
-                                Regex("( và | & | и | e | und |, |和| dan)"),
-                                " ",
-                            ).replace("  ", " ")
-                            .replace(Regex("([()])"), "")
-                            .replace(".", " ")
-                            .replace("  ", " ")
-                    var spotifyPersonalToken = ""
-                    var spotifyClientToken = ""
-                    Logger.w("Lyrics", "getSpotifyLyrics: ${dataStoreManager.spotifyPersonalTokenExpires.first()}")
-                    Logger.w("Lyrics", "getSpotifyLyrics ${dataStoreManager.spotifyClientTokenExpires.first()}")
-                    Logger.w("Lyrics", "getSpotifyLyrics now: ${now()}")
-                    if (dataStoreManager.spotifyPersonalToken
-                            .first()
-                            .isNotEmpty() &&
-                        dataStoreManager.spotifyClientToken.first().isNotEmpty() &&
-                        dataStoreManager.spotifyPersonalTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
-                        dataStoreManager.spotifyPersonalTokenExpires.first() != 0L &&
-                        dataStoreManager.spotifyClientTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
-                        dataStoreManager.spotifyClientTokenExpires.first() != 0L
-                    ) {
-                        spotifyPersonalToken = dataStoreManager.spotifyPersonalToken.first()
-                        spotifyClientToken = dataStoreManager.spotifyClientToken.first()
-                        Logger.d("Canvas", "spotifyPersonalToken: $spotifyPersonalToken")
-                        Logger.d("Canvas", "spotifyClientToken: $spotifyClientToken")
-                    } else if (dataStoreManager.spdc.first().isNotEmpty()) {
-                        spotify
-                            .getClientToken()
-                            .onSuccess {
-                                Logger.d("Canvas", "Request clientToken: ${it.grantedToken.token}")
-                                dataStoreManager.setSpotifyClientTokenExpires(
-                                    (it.grantedToken.expiresAfterSeconds * 1000L) + Clock.System.now().toEpochMilliseconds(),
-                                )
-                                dataStoreManager.setSpotifyClientToken(it.grantedToken.token)
-                                spotifyClientToken = it.grantedToken.token
-                            }.onFailure {
-                                it.printStackTrace()
-                                emit(Resource.Error<CanvasResult>(it.message ?: "Not found"))
-                            }
-                        spotify
-                            .getPersonalTokenWithTotp(dataStoreManager.spdc.first())
-                            .onSuccess {
-                                spotifyPersonalToken = it.accessToken
-                                dataStoreManager.setSpotifyPersonalToken(spotifyPersonalToken)
-                                dataStoreManager.setSpotifyPersonalTokenExpires(
-                                    it.accessTokenExpirationTimestampMs,
-                                )
-                                Logger.d("Canvas", "Request spotifyPersonalToken: $spotifyPersonalToken")
-                            }.onFailure {
-                                it.printStackTrace()
-                                emit(Resource.Error<CanvasResult>(it.message ?: "Not found"))
-                            }
+                val song = localDataSource.getSong(videoId) ?: fallbackSong
+                val songTitle = song?.title?.ifBlank { null } ?: fallbackSong?.title ?: ""
+                val artistName = song?.artistName?.firstOrNull()?.ifBlank { null } ?: fallbackSong?.artistName?.firstOrNull() ?: ""
+                val q =
+                    "$songTitle $artistName"
+                        .replace(
+                            Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
+                            " ",
+                        ).replace(
+                            Regex("( và | & | и | e | und |, |和| dan)"),
+                            " ",
+                        ).replace("  ", " ")
+                        .replace(Regex("([()])"), "")
+                        .replace(".", " ")
+                        .replace("  ", " ")
+                        .trim()
+                if (q.isBlank()) {
+                    emit(Resource.Error<CanvasResult>("Empty song title"))
+                    return@runCatching
+                }
+                var spotifyPersonalToken = ""
+                var spotifyClientToken = ""
+                val spdc = dataStoreManager.spdc.first().removePrefix("sp_dc=").trim()
+
+                if (dataStoreManager.spotifyPersonalToken.first().isNotEmpty() &&
+                    dataStoreManager.spotifyClientToken.first().isNotEmpty() &&
+                    dataStoreManager.spotifyPersonalTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
+                    dataStoreManager.spotifyPersonalTokenExpires.first() != 0L &&
+                    dataStoreManager.spotifyClientTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
+                    dataStoreManager.spotifyClientTokenExpires.first() != 0L
+                ) {
+                    spotifyPersonalToken = dataStoreManager.spotifyPersonalToken.first()
+                    spotifyClientToken = dataStoreManager.spotifyClientToken.first()
+                } else {
+                    // Fetch Client Token
+                    spotify.getClientToken().onSuccess {
+                        dataStoreManager.setSpotifyClientTokenExpires(
+                            (it.grantedToken.expiresAfterSeconds * 1000L) + Clock.System.now().toEpochMilliseconds(),
+                        )
+                        dataStoreManager.setSpotifyClientToken(it.grantedToken.token)
+                        spotifyClientToken = it.grantedToken.token
                     }
-                    if (spotifyPersonalToken.isNotEmpty() && spotifyClientToken.isNotEmpty()) {
-                        val authToken = spotifyPersonalToken
-                        spotify
-                            .searchSpotifyTrack(q, authToken, spotifyClientToken)
-                            .onSuccess { searchResponse ->
-                                Logger.w("Canvas", "searchSpotifyResponse: $searchResponse")
-                                val track =
-                                    if (duration != 0) {
-                                        searchResponse.data?.searchV2?.tracksV2?.items?.find {
-                                            abs(
-                                                (
-                                                    (
-                                                        (
-                                                            it.item
-                                                                ?.data
-                                                                ?.duration
-                                                                ?.totalMilliseconds ?: (0 / 1000)
-                                                        ) - duration
-                                                    )
-                                                ),
-                                            ) < 1
-                                        }
-                                            ?: searchResponse.data
-                                                ?.searchV2
-                                                ?.tracksV2
-                                                ?.items
-                                                ?.firstOrNull()
-                                    } else {
-                                        searchResponse.data
-                                            ?.searchV2
-                                            ?.tracksV2
-                                            ?.items
-                                            ?.firstOrNull()
-                                    }
-                                if (track != null) {
-                                    Logger.w("Canvas", "track: $track")
-                                    spotify
-                                        .getSpotifyCanvas(
-                                            track.item?.data?.id ?: "",
-                                            spotifyPersonalToken,
-                                            spotifyClientToken,
-                                        ).onSuccess {
-                                            Logger.w("Canvas", "canvas: $it")
-                                            it.toCanvasResult()?.let {
-                                                emit(Resource.Success(it))
-                                            } ?: run {
-                                                emit(Resource.Error<CanvasResult>("Not found"))
-                                            }
-                                        }.onFailure {
-                                            Logger.e("Canvas", "Error: ${it.message}")
-                                            it.printStackTrace()
-                                            emit(Resource.Error<CanvasResult>(it.message ?: "Not found"))
-                                        }
-                                } else {
-                                    emit(Resource.Error<CanvasResult>("Not found"))
+                    // Fetch Personal/Anonymous Token using valid access token helper (standard or TOTP)
+                    val personalToken = spotify.getValidAccessToken(spdc)
+                    if (personalToken != null) {
+                        spotifyPersonalToken = personalToken
+                        dataStoreManager.setSpotifyPersonalToken(spotifyPersonalToken)
+                        dataStoreManager.setSpotifyPersonalTokenExpires(Clock.System.now().toEpochMilliseconds() + 3600_000L)
+                    }
+                }
+
+                if (spotifyPersonalToken.isNotEmpty() && spotifyClientToken.isNotEmpty()) {
+                    val authToken = spotifyPersonalToken
+                    spotify.searchSpotifyTrack(q, authToken, spotifyClientToken)
+                        .onSuccess { searchResponse ->
+                            val items = searchResponse.data?.searchV2?.tracksV2?.items.orEmpty()
+                            val candidateTracks = if (duration > 0 && items.isNotEmpty()) {
+                                items.sortedBy { item ->
+                                    val trackSec = (item.item?.data?.duration?.totalMilliseconds ?: 0) / 1000
+                                    abs(trackSec - duration)
                                 }
-                            }.onFailure { throwable ->
-                                throwable.printStackTrace()
-                                emit(Resource.Error<CanvasResult>(throwable.message ?: "Not found"))
+                            } else {
+                                items
                             }
-                    } else {
-                        emit(Resource.Error<CanvasResult>("Not found"))
-                    }
+
+                            var canvasResult: CanvasResult? = null
+                            for (track in candidateTracks) {
+                                val trackId = track.item?.data?.id
+                                if (!trackId.isNullOrEmpty()) {
+                                    val canvasResponse = spotify.getSpotifyCanvas(trackId, authToken, spotifyClientToken).getOrNull()
+                                    val res = canvasResponse?.toCanvasResult()
+                                    if (res != null && res.canvasUrl.isNotBlank()) {
+                                        canvasResult = res
+                                        break
+                                    }
+                                }
+                            }
+
+                            if (canvasResult != null) {
+                                emit(Resource.Success(canvasResult))
+                            } else {
+                                emit(Resource.Error<CanvasResult>("No canvas found"))
+                            }
+                        }.onFailure { throwable ->
+                            throwable.printStackTrace()
+                            emit(Resource.Error<CanvasResult>(throwable.message ?: "Search failed"))
+                        }
+                } else {
+                    emit(Resource.Error<CanvasResult>("Not authenticated with Spotify"))
                 }
             }
         }.flowOn(Dispatchers.IO)
@@ -247,12 +216,15 @@ internal class LyricsCanvasRepositoryImpl(
      * fills — same [CanvasResult], same two columns on `song` — so everything downstream is unaware
      * of which source produced it. Unlike the canvas path it needs no account of any kind.
      */
-    override fun getAMAnimatedArtwork(videoId: String): Flow<Resource<CanvasResult>> =
+    override fun getAMAnimatedArtwork(
+        videoId: String,
+        fallbackSong: SongEntity?,
+    ): Flow<Resource<CanvasResult>> =
         flow {
-            var song = localDataSource.getSong(videoId)
+            var song = localDataSource.getSong(videoId) ?: fallbackSong
             if (song == null) {
-                kotlinx.coroutines.delay(250)
-                song = localDataSource.getSong(videoId)
+                kotlinx.coroutines.delay(200)
+                song = localDataSource.getSong(videoId) ?: fallbackSong
             }
             if (song == null) {
                 Logger.e(AM_ARTWORK_TAG, "Not found $videoId")
@@ -289,37 +261,34 @@ internal class LyricsCanvasRepositoryImpl(
                 return@flow
             }
 
-            val artist = song.artistName?.firstOrNull().orEmpty()
+            val rawArtist = song.artistName?.firstOrNull().orEmpty()
+            val cleanArtist = cleanArtistForLyrics(rawArtist)
+            val cleanTitle = cleanTrackTitleForLyrics(song.title)
             // YouTube Music leaves the album name null on plenty of rows, and rows written by older
             // builds carry the literal placeholder "Album"; neither can be searched for.
             val albumName = song.albumName?.takeIf { it.isNotBlank() && it != PLACEHOLDER_ALBUM_NAME }
-            Logger.d(AM_ARTWORK_TAG, "resolving $videoId — album=$albumName title=${song.title} artist=$artist")
+            Logger.d(AM_ARTWORK_TAG, "resolving $videoId — album=$albumName title=$cleanTitle artist=$cleanArtist")
 
             try {
                 // Tier 1 — the album name, which is what AM indexes one animated artwork against.
-                // Only an exact answer is taken: see pickAlbumMatch for why a near-miss is worse
-                // than no answer at all here.
                 val byAlbum =
                     albumName?.let { name ->
                         pulseMusicLyrics
-                            .searchAMAlbum("$name $artist".cleanForSearch(), limit = AM_SEARCH_LIMIT)
+                            .searchAMAlbum("$name $cleanArtist", limit = AM_SEARCH_LIMIT)
                             .onFailure { Logger.e(AM_ARTWORK_TAG, "album search failed: ${it.message}") }
                             .getOrNull()
-                            ?.pickAlbumMatch(name, artist)
+                            ?.pickAlbumMatch(name, cleanArtist)
                     }
 
-                // Tier 2 — the track itself, which carries the album it belongs to. A title cannot
-                // be searched as an album (AM answers a title with the singles that share it), so
-                // this goes through songs; the album name, when known, still decides between the
-                // several albums a track can legitimately appear on.
+                // Tier 2 — the track itself, which carries the album it belongs to.
                 val album =
                     byAlbum ?: pulseMusicLyrics
-                        .searchAMSongsWithAlbums("${song.title} $artist".cleanForSearch(), limit = AM_SEARCH_LIMIT)
+                        .searchAMSongsWithAlbums("$cleanTitle $cleanArtist", limit = AM_SEARCH_LIMIT)
                         .onFailure { Logger.e(AM_ARTWORK_TAG, "song search failed: ${it.message}") }
                         .getOrNull()
                         ?.pickSongMatch(
-                            title = song.title,
-                            artist = artist,
+                            title = cleanTitle,
+                            artist = cleanArtist,
                             durationSeconds = song.durationSeconds,
                             albumHint = albumName,
                         )
@@ -996,7 +965,7 @@ internal class LyricsCanvasRepositoryImpl(
 }
 
 private const val AM_ARTWORK_TAG = "AMArtwork"
-private const val AM_SEARCH_LIMIT = 5
+private const val AM_SEARCH_LIMIT = 10
 
 // Narrowest animated-artwork rendition considered sharp enough. On the measured ladders this lands
 // on 830x1106 for the tall cut and 768x768 for the square one, both H.264 at roughly 2-3 Mbps.
@@ -1007,10 +976,9 @@ private const val EXACT_NAME_TIER = 0
 
 /**
  * How far two running times may differ and still be the same recording. Wide enough to absorb the
- * encoding differences between YouTube and Apple, far narrower than the gap between a studio take
- * and a live one.
+ * encoding differences between YouTube and Apple, video intro/outro differences, and edits.
  */
-private const val AM_DURATION_TOLERANCE_SECONDS = 3
+private const val AM_DURATION_TOLERANCE_SECONDS = 18
 // Only used when AM omits the preview frame's own dimensions, which it normally supplies.
 private const val AM_PREVIEW_FRAME_SIZE = 1080
 
@@ -1141,7 +1109,7 @@ private fun List<AMAlbumResource>.pickAlbumMatch(
     filter { it.hasAnimatedArtwork() }
         .filter { it.attributes?.artistName.agreesWith(artist) }
         .bestNameMatch(subject) { it.attributes?.name }
-        ?.takeIf { matchScore(it.attributes?.name.orEmpty(), subject)?.first == EXACT_NAME_TIER }
+        ?.takeIf { (matchScore(it.attributes?.name.orEmpty(), subject)?.first ?: 99) <= 2 }
 
 /**
  * Pick the album for a track reached by title.
@@ -1164,18 +1132,12 @@ private fun List<AMSongWithAlbum>.pickSongMatch(
     filter { it.artistName.agreesWith(artist) }
         .bestNameMatch(
             subject = title,
-            // Three tiebreaks, weakest last. The name alone cannot separate a studio take from a
-            // live one when both are titled the same, so RUNNING TIME leads here — it is the same
-            // signal the Spotify canvas search picks its track with, and it separates them
-            // decisively: "Không Thể Say" is 228s, its Live Band cut 188s and its festival cut
-            // 327s. The album name comes next, deciding between the several albums one recording
-            // legitimately appears on. Whether artwork exists at all only breaks what is left.
             demote = { candidate ->
                 val durationMisses = !candidate.matchesDuration(durationSeconds)
                 val albumName = candidate.album.attributes?.name.orEmpty()
-                val hintMisses = albumHint != null && matchScore(albumName, albumHint)?.first != EXACT_NAME_TIER
+                val hintMisses = albumHint != null && (matchScore(albumName, albumHint)?.first ?: 99) > 2
                 val hasNoArtwork = !candidate.album.hasAnimatedArtwork()
-                (if (durationMisses) 4 else 0) + (if (hintMisses) 2 else 0) + (if (hasNoArtwork) 1 else 0)
+                (if (durationMisses) 2 else 0) + (if (hintMisses) 1 else 0) + (if (hasNoArtwork) 4 else 0)
             },
         ) { it.songName }
         ?.takeIf { it.album.hasAnimatedArtwork() }

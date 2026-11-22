@@ -36,6 +36,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -1821,6 +1822,7 @@ class SettingsViewModel(
 
     private var _spotifyLogIn: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val spotifyLogIn: StateFlow<Boolean> = _spotifyLogIn
+    val spotifyAccountName: Flow<String> = dataStoreManager.spotifyAccountName
 
     fun getSpotifyLogIn() {
         viewModelScope.launch {
@@ -1839,6 +1841,8 @@ class SettingsViewModel(
             _spotifyLogIn.emit(loggedIn)
             if (!loggedIn) {
                 dataStoreManager.setSpdc("")
+                dataStoreManager.setSpotifyAccountName("")
+                dataStoreManager.setSpotifyAccountThumbUrl("")
                 // Logging out of Spotify must also tear down everything gated behind it. Otherwise the
                 // lyrics/canvas flags stay stuck ON with no way to switch them off (the toggles grey out
                 // when logged out) and stale tokens linger — issue #2064, same family as Discord #2157.

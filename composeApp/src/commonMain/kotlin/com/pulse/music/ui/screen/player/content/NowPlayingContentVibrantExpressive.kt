@@ -13,6 +13,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -182,9 +183,37 @@ private fun NowPlayingVibrantExpressiveLayout(
         }
     }
 
+    val hasCanvas = state.screenData.canvasData != null
+    val isCanvasVideo = state.screenData.canvasData?.isVideo == true
+
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // Multi-color moving ambient light in the background according to album image
-        if (state.ambientModeEnabled) {
+        // Fullscreen canvas video/image backdrop when canvas is available
+        if (hasCanvas) {
+            Crossfade(targetState = isCanvasVideo, label = "vibrantCanvasBackdrop") { isVid ->
+                if (isVid) {
+                    state.screenData.canvasData?.url?.let { url ->
+                        MediaPlayerView(
+                            url = url,
+                            cropToBounds = true,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(state.screenData.canvasData?.url)
+                            .crossfade(550)
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .diskCacheKey(state.screenData.canvasData?.url)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        } else if (state.ambientModeEnabled) {
+            // Multi-color moving ambient light in the background according to album image
             MovingAmbientLightBackground(
                 primaryColor = primaryAmbient,
                 secondaryColor = secondaryAmbient,
@@ -271,102 +300,95 @@ private fun NowPlayingVibrantExpressiveLayout(
 
             Spacer(modifier = Modifier.height(middleLayoutPaddingDp.dp))
 
-            // Center Elevated Circular Artwork Card with Progressive Around It & Queue Swipe Pager
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                val outerSize = maxWidth.coerceAtMost(330.dp)
-                val innerArtworkSize = outerSize - 28.dp
-
-                // Dynamic breathing ambient glow behind circular album image
-                val breatheTransition = rememberInfiniteTransition(label = "cardAmbientGlow")
-                val breatheScale by breatheTransition.animateFloat(
-                    initialValue = 0.94f,
-                    targetValue = 1.08f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(4500, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "breatheScale",
-                )
-
+            if (hasCanvas) {
+                // When canvas is playing fullscreen, keep center transparent so fullscreen video shines through unobstructed (Spotify style)
                 Box(
                     modifier = Modifier
-                        .size(outerSize)
-                        .scale(breatheScale)
-                        .drawBehind {
-                            val r = size.width * 0.72f
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        primaryAmbient.copy(alpha = 0.60f),
-                                        secondaryAmbient.copy(alpha = 0.30f),
-                                        Color.Transparent,
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                        ) {
+                            if (state.mainScrollState.value == 0) {
+                                actions.onToggleControls()
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {}
+            } else {
+                // Center Elevated Circular Artwork Card with Progressive Around It & Queue Swipe Pager
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val outerSize = maxWidth.coerceAtMost(330.dp)
+                    val innerArtworkSize = outerSize - 28.dp
+
+                    // Dynamic breathing ambient glow behind circular album image
+                    val breatheTransition = rememberInfiniteTransition(label = "cardAmbientGlow")
+                    val breatheScale by breatheTransition.animateFloat(
+                        initialValue = 0.94f,
+                        targetValue = 1.08f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(4500, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "breatheScale",
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .size(outerSize)
+                            .scale(breatheScale)
+                            .drawBehind {
+                                val r = size.width * 0.72f
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            primaryAmbient.copy(alpha = 0.60f),
+                                            secondaryAmbient.copy(alpha = 0.30f),
+                                            Color.Transparent,
+                                        ),
+                                        center = center,
+                                        radius = r,
                                     ),
                                     center = center,
                                     radius = r,
-                                ),
-                                center = center,
-                                radius = r,
-                            )
-                        },
-                )
-
-                // Progressive circular arc drawn around the round album image
-                val progressFraction = (state.sliderValue / 100f).coerceIn(0f, 1f)
-                val animatedProgress by animateFloatAsState(
-                    targetValue = progressFraction,
-                    animationSpec = tween(150),
-                    label = "circularProgressArc",
-                )
-
-                val ringTrackColor = colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                val primaryColor = colorScheme.primary
-                val tertiaryColor = colorScheme.tertiary
-
-                Canvas(
-                    modifier = Modifier.size(outerSize),
-                ) {
-                    val strokeWidthPx = 6.dp.toPx()
-                    val arcPadding = strokeWidthPx / 2f + 2.dp.toPx()
-                    val arcSize = Size(
-                        size.width - arcPadding * 2,
-                        size.height - arcPadding * 2,
-                    )
-                    val topLeft = Offset(arcPadding, arcPadding)
-
-                    // Background Track Ring
-                    drawArc(
-                        color = ringTrackColor,
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcSize,
-                        style = Stroke(
-                            width = strokeWidthPx,
-                            cap = StrokeCap.Round,
-                        ),
+                                )
+                            },
                     )
 
-                    // Active Progressive Arc
-                    val sweepAngle = animatedProgress * 360f
-                    if (sweepAngle > 0f) {
+                    // Progressive circular arc drawn around the round album image
+                    val progressFraction = (state.sliderValue / 100f).coerceIn(0f, 1f)
+                    val animatedProgress by animateFloatAsState(
+                        targetValue = progressFraction,
+                        animationSpec = tween(150),
+                        label = "circularProgressArc",
+                    )
+
+                    val ringTrackColor = colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    val primaryColor = colorScheme.primary
+                    val tertiaryColor = colorScheme.tertiary
+
+                    Canvas(
+                        modifier = Modifier.size(outerSize),
+                    ) {
+                        val strokeWidthPx = 6.dp.toPx()
+                        val arcPadding = strokeWidthPx / 2f + 2.dp.toPx()
+                        val arcSize = Size(
+                            size.width - arcPadding * 2,
+                            size.height - arcPadding * 2,
+                        )
+                        val topLeft = Offset(arcPadding, arcPadding)
+
+                        // Background Track Ring
                         drawArc(
-                            brush = Brush.sweepGradient(
-                                colors = listOf(
-                                    primaryColor,
-                                    primaryAmbient,
-                                    secondaryAmbient,
-                                    tertiaryColor,
-                                    primaryColor,
-                                ),
-                            ),
-                            startAngle = -90f,
-                            sweepAngle = sweepAngle,
+                            color = ringTrackColor,
+                            startAngle = 0f,
+                            sweepAngle = 360f,
                             useCenter = false,
                             topLeft = topLeft,
                             size = arcSize,
@@ -376,66 +398,64 @@ private fun NowPlayingVibrantExpressiveLayout(
                             ),
                         )
 
-                        // Glowing head indicator knob at current angle
-                        val angleRad = Math.toRadians((sweepAngle - 90.0)).toFloat()
-                        val r = arcSize.width / 2f
-                        val knobX = center.x + r * cos(angleRad)
-                        val knobY = center.y + r * sin(angleRad)
+                        // Active Progressive Arc
+                        val sweepAngle = animatedProgress * 360f
+                        if (sweepAngle > 0f) {
+                            drawArc(
+                                brush = Brush.sweepGradient(
+                                    colors = listOf(
+                                        primaryColor,
+                                        primaryAmbient,
+                                        secondaryAmbient,
+                                        tertiaryColor,
+                                        primaryColor,
+                                    ),
+                                ),
+                                startAngle = -90f,
+                                sweepAngle = sweepAngle,
+                                useCenter = false,
+                                topLeft = topLeft,
+                                size = arcSize,
+                                style = Stroke(
+                                    width = strokeWidthPx,
+                                    cap = StrokeCap.Round,
+                                ),
+                            )
 
-                        drawCircle(
-                            color = Color.White,
-                            radius = strokeWidthPx * 0.9f,
-                            center = Offset(knobX, knobY),
-                        )
+                            // Glowing head indicator knob at current angle
+                            val angleRad = Math.toRadians((sweepAngle - 90.0)).toFloat()
+                            val r = arcSize.width / 2f
+                            val knobX = center.x + r * cos(angleRad)
+                            val knobY = center.y + r * sin(angleRad)
+
+                            drawCircle(
+                                color = Color.White,
+                                radius = strokeWidthPx * 0.9f,
+                                center = Offset(knobX, knobY),
+                            )
+                        }
                     }
-                }
 
-                // Round Circle Album Image Theme
-                Surface(
-                    modifier = Modifier
-                        .size(innerArtworkSize)
-                        .shadow(
-                            elevation = 24.dp,
-                            shape = CircleShape,
-                            spotColor = primaryAmbient,
-                            ambientColor = secondaryAmbient,
-                        ),
-                    shape = CircleShape,
-                    color = colorScheme.surfaceContainerHigh,
-                ) {
-                    if (state.artworkQueue.isNotEmpty()) {
-                        HorizontalPager(
-                            state = state.artworkPagerState,
-                            modifier = Modifier.fillMaxSize(),
-                        ) { page ->
-                            val track = state.artworkQueue.getOrNull(page)
-                            val isCurrentArtworkPage = (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage)
-                            val pageHasCanvas = isCurrentArtworkPage && state.screenData.canvasData != null
-                            if (pageHasCanvas) {
-                                Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "vibrantCanvas") { isVideo ->
-                                    if (isVideo == true) {
-                                        state.screenData.canvasData?.url?.let { url ->
-                                            MediaPlayerView(
-                                                url = url,
-                                                cropToBounds = true,
-                                                modifier = Modifier.fillMaxSize(),
-                                            )
-                                        }
-                                    } else {
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalPlatformContext.current)
-                                                .data(state.screenData.canvasData?.url)
-                                                .crossfade(200)
-                                                .memoryCachePolicy(CachePolicy.ENABLED)
-                                                .diskCachePolicy(CachePolicy.ENABLED)
-                                                .build(),
-                                            contentDescription = track?.title ?: state.screenData.nowPlayingTitle,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize(),
-                                        )
-                                    }
-                                }
-                            } else {
+                    // Round Circle Album Image Theme
+                    Surface(
+                        modifier = Modifier
+                            .size(innerArtworkSize)
+                            .shadow(
+                                elevation = 24.dp,
+                                shape = CircleShape,
+                                spotColor = primaryAmbient,
+                                ambientColor = secondaryAmbient,
+                            ),
+                        shape = CircleShape,
+                        color = colorScheme.surfaceContainerHigh,
+                    ) {
+                        if (state.artworkQueue.isNotEmpty()) {
+                            HorizontalPager(
+                                state = state.artworkPagerState,
+                                modifier = Modifier.fillMaxSize(),
+                            ) { page ->
+                                val track = state.artworkQueue.getOrNull(page)
+                                val isCurrentArtworkPage = (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage)
                                 val thumbUrl = track?.thumbnails?.lastOrNull()?.url
                                     ?: (if (isCurrentArtworkPage) state.screenData.thumbnailURL else null)
 
@@ -450,32 +470,6 @@ private fun NowPlayingVibrantExpressiveLayout(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
                                 )
-                            }
-                        }
-                    } else {
-                        if (state.screenData.canvasData != null) {
-                            Crossfade(targetState = state.screenData.canvasData?.isVideo, label = "vibrantCanvasSingle") { isVideo ->
-                                if (isVideo == true) {
-                                    state.screenData.canvasData?.url?.let { url ->
-                                        MediaPlayerView(
-                                            url = url,
-                                            cropToBounds = true,
-                                            modifier = Modifier.fillMaxSize(),
-                                        )
-                                    }
-                                } else {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                                            .data(state.screenData.canvasData?.url)
-                                            .crossfade(200)
-                                            .memoryCachePolicy(CachePolicy.ENABLED)
-                                            .diskCachePolicy(CachePolicy.ENABLED)
-                                            .build(),
-                                        contentDescription = state.screenData.nowPlayingTitle,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
                             }
                         } else {
                             AsyncImage(

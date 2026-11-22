@@ -357,6 +357,7 @@ fun SettingScreen(
     val killServiceOnExit by remember { viewModel.killServiceOnExit.map { it == TRUE } }.collectAsStateWithLifecycle(initialValue = true)
     val mainLyricsProvider by viewModel.mainLyricsProvider.collectAsStateWithLifecycle()
     val spotifyLoggedIn by viewModel.spotifyLogIn.collectAsStateWithLifecycle()
+    val spotifyAccountName by viewModel.spotifyAccountName.collectAsStateWithLifecycle(initialValue = "")
     val spotifyCanvas by viewModel.spotifyCanvas.collectAsStateWithLifecycle()
     val amAnimatedArtwork by viewModel.amAnimatedArtwork.collectAsStateWithLifecycle()
     val playerCache by viewModel.cacheSize.collectAsStateWithLifecycle()
@@ -424,6 +425,7 @@ fun SettingScreen(
     var smartAudioAlignment by rememberSaveable { mutableStateOf(true) }
 
     var showYouTubeAccountDialog by rememberSaveable { mutableStateOf(false) }
+    var showSpotifyAccountDialog by rememberSaveable { mutableStateOf(false) }
     var showDevLoginSheet by rememberSaveable { mutableStateOf(false) }
     var showColorPickerDialog by rememberSaveable { mutableStateOf(false) }
     var showThirdPartyLibraries by rememberSaveable { mutableStateOf(false) }
@@ -611,6 +613,30 @@ fun SettingScreen(
                                 showChevron = true,
                                 onClick = {
                                     showYouTubeAccountDialog = true
+                                },
+                            )
+                        }
+                        PulseSettingDivider()
+                        if (!spotifyLoggedIn) {
+                            PulseSettingRow(
+                                title = "Sign in to Spotify",
+                                subtitle = "Connect your Spotify account to sync your playlists and enable Canvas looping videos",
+                                leadingIcon = PulseIcons.GraphicEq,
+                                trailingText = "Sign In",
+                                showChevron = true,
+                                onClick = {
+                                    navController.navigate(SpotifyLoginDestination)
+                                },
+                            )
+                        } else {
+                            PulseSettingRow(
+                                title = if (spotifyAccountName.isNotBlank()) spotifyAccountName else "Spotify Account",
+                                subtitle = "Connected to Spotify • Playlists synced & Canvas enabled",
+                                leadingIcon = PulseIcons.GraphicEq,
+                                badgeText = "ACTIVE",
+                                showChevron = true,
+                                onClick = {
+                                    showSpotifyAccountDialog = true
                                 },
                             )
                         }
@@ -1176,20 +1202,20 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Lyrics sources",
-                            subtitle = "Lyrica (Multi-Provider AI), BiniLyrics, LRCLIB, PaxSenix, YouTube Captions, Musixmatch, Genius",
+                            subtitle = "BiniLyrics (High Priority Rich Synced), Lyrica (Multi-Provider AI), LRCLIB, YouTube Captions, Musixmatch, Genius",
                             leadingIcon = PulseIcons.Help,
                             showChevron = true,
                             onClick = {
-                                val providers = listOf("Lyrica (Multi-Provider AI Synced)", "BiniLyrics (lrc.red)", "LRCLIB (Default)", "YouTube Captions", "Genius / Musixmatch")
+                                val providers = listOf("BiniLyrics (lrc.red - High Priority Rich Synced)", "Lyrica (Multi-Provider AI Synced)", "LRCLIB", "YouTube Captions", "Genius / Musixmatch")
                                 viewModel.setAlertData(
                                     SettingAlertState(
                                         title = "Main Lyrics Provider",
                                         selectOne = SettingAlertState.SelectData(
                                             listSelect = providers.map { providerName ->
                                                 val isSelected = when {
+                                                    providerName.contains("BiniLyrics") -> mainLyricsProvider == DataStoreManager.BINI_LYRICS || (mainLyricsProvider != DataStoreManager.LYRICA && mainLyricsProvider != DataStoreManager.LRCLIB)
                                                     providerName.contains("Lyrica") -> mainLyricsProvider == DataStoreManager.LYRICA
-                                                    providerName.contains("BiniLyrics") -> mainLyricsProvider == DataStoreManager.BINI_LYRICS
-                                                    providerName.contains("LRCLIB") -> mainLyricsProvider == DataStoreManager.LRCLIB || (mainLyricsProvider != DataStoreManager.LYRICA && mainLyricsProvider != DataStoreManager.BINI_LYRICS)
+                                                    providerName.contains("LRCLIB") -> mainLyricsProvider == DataStoreManager.LRCLIB
                                                     else -> false
                                                 }
                                                 isSelected to providerName
@@ -1698,6 +1724,56 @@ fun SettingScreen(
                         viewModel.logOutAllYouTube()
                         showYouTubeAccountDialog = false
                         sharedViewModel.makeToast("Signed out from YouTube")
+                    },
+                ) {
+                    Text(text = stringResource(Res.string.log_out), color = Color(0xFFEF4444))
+                }
+            },
+        )
+    }
+
+    // SPOTIFY ACCOUNT MANAGEMENT DIALOG
+    if (showSpotifyAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showSpotifyAccountDialog = false },
+            containerColor = settingsColors.cardBackground,
+            title = {
+                Text(
+                    text = "Spotify Account",
+                    style = typo().titleMedium,
+                    color = settingsColors.titleText,
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Signed in as: ${if (spotifyAccountName.isNotBlank()) spotifyAccountName else "Connected Spotify Account"}",
+                        style = typo().bodyMedium,
+                        color = settingsColors.titleText,
+                    )
+                    Text(
+                        text = "Your Spotify playlists are synced to your library and Canvas videos are enabled.",
+                        style = typo().bodySmall,
+                        color = settingsColors.subtitleText,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSpotifyAccountDialog = false
+                        navController.navigate(SpotifyLoginDestination)
+                    },
+                ) {
+                    Text(text = "Switch Account", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.setSpotifyLogIn(false)
+                        showSpotifyAccountDialog = false
+                        sharedViewModel.makeToast("Signed out from Spotify")
                     },
                 ) {
                     Text(text = stringResource(Res.string.log_out), color = Color(0xFFEF4444))

@@ -16,6 +16,7 @@ import org.pulsemusic.lyrics.models.request.LyricsBody
 import org.pulsemusic.lyrics.models.request.TranslatedLyricsBody
 import org.pulsemusic.lyrics.models.response.BaseResponse
 import org.pulsemusic.lyrics.models.response.BetterLyricsResponse
+import org.pulsemusic.lyrics.models.response.BiniLyricsItem
 import org.pulsemusic.lyrics.models.response.BiniLyricsSearchResponse
 import org.pulsemusic.lyrics.models.response.LrclibObject
 import org.pulsemusic.lyrics.models.response.LyricaResponse
@@ -262,30 +263,37 @@ class PulseMusicLyricsClient {
             val candidates = searchRes.results.filter { !it.lyricsUrl.isNullOrBlank() }
             if (candidates.isEmpty()) return@runCatching null
 
+            // Prioritize candidates with timingType == "word" (RICH SYNCED)
+            val prioritizedCandidates = candidates.sortedWith(
+                compareByDescending<BiniLyricsItem> {
+                    it.timingType?.equals("word", ignoreCase = true) == true
+                }
+            )
+
             val matched = if (!isrc.isNullOrBlank()) {
-                candidates.firstOrNull { it.isrc.equals(isrc, ignoreCase = true) } ?: candidates.firstOrNull()
+                prioritizedCandidates.firstOrNull { it.isrc.equals(isrc, ignoreCase = true) } ?: prioritizedCandidates.firstOrNull()
             } else if (durationSeconds != null && durationSeconds > 0) {
-                candidates.find {
+                prioritizedCandidates.find {
                     val tName = it.trackName.orEmpty()
                     val aName = it.artistName.orEmpty()
                     val d = it.duration ?: 0
                     isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName) && abs(d - durationSeconds) <= 15
-                } ?: candidates.find {
+                } ?: prioritizedCandidates.find {
                     val tName = it.trackName.orEmpty()
                     val aName = it.artistName.orEmpty()
                     val d = it.duration ?: 0
                     isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName) && abs(d - durationSeconds) <= 30
-                } ?: candidates.find {
+                } ?: prioritizedCandidates.find {
                     val tName = it.trackName.orEmpty()
                     val aName = it.artistName.orEmpty()
                     isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName)
-                } ?: candidates.firstOrNull()
+                } ?: prioritizedCandidates.firstOrNull()
             } else {
-                candidates.find {
+                prioritizedCandidates.find {
                     val tName = it.trackName.orEmpty()
                     val aName = it.artistName.orEmpty()
                     isTrackMatch(q_track, tName) && isArtistMatch(q_artist, aName)
-                } ?: candidates.firstOrNull()
+                } ?: prioritizedCandidates.firstOrNull()
             }
 
             val lyricsUrl = matched?.lyricsUrl ?: return@runCatching null
@@ -294,10 +302,20 @@ class PulseMusicLyricsClient {
             val rawText = rawResp.bodyAsText()
             if (rawText.isBlank()) return@runCatching null
 
-            if (lyricsUrl.endsWith(".ttml", ignoreCase = true) || rawText.contains("<tt") || rawText.contains("<p")) {
+            val parsed = if (matched?.lyricsUrl?.endsWith(".ttml", ignoreCase = true) == true || rawText.contains("<tt") || rawText.contains("<p")) {
                 org.pulsemusic.lyrics.parser.parseTtmlLyrics(rawText)
             } else {
                 parseSyncedLyrics(rawText)
+            }
+
+            if (matched?.timingType?.equals("word", ignoreCase = true) == true && parsed.lyrics != null) {
+                parsed.copy(
+                    lyrics = parsed.lyrics.copy(
+                        syncType = "RICH_SYNCED",
+                    ),
+                )
+            } else {
+                parsed
             }
         }
 
@@ -351,8 +369,21 @@ class PulseMusicLyricsClient {
             val parsed = response.body<LyricaResponse>()
             val data = parsed.data ?: return@runCatching null
 
+            // 1. Check raw lyrics first for rich sync / TTML
+            val raw = data.lyrics
+            if (!raw.isNullOrBlank()) {
+                if (raw.contains("<tt") || raw.contains("<p")) {
+                    return@runCatching org.pulsemusic.lyrics.parser.parseTtmlLyrics(raw)
+                }
+                if (raw.contains(Regex("""<\d{1,2}:\d{2}"""))) {
+                    return@runCatching org.pulsemusic.lyrics.parser.parseRichSyncLyrics(raw)
+                }
+            }
+
+            // 2. Process timed_lyrics
             val timed = data.timed_lyrics
             if (!timed.isNullOrEmpty()) {
+                val hasRichWords = timed.any { it.text?.contains(Regex("""<\d{1,2}:\d{2}""")) == true }
                 val lines = timed.mapNotNull { t ->
                     val text = (t.text ?: "").trim()
                     if (text.isNotBlank()) {
@@ -367,13 +398,13 @@ class PulseMusicLyricsClient {
                     return@runCatching org.pulsemusic.lyrics.domain.Lyrics(
                         lyrics = org.pulsemusic.lyrics.domain.Lyrics.LyricsX(
                             lines = lines,
-                            syncType = "LINE_SYNCED",
+                            syncType = if (hasRichWords) "RICH_SYNCED" else "LINE_SYNCED",
                         ),
                     )
                 }
             }
 
-            val raw = data.lyrics
+            // 3. Fallback to parsing raw LRC string
             if (!raw.isNullOrBlank()) {
                 if (raw.contains(Regex("""\[\d+:\d+"""))) {
                     return@runCatching parseSyncedLyrics(raw)
@@ -407,7 +438,7 @@ class PulseMusicLyricsClient {
             val timed = data.timed_lyrics
             if (!timed.isNullOrEmpty()) {
                 val translatedLines = timed.mapNotNull { t ->
-                    val text = t.translated?.trim()?.ifBlank { null } ?: t.text?.trim()?.ifBlank { null }
+                    val text = t.translated?.trim()?.ifBlank { null }
                     if (text != null) {
                         org.pulsemusic.lyrics.domain.Lyrics.LyricsX.Line(
                             startTimeMs = t.start_time.toString(),
@@ -425,7 +456,7 @@ class PulseMusicLyricsClient {
                     )
                 }
             }
-            val raw = data.translated_lyrics ?: data.lyrics
+            val raw = data.translated_lyrics
             if (!raw.isNullOrBlank()) {
                 if (raw.contains(Regex("""\[\d+:\d+"""))) {
                     return@runCatching parseSyncedLyrics(raw)
