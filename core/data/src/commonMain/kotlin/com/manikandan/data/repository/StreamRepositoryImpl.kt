@@ -6,6 +6,7 @@ import com.manikandan.common.QUALITY
 import com.manikandan.common.VIDEO_QUALITY
 import com.manikandan.data.db.datasource.LocalDataSource
 import com.manikandan.data.service.JioSaavnService
+import com.manikandan.domain.utils.toSongEntity
 import com.manikandan.data.mapping.toSponsorSkipSegments
 import com.manikandan.data.mapping.toTrack
 import com.manikandan.domain.data.entities.NewFormatEntity
@@ -98,10 +99,17 @@ internal class StreamRepositoryImpl(
                 val streamUrl = JioSaavnService.resolveStreamById(saavnId)
                     ?: run {
                         val song = localDataSource.getSong(videoId)
+                            ?: JioSaavnService.getCachedTrack(videoId)?.toSongEntity()
+                            ?: JioSaavnService.getCachedTrack(saavnId)?.toSongEntity()
                         if (song != null) JioSaavnService.resolveStream(song.title, song.artistName?.firstOrNull()) else null
                     }
                 if (streamUrl != null) {
                     val song = localDataSource.getSong(videoId)
+                        ?: JioSaavnService.getCachedTrack(videoId)?.toSongEntity()
+                        ?: JioSaavnService.getCachedTrack(saavnId)?.toSongEntity()
+                    if (song != null) {
+                        localDataSource.insertSong(song)
+                    }
                     val fallbackFormat = NewFormatEntity(
                         videoId = videoId,
                         itag = ITAG.AUDIO_AAC_VERY_HIGH,

@@ -211,12 +211,12 @@ interface MpvLibrary : Library {
          */
         private val CANDIDATE_NAMES =
             listOf(
+                "libmpv-2",
+                "mpv-2",
                 "mpv",
                 "libmpv.so.2",
                 "libmpv.so.1",
                 "libmpv.2.dylib",
-                "libmpv-2",
-                "mpv-2",
                 "mpv-1",
             )
 
@@ -274,10 +274,11 @@ interface MpvLibrary : Library {
         /** True when [name] is a libmpv shared library on any of the three platforms. */
         private fun isMpvLibName(name: String): Boolean =
             name.startsWith("libmpv.so") ||
-                name.startsWith("libmpv.") && name.endsWith(".dylib") ||
+                (name.startsWith("libmpv.") && name.endsWith(".dylib")) ||
                 name == "libmpv.dylib" ||
-                name.startsWith("libmpv") && name.endsWith(".dll") ||
-                name == "mpv-2.dll"
+                (name.startsWith("libmpv") && name.endsWith(".dll")) ||
+                name == "mpv-2.dll" ||
+                name == "mpv.dll"
 
         /** File names that identify a directory as holding a usable libmpv. */
         private fun hasMpvLib(dir: java.io.File): Boolean =
@@ -316,17 +317,25 @@ interface MpvLibrary : Library {
                 root.listFiles()?.filter { it.isDirectory }?.let { candidates += it }
             }
 
-            // Walk up from the JAR/classes location looking for a sibling `mpv/`. The depth
-            // covers Conveyor's app layouts on all three OSes without hard-coding any of them.
+            // Walk up from the JAR/classes location looking for sibling directories.
             runCatching {
                 val codeSource = MpvLibrary::class.java.protectionDomain?.codeSource?.location
                 var dir = codeSource?.toURI()?.let { java.io.File(it) }?.parentFile
                 repeat(6) {
                     val current = dir ?: return@repeat
+                    candidates += current
                     candidates += current.resolve("mpv")
+                    candidates += current.resolve("resources")
+                    candidates += current.resolve("app/resources")
                     dir = current.parentFile
                 }
             }
+
+            val userDir = java.io.File(System.getProperty("user.dir", "."))
+            candidates += userDir
+            candidates += userDir.resolve("resources")
+            candidates += userDir.resolve("app/resources")
+            candidates += userDir.resolve("app")
 
             val osName = System.getProperty("os.name", "").lowercase()
             val osArch = System.getProperty("os.arch", "").lowercase()
@@ -337,6 +346,7 @@ interface MpvLibrary : Library {
                     else -> "linux-x64"
                 }
             candidates += java.io.File("mpv-natives/$subDir")
+            candidates += java.io.File("mpv-natives")
 
             return candidates.filter { it.isDirectory && hasMpvLib(it) }.distinctBy { it.absolutePath }
         }

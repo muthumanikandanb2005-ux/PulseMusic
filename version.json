@@ -1,65 +1,66 @@
 {
-  "version": "4.2.0",
-  "versionCode": 120,
-  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Universal.apk",
-  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Universal.apk",
-  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.0/PulseMusic-Universal.apk",
-  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.0/PulseMusic-Universal.apk",
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.0",
-  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.0",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.0",
-  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.0",
-  "tag_name": "v4.2.0",
-  "name": "Pulse Music v4.2.0 - Vibrant Expressive Circular Player, Cover Flow 3D Carousel & Pinterest Dock",
+  "version": "4.2.1",
+  "versionCode": 121,
+  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Universal.apk",
+  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Universal.apk",
+  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.1/PulseMusic-Universal.apk",
+  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.1/PulseMusic-Universal.apk",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.1",
+  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.1",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.1",
+  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.1",
+  "tag_name": "v4.2.1",
+  "name": "Pulse Music v4.2.1 - Windows Playback Hotfix & Enhanced JioSaavn Search Integration",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-11-24T11:31:41Z",
-  "body": "# Pulse Music v4.2.0 - Vibrant Expressive Circular Player, Cover Flow 3D Carousel & Pinterest Dock\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83c\udfa8 Vibrant Expressive Theme Player (Modern Circular Aesthetic)\n- **Reference-Accurate Architectural Layout**: Complete overhaul of the Vibrant Expressive player layout matching high-end modern Behance/Dribbble music player designs.\n- **Top Header & Metadata Alignment**: Dismiss down-chevron on left, context/playlist name center, and more actions on right. Title, artist, and elapsed/total duration (`01:23 | 02:35`) are cleanly centered above the circular artwork.\n- **Concentric Glowing Progress Ring**: Circular disc artwork framed by a glowing progress arc with an interactive scrub knob and breathing ambient glow. Supports instant touch-and-drag circular seeking.\n- **5-Button Primary Transport Row**: Features `\u2296` (remove/dislike/skip), `|\u25c0` (previous), a bold 66dp solid white circular `\u25b6/\u23f8` button with dark icon, `\u25b6|` (next), and `\u2665` (like) button with animated heart burst.\n- **4-Button Secondary Actions Row**: Clean horizontal layout for `\u292e` (shuffle), `\u2261` (queue), `\ud83d\udd0a` (audio output/device badge), and `\ud83d\udd01` (repeat).\n- **Multi-Colour Dynamic Moving Ambient Light**: Real-time ambient light moving across the backdrop with dual-color palette blending derived dynamically from album art.\n- **Aperture & Fullscreen Canvas Video**: Seamless canvas video playback both inside the circular disc aperture and as an immersive ambient backdrop behind the glowing progress ring.\n\n### \ud83c\udfb4 Cover Flow 3D Perspective Carousel\n- **Cover Flow 3D Depth & Tilt**: Adjacent artwork cards rotate in 3D perspective around the Y-axis (`rotationY = -pageOffset * 26f`), scale down, and overlap gracefully behind the centered card.\n- **Frosted Track Info Banner**: Centered artwork cards display a floating frosted glass banner at the bottom displaying track title (bold) and artist name (subtle opacity) matching high-fidelity music carousels.\n\n### \ud83d\udccc Pinterest-Style Floating Navigation Dock\n- **Unified Pill Capsule Dock**: Floating navigation bar enclosed in an ultra-smooth capsule container (`RoundedCornerShape(percent = 50)`).\n- **Brand Emblem / Quick-Action Action Pill**: Circular action button on the far left of the dock with smooth micro-haptic feedback.\n- **Sliding Squircle Active Tab Indicator**: Active tab is highlighted with a smooth sliding squircle chip indicator powered by spring physics (`dampingRatio = 0.82f`).\n- **Active Glow Dot**: Positioned right below the active icon/label for instant visual clarity.\n\n### \ud83c\udf10 Invisible Backend JioSaavn Audio Fallback\n- **Zero Missing Songs**: When a song is unplayable or unavailable in YouTube Music (geoblocking, copyright removals, or catalog gaps), the backend automatically and invisibly resolves direct 320kbps/160kbps audio streams from JioSaavn.\n- **Completely Hidden & Native**: Invisible in the user interface\u2014no toggles, no badges, and zero UI clutter. Plays smoothly through the native player engine.\n",
+  "published_at": "2026-11-24T16:44:48Z",
+  "body": "# Pulse Music v4.2.1 - Windows Playback Hotfix & Enhanced JioSaavn Search Integration\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83d\ude80 Windows MPV Native Audio Engine & Auto-Skip Hotfix\n- **Bundled `libmpv-2.dll`**: Solved missing native MPV library on Windows desktop by bundling `libmpv-2.dll` into app resources and root installation directories.\n- **Multi-Path Dynamic Discovery**: `MpvLibrary` now searches application execution directory, `app/resources`, and native paths with prioritized candidate loading.\n- **Runaway Auto-Skip Elimination**: Fixed automatic skipping bug where error counters were reset prematurely during auto-advances. The player now enforces strict error thresholds without cycling through the queue.\n\n### \ud83d\udd0d Enhanced JioSaavn Search Console Integration\n- **Parallel Autocomplete Suggestions**: As users type in the SearchBar, suggestions from JioSaavn autocomplete and YouTube Music are gathered simultaneously.\n- **Instant 320kbps Lossless Playback**: Top JioSaavn songs display seamlessly in recommended items with pre-cached direct 320kbps streams for zero-delay playback.\n- **Smart Result Interleaving**: JioSaavn regional and high-res results are interleaved and deduplicated alongside YouTube Music results.\n- **Robust Radio & Queue Seeding**: Fixed queue loading for JioSaavn tracks (`saavn:...`) to ensure seamless continuous playback without YouTube radio errors.\n\n### \ud83c\udfa8 Visual & Performance Refinements\n- **Complete Vibrant Expressive Circular Player**: Continued refinements to the modern circular disc artwork player and ambient multi-color light ring.\n- **3D Cover Flow Carousel**: Smooth perspective rotation and frosted track info banner.\n- **Ultra-low latency audio buffering** with automated high-bitrate fallback resolution.\n",
   "changelog": [
-    "Vibrant Expressive Theme Player: Circular disc artwork, glowing concentric progress ring, 5-button main transport row, and multi-colour ambient light backdrop",
+    "Windows MPV Native Engine: Bundled libmpv-2.dll and expanded multi-path discovery, eliminating playback errors and auto-skipping",
+    "Enhanced JioSaavn Search Integration: Parallel real-time autocomplete suggestions and recommended song dropdown in search console",
+    "Continuous JioSaavn Queue: Seamless queue extension and radio playback without YouTube API endpoint conflicts",
+    "Vibrant Expressive Theme Player: Circular disc artwork, glowing concentric progress ring, 5-button main transport row, and ambient light backdrop",
     "Cover Flow 3D Perspective Carousel: 3D rotation, depth scaling, card overlapping, and frosted track info banner",
-    "Pinterest-Style Floating Navigation Dock: Unified capsule pill, far-left circular brand emblem, sliding squircle chip, and active glow dot",
-    "Invisible Backend JioSaavn Audio Fallback: Automated resolution of 320kbps streams for missing or unplayable YouTube Music songs without any UI branding",
-    "Ultra-low 250ms buffer tuning for instant video canvas loop start and zero-latency UI interactions"
+    "Pinterest-Style Floating Navigation Dock: Unified capsule pill, far-left circular brand emblem, sliding squircle chip, and active glow dot"
   ],
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 58074013
+      "size": 58086484
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30204886
+      "size": 30217365
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30169029
+      "size": 30181496
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 31670368
+      "size": 31682827
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/vnd.microsoft.portable-executable",
-      "size": 152050280
+      "size": 247374904
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 179268790
+      "size": 246921926
     }
   ],
-  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.exe",
-  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.exe"
+  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.exe",
+  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.exe"
 }

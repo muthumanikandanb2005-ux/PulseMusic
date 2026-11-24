@@ -4,6 +4,7 @@ import com.manikandan.common.MERGING_DATA_TYPE
 import com.manikandan.data.db.datasource.LocalDataSource
 import com.manikandan.data.service.JioSaavnService
 import com.manikandan.domain.utils.toSongEntity
+import com.manikandan.domain.utils.toTrack
 import com.manikandan.data.extension.getFullDataFromDB
 import com.manikandan.data.mapping.toListTrack
 import com.manikandan.data.mapping.toSongItemForDownload
@@ -528,6 +529,18 @@ internal class SongRepositoryImpl(
     override fun getRelatedData(videoId: String): Flow<Resource<Pair<List<Track>, String?>>> =
         flow {
             runCatching {
+                if (videoId.startsWith("saavn:")) {
+                    val cleanId = videoId.removePrefix("saavn:")
+                    val cachedTrack = JioSaavnService.getCachedTrack(videoId) ?: JioSaavnService.getCachedTrack(cleanId)
+                    val artistName = cachedTrack?.artists?.firstOrNull()?.name
+                    val title = cachedTrack?.title
+                    val query = if (!artistName.isNullOrBlank() && !title.isNullOrBlank()) "$title $artistName" else title ?: cleanId
+                    val related = JioSaavnService.searchSongs(query)
+                        .filter { it.videoId != videoId }
+                        .map { it.toTrack() }
+                    emit(Resource.Success<Pair<List<Track>, String?>>(Pair(related, null)))
+                    return@runCatching
+                }
                 youTube
                     .next(WatchEndpoint(videoId = videoId))
                     .onSuccess { next ->
@@ -556,6 +569,21 @@ internal class SongRepositoryImpl(
     override fun getRadioFromEndpoint(endpoint: YouTubeWatchEndpoint): Flow<Resource<Pair<List<Track>, String?>>> =
         flow {
             runCatching {
+                val vId = endpoint.videoId ?: ""
+                val pId = endpoint.playlistId ?: ""
+                if (vId.startsWith("saavn:") || pId.contains("saavn:")) {
+                    val actualId = if (vId.startsWith("saavn:")) vId else pId.removePrefix("RDAMVM")
+                    val cleanId = actualId.removePrefix("saavn:")
+                    val cachedTrack = JioSaavnService.getCachedTrack(actualId) ?: JioSaavnService.getCachedTrack(cleanId)
+                    val artistName = cachedTrack?.artists?.firstOrNull()?.name
+                    val title = cachedTrack?.title
+                    val query = if (!artistName.isNullOrBlank() && !title.isNullOrBlank()) "$title $artistName" else title ?: cleanId
+                    val related = JioSaavnService.searchSongs(query)
+                        .filter { it.videoId != actualId }
+                        .map { it.toTrack() }
+                    emit(Resource.Success(Pair(related, null)))
+                    return@runCatching
+                }
                 youTube
                     .next(endpoint.toWatchEndpoint())
                     .onSuccess { next ->

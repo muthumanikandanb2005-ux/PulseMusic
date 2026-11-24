@@ -16,6 +16,7 @@ import com.manikandan.domain.data.model.searchResult.artists.ArtistsResult
 import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
 import com.manikandan.domain.data.model.searchResult.songs.SongsResult
 import com.manikandan.domain.data.model.searchResult.videos.VideosResult
+import com.manikandan.domain.data.type.SearchResultType
 import com.manikandan.domain.repository.SearchRepository
 import com.manikandan.domain.utils.Resource
 import com.manikandan.kotlinytmusicscraper.YouTube
@@ -96,15 +97,22 @@ internal class SearchRepositoryImpl(
                     val jioList = jioDeferred.await()
 
                     val combined = arrayListOf<SongsResult>()
-                    combined.addAll(ytList)
-                    combined.addAll(jioList)
+                    val maxLen = maxOf(jioList.size, ytList.size)
+                    for (i in 0 until maxLen) {
+                        if (i < jioList.size) combined.add(jioList[i])
+                        if (i < ytList.size) combined.add(ytList[i])
+                    }
 
-                    val distinctSongs = ArrayList(combined.distinctBy { it.videoId })
+                    val distinctSongs = ArrayList(combined.distinctBy { songItem ->
+                        val normTitle = songItem.title?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
+                        val normArtist = songItem.artists?.firstOrNull()?.name?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
+                        if (normTitle.isNotBlank()) "${normTitle}_${normArtist}" else songItem.videoId
+                    })
                     com.manikandan.data.telemetry.PulseTelemetry.trackSearch(
                         query = query,
                         category = "SONG",
                         resultsCount = distinctSongs.size,
-                        appVersion = "4.2.0"
+                        appVersion = "4.2.1"
                     )
                     emit(Resource.Success<ArrayList<SongsResult>>(distinctSongs))
                 }
@@ -359,14 +367,54 @@ internal class SearchRepositoryImpl(
     override fun getSuggestQuery(query: String): Flow<Resource<SearchSuggestions>> =
         flow {
             runCatching {
-                youTube
-                    .getYTMusicSearchSuggestions(query)
-                    .onSuccess {
-                        emit(Resource.Success(it.toDomainSearchSuggestions()))
-                    }.onFailure { e ->
-                        Logger.d("Suggest", "Error: ${e.message}")
-                        emit(Resource.Error<SearchSuggestions>(e.message.toString()))
+                coroutineScope {
+                    val ytDeferred = async {
+                        runCatching {
+                            youTube.getYTMusicSearchSuggestions(query).getOrNull()?.toDomainSearchSuggestions()
+                        }.getOrNull()
                     }
+                    val jioDeferred = async {
+                        runCatching {
+                            JioSaavnService.getSearchSuggestions(query)
+                        }.getOrNull()
+                    }
+
+                    val ytSuggestions = ytDeferred.await()
+                    val jioSuggestions = jioDeferred.await()
+
+                    val allQueries = linkedSetOf<String>()
+                    val allItems = arrayListOf<SearchResultType>()
+
+                    // Place JioSaavn high-res recommended items first
+                    jioSuggestions?.recommendedItems?.let { allItems.addAll(it) }
+                    ytSuggestions?.recommendedItems?.let { allItems.addAll(it) }
+
+                    ytSuggestions?.queries?.let { allQueries.addAll(it) }
+                    jioSuggestions?.queries?.let { allQueries.addAll(it) }
+
+                    val distinctItems = allItems.distinctBy { item ->
+                        when (item) {
+                            is SongsResult -> "song_${item.videoId}"
+                            is VideosResult -> "video_${item.videoId}"
+                            is AlbumsResult -> "album_${item.browseId}"
+                            is ArtistsResult -> "artist_${item.browseId}"
+                            is PlaylistsResult -> "playlist_${item.browseId}"
+                            else -> item.hashCode().toString()
+                        }
+                    }
+
+                    emit(
+                        Resource.Success(
+                            SearchSuggestions(
+                                queries = allQueries.toList(),
+                                recommendedItems = distinctItems,
+                            ),
+                        ),
+                    )
+                }
+            }.onFailure { e ->
+                Logger.d("Suggest", "Error: ${e.message}")
+                emit(Resource.Error<SearchSuggestions>(e.message.toString()))
             }
         }.flowOn(Dispatchers.IO)
 }

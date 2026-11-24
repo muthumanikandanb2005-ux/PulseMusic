@@ -413,13 +413,14 @@ fun SearchScreen(
                                     when (item) {
                                         is SongsResult, is VideosResult -> {
                                             val firstTrack: Track = (item as? SongsResult)?.toTrack() ?: (item as VideosResult).toTrack()
+                                            val isJio = firstTrack.videoId.startsWith("saavn:")
                                             searchViewModel.setQueueData(
                                                 QueueData.Data(
                                                     listTracks = arrayListOf(firstTrack),
                                                     firstPlayedTrack = firstTrack,
-                                                    playlistId = "RDAMVM${firstTrack.videoId}",
+                                                    playlistId = if (isJio) firstTrack.videoId else "RDAMVM${firstTrack.videoId}",
                                                     playlistName = "\"${searchText}\" ${getStringBlocking(Res.string.in_search)}",
-                                                    playlistType = PlaylistType.RADIO,
+                                                    playlistType = if (isJio) PlaylistType.PLAYLIST else PlaylistType.RADIO,
                                                     continuation = null,
                                                 ),
                                             )
@@ -813,18 +814,21 @@ fun SearchScreen(
                                                                         onClickListener = {
                                                                             focusManager.clearFocus()
                                                                             val firstTrack = result.toTrack()
+                                                                            val isJio = result.videoId.startsWith("saavn:")
+                                                                            val songTracks = currentResults.filterIsInstance<SongsResult>().map { it.toTrack() }
+                                                                            val queueTracks = if (songTracks.isNotEmpty()) ArrayList(songTracks) else arrayListOf(firstTrack)
                                                                             searchViewModel.setQueueData(
                                                                                 QueueData.Data(
-                                                                                    listTracks = arrayListOf(firstTrack),
+                                                                                    listTracks = queueTracks,
                                                                                     firstPlayedTrack = firstTrack,
-                                                                                    playlistId = "RDAMVM${result.videoId}",
+                                                                                    playlistId = if (isJio) result.videoId else "RDAMVM${result.videoId}",
                                                                                     playlistName =
                                                                                         "\"${searchText}\" ${
                                                                                             getStringBlocking(
                                                                                                 Res.string.in_search,
                                                                                             )
                                                                                         }",
-                                                                                    playlistType = PlaylistType.RADIO,
+                                                                                    playlistType = if (isJio) PlaylistType.PLAYLIST else PlaylistType.RADIO,
                                                                                     continuation = null,
                                                                                 ),
                                                                             )

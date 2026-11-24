@@ -1,5 +1,5 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "4.2.0"
+#define MyAppVersion "4.2.1"
 #define MyAppPublisher "Manikandan"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"
@@ -32,11 +32,11 @@ SignTool=signtool
 SignedUninstaller=yes
 VersionInfoCompany=Manikandan
 VersionInfoDescription=Pulse Music Desktop Setup
-VersionInfoVersion=4.2.0.0
-VersionInfoTextVersion=4.2.0
+VersionInfoVersion=4.2.1.0
+VersionInfoTextVersion=4.2.1
 VersionInfoCopyright=Copyright (C) 2026 Manikandan
 VersionInfoProductName=Pulse Music
-VersionInfoProductVersion=4.2.0.0
+VersionInfoProductVersion=4.2.1.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -50,6 +50,8 @@ Type: files; Name: "{app}\app\Pulse.cfg"
 
 [Files]
 Source: "..\desktopApp\build\compose\binaries\main\app\Pulse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\mpv-natives\windows-x64\libmpv-2.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\mpv-natives\windows-x64\libmpv-2.dll"; DestDir: "{app}\app\resources"; Flags: ignoreversion
 Source: "..\desktopApp\PulseMusic.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\PulseMusic.cer"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\scripts\trust_publisher.bat"; DestDir: "{app}"; Flags: ignoreversion

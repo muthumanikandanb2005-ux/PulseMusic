@@ -2827,7 +2827,9 @@ class JvmMediaPlayerHandlerImpl(
         mediaItem: GenericMediaItem?,
         reason: Int,
     ) {
-        consecutivePlayerErrors = 0
+        if (reason != PlayerConstants.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+            consecutivePlayerErrors = 0
+        }
         resetPositionSmoothing()
         Logger.w(TAG, "Checking current state before transition ${simpleMediaState.value}")
         val lastPlayed = nowPlayingState.value.songEntity
@@ -2947,13 +2949,13 @@ class JvmMediaPlayerHandlerImpl(
         pushPlayerError(error)
         consecutivePlayerErrors++
 
-        if (consecutivePlayerErrors >= 3 || !player.hasNextMediaItem()) {
+        if (consecutivePlayerErrors >= 2 || !player.hasNextMediaItem()) {
             Logger.w("Player Error", "Stopping playback: consecutive errors=$consecutivePlayerErrors, hasNext=${player.hasNextMediaItem()}")
             consecutivePlayerErrors = 0
             showToast(ToastType.PlayerError(error.errorCodeName))
             player.pause()
         } else {
-            Logger.w("Player Error", "Track playback error (${error.errorCodeName}), auto-advancing to next track in queue (attempt $consecutivePlayerErrors/3)")
+            Logger.w("Player Error", "Track playback error (${error.errorCodeName}), auto-advancing to next track in queue (attempt $consecutivePlayerErrors/2)")
             resetCrossfade()
             player.seekToNext()
         }

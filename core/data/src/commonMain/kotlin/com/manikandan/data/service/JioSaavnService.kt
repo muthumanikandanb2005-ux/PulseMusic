@@ -3,11 +3,13 @@ package com.manikandan.data.service
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.browse.playlist.Author
 import com.manikandan.domain.data.model.browse.playlist.PlaylistBrowse
+import com.manikandan.domain.data.model.searchResult.SearchSuggestions
 import com.manikandan.domain.data.model.searchResult.playlists.PlaylistsResult
 import com.manikandan.domain.data.model.searchResult.songs.Album
 import com.manikandan.domain.data.model.searchResult.songs.Artist
 import com.manikandan.domain.data.model.searchResult.songs.SongsResult
 import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
+import com.manikandan.domain.data.type.SearchResultType
 import com.manikandan.ktorext.getEngine
 import com.manikandan.logger.Logger
 import io.ktor.client.HttpClient
@@ -62,6 +64,111 @@ object JioSaavnService {
         .replace("&gt;", ">")
         .replace("&nbsp;", " ")
         .trim()
+
+    /**
+     * Retrieves autocomplete search suggestions and recommended song items from JioSaavn.
+     */
+    suspend fun getSearchSuggestions(query: String): SearchSuggestions = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext SearchSuggestions(emptyList(), emptyList())
+        val cleanQuery = query.trim()
+        val queries = mutableListOf<String>()
+        val songs = mutableListOf<SongsResult>()
+
+        try {
+            val encoded = cleanQuery.encodeURLParameter()
+            val url = "https://www.jiosaavn.com/api.php?__call=autocomplete.get&query=$encoded&_format=json&_marker=0&ctx=web6dot0"
+            val response = client.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            }
+            if (response.status.value in 200..299) {
+                val body = response.bodyAsText()
+                val root = json.parseToJsonElement(body).jsonObject
+
+                // 1. Top query suggestions
+                val topData = root["topquery"]?.jsonObject?.get("data")?.jsonArray
+                topData?.forEach { elem ->
+                    val title = elem.jsonObject["title"]?.jsonPrimitive?.content?.unescapeHtml()
+                    if (!title.isNullOrBlank() && !queries.contains(title)) {
+                        queries.add(title)
+                    }
+                }
+
+                // 2. Song suggestions
+                val songData = root["songs"]?.jsonObject?.get("data")?.jsonArray
+                songData?.forEach { elem ->
+                    val obj = elem.jsonObject
+                    val id = obj["id"]?.jsonPrimitive?.content ?: return@forEach
+                    val title = obj["title"]?.jsonPrimitive?.content?.unescapeHtml() ?: return@forEach
+                    val album = obj["album"]?.jsonPrimitive?.content?.unescapeHtml() ?: ""
+                    val rawImg = obj["image"]?.jsonPrimitive?.content ?: ""
+                    val highResImg = rawImg.replace("50x50", "500x500").replace("150x150", "500x500")
+                    val moreInfo = obj["more_info"]?.jsonObject
+                    val rawArtist = moreInfo?.get("primary_artists")?.jsonPrimitive?.content?.unescapeHtml()
+                        ?: obj["description"]?.jsonPrimitive?.content?.unescapeHtml()
+                    val artists = if (!rawArtist.isNullOrBlank()) {
+                        rawArtist.split(",", "·").mapNotNull {
+                            val trimmed = it.trim()
+                            if (trimmed.isNotBlank() && trimmed != title && trimmed != album) Artist(name = trimmed, id = null) else null
+                        }
+                    } else emptyList()
+
+                    val thumbnails = if (highResImg.isNotBlank()) {
+                        listOf(Thumbnail(url = highResImg, width = 500, height = 500))
+                    } else emptyList()
+
+                    val track = Track(
+                        album = Album(name = album, id = ""),
+                        artists = artists,
+                        duration = null,
+                        durationSeconds = null,
+                        isAvailable = true,
+                        isExplicit = false,
+                        likeStatus = null,
+                        thumbnails = thumbnails,
+                        title = title,
+                        videoId = "saavn:$id",
+                        videoType = "Song",
+                        category = "SONG",
+                        feedbackTokens = null,
+                        resultType = "Song",
+                        year = "",
+                    )
+                    trackCache[id] = track
+                    trackCache["saavn:$id"] = track
+
+                    val songResult = SongsResult(
+                        album = Album(name = album, id = ""),
+                        artists = artists,
+                        category = "SONG",
+                        duration = null,
+                        durationSeconds = null,
+                        feedbackTokens = null,
+                        isExplicit = false,
+                        resultType = "Song",
+                        thumbnails = thumbnails,
+                        title = title,
+                        videoId = "saavn:$id",
+                        videoType = "Song",
+                        year = "",
+                    )
+                    songs.add(songResult)
+                }
+
+                // 3. Album suggestions (as query keywords)
+                val albumData = root["albums"]?.jsonObject?.get("data")?.jsonArray
+                albumData?.forEach { elem ->
+                    val title = elem.jsonObject["title"]?.jsonPrimitive?.content?.unescapeHtml()
+                    if (!title.isNullOrBlank() && !queries.contains(title)) {
+                        queries.add(title)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Logger.d(TAG, "getSearchSuggestions error: ${e.message}")
+        }
+
+        SearchSuggestions(queries = queries, recommendedItems = songs)
+    }
 
     /**
      * Searches songs from JioSaavn and maps them to domain [SongsResult].
@@ -537,6 +644,8 @@ object JioSaavnService {
     suspend fun resolveStreamById(songId: String): String? = withContext(Dispatchers.IO) {
         val cleanId = songId.removePrefix("saavn:")
         streamUrlCache[cleanId]?.let { return@withContext it }
+        streamUrlCache[songId]?.let { return@withContext it }
+        streamUrlCache["saavn:$cleanId"]?.let { return@withContext it }
 
         try {
             val url = "https://www.jiosaavn.com/api.php?__call=song.getDetails&pids=$cleanId&_format=json&_marker=0&api_version=4"
@@ -555,6 +664,8 @@ object JioSaavnService {
                     if (!decrypted.isNullOrBlank()) {
                         val stream320 = decrypted.replace("_96.mp4", "_320.mp4").replace("_160.mp4", "_320.mp4")
                         streamUrlCache[cleanId] = stream320
+                        streamUrlCache[songId] = stream320
+                        streamUrlCache["saavn:$cleanId"] = stream320
                         return@withContext stream320
                     }
                 }
