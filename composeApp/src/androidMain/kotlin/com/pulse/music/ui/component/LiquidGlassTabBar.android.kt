@@ -70,7 +70,9 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
-private val CapsuleShape = RoundedCornerShape(percent = 50)
+private val SquareTabShape = RoundedCornerShape(10.dp)
+private val SquareBlobShape = RoundedCornerShape(8.dp)
+private val CapsuleShape = SquareTabShape
 private val TabWidth = 96.dp
 private val BarHeight = 64.dp
 private val BlobHeight = 56.dp
@@ -212,7 +214,7 @@ fun LiquidGlassTabBar(
                         BarInset.toPx()
                 }.drawBackdrop(
                     backdrop = backdrop,
-                    shape = { CapsuleShape },
+                    shape = { SquareBlobShape },
                     effects = {
                         // Luminance only drives the blur here (frosted pill); brightness/contrast stay
                         // neutral and the "đục đen" darkening is applied in onDrawSurface.

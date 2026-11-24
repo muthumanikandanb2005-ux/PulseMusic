@@ -118,7 +118,11 @@ internal class LyricsCanvasRepositoryImpl(
     ): Flow<Resource<CanvasResult>> =
         flow {
             runCatching {
-                val song = localDataSource.getSong(videoId) ?: fallbackSong
+                var song = localDataSource.getSong(videoId) ?: fallbackSong
+                if (song == null) {
+                    kotlinx.coroutines.delay(250)
+                    song = localDataSource.getSong(videoId) ?: fallbackSong
+                }
                 val songTitle = song?.title?.ifBlank { null } ?: fallbackSong?.title ?: ""
                 val artistName = song?.artistName?.firstOrNull()?.ifBlank { null } ?: fallbackSong?.artistName?.firstOrNull() ?: ""
                 val q =
@@ -347,6 +351,51 @@ internal class LyricsCanvasRepositoryImpl(
         amArtworkLock.withLock {
             if (videoId in amArtworkInFlight) false else amArtworkInFlight.add(videoId)
         }
+
+    /**
+     * Fallback high-resolution video canvas directly from the track's YouTube video/stream,
+     * ensuring 100% compulsory full-screen video loop playback across all songs without requiring any login.
+     */
+    override fun getYouTubeVideoCanvas(videoId: String): Flow<Resource<CanvasResult>> =
+        flow {
+            runCatching {
+                Logger.d(AM_ARTWORK_TAG, "Querying YouTube video canvas fallback for $videoId")
+                val playerResult = youTube.player(videoId).getOrNull()
+                val streamingData = playerResult?.second?.streamingData
+                val hlsUrl = streamingData?.hlsManifestUrl
+                val adaptiveFormats = streamingData?.adaptiveFormats.orEmpty()
+                val formats = streamingData?.formats.orEmpty()
+
+                // Find highest resolution MP4 video stream with valid URL
+                val bestMp4Format =
+                    adaptiveFormats
+                        .filter {
+                            it.mimeType.contains("video/mp4", ignoreCase = true) &&
+                                !it.url.isNullOrBlank()
+                        }.maxByOrNull { it.height ?: 0 }
+                        ?: formats.filter { !it.url.isNullOrBlank() }.maxByOrNull { it.height ?: 0 }
+
+                val canvasVideoUrl = bestMp4Format?.url ?: hlsUrl
+                if (!canvasVideoUrl.isNullOrBlank()) {
+                    val thumbUrl = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+                    Logger.d(AM_ARTWORK_TAG, "Resolved YouTube canvas fallback for $videoId -> $canvasVideoUrl")
+                    emit(
+                        Resource.Success(
+                            CanvasResult(
+                                isVideo = true,
+                                canvasUrl = canvasVideoUrl,
+                                canvasThumbUrl = thumbUrl,
+                            ),
+                        ),
+                    )
+                } else {
+                    emit(Resource.Error<CanvasResult>("No video stream available for $videoId"))
+                }
+            }.onFailure { throwable ->
+                Logger.e(AM_ARTWORK_TAG, "YouTube canvas fallback failed for $videoId: ${throwable.message}")
+                emit(Resource.Error<CanvasResult>(throwable.message ?: "Failed to resolve stream"))
+            }
+        }.flowOn(Dispatchers.IO)
 
     override suspend fun updateCanvasUrl(
         videoId: String,

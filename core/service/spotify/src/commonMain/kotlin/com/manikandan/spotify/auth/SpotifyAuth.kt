@@ -68,7 +68,7 @@ class SpotifyAuth(
                         reason = "transport",
                         sTime = sTime,
                         cTime = cTime,
-                        totpVersion = totpSecret?.first ?: SpotifyTotp.TOTP_SECRET_V22.first,
+                        totpVersion = totpSecret?.first ?: SpotifyTotp.TOTP_SECRET_LATEST.first,
                     )
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -83,23 +83,34 @@ class SpotifyAuth(
                     null
                 }
 
-            // Check if token is valid (should be 374 characters)
-            if (tokenData?.accessToken?.length != 374) {
+            // Check if token is present (accepts both registered 374-char and guest 144-char tokens)
+            if (tokenData?.accessToken.isNullOrEmpty()) {
                 // Retry with init mode
                 response =
-                    spotifyClient.getSpotifyAccessToken(
-                        spdc = spDc,
-                        otpValue = otpValue,
-                        reason = "init",
-                        sTime = sTime,
-                        cTime = cTime,
-                        totpVersion = totpSecret?.first ?: SpotifyTotp.TOTP_SECRET_V22.first,
-                    )
-                tokenData = response.body<PersonalTokenResponse>()
+                    try {
+                        spotifyClient.getSpotifyAccessToken(
+                            spdc = spDc,
+                            otpValue = otpValue,
+                            reason = "init",
+                            sTime = sTime,
+                            cTime = cTime,
+                            totpVersion = totpSecret?.first ?: SpotifyTotp.TOTP_SECRET_LATEST.first,
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
+                tokenData =
+                    try {
+                        response?.body<PersonalTokenResponse>()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
             }
 
             // Validate token
-            if (tokenData.accessToken.isEmpty()) {
+            if (tokenData?.accessToken.isNullOrEmpty()) {
                 throw Exception("Unsuccessful token request")
             }
 

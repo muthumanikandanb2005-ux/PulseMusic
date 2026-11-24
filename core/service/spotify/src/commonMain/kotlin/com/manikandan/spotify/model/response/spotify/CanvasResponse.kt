@@ -12,28 +12,28 @@ data class CanvasResponse(
     @Serializable
     data class Canvas(
         @ProtoNumber(1)
-        val id: String,
+        val id: String? = null,
         @ProtoNumber(2)
-        val canvas_url: String,
+        val canvas_url: String? = null,
         @ProtoNumber(5)
-        val track_uri: String,
+        val track_uri: String? = null,
         @ProtoNumber(6)
-        val artist: Artist,
+        val artist: Artist? = null,
         @ProtoNumber(9)
         val other_id: String? = null,
         @ProtoNumber(11)
-        val canvas_uri: String,
+        val canvas_uri: String? = null,
         @ProtoNumber(13)
         val thumbsOfCanva: List<ThumbOfCanva>? = null,
     ) {
         @Serializable
         data class Artist(
             @ProtoNumber(1)
-            val artist_uri: String,
+            val artist_uri: String? = null,
             @ProtoNumber(2)
-            val artist_name: String,
+            val artist_name: String? = null,
             @ProtoNumber(3)
-            val artist_img_url: String,
+            val artist_img_url: String? = null,
         )
 
         @Serializable

@@ -1,6 +1,10 @@
 package com.pulse.music.ui.component
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -119,11 +123,10 @@ fun AppBottomNavigationBar(
     val indicatorColor =
         MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = if (isTranslucentBackground) 0.85f else 1f)
 
+    val searchSelected = selectedIndex == BottomNavScreen.Search.ordinal
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        // One centred cluster — capsule, gap, FAB — exactly like the glass bar: fill = false keeps
-        // the capsule at its measured width, so the leftover goes around the cluster instead of
-        // wedging itself between the capsule and the search button.
         horizontalArrangement = Arrangement.Center,
         modifier =
             Modifier
@@ -132,86 +135,106 @@ fun AppBottomNavigationBar(
                 .padding(horizontal = 16.dp)
                 .padding(top = 4.dp, bottom = 8.dp),
     ) {
-        BoxWithConstraints(Modifier.weight(1f, fill = false)) {
-            // Every tab the same width, capped so two tabs on a wide screen do not stretch into
-            // slabs — the same budget rule as the glass tab bar.
-            val tabWidth = ((maxWidth - CapsuleInset * 2) / barTabs.size).coerceAtMost(FlatTabWidth)
-            val selectedPosition = barTabs.indexOfFirst { it.ordinal == selectedIndex }
-            val indicatorOffset by animateDpAsState(tabWidth * selectedPosition.coerceAtLeast(0), label = "flatBarIndicator")
-            Box(
-                modifier =
-                    Modifier
-                        .height(FlatBarHeight)
-                        .clip(RoundedCornerShape(FlatBarHeight / 2))
-                        .background(capsuleColor)
-                        .padding(horizontal = CapsuleInset),
-                contentAlignment = Alignment.CenterStart,
+        // Unified Pinterest-Style Capsule Dock matching reference design
+        Surface(
+            shape = RoundedCornerShape(percent = 50),
+            color = capsuleColor,
+            shadowElevation = 10.dp,
+            modifier = Modifier.height(FlatBarHeight),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 6.dp),
             ) {
-                // The sliding indicator — the flat stand-in for the glass bar's frosted blob. Hidden
-                // while Search (a non-capsule tab) is the selection, so nothing sits half-lit.
-                if (selectedPosition >= 0) {
+                // Far-Left: Circular Brand Emblem / Search Button
+                Surface(
+                    onClick = { selectTab(BottomNavScreen.Search) },
+                    shape = CircleShape,
+                    color = if (searchSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    shadowElevation = if (searchSelected) 6.dp else 2.dp,
+                    modifier = Modifier.size(48.dp),
+                ) {
                     Box(
-                        modifier =
-                            Modifier
-                                .offset(x = indicatorOffset)
-                                .size(width = tabWidth, height = FlatIndicatorHeight)
-                                .clip(RoundedCornerShape(FlatIndicatorHeight / 2))
-                                .background(indicatorColor),
-                    )
-                }
-                Row {
-                    barTabs.forEach { screen ->
-                        val selected = selectedIndex == screen.ordinal
-                        val contentColor =
-                            if (selected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        Column(
-                            modifier =
-                                Modifier
-                                    .width(tabWidth)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(FlatIndicatorHeight / 2))
-                                    .clickable { selectTab(screen) },
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        CompositionLocalProvider(
+                            LocalContentColor provides if (searchSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         ) {
-                            CompositionLocalProvider(LocalContentColor provides contentColor) {
-                                screen.icon()
-                            }
-                            Text(
-                                stringResource(screen.title),
-                                style = typo().bodySmall,
-                                color = contentColor,
-                                maxLines = 1,
-                            )
+                            BottomNavScreen.Search.icon()
                         }
                     }
                 }
-            }
-        }
-        Spacer(Modifier.size(12.dp))
-        val searchSelected = selectedIndex == BottomNavScreen.Search.ordinal
-        Box(
-            modifier =
-                Modifier
-                    .size(FlatIndicatorHeight)
-                    .clip(CircleShape)
-                    .background(if (searchSelected) indicatorColor else capsuleColor)
-                    .clickable { selectTab(BottomNavScreen.Search) },
-            contentAlignment = Alignment.Center,
-        ) {
-            CompositionLocalProvider(
-                LocalContentColor provides
-                    if (searchSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-            ) {
-                BottomNavScreen.Search.icon()
+
+                Spacer(Modifier.width(6.dp))
+
+                // Navigation Tabs with Sliding Squircle Chip & Glowing Dot Indicator
+                BoxWithConstraints {
+                    val tabWidth = ((maxWidth.coerceAtMost(360.dp)) / barTabs.size).coerceIn(60.dp, 82.dp)
+                    val selectedPosition = barTabs.indexOfFirst { it.ordinal == selectedIndex }
+                    val indicatorOffset by animateDpAsState(
+                        targetValue = tabWidth * selectedPosition.coerceAtLeast(0),
+                        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                        label = "flatBarIndicator",
+                    )
+
+                    // Sliding Squircle Indicator Chip
+                    if (selectedPosition >= 0) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .offset(x = indicatorOffset)
+                                    .size(width = tabWidth, height = FlatIndicatorHeight)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(indicatorColor),
+                        )
+                    }
+
+                    Row {
+                        barTabs.forEach { screen ->
+                            val selected = selectedIndex == screen.ordinal
+                            val contentColor =
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                                }
+                            Column(
+                                modifier =
+                                    Modifier
+                                        .width(tabWidth)
+                                        .height(FlatIndicatorHeight)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .clickable { selectTab(screen) },
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                CompositionLocalProvider(LocalContentColor provides contentColor) {
+                                    screen.icon()
+                                }
+                                Text(
+                                    stringResource(screen.title),
+                                    style = typo().labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                    ),
+                                    color = contentColor,
+                                    maxLines = 1,
+                                )
+                                // Active Tab Dot Indicator (as seen in reference image)
+                                if (selected) {
+                                    Spacer(Modifier.height(2.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(contentColor),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

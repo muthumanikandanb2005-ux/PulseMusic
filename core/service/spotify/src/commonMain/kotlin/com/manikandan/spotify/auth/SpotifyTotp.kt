@@ -10,7 +10,8 @@ import kotlin.io.encoding.Base64
 object SpotifyTotp {
     private const val BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
-    val TOTP_SECRET_V22 = 22 to listOf(99,101,119,123,69,120,91,123,97,74,53,48,76,102,55,69,110,54)
+    val TOTP_SECRET_LATEST = 61 to listOf(44, 55, 47, 42, 70, 40, 34, 114, 76, 74, 50, 111, 120, 97, 75, 76, 94, 102, 43, 69, 49, 120, 118, 80, 64, 78)
+    val TOTP_SECRET_V22 = TOTP_SECRET_LATEST
 
     /**
      * Generate a TOTP value for the given timestamp
@@ -18,7 +19,7 @@ object SpotifyTotp {
     fun at(timestamp: Long, totpSecret: Pair<Int, List<Int>>?): String = generate(timestamp, totpSecret)
 
     private fun generate(timestamp: Long, totpSecret: Pair<Int, List<Int>>?): String {
-        val secret = totpSecret?.let { generateSecret(it) } ?: generateSecret(TOTP_SECRET_V22)
+        val secret = totpSecret?.let { generateSecret(it) } ?: generateSecret(TOTP_SECRET_LATEST)
         return generateTotp(secret, timestamp)
     }
 

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -279,7 +280,7 @@ actual fun LiquidGlassAppBottomNavigationBar(
                     )
                 }
                 Spacer(Modifier.size(12.dp))
-                // Search lives in its own circular glass FAB (Apple Music style).
+                // Search lives in its own square glass FAB.
                 Box(
                     modifier =
                         Modifier
@@ -289,7 +290,7 @@ actual fun LiquidGlassAppBottomNavigationBar(
                                 backdrop,
                                 layer,
                                 luminanceAnimation.value,
-                                CircleShape,
+                                RoundedCornerShape(10.dp),
                                 searchFabInteraction,
                             ).clickable { selectTab(BottomNavScreen.Search.ordinal) },
                     contentAlignment = Alignment.Center,
@@ -308,7 +309,7 @@ actual fun LiquidGlassAppBottomNavigationBar(
                                 backdrop,
                                 layer,
                                 luminanceAnimation.value,
-                                CircleShape,
+                                RoundedCornerShape(10.dp),
                                 toolbarInteraction,
                             ).clickable { isExpanded = true },
                     contentAlignment = Alignment.Center,

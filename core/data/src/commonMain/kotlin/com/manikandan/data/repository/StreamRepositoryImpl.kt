@@ -5,6 +5,7 @@ import com.manikandan.common.MERGING_DATA_TYPE
 import com.manikandan.common.QUALITY
 import com.manikandan.common.VIDEO_QUALITY
 import com.manikandan.data.db.datasource.LocalDataSource
+import com.manikandan.data.service.JioSaavnService
 import com.manikandan.data.mapping.toSponsorSkipSegments
 import com.manikandan.data.mapping.toTrack
 import com.manikandan.domain.data.entities.NewFormatEntity
@@ -298,10 +299,10 @@ internal class StreamRepositoryImpl(
                                 val q =
                                     "$title $author"
                                         .replace(
-                                            Regex("\\((feat\\.|ft.|cùng v?i|con|mukana|com|avec|?????: ) "),
+                                            Regex("\\((feat\\.|ft.|cÃ¹ng v?i|con|mukana|com|avec|?????: ) "),
                                             " ",
                                         ).replace(
-                                            Regex("( và | & | ? | e | und |, |?| dan)"),
+                                            Regex("( vÃ  | & | ? | e | und |, |?| dan)"),
                                             " ",
                                         ).replace("  ", " ")
                                         .replace(Regex("([()])"), "")
@@ -339,10 +340,80 @@ internal class StreamRepositoryImpl(
                                 }
                             }
                         }
+                    if (streamUrl == null && !isVideo) {
+                        val song = localDataSource.getSong(videoId)
+                        val title = response.videoDetails?.title ?: song?.title
+                        val artist = response.videoDetails?.author ?: song?.artistName?.firstOrNull()
+                        if (!title.isNullOrBlank()) {
+                            val jioStream = JioSaavnService.resolveStream(title, artist)
+                            if (jioStream != null) {
+                                Logger.w("Stream", "Falling back to JioSaavn high-res stream for: $title")
+                                val fallbackFormat = NewFormatEntity(
+                                    videoId = videoId,
+                                    itag = ITAG.AUDIO_AAC_VERY_HIGH,
+                                    mimeType = "audio/mp4",
+                                    codecs = "mp4a.40.2",
+                                    bitrate = 320000,
+                                    sampleRate = 44100,
+                                    contentLength = null,
+                                    loudnessDb = null,
+                                    lengthSeconds = response.videoDetails?.lengthSeconds?.toIntOrNull() ?: song?.durationSeconds,
+                                    playbackTrackingVideostatsPlaybackUrl = null,
+                                    playbackTrackingAtrUrl = null,
+                                    playbackTrackingVideostatsWatchtimeUrl = null,
+                                    cpn = null,
+                                    expiredTime = now().plusSeconds(86400L),
+                                    audioUrl = jioStream,
+                                    videoUrl = null,
+                                    bpm = null,
+                                    musicKey = null,
+                                    keyScale = null,
+                                )
+                                insertNewFormat(fallbackFormat)
+                                emit(jioStream)
+                                return@onSuccess
+                            }
+                        }
+                    }
                     emit(streamUrl)
                 }.onFailure {
                     it.printStackTrace()
-                    Logger.e("Stream", "Error: ${it.message}")
+                    Logger.e("Stream", "Error: ${it.message}. Checking JioSaavn backend fallback...")
+                    if (!isVideo) {
+                        val song = localDataSource.getSong(videoId)
+                        val title = song?.title
+                        val artist = song?.artistName?.firstOrNull()
+                        if (!title.isNullOrBlank()) {
+                            val jioStream = JioSaavnService.resolveStream(title, artist)
+                            if (jioStream != null) {
+                                Logger.w("Stream", "JioSaavn resolved stream on failure for: $title")
+                                val fallbackFormat = NewFormatEntity(
+                                    videoId = videoId,
+                                    itag = ITAG.AUDIO_AAC_VERY_HIGH,
+                                    mimeType = "audio/mp4",
+                                    codecs = "mp4a.40.2",
+                                    bitrate = 320000,
+                                    sampleRate = 44100,
+                                    contentLength = null,
+                                    loudnessDb = null,
+                                    lengthSeconds = song.durationSeconds,
+                                    playbackTrackingVideostatsPlaybackUrl = null,
+                                    playbackTrackingAtrUrl = null,
+                                    playbackTrackingVideostatsWatchtimeUrl = null,
+                                    cpn = null,
+                                    expiredTime = now().plusSeconds(86400L),
+                                    audioUrl = jioStream,
+                                    videoUrl = null,
+                                    bpm = null,
+                                    musicKey = null,
+                                    keyScale = null,
+                                )
+                                insertNewFormat(fallbackFormat)
+                                emit(jioStream)
+                                return@flow
+                            }
+                        }
+                    }
                     emit(null)
                 }
         }.flowOn(Dispatchers.IO)

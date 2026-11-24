@@ -127,10 +127,12 @@ class SpotifyClient {
     suspend fun getSpotifyServerTime(spdc: String) =
         spotifyClient.get("https://open.spotify.com/api/server-time") {
             userAgent(USER_AGENT)
-            header(
-                "Cookie",
-                "sp_dc=$spdc",
-            )
+            if (spdc.isNotBlank()) {
+                header(
+                    "Cookie",
+                    "sp_dc=$spdc",
+                )
+            }
             header("App-platform", "WebPlayer")
             header("Spotify-App-Version", "1.2.61.20.g3b4cd5b2")
             header("Accept", "application/json")
@@ -148,16 +150,17 @@ class SpotifyClient {
     ) = spotifyClient.get("https://open.spotify.com/api/token") {
         userAgent(USER_AGENT)
         contentType(ContentType.Application.Json)
-        header(
-            "Cookie",
-            "sp_dc=$spdc",
-        )
+        if (spdc.isNotBlank()) {
+            header(
+                "Cookie",
+                "sp_dc=$spdc",
+            )
+        }
         parameter("reason", reason)
         parameter("productType", "mobile-web-player")
         parameter("totp", otpValue)
         parameter("totpServer", otpValue)
         parameter("totpVer", totpVersion)
-        header("Cookie", "sp_dc=$spdc")
         header("Accept", "application/json")
         header("Origin", "https://open.spotify.com")
         header("Referer", "https://open.spotify.com/")

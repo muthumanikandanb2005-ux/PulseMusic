@@ -49,6 +49,8 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -74,6 +76,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
@@ -273,12 +276,24 @@ internal fun ExpressiveArtworkCardPage(
             )
             // While the canvas covers the page the card hides (alpha 0) but keeps its
             // layout slot occupied — Classic's exact approach, so nothing below moves.
+            val pageOffset = ((state.artworkPagerState.currentPage - page) + state.artworkPagerState.currentPageOffsetFraction)
+            val absOffset = kotlin.math.abs(pageOffset).coerceIn(0f, 1f)
+
             Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .alpha(if (pageHasCanvas) 0f else 1f)
+                        .padding(horizontal = 24.dp)
+                        .graphicsLayer {
+                            cameraDistance = 12 * density
+                            // 3D Cover Flow perspective rotation as shown in reference image
+                            rotationY = -pageOffset.coerceIn(-1f, 1f) * 26f
+                            scaleX = 1f - (absOffset * 0.16f)
+                            scaleY = 1f - (absOffset * 0.16f)
+                            alpha = if (pageHasCanvas) 0f else (1f - (absOffset * 0.35f))
+                            translationX = pageOffset * 26.dp.toPx()
+                            shadowElevation = if (absOffset < 0.1f) 18.dp.toPx() else 4.dp.toPx()
+                        }
                         .aspectRatio(cardAspectRatio),
             ) {
                 if (state.ambientModeEnabled && !pageHasCanvas) {
@@ -537,6 +552,54 @@ internal fun ExpressiveArtworkCardPage(
                         error = rememberHolderPainter(),
                         modifier = Modifier.fillMaxSize(),
                     )
+                }
+
+                // Cover Flow track banner at the bottom of the card matching the reference image
+                val bannerTitle = if (isCurrentArtworkPage) state.screenData.nowPlayingTitle else (pageTrack?.title ?: "")
+                val bannerArtist = if (isCurrentArtworkPage) state.screenData.artistName else (pageTrack?.artists?.firstOrNull()?.name ?: "")
+                if (bannerTitle.isNotBlank() && !pageHasCanvas) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.50f),
+                                        Color.Black.copy(alpha = 0.88f),
+                                    ),
+                                )
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = bannerTitle,
+                                style = typo().titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee(),
+                            )
+                            if (bannerArtist.isNotBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = bannerArtist,
+                                    style = typo().bodySmall.copy(
+                                        color = Color.White.copy(alpha = 0.70f),
+                                        fontSize = 12.sp,
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

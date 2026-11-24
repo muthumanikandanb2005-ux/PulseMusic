@@ -108,8 +108,64 @@ fun MediaPlayerView(
         mutableStateOf(false)
     }
 
-    val playerListener =
+    val httpDataSourceFactory =
         remember {
+            DefaultHttpDataSource.Factory()
+                .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .setAllowCrossProtocolRedirects(true)
+                .setKeepPostFor302Redirects(true)
+                .setConnectTimeoutMs(10000)
+                .setReadTimeoutMs(10000)
+        }
+    val upstreamFactory = remember { DefaultDataSource.Factory(context, httpDataSourceFactory) }
+
+    // Create a MediaSource with explicit MimeType if known (.m3u8 or .mp4)
+    val mediaSource =
+        remember(url) {
+            val builder = MediaItem.Builder().setUri(url)
+            if (url.contains(".m3u8", ignoreCase = true)) {
+                builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+            } else if (url.contains(".mp4", ignoreCase = true)) {
+                builder.setMimeType(androidx.media3.common.MimeTypes.VIDEO_MP4)
+            }
+            builder.build()
+        }
+
+    // Initialize ExoPlayer
+    val exoPlayer =
+        remember {
+            val cacheSink =
+                CacheDataSink
+                    .Factory()
+                    .setCache(canvasCache)
+            val downStreamFactory = FileDataSource.Factory()
+            val cacheDataSourceFactory =
+                CacheDataSource
+                    .Factory()
+                    .setCache(canvasCache)
+                    .setCacheWriteDataSinkFactory(cacheSink)
+                    .setCacheReadDataSourceFactory(downStreamFactory)
+                    .setUpstreamDataSourceFactory(upstreamFactory)
+                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+            ExoPlayer
+                .Builder(context)
+                .setLoadControl(
+                    DefaultLoadControl
+                        .Builder()
+                        .setBufferDurationsMs(2_500, 15_000, 250, 500)
+                        .setPrioritizeTimeOverSizeThresholds(true)
+                        .build(),
+                ).setMediaSourceFactory(
+                    DefaultMediaSourceFactory(cacheDataSourceFactory),
+                ).build()
+                .apply {
+                    volume = 0f // Canvas video is a silent looping visual background
+                    videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+                }
+        }
+
+    val playerListener =
+        remember(exoPlayer, upstreamFactory, mediaSource) {
             object : Player.Listener {
                 override fun onVideoSizeChanged(videoSize: VideoSize) {
                     super.onVideoSizeChanged(videoSize)
@@ -129,61 +185,17 @@ fun MediaPlayerView(
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                     super.onPlayerError(error)
                     Logger.e("MediaPlayerView", "Canvas ExoPlayer error: ${error.message}", error)
+                    try {
+                        // Resilient recovery: retry without disk cache directly through upstream data source
+                        val directMediaSource = DefaultMediaSourceFactory(upstreamFactory).createMediaSource(mediaSource)
+                        exoPlayer.setMediaSource(directMediaSource)
+                        exoPlayer.prepare()
+                        exoPlayer.play()
+                    } catch (e: Exception) {
+                        Logger.e("MediaPlayerView", "Direct stream retry failed: ${e.message}")
+                    }
                 }
             }
-        }
-
-    // Initialize ExoPlayer
-    val exoPlayer =
-        remember {
-            val cacheSink =
-                CacheDataSink
-                    .Factory()
-                    .setCache(canvasCache)
-            val httpDataSourceFactory =
-                DefaultHttpDataSource.Factory()
-                    .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .setAllowCrossProtocolRedirects(true)
-                    .setConnectTimeoutMs(15000)
-                    .setReadTimeoutMs(15000)
-            val upstreamFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-            val downStreamFactory = FileDataSource.Factory()
-            val cacheDataSourceFactory =
-                CacheDataSource
-                    .Factory()
-                    .setCache(canvasCache)
-                    .setCacheWriteDataSinkFactory(cacheSink)
-                    .setCacheReadDataSourceFactory(downStreamFactory)
-                    .setUpstreamDataSourceFactory(upstreamFactory)
-                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-            ExoPlayer
-                .Builder(context)
-                .setLoadControl(
-                    DefaultLoadControl
-                        .Builder()
-                        .setBufferDurationsMs(5_000, 25_000, 500, 1_000)
-                        .setPrioritizeTimeOverSizeThresholds(true)
-                        .build(),
-                ).setMediaSourceFactory(
-                    DefaultMediaSourceFactory(cacheDataSourceFactory),
-                ).build()
-                .apply {
-                    volume = 0f // Canvas video is a silent looping visual background
-                    videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
-                    addListener(playerListener)
-                }
-        }
-
-    // Create a MediaSource with explicit MimeType if known (.m3u8 or .mp4)
-    val mediaSource =
-        remember(url) {
-            val builder = MediaItem.Builder().setUri(url)
-            if (url.contains(".m3u8", ignoreCase = true)) {
-                builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
-            } else if (url.contains(".mp4", ignoreCase = true)) {
-                builder.setMimeType(androidx.media3.common.MimeTypes.VIDEO_MP4)
-            }
-            builder.build()
         }
 
     // Set MediaSource to ExoPlayer
@@ -196,7 +208,8 @@ fun MediaPlayerView(
     }
 
     // Manage lifecycle events
-    DisposableEffect(Unit) {
+    DisposableEffect(exoPlayer, playerListener) {
+        exoPlayer.addListener(playerListener)
         onDispose {
             exoPlayer.removeListener(playerListener)
             exoPlayer.release()

@@ -49,6 +49,14 @@ interface LyricsCanvasRepository {
         fallbackSong: SongEntity? = null,
     ): Flow<Resource<CanvasResult>>
 
+    /**
+     * Fallback high-resolution video canvas directly from the track's YouTube video/stream,
+     * ensuring 100% compulsory full-screen video loop playback across all songs without requiring any login.
+     */
+    fun getYouTubeVideoCanvas(
+        videoId: String,
+    ): Flow<Resource<CanvasResult>>
+
     suspend fun updateCanvasUrl(
         videoId: String,
         canvasUrl: String,

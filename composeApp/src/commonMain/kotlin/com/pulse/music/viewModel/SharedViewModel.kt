@@ -703,31 +703,46 @@ class SharedViewModel(
             if (sources.isEmpty()) return@launch
 
             var resolved = false
-            for (source in sources) {
-                if (resolved) break
-                source.cancellable().collect { response ->
-                    val data = response.data
-                    val currentId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                    if (response is Resource.Success && data != null && currentId == cleanVideoId) {
-                        resolved = true
-                        _canvas.value = data
-                        _nowPlayingScreenData.update {
-                            it.copy(
-                                canvasData =
-                                    NowPlayingScreenData.CanvasData(
-                                        isVideo = data.isVideo,
-                                        url = data.canvasUrl,
-                                    ),
-                            )
+            try {
+                coroutineScope {
+                    val deferreds = sources.map { source ->
+                        async {
+                            var candidate: CanvasResult? = null
+                            try {
+                                source.cancellable().collect { response ->
+                                    if (response is Resource.Success && response.data != null) {
+                                        candidate = response.data
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Logger.d(tag, "Canvas source exception: ${e.message}")
+                            }
+                            candidate
                         }
-                        // Save canvas video url
-                        if (data.isVideo) lyricsCanvasRepository.updateCanvasUrl(cleanVideoId, data.canvasUrl)
-                        // Save canvas thumb url
-                        data.canvasThumbUrl?.let { lyricsCanvasRepository.updateCanvasThumbUrl(cleanVideoId, it) }
-                    } else {
-                        log("Get canvas miss from a source: ${response.message}", LogLevel.WARN)
+                    }
+                    for (deferred in deferreds) {
+                        val candidate = deferred.await()
+                        val currentId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                        if (candidate != null && currentId == cleanVideoId) {
+                            resolved = true
+                            _canvas.value = candidate
+                            _nowPlayingScreenData.update {
+                                it.copy(
+                                    canvasData =
+                                        NowPlayingScreenData.CanvasData(
+                                            isVideo = candidate.isVideo,
+                                            url = candidate.canvasUrl,
+                                        ),
+                                )
+                            }
+                            if (candidate.isVideo) lyricsCanvasRepository.updateCanvasUrl(cleanVideoId, candidate.canvasUrl)
+                            candidate.canvasThumbUrl?.let { lyricsCanvasRepository.updateCanvasThumbUrl(cleanVideoId, it) }
+                            break
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Logger.e(tag, "Parallel canvas fetch error: ${e.message}")
             }
 
             if (!resolved) {
@@ -735,6 +750,7 @@ class SharedViewModel(
                 val cachedUrl = nowPlayingState.value?.songEntity?.canvasUrl
                     ?: songRepository.getSongById(cleanVideoId).firstOrNull()?.canvasUrl
                 if (cachedUrl != null && currentId == cleanVideoId) {
+                    resolved = true
                     _nowPlayingScreenData.update {
                         it.copy(
                             canvasData =
@@ -744,6 +760,33 @@ class SharedViewModel(
                                 ),
                         )
                     }
+                }
+            }
+
+            // Compulsory fallback: fetch full-screen YouTube video stream canvas if still not resolved!
+            if (!resolved) {
+                try {
+                    lyricsCanvasRepository.getYouTubeVideoCanvas(cleanVideoId).cancellable().collect { response ->
+                        val data = response.data
+                        val currentId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                        if (response is Resource.Success && data != null && currentId == cleanVideoId) {
+                            resolved = true
+                            _canvas.value = data
+                            _nowPlayingScreenData.update {
+                                it.copy(
+                                    canvasData =
+                                        NowPlayingScreenData.CanvasData(
+                                            isVideo = true,
+                                            url = data.canvasUrl,
+                                        ),
+                                )
+                            }
+                            lyricsCanvasRepository.updateCanvasUrl(cleanVideoId, data.canvasUrl)
+                            data.canvasThumbUrl?.let { lyricsCanvasRepository.updateCanvasThumbUrl(cleanVideoId, it) }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Logger.e(tag, "Compulsory YouTube canvas fallback error: ${e.message}")
                 }
             }
         }
