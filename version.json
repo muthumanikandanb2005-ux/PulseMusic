@@ -13,7 +13,7 @@
   "name": "Pulse Music v4.2.0 - Vibrant Expressive Circular Player, Cover Flow 3D Carousel & Pinterest Dock",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-11-24T06:37:38Z",
+  "published_at": "2026-11-24T11:31:41Z",
   "body": "# Pulse Music v4.2.0 - Vibrant Expressive Circular Player, Cover Flow 3D Carousel & Pinterest Dock\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83c\udfa8 Vibrant Expressive Theme Player (Modern Circular Aesthetic)\n- **Reference-Accurate Architectural Layout**: Complete overhaul of the Vibrant Expressive player layout matching high-end modern Behance/Dribbble music player designs.\n- **Top Header & Metadata Alignment**: Dismiss down-chevron on left, context/playlist name center, and more actions on right. Title, artist, and elapsed/total duration (`01:23 | 02:35`) are cleanly centered above the circular artwork.\n- **Concentric Glowing Progress Ring**: Circular disc artwork framed by a glowing progress arc with an interactive scrub knob and breathing ambient glow. Supports instant touch-and-drag circular seeking.\n- **5-Button Primary Transport Row**: Features `\u2296` (remove/dislike/skip), `|\u25c0` (previous), a bold 66dp solid white circular `\u25b6/\u23f8` button with dark icon, `\u25b6|` (next), and `\u2665` (like) button with animated heart burst.\n- **4-Button Secondary Actions Row**: Clean horizontal layout for `\u292e` (shuffle), `\u2261` (queue), `\ud83d\udd0a` (audio output/device badge), and `\ud83d\udd01` (repeat).\n- **Multi-Colour Dynamic Moving Ambient Light**: Real-time ambient light moving across the backdrop with dual-color palette blending derived dynamically from album art.\n- **Aperture & Fullscreen Canvas Video**: Seamless canvas video playback both inside the circular disc aperture and as an immersive ambient backdrop behind the glowing progress ring.\n\n### \ud83c\udfb4 Cover Flow 3D Perspective Carousel\n- **Cover Flow 3D Depth & Tilt**: Adjacent artwork cards rotate in 3D perspective around the Y-axis (`rotationY = -pageOffset * 26f`), scale down, and overlap gracefully behind the centered card.\n- **Frosted Track Info Banner**: Centered artwork cards display a floating frosted glass banner at the bottom displaying track title (bold) and artist name (subtle opacity) matching high-fidelity music carousels.\n\n### \ud83d\udccc Pinterest-Style Floating Navigation Dock\n- **Unified Pill Capsule Dock**: Floating navigation bar enclosed in an ultra-smooth capsule container (`RoundedCornerShape(percent = 50)`).\n- **Brand Emblem / Quick-Action Action Pill**: Circular action button on the far left of the dock with smooth micro-haptic feedback.\n- **Sliding Squircle Active Tab Indicator**: Active tab is highlighted with a smooth sliding squircle chip indicator powered by spring physics (`dampingRatio = 0.82f`).\n- **Active Glow Dot**: Positioned right below the active icon/label for instant visual clarity.\n\n### \ud83c\udf10 Invisible Backend JioSaavn Audio Fallback\n- **Zero Missing Songs**: When a song is unplayable or unavailable in YouTube Music (geoblocking, copyright removals, or catalog gaps), the backend automatically and invisibly resolves direct 320kbps/160kbps audio streams from JioSaavn.\n- **Completely Hidden & Native**: Invisible in the user interface\u2014no toggles, no badges, and zero UI clutter. Plays smoothly through the native player engine.\n",
   "changelog": [
     "Vibrant Expressive Theme Player: Circular disc artwork, glowing concentric progress ring, 5-button main transport row, and multi-colour ambient light backdrop",
@@ -46,6 +46,20 @@
       "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
       "size": 31670368
+    },
+    {
+      "name": "PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.exe",
+      "content_type": "application/vnd.microsoft.portable-executable",
+      "size": 152050280
+    },
+    {
+      "name": "PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.zip",
+      "content_type": "application/zip",
+      "size": 179268790
     }
-  ]
+  ],
+  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.exe",
+  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.0/PulseMusic-Windows-x64-Setup.exe"
 }
