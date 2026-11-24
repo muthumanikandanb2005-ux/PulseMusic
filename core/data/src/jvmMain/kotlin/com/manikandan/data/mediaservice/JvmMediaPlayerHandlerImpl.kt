@@ -105,9 +105,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.koin.mp.KoinPlatform.getKoin
-import org.pulsemusic.nowplayingcenter.NPYC
-import org.pulsemusic.nowplayingcenter.domain.NowPlayingListener
-import org.pulsemusic.nowplayingcenter.domain.Platform
+import org.simpmusic.nowplayingcenter.NPYC
+import org.simpmusic.nowplayingcenter.domain.NowPlayingListener
+import org.simpmusic.nowplayingcenter.domain.Platform
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.PI
 import kotlin.math.cos

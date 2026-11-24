@@ -2,6 +2,8 @@
 
 import com.manikandan.common.MERGING_DATA_TYPE
 import com.manikandan.data.db.datasource.LocalDataSource
+import com.manikandan.data.service.JioSaavnService
+import com.manikandan.domain.utils.toSongEntity
 import com.manikandan.data.extension.getFullDataFromDB
 import com.manikandan.data.mapping.toListTrack
 import com.manikandan.data.mapping.toSongItemForDownload
@@ -191,7 +193,21 @@ internal class SongRepositoryImpl(
 
     override fun getSongById(id: String): Flow<SongEntity?> =
         flow {
-            emit(localDataSource.getSong(id))
+            val local = localDataSource.getSong(id)
+            if (local != null) {
+                emit(local)
+            } else if (id.startsWith("saavn:")) {
+                val track = JioSaavnService.getCachedTrack(id)
+                if (track != null) {
+                    val entity = track.toSongEntity()
+                    localDataSource.insertSong(entity)
+                    emit(entity)
+                } else {
+                    emit(null)
+                }
+            } else {
+                emit(null)
+            }
         }.flowOn(Dispatchers.IO)
 
     override fun getSongAsFlow(id: String) = localDataSource.getSongAsFlow(id)

@@ -1210,7 +1210,7 @@ internal class DataStoreManagerImpl(
 
     override val themeMode =
         settingsDataStore.data.map { preferences ->
-            preferences[THEME_MODE] ?: DataStoreManager.THEME_MODE_DARK
+            preferences[THEME_MODE] ?: DataStoreManager.THEME_MODE_LIGHT
         }
 
     override suspend fun setThemeMode(mode: String) {
@@ -1249,7 +1249,7 @@ internal class DataStoreManagerImpl(
 
     override val nowPlayingStyle =
         settingsDataStore.data.map { preferences ->
-            preferences[NOW_PLAYING_STYLE] ?: DataStoreManager.NOW_PLAYING_STYLE_BITCHORD
+            preferences[NOW_PLAYING_STYLE] ?: DataStoreManager.NOW_PLAYING_STYLE_VIBRANT_EXPRESSIVE
         }
 
     override suspend fun setNowPlayingStyle(style: String) {

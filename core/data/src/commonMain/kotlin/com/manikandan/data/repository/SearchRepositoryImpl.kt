@@ -8,6 +8,7 @@ import com.manikandan.data.parser.search.parseSearchArtist
 import com.manikandan.data.parser.search.parseSearchPlaylist
 import com.manikandan.data.parser.search.parseSearchSong
 import com.manikandan.data.parser.search.parseSearchVideo
+import com.manikandan.data.service.JioSaavnService
 import com.manikandan.domain.data.entities.SearchHistory
 import com.manikandan.domain.data.model.searchResult.SearchSuggestions
 import com.manikandan.domain.data.model.searchResult.albums.AlbumsResult
@@ -20,6 +21,8 @@ import com.manikandan.domain.utils.Resource
 import com.manikandan.kotlinytmusicscraper.YouTube
 import com.manikandan.logger.Logger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -53,43 +56,66 @@ internal class SearchRepositoryImpl(
     override fun getSearchDataSong(query: String): Flow<Resource<ArrayList<SongsResult>>> =
         flow {
             runCatching {
-                youTube
-                    .search(query, YouTube.SearchFilter.FILTER_SONG)
-                    .onSuccess { result ->
+                coroutineScope {
+                    val ytDeferred = async {
                         val listSongs: ArrayList<SongsResult> = arrayListOf()
-                        var countinueParam = result.continuation
-                        parseSearchSong(result).let { list ->
-                            listSongs.addAll(list)
-                        }
-                        var count = 0
-                        while (count < 2 && countinueParam != null) {
+                        runCatching {
                             youTube
-                                .searchContinuation(countinueParam)
-                                .onSuccess { values ->
-                                    parseSearchSong(values).let { list ->
+                                .search(query, YouTube.SearchFilter.FILTER_SONG)
+                                .onSuccess { result ->
+                                    var countinueParam = result.continuation
+                                    parseSearchSong(result).let { list ->
                                         listSongs.addAll(list)
                                     }
-                                    count++
-                                    countinueParam = values.continuation
-                                }.onFailure {
-                                    Logger.e("Continue", "Error: ${it.message}")
-                                    countinueParam = null
-                                    count++
+                                    var count = 0
+                                    while (count < 2 && countinueParam != null) {
+                                        youTube
+                                            .searchContinuation(countinueParam)
+                                            .onSuccess { values ->
+                                                parseSearchSong(values).let { list ->
+                                                    listSongs.addAll(list)
+                                                }
+                                                count++
+                                                countinueParam = values.continuation
+                                            }.onFailure {
+                                                Logger.e("Continue", "Error: ${it.message}")
+                                                countinueParam = null
+                                                count++
+                                            }
+                                    }
                                 }
                         }
-
-                        val distinctSongs = ArrayList(listSongs.distinctBy { it.videoId })
-                        com.manikandan.data.telemetry.PulseTelemetry.trackSearch(
-                            query = query,
-                            category = "SONG",
-                            resultsCount = distinctSongs.size,
-                            appVersion = "4.1.6"
-                        )
-                        emit(Resource.Success<ArrayList<SongsResult>>(distinctSongs))
-                    }.onFailure { e ->
-                        Logger.d("Search", "Error: ${e.message}")
-                        emit(Resource.Error<ArrayList<SongsResult>>(e.message.toString()))
+                        listSongs
                     }
+
+                    val jioDeferred = async {
+                        runCatching { JioSaavnService.searchSongs(query) }.getOrDefault(emptyList())
+                    }
+
+                    val ytList = ytDeferred.await()
+                    val jioList = jioDeferred.await()
+
+                    val combined = arrayListOf<SongsResult>()
+                    combined.addAll(ytList)
+                    combined.addAll(jioList)
+
+                    val distinctSongs = ArrayList(combined.distinctBy { it.videoId })
+                    com.manikandan.data.telemetry.PulseTelemetry.trackSearch(
+                        query = query,
+                        category = "SONG",
+                        resultsCount = distinctSongs.size,
+                        appVersion = "4.2.0"
+                    )
+                    emit(Resource.Success<ArrayList<SongsResult>>(distinctSongs))
+                }
+            }.onFailure { e ->
+                Logger.d("Search", "Error: ${e.message}. Falling back to JioSaavn directly...")
+                val jioFallback = runCatching { JioSaavnService.searchSongs(query) }.getOrDefault(emptyList())
+                if (jioFallback.isNotEmpty()) {
+                    emit(Resource.Success<ArrayList<SongsResult>>(ArrayList(jioFallback)))
+                } else {
+                    emit(Resource.Error<ArrayList<SongsResult>>(e.message.toString()))
+                }
             }
         }.flowOn(Dispatchers.IO)
 
@@ -274,35 +300,59 @@ internal class SearchRepositoryImpl(
     override fun getSearchDataPlaylist(query: String): Flow<Resource<ArrayList<PlaylistsResult>>> =
         flow {
             runCatching {
-                youTube
-                    .search(query, YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST)
-                    .onSuccess { result ->
+                coroutineScope {
+                    val ytDeferred = async {
                         val listPlaylist: ArrayList<PlaylistsResult> = arrayListOf()
-                        var countinueParam = result.continuation
-                        parseSearchPlaylist(result).let { list ->
-                            listPlaylist.addAll(list)
-                        }
-                        var count = 0
-                        while (count < 2 && countinueParam != null) {
+                        runCatching {
                             youTube
-                                .searchContinuation(countinueParam)
-                                .onSuccess { values ->
-                                    parseSearchPlaylist(values).let { list ->
+                                .search(query, YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST)
+                                .onSuccess { result ->
+                                    var countinueParam = result.continuation
+                                    parseSearchPlaylist(result).let { list ->
                                         listPlaylist.addAll(list)
                                     }
-                                    count++
-                                    countinueParam = values.continuation
-                                }.onFailure {
-                                    Logger.e("Continue", "Error: ${it.message}")
-                                    countinueParam = null
-                                    count++
+                                    var count = 0
+                                    while (count < 2 && countinueParam != null) {
+                                        youTube
+                                            .searchContinuation(countinueParam)
+                                            .onSuccess { values ->
+                                                parseSearchPlaylist(values).let { list ->
+                                                    listPlaylist.addAll(list)
+                                                }
+                                                count++
+                                                countinueParam = values.continuation
+                                            }.onFailure {
+                                                Logger.e("Continue", "Error: ${it.message}")
+                                                countinueParam = null
+                                                count++
+                                            }
+                                    }
                                 }
                         }
-                        emit(Resource.Success<ArrayList<PlaylistsResult>>(ArrayList(listPlaylist.distinctBy { it.browseId })))
-                    }.onFailure { e ->
-                        Logger.d("Search", "Error: ${e.message}")
-                        emit(Resource.Error<ArrayList<PlaylistsResult>>(e.message.toString()))
+                        listPlaylist
                     }
+
+                    val jioDeferred = async {
+                        runCatching { JioSaavnService.searchPlaylists(query) }.getOrDefault(emptyList())
+                    }
+
+                    val ytList = ytDeferred.await()
+                    val jioList = jioDeferred.await()
+
+                    val combined = arrayListOf<PlaylistsResult>()
+                    combined.addAll(ytList)
+                    combined.addAll(jioList)
+
+                    emit(Resource.Success<ArrayList<PlaylistsResult>>(ArrayList(combined.distinctBy { it.browseId })))
+                }
+            }.onFailure { e ->
+                Logger.d("Search", "Error: ${e.message}. Falling back to JioSaavn playlists...")
+                val jioFallback = runCatching { JioSaavnService.searchPlaylists(query) }.getOrDefault(emptyList())
+                if (jioFallback.isNotEmpty()) {
+                    emit(Resource.Success<ArrayList<PlaylistsResult>>(ArrayList(jioFallback)))
+                } else {
+                    emit(Resource.Error<ArrayList<PlaylistsResult>>(e.message.toString()))
+                }
             }
         }.flowOn(Dispatchers.IO)
 

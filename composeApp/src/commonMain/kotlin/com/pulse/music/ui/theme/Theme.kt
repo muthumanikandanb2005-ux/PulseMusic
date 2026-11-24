@@ -57,7 +57,7 @@ private val LightAppColors =
 val LocalAppColors = staticCompositionLocalOf { DarkAppColors }
 
 /** True in dark theme. Provided by [AppTheme] so platform glass (blur/tint) can adapt reliably. */
-val LocalIsDarkTheme = staticCompositionLocalOf { true }
+val LocalIsDarkTheme = staticCompositionLocalOf { false }
 
 /** True when Pearl Lavender pastel theme is enabled. */
 val LocalIsPearlLavenderTheme = staticCompositionLocalOf { false }
@@ -213,7 +213,7 @@ val PearlLavenderDarkColorScheme: ColorScheme =
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AppTheme(
-    themeMode: String = DataStoreManager.THEME_MODE_DARK,
+    themeMode: String = DataStoreManager.THEME_MODE_LIGHT,
     themeColorSource: String = DataStoreManager.THEME_COLOR_DEFAULT,
     customThemeColor: Color? = null,
     liquidGlassEnabled: Boolean = true,
@@ -390,7 +390,7 @@ fun ForceDarkContent(content: @Composable () -> Unit) {
 @Composable
 fun isDarkTheme(themeMode: String): Boolean =
     when (themeMode) {
-        DataStoreManager.THEME_MODE_LIGHT -> false
+        DataStoreManager.THEME_MODE_DARK -> true
         DataStoreManager.THEME_MODE_SYSTEM -> isSystemInDarkTheme()
-        else -> true
+        else -> false
     }

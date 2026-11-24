@@ -172,6 +172,23 @@ Official multi-platform release and global OTA update for **Android**, **Windows
         ]
     }
 
+    if os.path.isfile(win_exe):
+        version_data["windowsDownloadUrl"] = f"https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/{TAG}/PulseMusic-Windows-x64-Setup.exe"
+        version_data["windows_download_url"] = f"https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/{TAG}/PulseMusic-Windows-x64-Setup.exe"
+        version_data["assets"].append({
+            "name": "PulseMusic-Windows-x64-Setup.exe",
+            "browser_download_url": f"https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/{TAG}/PulseMusic-Windows-x64-Setup.exe",
+            "content_type": "application/vnd.microsoft.portable-executable",
+            "size": os.path.getsize(win_exe)
+        })
+    if os.path.isfile(win_zip):
+        version_data["assets"].append({
+            "name": "PulseMusic-Windows-x64-Setup.zip",
+            "browser_download_url": f"https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/{TAG}/PulseMusic-Windows-x64-Setup.zip",
+            "content_type": "application/zip",
+            "size": os.path.getsize(win_zip)
+        })
+
     version_json_path = os.path.join(REPO_ROOT, "version.json")
     fdroid_version_json_path = os.path.join(FDROID_DIR, "version.json")
 

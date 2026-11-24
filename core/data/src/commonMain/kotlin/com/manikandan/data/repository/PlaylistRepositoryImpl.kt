@@ -1,6 +1,7 @@
 ﻿package com.manikandan.data.repository
 
 import com.manikandan.data.db.datasource.LocalDataSource
+import com.manikandan.data.service.JioSaavnService
 import com.manikandan.data.extension.getFullDataFromDB
 import com.manikandan.data.mapping.toListTrack
 import com.manikandan.data.mapping.toTrack
@@ -312,6 +313,13 @@ internal class PlaylistRepositoryImpl(
         viewString: String,
     ): Flow<Resource<PlaylistBrowse>> =
         flow {
+            if (playlistId.startsWith("saavn_pl:")) {
+                val jioBrowse = JioSaavnService.getPlaylistBrowse(playlistId)
+                if (jioBrowse != null) {
+                    emit(Resource.Success(jioBrowse))
+                    return@flow
+                }
+            }
             runCatching {
                 var id = ""
                 id +=
@@ -444,6 +452,13 @@ internal class PlaylistRepositoryImpl(
         viewString: String,
     ): Flow<Resource<Pair<PlaylistBrowse, String?>>> =
         flow {
+            if (playlistId.startsWith("saavn_pl:")) {
+                val jioBrowse = JioSaavnService.getPlaylistBrowse(playlistId)
+                if (jioBrowse != null) {
+                    emit(Resource.Success<Pair<PlaylistBrowse, String?>>(Pair(jioBrowse, null)))
+                    return@flow
+                }
+            }
             runCatching {
                 var id = ""
                 id +=

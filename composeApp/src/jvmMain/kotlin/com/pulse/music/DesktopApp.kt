@@ -581,7 +581,7 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                     // to match the window colour the shell paints behind the panels.
                     val themeMode by sharedViewModel
                         .getThemeMode()
-                        .collectAsState(DataStoreManager.THEME_MODE_DARK)
+                        .collectAsState(DataStoreManager.THEME_MODE_LIGHT)
                     val isDark = isDarkTheme(themeMode)
                     CustomTitleBar(
                         title = stringResource(Res.string.app_name),

@@ -763,32 +763,8 @@ class SharedViewModel(
                 }
             }
 
-            // Compulsory fallback: fetch full-screen YouTube video stream canvas if still not resolved!
-            if (!resolved) {
-                try {
-                    lyricsCanvasRepository.getYouTubeVideoCanvas(cleanVideoId).cancellable().collect { response ->
-                        val data = response.data
-                        val currentId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                        if (response is Resource.Success && data != null && currentId == cleanVideoId) {
-                            resolved = true
-                            _canvas.value = data
-                            _nowPlayingScreenData.update {
-                                it.copy(
-                                    canvasData =
-                                        NowPlayingScreenData.CanvasData(
-                                            isVideo = true,
-                                            url = data.canvasUrl,
-                                        ),
-                                )
-                            }
-                            lyricsCanvasRepository.updateCanvasUrl(cleanVideoId, data.canvasUrl)
-                            data.canvasThumbUrl?.let { lyricsCanvasRepository.updateCanvasThumbUrl(cleanVideoId, it) }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Logger.e(tag, "Compulsory YouTube canvas fallback error: ${e.message}")
-                }
-            }
+            // Only genuinely available canvas (Spotify Canvas or Apple Music Animated Artwork)
+            // will populate canvasData. Songs without real canvas display their album artwork and ambient light.
         }
     }
 

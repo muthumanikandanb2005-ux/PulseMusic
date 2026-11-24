@@ -93,6 +93,41 @@ internal class StreamRepositoryImpl(
         muxed: Boolean,
     ): Flow<String?> =
         flow {
+            if (videoId.startsWith("saavn:")) {
+                val saavnId = videoId.removePrefix("saavn:")
+                val streamUrl = JioSaavnService.resolveStreamById(saavnId)
+                    ?: run {
+                        val song = localDataSource.getSong(videoId)
+                        if (song != null) JioSaavnService.resolveStream(song.title, song.artistName?.firstOrNull()) else null
+                    }
+                if (streamUrl != null) {
+                    val song = localDataSource.getSong(videoId)
+                    val fallbackFormat = NewFormatEntity(
+                        videoId = videoId,
+                        itag = ITAG.AUDIO_AAC_VERY_HIGH,
+                        mimeType = "audio/mp4",
+                        codecs = "mp4a.40.2",
+                        bitrate = 320000,
+                        sampleRate = 44100,
+                        contentLength = null,
+                        loudnessDb = null,
+                        lengthSeconds = song?.durationSeconds,
+                        playbackTrackingVideostatsPlaybackUrl = null,
+                        playbackTrackingAtrUrl = null,
+                        playbackTrackingVideostatsWatchtimeUrl = null,
+                        cpn = null,
+                        expiredTime = now().plusSeconds(86400L),
+                        audioUrl = streamUrl,
+                        videoUrl = null,
+                        bpm = null,
+                        musicKey = null,
+                        keyScale = null,
+                    )
+                    insertNewFormat(fallbackFormat)
+                    emit(streamUrl)
+                    return@flow
+                }
+            }
             val itag =
                 if (isDownloading) {
                     QUALITY.itagOf(dataStoreManager.downloadQuality.first())

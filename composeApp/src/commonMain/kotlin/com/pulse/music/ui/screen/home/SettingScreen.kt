@@ -367,10 +367,10 @@ fun SettingScreen(
     val lastCheckUpdate by viewModel.lastCheckForUpdate.collectAsStateWithLifecycle()
     val enableLiquidGlass by viewModel.enableLiquidGlass.collectAsStateWithLifecycle()
     val pearlLavenderTheme by viewModel.pearlLavenderTheme.collectAsStateWithLifecycle()
-    val themeMode by sharedViewModel.getThemeMode().collectAsStateWithLifecycle(DataStoreManager.THEME_MODE_DARK)
+    val themeMode by sharedViewModel.getThemeMode().collectAsStateWithLifecycle(DataStoreManager.THEME_MODE_LIGHT)
     val themeColorSource by sharedViewModel.getThemeColorSource().collectAsStateWithLifecycle(DataStoreManager.THEME_COLOR_DEFAULT)
     val customThemeColorHex by sharedViewModel.getCustomThemeColor().collectAsStateWithLifecycle(DataStoreManager.DEFAULT_THEME_COLOR_HEX)
-    val nowPlayingStyle by sharedViewModel.getNowPlayingStyle().collectAsStateWithLifecycle(DataStoreManager.NOW_PLAYING_STYLE_BITCHORD)
+    val nowPlayingStyle by sharedViewModel.getNowPlayingStyle().collectAsStateWithLifecycle(DataStoreManager.NOW_PLAYING_STYLE_VIBRANT_EXPRESSIVE)
     val ambientModeSetting by sharedViewModel.getAmbientMode().collectAsStateWithLifecycle(DataStoreManager.TRUE)
     val lyricsStyle by sharedViewModel.getLyricsStyle().collectAsStateWithLifecycle(DataStoreManager.LYRICS_STYLE_CLASSIC)
     val romanizationStored by sharedViewModel.getRomanizationLanguages().collectAsStateWithLifecycle("")
@@ -841,9 +841,9 @@ fun SettingScreen(
                                         valueRange = 0f..12f,
                                         steps = 11,
                                         colors = SliderDefaults.colors(
-                                            thumbColor = Color.White,
-                                            activeTrackColor = Color.White,
-                                            inactiveTrackColor = Color(0xFF2C2C2E),
+                                            thumbColor = settingsColors.titleText,
+                                            activeTrackColor = settingsColors.titleText,
+                                            inactiveTrackColor = settingsColors.cardBorder,
                                         ),
                                     )
                                 }
@@ -1342,13 +1342,13 @@ fun SettingScreen(
                                         .fillMaxWidth()
                                         .height(4.dp)
                                         .clip(RoundedCornerShape(2.dp))
-                                        .background(Color(0xFF2C2C2E)),
+                                        .background(settingsColors.cardBorder),
                                 ) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth(fraction = (fraction.playerCache).coerceIn(0.05f, 1f))
                                             .fillMaxHeight()
-                                            .background(Color.White),
+                                            .background(settingsColors.iconTint),
                                     )
                                 }
                             },
@@ -1715,7 +1715,7 @@ fun SettingScreen(
                         navController.navigate(LoginDestination)
                     },
                 ) {
-                    Text(text = "Switch Account", color = Color.White)
+                    Text(text = "Switch Account", color = settingsColors.titleText)
                 }
             },
             dismissButton = {
@@ -1765,7 +1765,7 @@ fun SettingScreen(
                         navController.navigate(SpotifyLoginDestination)
                     },
                 ) {
-                    Text(text = "Switch Account", color = Color.White)
+                    Text(text = "Switch Account", color = settingsColors.titleText)
                 }
             },
             dismissButton = {
@@ -1819,7 +1819,10 @@ fun SettingScreen(
         val parsedColor = parseThemeColorHex(pendingHex)
         AlertDialog(
             onDismissRequest = { showColorPickerDialog = false },
-            title = { Text(text = "Accent Color", style = typo().titleSmall) },
+            containerColor = settingsColors.cardBackground,
+            titleContentColor = settingsColors.titleText,
+            textContentColor = settingsColors.subtitleText,
+            title = { Text(text = "Accent Color", style = typo().titleSmall, color = settingsColors.titleText) },
             text = {
                 Column {
                     presetColors.chunked(5).forEach { rowColors ->
@@ -1902,7 +1905,10 @@ fun SettingScreen(
         val alertBasicState = basisAlertData ?: return
         AlertDialog(
             onDismissRequest = { viewModel.setBasicAlertData(null) },
-            title = { Text(text = alertBasicState.title, style = typo().titleSmall) },
+            containerColor = settingsColors.cardBackground,
+            titleContentColor = settingsColors.titleText,
+            textContentColor = settingsColors.subtitleText,
+            title = { Text(text = alertBasicState.title, style = typo().titleSmall, color = settingsColors.titleText) },
             text = {
                 if (alertBasicState.message != null) {
                     Text(text = alertBasicState.message)
@@ -1931,7 +1937,10 @@ fun SettingScreen(
         val alertState = alertData ?: return
         AlertDialog(
             onDismissRequest = { viewModel.setAlertData(null) },
-            title = { Text(text = alertState.title, style = typo().titleSmall) },
+            containerColor = settingsColors.cardBackground,
+            titleContentColor = settingsColors.titleText,
+            textContentColor = settingsColors.subtitleText,
+            title = { Text(text = alertState.title, style = typo().titleSmall, color = settingsColors.titleText) },
             text = {
                 if (alertState.message != null) {
                     Column {
@@ -2049,7 +2058,7 @@ fun SettingScreen(
         ModalBottomSheet(
             modifier = Modifier.fillMaxHeight(),
             onDismissRequest = { showThirdPartyLibraries = false },
-            containerColor = Color(0xFF161618),
+            containerColor = settingsColors.cardBackground,
             scrimColor = Color.Black.copy(alpha = .7f),
             sheetState = sheetState,
             contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
@@ -2078,7 +2087,7 @@ fun SettingScreen(
                                 Text(
                                     text = stringResource(Res.string.third_party_libraries),
                                     style = typo().titleMedium,
-                                    color = Color.White,
+                                    color = settingsColors.titleText,
                                 )
                             },
                             navigationIcon = {
@@ -2087,7 +2096,7 @@ fun SettingScreen(
                                         PulseIcons.ArrowBackIosNew,
                                         Modifier.size(32.dp),
                                         true,
-                                        tint = Color.White,
+                                        tint = settingsColors.titleText,
                                     ) {
                                         coroutineScope.launch {
                                             sheetState.hide()
@@ -2126,7 +2135,7 @@ fun SettingScreen(
                         color = settingsColors.subtitleText,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(PulseIcons.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(PulseIcons.PlayArrow, contentDescription = null, tint = settingsColors.iconTint, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text("1. YouTube Music HQ (Primary)", style = typo().bodyMedium, color = settingsColors.titleText, fontWeight = FontWeight.SemiBold)
@@ -2153,7 +2162,7 @@ fun SettingScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showAudioSourcesDialog = false }) {
-                    Text("Done", color = Color.White)
+                    Text("Done", color = settingsColors.titleText)
                 }
             },
         )
@@ -2192,7 +2201,7 @@ fun SettingScreen(
                         sharedViewModel.makeToast("Scanning device storage for local tracks...")
                     },
                 ) {
-                    Text("Rescan Storage", color = Color.White)
+                    Text("Rescan Storage", color = settingsColors.titleText)
                 }
             },
             dismissButton = {
@@ -2291,7 +2300,7 @@ fun SettingScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showSoundEffectsDialog = false }) {
-                    Text("Done", color = Color.White)
+                    Text("Done", color = settingsColors.titleText)
                 }
             },
         )
