@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -823,7 +824,7 @@ private fun ArtistSections(
                     item {
                         Spacer(Modifier.size(10.dp))
                     }
-                    items(state.data.singles?.results ?: emptyList(), key = { it.browseId }) { single ->
+                    itemsIndexed(state.data.singles?.results ?: emptyList(), key = { idx, it -> "as_${idx}_${it.browseId}" }) { _, single ->
                         HomeItemContentPlaylist(
                             forceDark = true,                            onClick = {
                                 navController.navigate(
@@ -891,7 +892,7 @@ private fun ArtistSections(
                     item {
                         Spacer(Modifier.size(10.dp))
                     }
-                    items(state.data.albums?.results ?: emptyList(), key = { it.browseId }) { album ->
+                    itemsIndexed(state.data.albums?.results ?: emptyList(), key = { idx, it -> "aa_${idx}_${it.browseId}" }) { _, album ->
                         HomeItemContentPlaylist(
                             forceDark = true,                            onClick = {
                                 navController.navigate(
@@ -960,7 +961,7 @@ private fun ArtistSections(
                     item {
                         Spacer(Modifier.size(10.dp))
                     }
-                    items(state.data.video?.video ?: emptyList(), key = { it.videoId }) { video ->
+                    itemsIndexed(state.data.video?.video ?: emptyList(), key = { idx, it -> "av_${idx}_${it.videoId}" }) { _, video ->
                         HomeItemVideo(
                             forceDark = true,                            onClick = {
                                 val firstQueue: Track = video
@@ -1027,7 +1028,7 @@ private fun ArtistSections(
                     item {
                         Spacer(Modifier.size(10.dp))
                     }
-                    items(state.data.featuredOn, key = { it.id }) { feature ->
+                    itemsIndexed(state.data.featuredOn, key = { idx, it -> "af_${idx}_${it.id}" }) { _, feature ->
                         HomeItemContentPlaylist(
                             forceDark = true,                            onClick = {
                                 navController.navigate(
@@ -1075,7 +1076,7 @@ private fun ArtistSections(
                     item {
                         Spacer(Modifier.size(10.dp))
                     }
-                    items(state.data.related?.results ?: emptyList(), key = { it.browseId }) { related ->
+                    itemsIndexed(state.data.related?.results ?: emptyList(), key = { idx, it -> "ar_${idx}_${it.browseId}" }) { _, related ->
                         HomeItemArtist(
                             forceDark = true,                            onClick = {
                                 navController.navigate(

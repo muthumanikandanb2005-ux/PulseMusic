@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -248,11 +249,11 @@ fun LibraryItem(
                                 top = 10.dp,
                             ),
                         ) {
-                            items(
+                            itemsIndexed(
                                 items = state.data,
-                                key = { item -> (item as? SongEntity)?.videoId ?: item.hashCode().toString() },
-                            ) { item ->
-                                val song = item as? SongEntity ?: return@items
+                                key = { idx, item -> "li_c_${idx}_${(item as? SongEntity)?.videoId ?: item.hashCode()}" },
+                            ) { _, item ->
+                                val song = item as? SongEntity ?: return@itemsIndexed
                                 Box(
                                     Modifier
                                         .padding(horizontal = 10.dp)
@@ -356,18 +357,19 @@ fun LibraryItem(
                     } else {
                         if (state.data.isNotEmpty()) {
                             LazyRow {
-                                items(
+                                itemsIndexed(
                                     items = state.data,
-                                    key = { item ->
-                                        when (item) {
+                                    key = { idx, item ->
+                                        val base = when (item) {
                                             is LocalPlaylistEntity -> "local_${item.id}"
                                             is PlaylistsResult -> "yt_${item.browseId}"
                                             is AlbumEntity -> "album_${item.browseId}"
                                             is ArtistEntity -> "artist_${item.channelId}"
                                             else -> item.hashCode().toString()
                                         }
+                                        "${idx}_$base"
                                     },
-                                ) { item ->
+                                ) { _, item ->
                                     Box(modifier = Modifier.animateItem()) {
                                         HomeItemContentPlaylist(
                                             onClick = {
@@ -414,7 +416,7 @@ fun LibraryItem(
                                                     }
                                                 }
                                             },
-                                            data = item as? PlaylistType ?: return@items,
+                                            data = item as? PlaylistType ?: return@itemsIndexed,
                                             thumbSize = 125.dp,
                                         )
                                     }

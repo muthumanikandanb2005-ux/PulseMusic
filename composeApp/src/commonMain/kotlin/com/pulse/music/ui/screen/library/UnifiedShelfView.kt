@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -208,10 +208,10 @@ fun UnifiedShelfView(
                     top = 4.dp,
                 ),
             ) {
-                items(
+                itemsIndexed(
                     items = items,
-                    key = { "${it.filterType.name}_${it.id}" },
-                ) { shelfItem ->
+                    key = { idx, it -> "${idx}_${it.filterType.name}_${it.id}" },
+                ) { _, shelfItem ->
                     UnifiedShelfRow(
                         item = shelfItem,
                         onClick = {

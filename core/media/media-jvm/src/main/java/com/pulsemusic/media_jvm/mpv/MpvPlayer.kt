@@ -387,6 +387,10 @@ class MpvPlayer private constructor(
     @Volatile
     private var pausedFlag = true
 
+    /** Whether mpv is active (not released and not paused). */
+    val isPlaying: Boolean
+        get() = !isReleased && !pausedFlag
+
     @Volatile
     private var playbackRestarted = false
 

@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -195,18 +196,19 @@ fun HomeItem(
             state = lazyListState,
             flingBehavior = snapperFlingBehavior,
         ) {
-            items(
+            itemsIndexed(
                 items = data.contents,
-                key = { temp ->
-                    temp?.videoId?.ifBlank { null }
+                key = { idx, temp ->
+                    val baseId = temp?.videoId?.ifBlank { null }
                         ?: temp?.browseId?.ifBlank { null }
                         ?: temp?.playlistId?.ifBlank { null }
                         ?: temp.hashCode().toString()
+                    "hi_${idx}_$baseId"
                 },
-                contentType = { temp ->
+                contentType = { _, temp ->
                     if (temp?.playlistId != null) "playlist" else if (temp?.videoId != null) "video" else "artist"
                 },
-            ) { temp ->
+            ) { _, temp ->
                 if (temp != null) {
                     val browseId = temp.browseId
                     val playlistId = temp.playlistId
@@ -1326,11 +1328,11 @@ fun MoodAndGenresContentItem(
                     is Item -> (data).contents
                     else -> listOf()
                 }
-            items(
+            itemsIndexed(
                 items = itemList,
-                key = { item -> item.hashCode().toString() },
-                contentType = { "mood_item" },
-            ) { item ->
+                key = { idx, item -> "mi_${idx}_${item.hashCode()}" },
+                contentType = { _, _ -> "mood_item" },
+            ) { _, item ->
                 HomeItemContentPlaylist(onClick = {
                     // The "Songs" shelf mixes tracks into a list that is otherwise all playlists,
                     // so route by videoId: a track starts its radio, everything else opens a page.

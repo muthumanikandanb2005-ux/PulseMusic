@@ -1171,12 +1171,13 @@ class JvmMediaPlayerHandlerImpl(
             }
 
             PlayerEvent.PlayPause -> {
-                val shouldPause = player.isPlaying || player.playWhenReady || _controlState.value.isPlaying
+                val shouldPause = player.isPlaying || _controlState.value.isPlaying
                 _controlState.value = _controlState.value.copy(isPlaying = !shouldPause)
                 if (shouldPause) {
                     stopProgressUpdate()
                     player.pause()
                 } else {
+                    consecutivePlayerErrors = 0
                     player.play()
                     startProgressUpdate()
                 }

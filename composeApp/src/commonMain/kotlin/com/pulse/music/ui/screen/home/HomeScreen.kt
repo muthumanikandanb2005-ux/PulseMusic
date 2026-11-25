@@ -4,13 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.ui.draw.scale
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -45,6 +39,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -552,10 +547,10 @@ fun HomeScreen(
                         }
                         itemsIndexed(
                             items = homeData,
-                            key = { index, item -> item.title?.ifBlank { null } ?: "home_sec_$index" },
+                            key = { index, item -> "home_sec_${index}_${item.title.orEmpty()}" },
                             contentType = { _, item -> item.title ?: "section" },
                         ) { index, item ->
-                            val itemKey = item.title?.ifBlank { null } ?: "home_sec_$index"
+                            val itemKey = "home_sec_${index}_${item.title.orEmpty()}"
                             Box(
                                 modifier = Modifier
                                     .animateItem()
@@ -738,7 +733,10 @@ fun HomeScreen(
                             }
                         }
                         if (homeListState == ListState.PAGINATION_EXHAUST) {
-                            items(newRelease, key = { it.hashCode() }) {
+                            itemsIndexed(
+                                items = newRelease,
+                                key = { index, item -> "nr_${index}_${item.title}" },
+                            ) { _, item ->
                                 AnimatedVisibility(
                                     visible = newRelease.isNotEmpty(),
                                 ) {
@@ -749,7 +747,7 @@ fun HomeScreen(
                                     ) {
                                         HomeItem(
                                             navController = navController,
-                                            data = it,
+                                            data = item,
                                         )
                                     }
                                 }
@@ -971,26 +969,6 @@ fun HomeTopAppBar(
     val effectiveUserName = profileName.trim().ifEmpty { accountName?.trim().orEmpty() }
     val greeting = if (effectiveUserName.isNotBlank()) "$greetingIcon $greetingText, $effectiveUserName" else "$greetingIcon $greetingText"
 
-    val pulseTransition = rememberInfiniteTransition(label = "PulseLogoDot")
-    val dotAlpha by pulseTransition.animateFloat(
-        initialValue = 0.65f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "DotAlpha",
-    )
-    val dotScale by pulseTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "DotScale",
-    )
-
     TopAppBar(
         windowInsets =
             TopAppBarDefaults.windowInsets.exclude(
@@ -998,25 +976,14 @@ fun HomeTopAppBar(
             ),
         title = {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(9.dp)
-                                .scale(dotScale)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFA2D48).copy(alpha = dotAlpha)),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Pulse Music",
-                        style = typo().titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
+                Text(
+                    text = "Pulse Music",
+                    style = typo().titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = greeting,
@@ -1165,17 +1132,20 @@ fun QuickPicks(
             state = lazyListState,
             flingBehavior = snapperFlingBehavior,
         ) {
-            items(homeItem.contents, key = { it.hashCode() }) {
-                if (it != null) {
+            gridItemsIndexed(
+                items = homeItem.contents,
+                key = { idx, item -> "qp_${idx}_${item?.videoId ?: item?.playlistId ?: item?.browseId ?: ""}" },
+            ) { _, item ->
+                if (item != null) {
                     QuickPicksItem(
                         onClick = {
-                            val firstQueue: Track = it.toTrack()
+                            val firstQueue: Track = item.toTrack()
                             viewModel.setQueueData(
                                 QueueData.Data(
                                     listTracks = arrayListOf(firstQueue),
                                     firstPlayedTrack = firstQueue,
-                                    playlistId = "RDAMVM${it.videoId}",
-                                    playlistName = "\"${it.title}\" Radio",
+                                    playlistId = "RDAMVM${item.videoId}",
+                                    playlistName = "\"${item.title}\" Radio",
                                     playlistType = PlaylistType.RADIO,
                                     continuation = null,
                                 ),
@@ -1186,10 +1156,10 @@ fun QuickPicks(
                             )
                         },
                         onLongClick = {
-                            track = it.toTrack()
+                            track = item.toTrack()
                             bottomSheetShow = true
                         },
-                        data = it,
+                        data = item,
                         widthDp = widthDp,
                     )
                 }
@@ -1234,7 +1204,10 @@ fun MoodMomentAndGenre(
                 state = gridState,
                 flingBehavior = flingBehavior,
             ) {
-                items(section.items, key = { it.params }) { item ->
+                gridItemsIndexed(
+                    items = section.items,
+                    key = { idx, item -> "mood_${idx}_${item.params}" },
+                ) { _, item ->
                     MoodMomentAndGenreHomeItem(
                         title = item.title,
                         stripeColor = item.stripeColor,
@@ -1538,7 +1511,7 @@ fun SpotifyRecentlyPlayedSection(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
-            items(tracks, key = { it.id + "_" + (it.playedAt ?: "") }) { track ->
+            itemsIndexed(tracks, key = { idx, it -> "sp_rp_${idx}_${it.id}_${it.playedAt ?: ""}" }) { _, track ->
                 val thumbUrl = track.thumbnail
                 Column(
                     modifier = Modifier
@@ -1648,7 +1621,7 @@ fun SpotifyTrendingSongsSection(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
-            items(tracks, key = { "sp_tr_${it.id}_${it.title}" }) { track ->
+            itemsIndexed(tracks, key = { idx, it -> "sp_tr_${idx}_${it.id}_${it.title}" }) { _, track ->
                 val thumbUrl = track.thumbnail
                 Column(
                     modifier = Modifier
@@ -1758,7 +1731,7 @@ fun SpotifyPlaylistsSection(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
-            items(playlists, key = { it.browseId }) { pl ->
+            itemsIndexed(playlists, key = { idx, it -> "sp_pl_${idx}_${it.browseId}" }) { _, pl ->
                 val thumbUrl = pl.thumbnails?.firstOrNull()?.url
                 Column(
                     modifier = Modifier
@@ -1853,7 +1826,7 @@ fun SpotifyTrendingSection(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
-            items(trending, key = { it.browseId }) { pl ->
+            itemsIndexed(trending, key = { idx, it -> "sp_tr_pl_${idx}_${it.browseId}" }) { _, pl ->
                 val thumbUrl = pl.thumbnails?.firstOrNull()?.url
                 Column(
                     modifier = Modifier

@@ -153,9 +153,7 @@ internal class SimpleMediaSessionCallback(
                 KeyEvent.KEYCODE_MEDIA_PLAY -> {
                     // NEVER auto-play if player has no active queue or song loaded
                     if (session.player.currentMediaItem != null) {
-                        scope.launch {
-                            mediaPlayerHandler.onPlayerEvent(PlayerEvent.PlayPause)
-                        }
+                        session.player.play()
                     }
                     return true
                 }

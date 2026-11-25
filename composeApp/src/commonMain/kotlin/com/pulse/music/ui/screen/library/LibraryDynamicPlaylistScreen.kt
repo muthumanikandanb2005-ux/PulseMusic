@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -199,14 +200,14 @@ fun LibraryDynamicPlaylistScreen(
         }
         val type = LibraryDynamicPlaylistType.toType(type)
         if (type == LibraryDynamicPlaylistType.Followed) {
-            items(
-                if (query.isNotEmpty() && showSearchBar) {
+            itemsIndexed(
+                items = if (query.isNotEmpty() && showSearchBar) {
                     tempFollowed
                 } else {
                     followed
                 },
-                key = { it.channelId },
-            ) { artist ->
+                key = { idx, it -> "fol_${idx}_${it.channelId}" },
+            ) { _, artist ->
                 ArtistFullWidthItems(
                     artist,
                     onClickListener = {
@@ -222,14 +223,14 @@ fun LibraryDynamicPlaylistScreen(
             when (analyticsUIState.topArtists) {
                 is LocalResource.Success if (!analyticsUIState.topArtists.data.isNullOrEmpty()) -> {
                     val data = analyticsUIState.topArtists.data ?: emptyList()
-                    items(
-                        if (query.isNotEmpty() && showSearchBar) {
+                    itemsIndexed(
+                        items = if (query.isNotEmpty() && showSearchBar) {
                             tempTopArtists
                         } else {
                             data
                         },
-                        key = { it.first.hashCode() },
-                    ) { artist ->
+                        key = { idx, it -> "ta_${idx}_${it.second.channelId}" },
+                    ) { _, artist ->
                         ArtistFullWidthItems(
                             artist.second,
                             rightView = {
@@ -257,14 +258,14 @@ fun LibraryDynamicPlaylistScreen(
             when (analyticsUIState.topAlbums) {
                 is LocalResource.Success if (!analyticsUIState.topAlbums.data.isNullOrEmpty()) -> {
                     val data = analyticsUIState.topAlbums.data ?: emptyList()
-                    items(
-                        if (query.isNotEmpty() && showSearchBar) {
+                    itemsIndexed(
+                        items = if (query.isNotEmpty() && showSearchBar) {
                             tempTopAlbums
                         } else {
                             data
                         },
-                        key = { it.first.hashCode() },
-                    ) { album ->
+                        key = { idx, it -> "tal_${idx}_${it.second.browseId}" },
+                    ) { _, album ->
                         PlaylistFullWidthItems(
                             album.second,
                             rightView = {
@@ -292,14 +293,14 @@ fun LibraryDynamicPlaylistScreen(
             when (analyticsUIState.topTracks) {
                 is LocalResource.Success if (!analyticsUIState.topTracks.data.isNullOrEmpty()) -> {
                     val data = analyticsUIState.topTracks.data ?: emptyList()
-                    items(
-                        if (query.isNotEmpty() && showSearchBar) {
+                    itemsIndexed(
+                        items = if (query.isNotEmpty() && showSearchBar) {
                             tempTopTracks
                         } else {
                             data
                         },
-                        key = { it.hashCode() },
-                    ) { song ->
+                        key = { idx, it -> "tt_${idx}_${it.second.videoId}" },
+                    ) { _, song ->
                         SongFullWidthItems(
                             songEntity = song.second,
                             isPlaying = song.second.videoId == nowPlayingVideoId,
@@ -360,7 +361,7 @@ fun LibraryDynamicPlaylistScreen(
                 else -> {}
             }
         } else {
-            items(
+            itemsIndexed(
                 when (type) {
                     LibraryDynamicPlaylistType.Downloaded -> {
                         if (query.isNotEmpty() && showSearchBar) {
@@ -398,8 +399,8 @@ fun LibraryDynamicPlaylistScreen(
                         }
                     }
                 },
-                key = { it.hashCode() },
-            ) { song ->
+                key = { idx, it -> "dyn_${idx}_${it.videoId}" },
+            ) { _, song ->
                 SongFullWidthItems(
                     songEntity = song,
                     isPlaying = song.videoId == nowPlayingVideoId,

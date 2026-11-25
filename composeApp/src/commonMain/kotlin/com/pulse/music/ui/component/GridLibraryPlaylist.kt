@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -197,10 +198,10 @@ internal inline fun <reified T> GridLibraryPlaylist(
                             }
                         }
                     }
-                    items(
+                    itemsIndexed(
                         items = list,
-                        key = { item ->
-                            when (item) {
+                        key = { idx, item ->
+                            val base = when (item) {
                                 is ChartItem -> "chart_${item.ytPlaylistId}"
                                 is LocalPlaylistEntity -> "local_${item.id}"
                                 is PlaylistsResult -> "yt_${item.browseId}"
@@ -208,12 +209,13 @@ internal inline fun <reified T> GridLibraryPlaylist(
                                 is PlaylistEntity -> "playlist_${item.id}"
                                 else -> item.hashCode().toString()
                             }
+                            "${idx}_$base"
                         },
-                    ) { item ->
+                    ) { idx, item ->
                         if (item !is PlaylistType) {
-                            return@items
+                            return@itemsIndexed
                         }
-                        val gridKey = when (item) {
+                        val gridKey = "${idx}_" + when (item) {
                             is ChartItem -> "chart_${item.ytPlaylistId}"
                             is LocalPlaylistEntity -> "local_${item.id}"
                             is PlaylistsResult -> "yt_${item.browseId}"

@@ -687,7 +687,7 @@ fun SearchScreen(
                                 // Key must include the section: every section lives in this ONE
                                 // grid, and "For you" repeats categories that also appear under
                                 // Moods or Genres, so params alone collides.
-                                items(section.items, key = { "${section.title}/${it.params}" }) { item ->
+                                itemsIndexed(section.items, key = { idx, it -> "${section.title}/${idx}/${it.params}" }) { idx, item ->
                                     // LazyVerticalGrid only composes tiles inside the viewport, so
                                     // putting the request here IS the laziness — a category the
                                     // user never scrolls to never costs a browse.
@@ -699,7 +699,7 @@ fun SearchScreen(
                                             .animateItem()
                                             .pixelGridScrollScale(
                                                 gridState = moodGridState,
-                                                key = "${section.title}/${item.params}",
+                                                key = "${section.title}/${idx}/${item.params}",
                                                 minScale = 0.94f,
                                                 minAlpha = 0.88f,
                                             ),

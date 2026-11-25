@@ -369,6 +369,17 @@ class MpvPlayerAdapter(
                 InternalState.PLAYING -> {
                     internalPlayWhenReady = true
                     cachedIsLoading = false
+                    val player = currentPlayer
+                    if (player == null || !player.isPlaying) {
+                        if (localCurrentMediaItemIndex in playlist.indices) {
+                            val currentVideoId = playlist.getOrNull(localCurrentMediaItemIndex)?.mediaId
+                            if (currentVideoId != null) {
+                                streamRepository.invalidateFormat(currentVideoId)
+                                streamRepository.invalidateFormat("${com.manikandan.common.MERGING_DATA_TYPE.VIDEO}$currentVideoId")
+                            }
+                            loadAndPlayTrackInternal(localCurrentMediaItemIndex, cachedPosition.coerceAtLeast(0L), true)
+                        }
+                    }
                 }
 
                 else -> {
