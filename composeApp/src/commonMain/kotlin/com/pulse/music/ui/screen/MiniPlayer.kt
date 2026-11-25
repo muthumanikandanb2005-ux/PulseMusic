@@ -23,7 +23,12 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.MarqueeAnimationMode
+import com.pulse.music.ui.component.PixelMotion
+import com.pulse.music.ui.component.pixelTapScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.CornerRadius
@@ -363,6 +368,8 @@ fun MiniPlayer(
         // visible one.
         val miniPlayerShape =
             if (isLiquidGlassEnabled == DataStoreManager.TRUE) CircleShape else RoundedCornerShape(12.dp)
+        val miniInteraction = remember { MutableInteractionSource() }
+        val haptic = LocalHapticFeedback.current
         Card(
             shape = miniPlayerShape,
             colors =
@@ -372,6 +379,7 @@ fun MiniPlayer(
                 ),
             modifier =
                 modifier
+                    .pixelTapScale(miniInteraction, pressedScale = 0.97f, hoveredScale = 1.01f)
                     .then(
                         if (isLiquidGlassEnabled == DataStoreManager.TRUE) {
                             Modifier.liquidGlass(backdrop, layer, luminanceAnimation.value, RoundedCornerShape(16.dp))
@@ -383,8 +391,14 @@ fun MiniPlayer(
                             .clip(miniPlayerShape)
                             .offset { IntOffset(0, offsetY.value.roundToInt()) }
                             .combinedClickable(
-                                onClick = onClick,
+                                interactionSource = miniInteraction,
+                                indication = LocalIndication.current,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onClick()
+                                },
                                 onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     isIslandExpanded = true
                                 },
                             ).pointerInput(Unit) {
@@ -402,16 +416,17 @@ fun MiniPlayer(
                                     },
                                     onDragCancel = {
                                         coroutineScope.launch {
-                                            offsetY.animateTo(0f)
+                                            offsetY.animateTo(0f, PixelMotion.SpringDefault)
                                         }
                                     },
                                     onDragEnd = {
                                         Logger.w("MiniPlayer", "Drag Ended")
                                         coroutineScope.launch {
                                             if (offsetY.value > 70) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 onClose()
                                             }
-                                            offsetY.animateTo(0f)
+                                            offsetY.animateTo(0f, PixelMotion.SpringDefault)
                                         }
                                     },
                                 )
@@ -449,22 +464,26 @@ fun MiniPlayer(
                                                 Logger.w("MiniPlayer", "Drag Cancelled")
                                                 coroutineScope.launch {
                                                     if (offsetX.value > 200) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         sharedViewModel.onUIEvent(UIEvent.Previous)
                                                     } else if (offsetX.value < -120) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         sharedViewModel.onUIEvent(UIEvent.Next)
                                                     }
-                                                    offsetX.animateTo(0f)
+                                                    offsetX.animateTo(0f, PixelMotion.SpringDefault)
                                                 }
                                             },
                                             onDragEnd = {
                                                 Logger.w("MiniPlayer", "Drag Ended")
                                                 coroutineScope.launch {
                                                     if (offsetX.value > 200) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         sharedViewModel.onUIEvent(UIEvent.Previous)
                                                     } else if (offsetX.value < -120) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         sharedViewModel.onUIEvent(UIEvent.Next)
                                                     }
-                                                    offsetX.animateTo(0f)
+                                                    offsetX.animateTo(0f, PixelMotion.SpringDefault)
                                                 }
                                             },
                                         )
@@ -499,33 +518,9 @@ fun MiniPlayer(
                                 modifier = Modifier.weight(1F).fillMaxHeight(),
                                 contentAlignment = Alignment.CenterStart,
                                 transitionSpec = {
-                                    // Compare the incoming number with the previous number.
-                                    if (targetState != initialState) {
-                                        // If the target number is larger, it slides up and fades in
-                                        // while the initial (smaller) number slides up and fades out.
-                                        (
-                                            slideInHorizontally { width ->
-                                                width
-                                            } + fadeIn()
-                                        ).togetherWith(
-                                            slideOutHorizontally { width -> +width } + fadeOut(),
-                                        )
-                                    } else {
-                                        // If the target number is smaller, it slides down and fades in
-                                        // while the initial number slides down and fades out.
-                                        (
-                                            slideInHorizontally { width ->
-                                                +width
-                                            } + fadeIn()
-                                        ).togetherWith(
-                                            slideOutHorizontally { width -> width } + fadeOut(),
-                                        )
-                                    }.using(
-                                        // Disable clipping since the faded slide-in/out should
-                                        // be displayed out of bounds.
-                                        SizeTransform(clip = false),
-                                    )
+                                    PixelMotion.trackChangeTransition(forward = true)
                                 },
+                                label = "miniPlayerTrackMeta",
                             ) { target ->
                                 if (target != null) {
                                     Column(
@@ -538,7 +533,7 @@ fun MiniPlayer(
                                             modifier = Modifier.fillMaxWidth(),
                                         ) {
                                             Text(
-                                                text = (songEntity?.title ?: "").toString(),
+                                                text = target.title,
                                                 style = typo().labelSmall,
                                                 color = textColor,
                                                 maxLines = 1,
@@ -716,13 +711,22 @@ fun MiniPlayer(
         // falling back to a haze blur gives a dark smear instead of a floating pill.
         val capsuleShape = RoundedCornerShape(50)
         val density = LocalDensity.current
+        val capsuleInteraction = remember { MutableInteractionSource() }
+        val desktopHaptic = LocalHapticFeedback.current
         Box(
             modifier
+                .pixelTapScale(capsuleInteraction, pressedScale = 0.975f, hoveredScale = 1.015f)
                 .liquidGlass(backdrop, layer, luminanceAnimation.value, capsuleShape, blurScale = 1.2f)
                 .clip(capsuleShape)
                 .combinedClickable(
-                    onClick = onClick,
+                    interactionSource = capsuleInteraction,
+                    indication = LocalIndication.current,
+                    onClick = {
+                        desktopHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onClick()
+                    },
                     onLongClick = {
+                        desktopHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         isIslandExpanded = true
                     },
                 ),

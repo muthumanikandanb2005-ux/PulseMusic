@@ -1,5 +1,6 @@
 package com.manikandan.data.service
 
+import com.manikandan.data.mediaservice.TrackLanguageFilter
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.browse.playlist.Author
 import com.manikandan.domain.data.model.browse.playlist.PlaylistBrowse
@@ -21,19 +22,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.util.Collections
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * High-performance backend music and playlist provider for JioSaavn.
- * Provides invisible backend search, playlist fetching, and high-res (320kbps) audio stream
- * resolution without exposing any external branding in the UI.
+ * Provides invisible backend search, playlist fetching, high-res (320kbps) audio stream
+ * resolution, and endless same-language radio queues without exposing external branding.
  */
 object JioSaavnService {
     private const val TAG = "JioSaavnService"
+    const val SAAVN_RADIO_PREFIX = "saavn_radio:"
+    const val SAAVN_CONT_PREFIX = "saavn_cont:"
 
     private val client by lazy {
         HttpClient(getEngine()) {
@@ -46,13 +52,190 @@ object JioSaavnService {
         isLenient = true
     }
 
-    // Memory cache for stream URLs and Track metadata to allow instant playback
-    private val streamUrlCache = mutableMapOf<String, String>()
-    private val trackCache = mutableMapOf<String, Track>()
+    // Memory caches for stream URLs, Track metadata, normalized languages, and radio stations
+    private val streamUrlCache = Collections.synchronizedMap(HashMap<String, String>())
+    private val trackCache = Collections.synchronizedMap(HashMap<String, Track>())
+    private val trackLanguageCache = Collections.synchronizedMap(HashMap<String, String>())
+    private val stationIdCache = Collections.synchronizedMap(HashMap<String, String>())
 
     fun getCachedTrack(videoId: String): Track? {
         val cleanId = videoId.removePrefix("saavn:")
         return trackCache[cleanId] ?: trackCache[videoId]
+    }
+
+    fun getTrackLanguage(videoId: String): String? {
+        val cleanId = videoId.removePrefix("saavn:")
+        return trackLanguageCache[cleanId] ?: trackLanguageCache[videoId] ?: trackLanguageCache["saavn:$cleanId"]
+    }
+
+    private fun recordTrackLanguage(id: String, rawLang: String?) {
+        val cleanId = id.removePrefix("saavn:")
+        val normalized = TrackLanguageFilter.normalizeLanguageCode(rawLang)
+        if (normalized != TrackLanguageFilter.LANG_UNKNOWN) {
+            trackLanguageCache[cleanId] = normalized
+            trackLanguageCache["saavn:$cleanId"] = normalized
+        }
+    }
+
+    private fun Track.toSongsResult(): SongsResult = SongsResult(
+        album = album,
+        artists = artists,
+        category = category ?: "SONG",
+        duration = duration,
+        durationSeconds = durationSeconds,
+        feedbackTokens = feedbackTokens,
+        isExplicit = isExplicit,
+        resultType = resultType ?: "Song",
+        thumbnails = thumbnails ?: emptyList(),
+        title = title,
+        videoId = videoId,
+        videoType = videoType ?: "Song",
+        year = year ?: "",
+    )
+
+    private fun parseDirectSongObj(obj: JsonObject): Track? {
+        val id = obj["id"]?.jsonPrimitive?.content ?: return null
+        val rawTitle = obj["title"]?.jsonPrimitive?.content
+            ?: obj["song"]?.jsonPrimitive?.content
+            ?: return null
+        val title = rawTitle.unescapeHtml()
+        if (title.isBlank()) return null
+
+        val moreInfo = obj["more_info"]?.jsonObject
+        val albumName = (moreInfo?.get("album")?.jsonPrimitive?.content
+            ?: obj["album"]?.jsonPrimitive?.content)?.unescapeHtml()
+
+        val durationSec = moreInfo?.get("duration")?.jsonPrimitive?.content?.toIntOrNull()
+            ?: obj["duration"]?.jsonPrimitive?.content?.toIntOrNull()
+        val durationStr = if (durationSec != null) {
+            "${durationSec / 60}:${(durationSec % 60).toString().padStart(2, '0')}"
+        } else null
+
+        val artistMapPrimary = moreInfo?.get("artistMap")?.jsonObject?.get("primary_artists")?.jsonArray
+        val artistsFromMap = artistMapPrimary?.mapNotNull { art ->
+            val name = art.jsonObject["name"]?.jsonPrimitive?.content?.unescapeHtml()
+            if (!name.isNullOrBlank()) Artist(name = name, id = null) else null
+        }.orEmpty()
+
+        val artists = if (artistsFromMap.isNotEmpty()) {
+            artistsFromMap
+        } else {
+            val rawArtist = obj["subtitle"]?.jsonPrimitive?.content?.unescapeHtml()
+                ?: moreInfo?.get("music")?.jsonPrimitive?.content?.unescapeHtml()
+                ?: moreInfo?.get("singers")?.jsonPrimitive?.content?.unescapeHtml()
+                ?: obj["singers"]?.jsonPrimitive?.content?.unescapeHtml()
+            if (!rawArtist.isNullOrBlank()) {
+                rawArtist.split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() && it != albumName && it != title }
+                    .map { Artist(name = it, id = null) }
+            } else {
+                emptyList()
+            }
+        }
+
+        val rawImg = obj["image"]?.jsonPrimitive?.content ?: ""
+        val highResImg = rawImg.replace("150x150", "500x500").replace("50x50", "500x500")
+        val thumbnails = if (highResImg.isNotBlank()) {
+            listOf(Thumbnail(url = highResImg, width = 500, height = 500))
+        } else emptyList()
+
+        val rawLang = obj["language"]?.jsonPrimitive?.content
+            ?: moreInfo?.get("language")?.jsonPrimitive?.content
+        recordTrackLanguage(id, rawLang)
+
+        val encryptedUrl = moreInfo?.get("encrypted_media_url")?.jsonPrimitive?.content
+            ?: obj["encrypted_media_url"]?.jsonPrimitive?.content
+        if (!encryptedUrl.isNullOrBlank()) {
+            val decrypted = decryptDes(encryptedUrl)
+            if (!decrypted.isNullOrBlank()) {
+                val has320 = (moreInfo?.get("320kbps")?.jsonPrimitive?.content
+                    ?: obj["320kbps"]?.jsonPrimitive?.content) != "false"
+                val streamUrl = if (has320) {
+                    decrypted.replace("_96.mp4", "_320.mp4").replace("_160.mp4", "_320.mp4")
+                } else {
+                    decrypted.replace("_96.mp4", "_160.mp4")
+                }
+                streamUrlCache[id] = streamUrl
+                streamUrlCache["saavn:$id"] = streamUrl
+            }
+        }
+
+        val track = Track(
+            album = Album(name = albumName ?: "", id = ""),
+            artists = artists,
+            duration = durationStr,
+            durationSeconds = durationSec,
+            isAvailable = true,
+            isExplicit = false,
+            likeStatus = null,
+            thumbnails = thumbnails,
+            title = title,
+            videoId = "saavn:$id",
+            videoType = "Song",
+            category = "SONG",
+            feedbackTokens = null,
+            resultType = "Song",
+            year = obj["year"]?.jsonPrimitive?.content ?: "",
+        )
+        trackCache[id] = track
+        trackCache["saavn:$id"] = track
+        return track
+    }
+
+    private fun parseSaavnDevSongObj(obj: JsonObject): Track? {
+        val id = obj["id"]?.jsonPrimitive?.content ?: return null
+        val title = (obj["name"]?.jsonPrimitive?.content ?: obj["title"]?.jsonPrimitive?.content ?: "").unescapeHtml()
+        if (title.isBlank()) return null
+
+        val albumName = obj["album"]?.jsonObject?.get("name")?.jsonPrimitive?.content?.unescapeHtml()
+        val durationSec = obj["duration"]?.jsonPrimitive?.content?.toIntOrNull()
+        val durationStr = if (durationSec != null) {
+            "${durationSec / 60}:${(durationSec % 60).toString().padStart(2, '0')}"
+        } else null
+
+        val artistsObj = obj["artists"]?.jsonObject?.get("primary")?.jsonArray
+        val artists = artistsObj?.mapNotNull { art ->
+            val artName = art.jsonObject["name"]?.jsonPrimitive?.content?.unescapeHtml()
+            if (!artName.isNullOrBlank()) Artist(name = artName, id = null) else null
+        } ?: emptyList()
+
+        val images = obj["image"]?.jsonArray
+        val bestImg = images?.lastOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content
+            ?: images?.firstOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content ?: ""
+        val thumbnails = if (bestImg.isNotBlank()) listOf(Thumbnail(url = bestImg, width = 500, height = 500)) else emptyList()
+
+        val rawLang = obj["language"]?.jsonPrimitive?.content
+        recordTrackLanguage(id, rawLang)
+
+        val downloadUrls = obj["downloadUrl"]?.jsonArray
+        val bestAudio = downloadUrls?.lastOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content
+            ?: downloadUrls?.firstOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content
+        if (!bestAudio.isNullOrBlank()) {
+            streamUrlCache[id] = bestAudio
+            streamUrlCache["saavn:$id"] = bestAudio
+        }
+
+        val track = Track(
+            album = Album(name = albumName ?: "", id = ""),
+            artists = artists,
+            duration = durationStr,
+            durationSeconds = durationSec,
+            isAvailable = true,
+            isExplicit = false,
+            likeStatus = null,
+            thumbnails = thumbnails,
+            title = title,
+            videoId = "saavn:$id",
+            videoType = "Song",
+            category = "SONG",
+            feedbackTokens = null,
+            resultType = "Song",
+            year = obj["year"]?.jsonPrimitive?.content ?: "",
+        )
+        trackCache[id] = track
+        trackCache["saavn:$id"] = track
+        return track
     }
 
     private fun String.unescapeHtml(): String = this
@@ -112,6 +295,11 @@ object JioSaavnService {
                         }
                     } else emptyList()
 
+                    recordTrackLanguage(
+                        id,
+                        obj["language"]?.jsonPrimitive?.content ?: moreInfo?.get("language")?.jsonPrimitive?.content,
+                    )
+
                     val thumbnails = if (highResImg.isNotBlank()) {
                         listOf(Thumbnail(url = highResImg, width = 500, height = 500))
                     } else emptyList()
@@ -135,23 +323,7 @@ object JioSaavnService {
                     )
                     trackCache[id] = track
                     trackCache["saavn:$id"] = track
-
-                    val songResult = SongsResult(
-                        album = Album(name = album, id = ""),
-                        artists = artists,
-                        category = "SONG",
-                        duration = null,
-                        durationSeconds = null,
-                        feedbackTokens = null,
-                        isExplicit = false,
-                        resultType = "Song",
-                        thumbnails = thumbnails,
-                        title = title,
-                        videoId = "saavn:$id",
-                        videoType = "Song",
-                        year = "",
-                    )
-                    songs.add(songResult)
+                    songs.add(track.toSongsResult())
                 }
 
                 // 3. Album suggestions (as query keywords)
@@ -181,10 +353,10 @@ object JioSaavnService {
         searchSongsSaavnDev(cleanQuery)
     }
 
-    private suspend fun searchSongsDirect(query: String): List<SongsResult> {
+    private suspend fun searchSongsPageDirect(query: String, page: Int = 1, count: Int = 20): List<Track> {
         return try {
             val encoded = query.encodeURLParameter()
-            val url = "https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&n=20&p=1&q=$encoded"
+            val url = "https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&n=$count&p=$page&q=$encoded"
             val response = client.get(url) {
                 header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
             }
@@ -192,98 +364,23 @@ object JioSaavnService {
                 val body = response.bodyAsText()
                 val root = json.parseToJsonElement(body).jsonObject
                 val results = root["results"]?.jsonArray ?: return emptyList()
-
-                results.mapNotNull { element ->
-                    val obj = element.jsonObject
-                    val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                    val rawTitle = obj["title"]?.jsonPrimitive?.content
-                        ?: obj["song"]?.jsonPrimitive?.content
-                        ?: return@mapNotNull null
-                    val title = rawTitle.unescapeHtml()
-
-                    val moreInfo = obj["more_info"]?.jsonObject
-                    val albumName = (moreInfo?.get("album")?.jsonPrimitive?.content
-                        ?: obj["album"]?.jsonPrimitive?.content)?.unescapeHtml()
-
-                    val durationSec = moreInfo?.get("duration")?.jsonPrimitive?.content?.toIntOrNull()
-                        ?: obj["duration"]?.jsonPrimitive?.content?.toIntOrNull()
-                    val durationStr = if (durationSec != null) {
-                        "${durationSec / 60}:${(durationSec % 60).toString().padStart(2, '0')}"
-                    } else null
-
-                    val rawArtist = obj["subtitle"]?.jsonPrimitive?.content?.unescapeHtml()
-                        ?: moreInfo?.get("music")?.jsonPrimitive?.content?.unescapeHtml()
-                        ?: obj["singers"]?.jsonPrimitive?.content?.unescapeHtml()
-
-                    val artists = if (!rawArtist.isNullOrBlank()) {
-                        rawArtist.split(",").map { Artist(name = it.trim(), id = null) }
-                    } else emptyList()
-
-                    val rawImg = obj["image"]?.jsonPrimitive?.content ?: ""
-                    val highResImg = rawImg.replace("150x150", "500x500").replace("50x50", "500x500")
-                    val thumbnails = if (highResImg.isNotBlank()) {
-                        listOf(Thumbnail(url = highResImg, width = 500, height = 500))
-                    } else emptyList()
-
-                    val encryptedUrl = moreInfo?.get("encrypted_media_url")?.jsonPrimitive?.content
-                        ?: obj["encrypted_media_url"]?.jsonPrimitive?.content
-                    if (!encryptedUrl.isNullOrBlank()) {
-                        val decrypted = decryptDes(encryptedUrl)
-                        if (!decrypted.isNullOrBlank()) {
-                            val stream320 = decrypted.replace("_96.mp4", "_320.mp4").replace("_160.mp4", "_320.mp4")
-                            streamUrlCache[id] = stream320
-                        }
-                    }
-
-                    val track = Track(
-                        album = Album(name = albumName ?: "", id = ""),
-                        artists = artists,
-                        duration = durationStr,
-                        durationSeconds = durationSec,
-                        isAvailable = true,
-                        isExplicit = false,
-                        likeStatus = null,
-                        thumbnails = thumbnails,
-                        title = title,
-                        videoId = "saavn:$id",
-                        videoType = "Song",
-                        category = "SONG",
-                        feedbackTokens = null,
-                        resultType = "Song",
-                        year = obj["year"]?.jsonPrimitive?.content ?: "",
-                    )
-                    trackCache[id] = track
-                    trackCache["saavn:$id"] = track
-
-                    SongsResult(
-                        album = Album(name = albumName ?: "", id = ""),
-                        artists = artists,
-                        category = "SONG",
-                        duration = durationStr,
-                        durationSeconds = durationSec,
-                        feedbackTokens = null,
-                        isExplicit = false,
-                        resultType = "Song",
-                        thumbnails = thumbnails,
-                        title = title,
-                        videoId = "saavn:$id",
-                        videoType = "Song",
-                        year = obj["year"]?.jsonPrimitive?.content ?: "",
-                    )
-                }
+                results.mapNotNull { parseDirectSongObj(it.jsonObject) }
             } else {
                 emptyList()
             }
         } catch (e: Exception) {
-            Logger.d(TAG, "searchSongsDirect error: ${e.message}")
+            Logger.d(TAG, "searchSongsPageDirect error: ${e.message}")
             emptyList()
         }
     }
 
-    private suspend fun searchSongsSaavnDev(query: String): List<SongsResult> {
+    private suspend fun searchSongsDirect(query: String): List<SongsResult> =
+        searchSongsPageDirect(query, page = 1, count = 20).map { it.toSongsResult() }
+
+    private suspend fun searchSongsPageSaavnDev(query: String, page: Int = 1, limit: Int = 20): List<Track> {
         return try {
             val encoded = query.encodeURLParameter()
-            val url = "https://saavn.dev/api/search/songs?query=$encoded"
+            val url = "https://saavn.dev/api/search/songs?query=$encoded&page=$page&limit=$limit"
             val response = client.get(url) {
                 header("User-Agent", "Mozilla/5.0")
             }
@@ -292,76 +389,16 @@ object JioSaavnService {
                 val root = json.parseToJsonElement(body).jsonObject
                 val data = root["data"]?.jsonObject
                 val results = data?.get("results")?.jsonArray ?: return emptyList()
-
-                results.mapNotNull { element ->
-                    val obj = element.jsonObject
-                    val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                    val title = (obj["name"]?.jsonPrimitive?.content ?: obj["title"]?.jsonPrimitive?.content ?: "").unescapeHtml()
-                    val albumName = obj["album"]?.jsonObject?.get("name")?.jsonPrimitive?.content?.unescapeHtml()
-                    val durationSec = obj["duration"]?.jsonPrimitive?.content?.toIntOrNull()
-                    val durationStr = if (durationSec != null) {
-                        "${durationSec / 60}:${(durationSec % 60).toString().padStart(2, '0')}"
-                    } else null
-
-                    val artistsObj = obj["artists"]?.jsonObject?.get("primary")?.jsonArray
-                    val artists = artistsObj?.mapNotNull { art ->
-                        val artName = art.jsonObject["name"]?.jsonPrimitive?.content?.unescapeHtml()
-                        if (!artName.isNullOrBlank()) Artist(name = artName, id = null) else null
-                    } ?: emptyList()
-
-                    val images = obj["image"]?.jsonArray
-                    val bestImg = images?.lastOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content
-                        ?: images?.firstOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content ?: ""
-                    val thumbnails = if (bestImg.isNotBlank()) listOf(Thumbnail(url = bestImg, width = 500, height = 500)) else emptyList()
-
-                    val downloadUrls = obj["downloadUrl"]?.jsonArray
-                    val bestAudio = downloadUrls?.lastOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content
-                    if (!bestAudio.isNullOrBlank()) {
-                        streamUrlCache[id] = bestAudio
-                    }
-
-                    val track = Track(
-                        album = Album(name = albumName ?: "", id = ""),
-                        artists = artists,
-                        duration = durationStr,
-                        durationSeconds = durationSec,
-                        isAvailable = true,
-                        isExplicit = false,
-                        likeStatus = null,
-                        thumbnails = thumbnails,
-                        title = title,
-                        videoId = "saavn:$id",
-                        videoType = "Song",
-                        category = "SONG",
-                        feedbackTokens = null,
-                        resultType = "Song",
-                        year = obj["year"]?.jsonPrimitive?.content ?: "",
-                    )
-                    trackCache[id] = track
-                    trackCache["saavn:$id"] = track
-
-                    SongsResult(
-                        album = Album(name = albumName ?: "", id = ""),
-                        artists = artists,
-                        category = "SONG",
-                        duration = durationStr,
-                        durationSeconds = durationSec,
-                        feedbackTokens = null,
-                        isExplicit = false,
-                        resultType = "Song",
-                        thumbnails = thumbnails,
-                        title = title,
-                        videoId = "saavn:$id",
-                        videoType = "Song",
-                        year = obj["year"]?.jsonPrimitive?.content ?: "",
-                    )
-                }
+                results.mapNotNull { parseSaavnDevSongObj(it.jsonObject) }
             } else emptyList()
         } catch (e: Exception) {
             Logger.d(TAG, "searchSongsSaavnDev error: ${e.message}")
             emptyList()
         }
     }
+
+    private suspend fun searchSongsSaavnDev(query: String): List<SongsResult> =
+        searchSongsPageSaavnDev(query, page = 1, limit = 20).map { it.toSongsResult() }
 
     /**
      * Searches playlists from JioSaavn and maps them to domain [PlaylistsResult].
@@ -476,61 +513,7 @@ object JioSaavnService {
                 val thumbnails = if (highResImg.isNotBlank()) listOf(Thumbnail(url = highResImg, width = 500, height = 500)) else emptyList()
 
                 val list = root["list"]?.jsonArray ?: root["songs"]?.jsonArray ?: return null
-                val tracks = list.mapNotNull { element ->
-                    val obj = element.jsonObject
-                    val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                    val songTitle = (obj["title"]?.jsonPrimitive?.content ?: obj["song"]?.jsonPrimitive?.content ?: "").unescapeHtml()
-
-                    val moreInfo = obj["more_info"]?.jsonObject
-                    val albumName = (moreInfo?.get("album")?.jsonPrimitive?.content ?: obj["album"]?.jsonPrimitive?.content)?.unescapeHtml()
-                    val durationSec = moreInfo?.get("duration")?.jsonPrimitive?.content?.toIntOrNull()
-                        ?: obj["duration"]?.jsonPrimitive?.content?.toIntOrNull()
-                    val durationStr = if (durationSec != null) {
-                        "${durationSec / 60}:${(durationSec % 60).toString().padStart(2, '0')}"
-                    } else null
-
-                    val rawArtist = obj["subtitle"]?.jsonPrimitive?.content?.unescapeHtml()
-                        ?: moreInfo?.get("music")?.jsonPrimitive?.content?.unescapeHtml()
-                        ?: obj["singers"]?.jsonPrimitive?.content?.unescapeHtml()
-
-                    val artists = if (!rawArtist.isNullOrBlank()) {
-                        rawArtist.split(",").map { Artist(name = it.trim(), id = null) }
-                    } else emptyList()
-
-                    val songImg = obj["image"]?.jsonPrimitive?.content ?: ""
-                    val songHighResImg = songImg.replace("150x150", "500x500").replace("50x50", "500x500")
-                    val songThumbs = if (songHighResImg.isNotBlank()) listOf(Thumbnail(url = songHighResImg, width = 500, height = 500)) else emptyList()
-
-                    val encUrl = moreInfo?.get("encrypted_media_url")?.jsonPrimitive?.content
-                        ?: obj["encrypted_media_url"]?.jsonPrimitive?.content
-                    if (!encUrl.isNullOrBlank()) {
-                        val dec = decryptDes(encUrl)
-                        if (!dec.isNullOrBlank()) {
-                            streamUrlCache[id] = dec.replace("_96.mp4", "_320.mp4").replace("_160.mp4", "_320.mp4")
-                        }
-                    }
-
-                    val track = Track(
-                        album = Album(name = albumName ?: "", id = ""),
-                        artists = artists,
-                        duration = durationStr,
-                        durationSeconds = durationSec,
-                        isAvailable = true,
-                        isExplicit = false,
-                        likeStatus = null,
-                        thumbnails = songThumbs,
-                        title = songTitle,
-                        videoId = "saavn:$id",
-                        videoType = "Song",
-                        category = "SONG",
-                        feedbackTokens = null,
-                        resultType = "Song",
-                        year = obj["year"]?.jsonPrimitive?.content ?: "",
-                    )
-                    trackCache[id] = track
-                    trackCache["saavn:$id"] = track
-                    track
-                }
+                val tracks = list.mapNotNull { parseDirectSongObj(it.jsonObject) }
 
                 PlaylistBrowse(
                     author = Author(id = "author_$listId", name = "Playlist"),
@@ -569,54 +552,7 @@ object JioSaavnService {
                 val thumbnails = if (bestImg.isNotBlank()) listOf(Thumbnail(url = bestImg, width = 500, height = 500)) else emptyList()
 
                 val songs = data["songs"]?.jsonArray ?: return null
-                val tracks = songs.mapNotNull { element ->
-                    val obj = element.jsonObject
-                    val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                    val songTitle = (obj["name"]?.jsonPrimitive?.content ?: "").unescapeHtml()
-                    val albumName = obj["album"]?.jsonObject?.get("name")?.jsonPrimitive?.content?.unescapeHtml()
-                    val durationSec = obj["duration"]?.jsonPrimitive?.content?.toIntOrNull()
-                    val durationStr = if (durationSec != null) {
-                        "${durationSec / 60}:${(durationSec % 60).toString().padStart(2, '0')}"
-                    } else null
-
-                    val artistsObj = obj["artists"]?.jsonObject?.get("primary")?.jsonArray
-                    val artists = artistsObj?.mapNotNull { art ->
-                        val artName = art.jsonObject["name"]?.jsonPrimitive?.content?.unescapeHtml()
-                        if (!artName.isNullOrBlank()) Artist(name = artName, id = null) else null
-                    } ?: emptyList()
-
-                    val sImages = obj["image"]?.jsonArray
-                    val sBestImg = sImages?.lastOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content
-                        ?: sImages?.firstOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content ?: ""
-                    val songThumbs = if (sBestImg.isNotBlank()) listOf(Thumbnail(url = sBestImg, width = 500, height = 500)) else emptyList()
-
-                    val downloadUrls = obj["downloadUrl"]?.jsonArray
-                    val bestAudio = downloadUrls?.lastOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.content
-                    if (!bestAudio.isNullOrBlank()) {
-                        streamUrlCache[id] = bestAudio
-                    }
-
-                    val track = Track(
-                        album = Album(name = albumName ?: "", id = ""),
-                        artists = artists,
-                        duration = durationStr,
-                        durationSeconds = durationSec,
-                        isAvailable = true,
-                        isExplicit = false,
-                        likeStatus = null,
-                        thumbnails = songThumbs,
-                        title = songTitle,
-                        videoId = "saavn:$id",
-                        videoType = "Song",
-                        category = "SONG",
-                        feedbackTokens = null,
-                        resultType = "Song",
-                        year = obj["year"]?.jsonPrimitive?.content ?: "",
-                    )
-                    trackCache[id] = track
-                    trackCache["saavn:$id"] = track
-                    track
-                }
+                val tracks = songs.mapNotNull { parseSaavnDevSongObj(it.jsonObject) }
 
                 PlaylistBrowse(
                     author = Author(id = "author_$listId", name = "Playlist"),
@@ -639,6 +575,332 @@ object JioSaavnService {
     }
 
     /**
+     * Fetches full song metadata (including language, artists, and decrypted stream URL) by ID.
+     */
+    suspend fun fetchSongDetails(songId: String): Track? = withContext(Dispatchers.IO) {
+        val cleanId = songId.removePrefix(SAAVN_RADIO_PREFIX).removePrefix("saavn:")
+        if (cleanId.isBlank()) return@withContext null
+
+        try {
+            val url = "https://www.jiosaavn.com/api.php?__call=song.getDetails&pids=$cleanId&_format=json&_marker=0&api_version=4"
+            val response = client.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            }
+            if (response.status.value in 200..299) {
+                val root = json.parseToJsonElement(response.bodyAsText()).jsonObject
+                val songObj = root[cleanId]?.jsonObject
+                    ?: root["songs"]?.jsonArray?.firstOrNull()?.jsonObject
+                if (songObj != null) {
+                    parseDirectSongObj(songObj)?.let { return@withContext it }
+                }
+            }
+        } catch (e: Exception) {
+            Logger.d(TAG, "fetchSongDetails direct error: ${e.message}")
+        }
+
+        try {
+            val url = "https://saavn.dev/api/songs/$cleanId"
+            val response = client.get(url) {
+                header("User-Agent", "Mozilla/5.0")
+            }
+            if (response.status.value in 200..299) {
+                val root = json.parseToJsonElement(response.bodyAsText()).jsonObject
+                val songObj = root["data"]?.jsonArray?.firstOrNull()?.jsonObject
+                if (songObj != null) {
+                    parseSaavnDevSongObj(songObj)?.let { return@withContext it }
+                }
+            }
+        } catch (e: Exception) {
+            Logger.d(TAG, "fetchSongDetails saavn.dev error: ${e.message}")
+        }
+
+        getCachedTrack(cleanId)
+    }
+
+    private suspend fun getOrCreateStationId(cleanSeedId: String): String? {
+        stationIdCache[cleanSeedId]?.let { return it }
+        return try {
+            val encodedEntity = """["$cleanSeedId"]""".encodeURLParameter()
+            val url = "https://www.jiosaavn.com/api.php?__call=webradio.createEntityStation&api_version=4&_format=json&_marker=0&ctx=android&entity_id=$encodedEntity&entity_type=queue"
+            val response = client.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            }
+            if (response.status.value in 200..299) {
+                val root = json.parseToJsonElement(response.bodyAsText()).jsonObject
+                val stationId = root["stationid"]?.jsonPrimitive?.content
+                if (!stationId.isNullOrBlank()) {
+                    stationIdCache[cleanSeedId] = stationId
+                    stationId
+                } else null
+            } else null
+        } catch (e: Exception) {
+            Logger.d(TAG, "getOrCreateStationId error: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun fetchStationSongs(stationId: String, count: Int = 25): List<Track> {
+        return try {
+            val url = "https://www.jiosaavn.com/api.php?__call=webradio.getSong&api_version=4&_format=json&_marker=0&ctx=android&stationid=${stationId.encodeURLParameter()}&k=$count&next=1"
+            val response = client.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            }
+            if (response.status.value !in 200..299) return emptyList()
+            val elem = json.parseToJsonElement(response.bodyAsText())
+            when (elem) {
+                is JsonArray -> elem.mapNotNull { item ->
+                    val obj = item.jsonObject
+                    parseDirectSongObj(obj["song"]?.jsonObject ?: obj)
+                }
+                is JsonObject -> {
+                    val tracks = mutableListOf<Track>()
+                    elem["songs"]?.jsonArray?.forEach { item ->
+                        val obj = item.jsonObject
+                        parseDirectSongObj(obj["song"]?.jsonObject ?: obj)?.let { tracks.add(it) }
+                    }
+                    elem["song"]?.jsonObject?.let { single ->
+                        parseDirectSongObj(single)?.let { tracks.add(it) }
+                    }
+                    for ((key, value) in elem) {
+                        if (key == "error" || key == "stationid" || key == "songs" || key == "song") continue
+                        val entryObj = value as? JsonObject ?: continue
+                        val songObj = entryObj["song"] as? JsonObject ?: entryObj
+                        parseDirectSongObj(songObj)?.let { tracks.add(it) }
+                    }
+                    tracks
+                }
+                else -> emptyList()
+            }
+        } catch (e: Exception) {
+            Logger.d(TAG, "fetchStationSongs error: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private suspend fun fetchRecoSongs(cleanSeedId: String, langName: String?): List<Track> {
+        return try {
+            val langParam = if (!langName.isNullOrBlank()) "&language=${langName.encodeURLParameter()}" else ""
+            val url = "https://www.jiosaavn.com/api.php?__call=reco.getreco&api_version=4&_format=json&_marker=0&pid=$cleanSeedId$langParam"
+            val response = client.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            }
+            if (response.status.value !in 200..299) return emptyList()
+            val elem = json.parseToJsonElement(response.bodyAsText())
+            when (elem) {
+                is JsonArray -> elem.mapNotNull { parseDirectSongObj(it.jsonObject) }
+                is JsonObject -> {
+                    val arr = elem["results"]?.jsonArray ?: elem["list"]?.jsonArray ?: elem["songs"]?.jsonArray
+                    if (arr != null) {
+                        arr.mapNotNull { parseDirectSongObj(it.jsonObject) }
+                    } else {
+                        elem.values.mapNotNull { v ->
+                            (v as? JsonObject)?.let { parseDirectSongObj(it) }
+                        }
+                    }
+                }
+                else -> emptyList()
+            }
+        } catch (e: Exception) {
+            Logger.d(TAG, "fetchRecoSongs error: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private suspend fun fetchSaavnDevSuggestions(cleanSeedId: String, limit: Int = 25): List<Track> {
+        return try {
+            val url = "https://saavn.dev/api/songs/$cleanSeedId/suggestions?limit=$limit"
+            val response = client.get(url) {
+                header("User-Agent", "Mozilla/5.0")
+            }
+            if (response.status.value !in 200..299) return emptyList()
+            val root = json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val dataArr = root["data"]?.jsonArray ?: return emptyList()
+            dataArr.mapNotNull { parseSaavnDevSongObj(it.jsonObject) }
+        } catch (e: Exception) {
+            Logger.d(TAG, "fetchSaavnDevSuggestions error: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun normalizeTitleKey(rawTitle: String?): String {
+        if (rawTitle.isNullOrBlank()) return ""
+        return rawTitle
+            .lowercase()
+            .replace(Regex("""\([^)]*\)|\[[^\]]*]"""), " ")
+            .replace(Regex("""(?i)\b(from|feat|ft|lofi|slowed|reverb|remix|unplugged|version|acoustic|sped up)\b.*"""), " ")
+            .replace(Regex("""[^a-z0-9\u0900-\u0DFF\uAC00-\uD7AF\u3040-\u30FF]"""), "")
+            .trim()
+    }
+
+    private fun isSameLanguageRadioMatch(
+        candidate: Track,
+        seedTrack: Track?,
+        targetLang: String,
+    ): Boolean {
+        if (targetLang == TrackLanguageFilter.LANG_UNKNOWN) {
+            return seedTrack == null || TrackLanguageFilter.isCompatibleLanguage(candidate, listOf(seedTrack))
+        }
+        val candLang = getTrackLanguage(candidate.videoId)
+            ?: TrackLanguageFilter.detectLanguage(candidate)
+        if (candLang != TrackLanguageFilter.LANG_UNKNOWN) {
+            return candLang == targetLang
+        }
+        return if (targetLang == TrackLanguageFilter.LANG_ENGLISH) {
+            true
+        } else {
+            seedTrack != null && TrackLanguageFilter.isCompatibleLanguage(candidate, listOf(seedTrack))
+        }
+    }
+
+    private fun buildContinuation(seedId: String, page: Int, langCode: String): String =
+        "$SAAVN_CONT_PREFIX$seedId:$page:$langCode"
+
+    /**
+     * Generates an endless, same-language radio batch for a JioSaavn track, returning both the
+     * tracks and a non-null continuation cursor for continuous infinite queue expansion.
+     */
+    suspend fun getRelatedRadio(
+        seedVideoId: String,
+        page: Int = 1,
+        langOverride: String? = null,
+        excludeIds: Set<String> = emptySet(),
+    ): Pair<List<Track>, String?> = withContext(Dispatchers.IO) {
+        val cleanSeed = seedVideoId.removePrefix(SAAVN_RADIO_PREFIX).removePrefix("saavn:")
+        if (cleanSeed.isBlank()) return@withContext Pair(emptyList(), null)
+
+        var seedTrack = getCachedTrack(cleanSeed)
+        var resolvedLang = langOverride
+            ?.let { TrackLanguageFilter.normalizeLanguageCode(it) }
+            ?.takeIf { it != TrackLanguageFilter.LANG_UNKNOWN }
+            ?: getTrackLanguage(cleanSeed)?.takeIf { it != TrackLanguageFilter.LANG_UNKNOWN }
+
+        if (seedTrack == null || resolvedLang == null || seedTrack.artists.isNullOrEmpty()) {
+            fetchSongDetails(cleanSeed)?.let { detailed ->
+                seedTrack = detailed
+            }
+            if (resolvedLang == null) {
+                resolvedLang = getTrackLanguage(cleanSeed)?.takeIf { it != TrackLanguageFilter.LANG_UNKNOWN }
+            }
+        }
+
+        val targetLang = resolvedLang
+            ?: seedTrack?.let { TrackLanguageFilter.detectLanguage(it) }
+            ?: TrackLanguageFilter.LANG_UNKNOWN
+        val langQuery = TrackLanguageFilter.toLanguageQueryName(targetLang)
+        val seedArtist = seedTrack?.artists?.firstOrNull()?.name?.trim().orEmpty()
+        val secondArtist = seedTrack?.artists?.getOrNull(1)?.name?.trim().orEmpty()
+        val seedAlbum = seedTrack?.album?.name?.trim().orEmpty()
+        val seedTitleKey = normalizeTitleKey(seedTrack?.title)
+
+        val candidates = mutableListOf<Track>()
+
+        // 1. Official JioSaavn Entity Station (fresh radio tracks each request)
+        val stationId = getOrCreateStationId(cleanSeed)
+        if (stationId != null) {
+            candidates.addAll(fetchStationSongs(stationId, count = 25))
+        }
+
+        // 2. Song recommendations & suggestions (richest on page 1 or when station returns few songs)
+        if (page == 1 || candidates.size < 10) {
+            candidates.addAll(fetchRecoSongs(cleanSeed, langQuery))
+            candidates.addAll(fetchSaavnDevSuggestions(cleanSeed, limit = 25))
+        }
+
+        // 3. Paginated same-language discovery search to ensure infinite variety on subsequent batches
+        val discoveryQueries = buildList {
+            if (seedArtist.isNotBlank()) {
+                add(if (langQuery != null) "$seedArtist $langQuery songs" else "$seedArtist hits")
+            }
+            if (secondArtist.isNotBlank() && secondArtist != seedArtist) {
+                add(if (langQuery != null) "$secondArtist $langQuery songs" else "$secondArtist songs")
+            }
+            if (seedAlbum.isNotBlank() && page == 1) {
+                add(if (langQuery != null) "$seedAlbum $langQuery" else seedAlbum)
+            }
+            if (langQuery != null) {
+                add("trending $langQuery songs")
+                add("top $langQuery hits")
+                add("best $langQuery songs")
+                add("latest $langQuery songs")
+                add("evergreen $langQuery hits")
+            } else if (!seedTrack?.title.isNullOrBlank()) {
+                add(seedTrack!!.title)
+            }
+        }
+
+        fun collectMatching(rawList: List<Track>, out: MutableList<Track>, seenIds: MutableSet<String>, seenTitleArtist: MutableSet<String>) {
+            for (cand in rawList) {
+                if (cand.videoId in seenIds) continue
+                val titleKey = normalizeTitleKey(cand.title)
+                if (titleKey.isBlank()) continue
+                // Skip clones/slowed/lofi variants of the seed song itself so queue always progresses
+                if (seedTitleKey.isNotBlank() && titleKey == seedTitleKey) continue
+                val artistKey = cand.artists?.firstOrNull()?.name?.trim()?.lowercase().orEmpty()
+                val dedupeKey = "$titleKey|$artistKey"
+                if (dedupeKey in seenTitleArtist) continue
+                if (!isSameLanguageRadioMatch(cand, seedTrack, targetLang)) continue
+                seenIds.add(cand.videoId)
+                seenTitleArtist.add(dedupeKey)
+                out.add(cand)
+            }
+        }
+
+        val accepted = mutableListOf<Track>()
+        val seenIds = excludeIds.toMutableSet().apply { add("saavn:$cleanSeed") }
+        val seenTitleArtist = mutableSetOf<String>()
+        collectMatching(candidates, accepted, seenIds, seenTitleArtist)
+
+        if (accepted.size < 14 && discoveryQueries.isNotEmpty()) {
+            val startQueryIdx = (page - 1) % discoveryQueries.size
+            for (offset in 0 until discoveryQueries.size.coerceAtMost(3)) {
+                val queryIdx = (startQueryIdx + offset) % discoveryQueries.size
+                val query = discoveryQueries[queryIdx]
+                val searchPage = ((page - 1) / discoveryQueries.size) + 1 + offset
+                val directPage = searchSongsPageDirect(query, page = searchPage, count = 25)
+                val fallbackPage = if (directPage.isEmpty()) {
+                    searchSongsPageSaavnDev(query, page = searchPage, limit = 25)
+                } else emptyList()
+                collectMatching(directPage + fallbackPage, accepted, seenIds, seenTitleArtist)
+                if (accepted.size >= 18) break
+            }
+        }
+
+        val nextCont = buildContinuation(cleanSeed, page + 1, targetLang)
+        Logger.d(TAG, "getRelatedRadio(seed=$cleanSeed, page=$page, lang=$targetLang) -> ${accepted.size} tracks")
+        Pair(accepted, nextCont)
+    }
+
+    /**
+     * Continues an active JioSaavn radio queue using the encoded [continuation] cursor.
+     */
+    suspend fun getContinueRadioTracks(
+        playlistId: String,
+        continuation: String,
+        excludeIds: Set<String> = emptySet(),
+    ): Pair<List<Track>, String?> {
+        var seedId = playlistId
+            .removePrefix(SAAVN_RADIO_PREFIX)
+            .removePrefix("saavn_pl:")
+            .removePrefix("RDAMVM")
+            .removePrefix("saavn:")
+        var page = 2
+        var langOverride: String? = null
+
+        if (continuation.startsWith(SAAVN_CONT_PREFIX)) {
+            val parts = continuation.removePrefix(SAAVN_CONT_PREFIX).split(":")
+            if (parts.isNotEmpty() && parts[0].isNotBlank()) seedId = parts[0]
+            if (parts.size >= 2) page = (parts[1].toIntOrNull() ?: 2).coerceAtLeast(1)
+            if (parts.size >= 3) langOverride = parts[2]
+        }
+        return getRelatedRadio(
+            seedVideoId = seedId,
+            page = page,
+            langOverride = langOverride,
+            excludeIds = excludeIds,
+        )
+    }
+
+    /**
      * Resolves a direct high-bitrate audio stream URL for a given JioSaavn song ID.
      */
     suspend fun resolveStreamById(songId: String): String? = withContext(Dispatchers.IO) {
@@ -647,33 +909,8 @@ object JioSaavnService {
         streamUrlCache[songId]?.let { return@withContext it }
         streamUrlCache["saavn:$cleanId"]?.let { return@withContext it }
 
-        try {
-            val url = "https://www.jiosaavn.com/api.php?__call=song.getDetails&pids=$cleanId&_format=json&_marker=0&api_version=4"
-            val response = client.get(url) {
-                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-            }
-            if (response.status.value in 200..299) {
-                val body = response.bodyAsText()
-                val root = json.parseToJsonElement(body).jsonObject
-                val song = root[cleanId]?.jsonObject
-                val moreInfo = song?.get("more_info")?.jsonObject
-                val encrypted = moreInfo?.get("encrypted_media_url")?.jsonPrimitive?.content
-                    ?: song?.get("encrypted_media_url")?.jsonPrimitive?.content
-                if (!encrypted.isNullOrBlank()) {
-                    val decrypted = decryptDes(encrypted)
-                    if (!decrypted.isNullOrBlank()) {
-                        val stream320 = decrypted.replace("_96.mp4", "_320.mp4").replace("_160.mp4", "_320.mp4")
-                        streamUrlCache[cleanId] = stream320
-                        streamUrlCache[songId] = stream320
-                        streamUrlCache["saavn:$cleanId"] = stream320
-                        return@withContext stream320
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Logger.d(TAG, "resolveStreamById error: ${e.message}")
-        }
-        null
+        fetchSongDetails(cleanId)
+        streamUrlCache[cleanId] ?: streamUrlCache[songId] ?: streamUrlCache["saavn:$cleanId"]
     }
 
     /**

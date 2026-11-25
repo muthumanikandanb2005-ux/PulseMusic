@@ -68,6 +68,9 @@ class HomeViewModel(
     private val _spotifyTrending: MutableStateFlow<List<PlaylistsResult>> = MutableStateFlow(emptyList())
     val spotifyTrending: StateFlow<List<PlaylistsResult>> = _spotifyTrending.asStateFlow()
 
+    private val _spotifyTrendingTracks: MutableStateFlow<List<SpotifyRecentTrack>> = MutableStateFlow(emptyList())
+    val spotifyTrendingTracks: StateFlow<List<SpotifyRecentTrack>> = _spotifyTrendingTracks.asStateFlow()
+
     val isSpotifyLoggedIn: StateFlow<Boolean> =
         dataStoreManager
             .spdc
@@ -219,6 +222,7 @@ class HomeViewModel(
                     _spotifyRecentlyPlayed.value = emptyList()
                     _spotifyPlaylists.value = emptyList()
                     _spotifyTrending.value = emptyList()
+                    _spotifyTrendingTracks.value = emptyList()
                 }
             }
         }
@@ -231,24 +235,36 @@ class HomeViewModel(
                 _spotifyRecentlyPlayed.value = emptyList()
                 _spotifyPlaylists.value = emptyList()
                 _spotifyTrending.value = emptyList()
+                _spotifyTrendingTracks.value = emptyList()
                 return@launch
             }
-            // Fetch user playlists
-            playlistRepository.getSpotifyPlaylists().collect { list ->
-                if (list != null) {
-                    _spotifyPlaylists.value = list
+            // Fetch all Spotify shelves in parallel so a slow/empty endpoint never blocks the others
+            launch {
+                playlistRepository.getSpotifyPlaylists().collect { list ->
+                    if (list != null) {
+                        _spotifyPlaylists.value = list
+                    }
                 }
             }
-            // Fetch recently played tracks
-            playlistRepository.getSpotifyRecentlyPlayed().collect { list ->
-                if (list != null) {
-                    _spotifyRecentlyPlayed.value = list
+            launch {
+                playlistRepository.getSpotifyRecentlyPlayed().collect { list ->
+                    if (list != null) {
+                        _spotifyRecentlyPlayed.value = list
+                    }
                 }
             }
-            // Fetch trending playlists
-            playlistRepository.getSpotifyTrendingPlaylists().collect { list ->
-                if (list != null) {
-                    _spotifyTrending.value = list
+            launch {
+                playlistRepository.getSpotifyTrendingPlaylists().collect { list ->
+                    if (list != null) {
+                        _spotifyTrending.value = list
+                    }
+                }
+            }
+            launch {
+                playlistRepository.getSpotifyTrendingTracks().collect { list ->
+                    if (list != null) {
+                        _spotifyTrendingTracks.value = list
+                    }
                 }
             }
         }
@@ -262,11 +278,16 @@ class HomeViewModel(
                 val firstResult = res.data?.firstOrNull()
                 if (firstResult != null) {
                     val targetTrack = firstResult.toTrack()
+                    val radioId = if (targetTrack.videoId.startsWith("saavn:")) {
+                        "saavn_radio:${targetTrack.videoId}"
+                    } else {
+                        "RDAMVM${targetTrack.videoId}"
+                    }
                     setQueueData(
                         QueueData.Data(
                             listTracks = arrayListOf(targetTrack),
                             firstPlayedTrack = targetTrack,
-                            playlistId = "RDAMVM${targetTrack.videoId}",
+                            playlistId = radioId,
                             playlistName = "\"${track.title}\" Radio",
                             playlistType = PlaylistType.RADIO,
                             continuation = null,

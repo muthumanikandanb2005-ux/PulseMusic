@@ -1,5 +1,6 @@
-﻿package com.pulse.music.ui.screen.player.content
+package com.pulse.music.ui.screen.player.content
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -8,6 +9,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -16,15 +18,22 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.pulse.music.ui.component.PixelMotion
+import com.pulse.music.ui.component.pixelClickable
+import com.pulse.music.ui.component.pixelPopOnChange
+import com.pulse.music.ui.component.pixelTapScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -39,7 +48,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -71,6 +79,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
@@ -83,8 +92,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlin.math.sin
@@ -122,7 +135,6 @@ import com.pulse.music.ui.icon.SkipPrevious
 import com.pulse.music.ui.icon.VolumeUp
 import com.pulse.music.ui.theme.typo
 import com.pulse.music.viewModel.UIEvent
-import kotlinx.coroutines.isActive
 import org.jetbrains.compose.resources.stringResource
 import pulsemusic.composeapp.generated.resources.Res
 import pulsemusic.composeapp.generated.resources.now_playing_upper
@@ -299,9 +311,12 @@ private fun NowPlayingVibrantExpressiveLayout(
                         fontSize = 15.sp,
                         color = Color.White.copy(alpha = 0.85f),
                     ),
+                    textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
                 )
 
                 IconButton(onClick = actions.onShowMoreSheet) {
@@ -323,33 +338,44 @@ private fun NowPlayingVibrantExpressiveLayout(
                     .padding(horizontal = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = state.screenData.nowPlayingTitle,
-                    style = typo().headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 23.sp,
-                        color = Color.White,
-                    ),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee(),
-                )
+                AnimatedContent(
+                    targetState = state.screenData.nowPlayingTitle to state.screenData.artistName,
+                    transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
+                    contentAlignment = Alignment.Center,
+                    label = "vibrantTrackMeta",
+                ) { (trackTitle, artistTitle) ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = trackTitle,
+                            style = typo().headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 23.sp,
+                                color = Color.White,
+                            ),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = state.screenData.artistName,
-                    style = typo().bodyLarge.copy(
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = Color.White.copy(alpha = 0.65f),
-                    ),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { actions.onNavigateToArtist() },
-                )
+                        Text(
+                            text = artistTitle,
+                            style = typo().bodyLarge.copy(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color.White.copy(alpha = 0.65f),
+                            ),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .pixelClickable(pressedScale = 0.95f) { actions.onNavigateToArtist() }
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -382,14 +408,14 @@ private fun NowPlayingVibrantExpressiveLayout(
                     .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                val outerSize = (maxWidth * 0.74f).coerceIn(240.dp, 300.dp)
-                val innerArtworkSize = outerSize - 32.dp
+                val outerSize = (maxWidth * 0.78f).coerceIn(250.dp, 316.dp)
+                val innerArtworkSize = outerSize - 44.dp
 
                 // Dynamic breathing ambient glow behind circular album image
                 val breatheTransition = rememberInfiniteTransition(label = "cardAmbientGlow")
                 val breatheScale by breatheTransition.animateFloat(
                     initialValue = 0.94f,
-                    targetValue = 1.08f,
+                    targetValue = 1.07f,
                     animationSpec = infiniteRepeatable(
                         animation = tween(4500, easing = FastOutSlowInEasing),
                         repeatMode = RepeatMode.Reverse,
@@ -419,134 +445,9 @@ private fun NowPlayingVibrantExpressiveLayout(
                         },
                 )
 
-                // Progressive circular arc drawn around the round album image with interactive scrubbing
-                val progressFraction = (state.sliderValue / 100f).coerceIn(0f, 1f)
-                val animatedProgress by animateFloatAsState(
-                    targetValue = progressFraction,
-                    animationSpec = tween(120),
-                    label = "circularProgressArc",
-                )
-
-                val strokeWidthPx = with(LocalDensity.current) { 3.dp.toPx() }
-                val arcPadding = strokeWidthPx / 2f + with(LocalDensity.current) { 2.dp.toPx() }
-
-                Canvas(
-                    modifier = Modifier
-                        .size(outerSize)
-                        .pointerInput(Unit) {
-                            awaitEachGesture {
-                                val down = awaitFirstDown(requireUnconsumed = false)
-                                val centerX = size.width / 2f
-                                val centerY = size.height / 2f
-                                fun calcProgress(pos: Offset): Float {
-                                    val angle = Math.toDegrees(
-                                        kotlin.math.atan2((pos.y - centerY).toDouble(), (pos.x - centerX).toDouble()),
-                                    ).toFloat()
-                                    val normalizedAngle = (angle + 90f).let { if (it < 0f) it + 360f else it }
-                                    return (normalizedAngle / 360f).coerceIn(0f, 1f)
-                                }
-                                actions.onSliderChange(calcProgress(down.position) * 100f)
-                                down.consume()
-
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                    if (change.pressed) {
-                                        change.consume()
-                                        actions.onSliderChange(calcProgress(change.position) * 100f)
-                                    } else {
-                                        break
-                                    }
-                                }
-                                actions.onSliderChangeFinished()
-                            }
-                        },
-                ) {
-                    val arcSize = Size(
-                        size.width - arcPadding * 2,
-                        size.height - arcPadding * 2,
-                    )
-                    val topLeft = Offset(arcPadding, arcPadding)
-
-                    // Background Track Ring
-                    drawArc(
-                        color = Color.White.copy(alpha = 0.18f),
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcSize,
-                        style = Stroke(
-                            width = strokeWidthPx,
-                            cap = StrokeCap.Round,
-                        ),
-                    )
-
-                    // Active Progressive Arc
-                    val sweepAngle = animatedProgress * 360f
-                    if (sweepAngle > 0f) {
-                        drawArc(
-                            brush = Brush.sweepGradient(
-                                colors = listOf(
-                                    Color(0xFFFFD59E),
-                                    Color(0xFFFFB347),
-                                    Color.White,
-                                    Color(0xFFFFD59E),
-                                ),
-                            ),
-                            startAngle = -90f,
-                            sweepAngle = sweepAngle,
-                            useCenter = false,
-                            topLeft = topLeft,
-                            size = arcSize,
-                            style = Stroke(
-                                width = strokeWidthPx,
-                                cap = StrokeCap.Round,
-                            ),
-                        )
-
-                        // Glowing knob indicator at current progress position
-                        val angleRad = Math.toRadians((sweepAngle - 90.0)).toFloat()
-                        val r = arcSize.width / 2f
-                        val knobX = center.x + r * cos(angleRad)
-                        val knobY = center.y + r * sin(angleRad)
-
-                        // Outer halo glow
-                        drawCircle(
-                            color = Color.White.copy(alpha = 0.35f),
-                            radius = 7.dp.toPx(),
-                            center = Offset(knobX, knobY),
-                        )
-                        // Inner solid knob
-                        drawCircle(
-                            color = Color.White,
-                            radius = 4.5.dp.toPx(),
-                            center = Offset(knobX, knobY),
-                        )
-                    }
-                }
-
-                // Smooth rotating vinyl disc animation like Material Expressive theme
                 val isPlaying = state.controllerState.isPlaying
-                val discRotation = remember { Animatable(0f) }
-                LaunchedEffect(isPlaying) {
-                    if (isPlaying) {
-                        while (isActive) {
-                            discRotation.animateTo(
-                                targetValue = discRotation.value + 360f,
-                                animationSpec = tween(durationMillis = 20000, easing = LinearEasing),
-                            )
-                        }
-                    }
-                }
 
-                // Inner Artwork Disc / Canvas Video Container with tactile swipe gesture for song skipping
-                // Live swipe offset drives the cover flow overlay
-                val swipeOffsetAnim = remember { Animatable(0f) }
-                val scope = rememberCoroutineScope()
-                var accumulatedSwipeX by remember { mutableFloatStateOf(0f) }
-                var isSwiping by remember { mutableStateOf(false) }
-                val showCoverFlow by remember { derivedStateOf { abs(swipeOffsetAnim.value) > 8f } }
+                // Stationary circular album artwork / Canvas video (no rotation or horizontal pager scroll)
                 Surface(
                     modifier = Modifier
                         .size(innerArtworkSize)
@@ -555,52 +456,7 @@ private fun NowPlayingVibrantExpressiveLayout(
                             shape = CircleShape,
                             spotColor = primaryAmbient,
                             ambientColor = secondaryAmbient,
-                        )
-                        .pointerInput(state.artworkQueue.size) {
-                            detectHorizontalDragGestures(
-                                onDragStart = {
-                                    accumulatedSwipeX = 0f
-                                    isSwiping = true
-                                },
-                                onHorizontalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    accumulatedSwipeX += dragAmount
-                                    scope.launch {
-                                        swipeOffsetAnim.snapTo(accumulatedSwipeX.coerceIn(-size.width.toFloat(), size.width.toFloat()))
-                                    }
-                                },
-                                onDragEnd = {
-                                    isSwiping = false
-                                    if (accumulatedSwipeX < -40f) {
-                                        actions.onUIEvent(UIEvent.Next)
-                                    } else if (accumulatedSwipeX > 40f) {
-                                        actions.onUIEvent(UIEvent.Previous)
-                                    }
-                                    scope.launch {
-                                        swipeOffsetAnim.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
-                                    }
-                                    accumulatedSwipeX = 0f
-                                },
-                                onDragCancel = {
-                                    isSwiping = false
-                                    accumulatedSwipeX = 0f
-                                    scope.launch {
-                                        swipeOffsetAnim.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
-                                    }
-                                },
-                            )
-                        }
-                        .graphicsLayer {
-                            if (!(hasCanvas && isCanvasVideo)) {
-                                rotationZ = discRotation.value % 360f
-                            }
-                            // Live 3D tilt while swiping - disc tilts with swipe direction
-                            if (isSwiping) {
-                                val tiltFraction = (swipeOffsetAnim.value / (size.width * 0.5f)).coerceIn(-1f, 1f)
-                                rotationY = -tiltFraction * 25f
-                                cameraDistance = 10f * density
-                            }
-                        },
+                        ),
                     shape = CircleShape,
                     color = colorScheme.surfaceContainerHigh,
                 ) {
@@ -611,209 +467,287 @@ private fun NowPlayingVibrantExpressiveLayout(
                                 cropToBounds = true,
                                 modifier = Modifier.fillMaxSize(),
                             )
-                        } else if (state.artworkQueue.isNotEmpty()) {
-                            HorizontalPager(
-                                state = state.artworkPagerState,
-                                modifier = Modifier.fillMaxSize(),
-                            ) { page ->
-                                val pageOffset = ((state.artworkPagerState.currentPage - page) + state.artworkPagerState.currentPageOffsetFraction)
-                                val absOffset = kotlin.math.abs(pageOffset).coerceIn(0f, 1f)
-                                val track = state.artworkQueue.getOrNull(page)
-                                val isCurrentArtworkPage = (page == state.currentOrderIndex || page == state.artworkPagerState.currentPage)
-                                val thumbUrl = track?.thumbnails?.lastOrNull()?.url
-                                    ?: (if (isCurrentArtworkPage) state.screenData.thumbnailURL else null)
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer {
-                                            cameraDistance = 12 * density
-                                            rotationY = -pageOffset.coerceIn(-1f, 1f) * 24f
-                                            scaleX = 1f - (absOffset * 0.14f)
-                                            scaleY = 1f - (absOffset * 0.14f)
-                                            alpha = 1f - (absOffset * 0.28f)
-                                        },
-                                ) {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                                            .data(thumbUrl)
-                                            .crossfade(200)
-                                            .memoryCachePolicy(CachePolicy.ENABLED)
-                                            .diskCachePolicy(CachePolicy.ENABLED)
-                                            .build(),
-                                        contentDescription = track?.title ?: state.screenData.nowPlayingTitle,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
-                            }
                         } else {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalPlatformContext.current)
-                                    .data(state.screenData.thumbnailURL)
-                                    .crossfade(200)
-                                    .memoryCachePolicy(CachePolicy.ENABLED)
-                                    .diskCachePolicy(CachePolicy.ENABLED)
-                                    .build(),
-                                contentDescription = state.screenData.nowPlayingTitle,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-
-                        // Subtle vinyl turntable center spindle & grooved ring overlay
-                        if (!(hasCanvas && isCanvasVideo)) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                val c = center
-                                val maxR = size.width / 2f
-                                for (i in 1..3) {
-                                    drawCircle(
-                                        color = Color.White.copy(alpha = 0.05f),
-                                        radius = maxR * (0.35f + i * 0.18f),
-                                        center = c,
-                                        style = Stroke(width = 1.dp.toPx()),
-                                    )
-                                }
-                                drawCircle(
-                                    color = Color(0xFF101418),
-                                    radius = 11.dp.toPx(),
-                                    center = c,
-                                )
-                                drawCircle(
-                                    color = Color.White.copy(alpha = 0.40f),
-                                    radius = 11.dp.toPx(),
-                                    center = c,
-                                    style = Stroke(width = 1.5.dp.toPx()),
-                                )
-                                drawCircle(
-                                    color = Color.White.copy(alpha = 0.90f),
-                                    radius = 3.5.dp.toPx(),
-                                    center = c,
+                            Crossfade(
+                                targetState = state.screenData.thumbnailURL,
+                                animationSpec = tween(260),
+                                label = "vibrantArtworkFade",
+                            ) { artworkUrl ->
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                                        .data(artworkUrl)
+                                        .crossfade(200)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .build(),
+                                    contentDescription = state.screenData.nowPlayingTitle,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
                                 )
                             }
                         }
                     }
                 }
 
-                // Apple Music-style Cover Flow Overlay â€” appears while swiping the disc
-                // Shows neighbouring album cards fanning out in 3D perspective
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = showCoverFlow,
-                    enter = fadeIn(tween(120)),
-                    exit = fadeOut(tween(180)),
+                // Material 3 Expressive Wavy Circular Progress Ring around circular album image
+                val externalProgress = (state.sliderValue / 100f).coerceIn(0f, 1f)
+                var isScrubbing by remember { mutableStateOf(false) }
+                var scrubProgress by remember { mutableFloatStateOf(externalProgress) }
+                val ringHaptic = LocalHapticFeedback.current
+
+                val animatedProgress by animateFloatAsState(
+                    targetValue = if (isScrubbing) scrubProgress else externalProgress,
+                    animationSpec = tween(140, easing = FastOutSlowInEasing),
+                    label = "circularExpressiveProgress",
+                )
+                val renderProgress = if (isScrubbing) scrubProgress else animatedProgress
+
+                val wavePhaseTransition = rememberInfiniteTransition(label = "vibrantCircularWave")
+                val wavePhase by wavePhaseTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = (2.0 * PI).toFloat(),
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 2200, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart,
+                    ),
+                    label = "vibrantCircularWavePhase",
+                )
+                val waveAmpFactor by animateFloatAsState(
+                    targetValue = if (isPlaying && !isScrubbing) 1f else 0f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "vibrantCircularWaveAmp",
+                )
+                val knobRadiusDp by animateDpAsState(
+                    targetValue = if (isScrubbing) 6.5.dp else 4.8.dp,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "vibrantCircularKnobRadius",
+                )
+
+                val density = LocalDensity.current
+                val strokeWidthPx = with(density) { 4.dp.toPx() }
+                val inactiveStrokePx = with(density) { 3.dp.toPx() }
+                val waveMaxAmpPx = with(density) { 3.2.dp.toPx() }
+                val outerInsetPx = with(density) { 11.dp.toPx() }
+                val minTouchRadiusPx = with(density) { (innerArtworkSize / 2f - 8.dp).toPx() }
+
+                Canvas(
                     modifier = Modifier
-                        .size(maxWidth * 1.2f, outerSize * 1.6f)
-                        .align(Alignment.Center),
+                        .size(outerSize)
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val centerX = size.width / 2f
+                                val centerY = size.height / 2f
+                                val distFromCenter = hypot(
+                                    (down.position.x - centerX).toDouble(),
+                                    (down.position.y - centerY).toDouble(),
+                                ).toFloat()
+                                // Ignore inner center taps so scrolling or pressing artwork doesn't accidentally seek
+                                if (distFromCenter < minTouchRadiusPx) return@awaitEachGesture
+
+                                fun calcProgress(pos: Offset): Float {
+                                    val angleDeg = (atan2(
+                                        (pos.y - centerY).toDouble(),
+                                        (pos.x - centerX).toDouble(),
+                                    ) * 180.0 / PI).toFloat()
+                                    val normalized = ((angleDeg + 90f) % 360f).let { if (it < 0f) it + 360f else it }
+                                    return (normalized / 360f).coerceIn(0f, 1f)
+                                }
+
+                                isScrubbing = true
+                                var lastHapticBucket = -1
+                                try {
+                                    val startP = calcProgress(down.position)
+                                    scrubProgress = startP
+                                    lastHapticBucket = (startP * 50f).toInt()
+                                    ringHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    actions.onSliderChange(startP * 100f)
+                                    down.consume()
+
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                        if (change.pressed) {
+                                            change.consume()
+                                            val newP = calcProgress(change.position)
+                                            scrubProgress = newP
+                                            val bucket = (newP * 50f).toInt()
+                                            if (bucket != lastHapticBucket) {
+                                                lastHapticBucket = bucket
+                                                ringHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            actions.onSliderChange(newP * 100f)
+                                        } else {
+                                            break
+                                        }
+                                    }
+                                } finally {
+                                    isScrubbing = false
+                                    actions.onSliderChangeFinished()
+                                }
+                            }
+                        },
                 ) {
-                    CoverFlowOverlay(
-                        queue = state.artworkQueue,
-                        currentIndex = state.currentOrderIndex,
-                        swipeOffset = swipeOffsetAnim.value,
-                        primaryAmbient = primaryAmbient,
-                        cardWidth = innerArtworkSize * 0.72f,
-                        cardHeight = outerSize * 1.1f,
-                        currentThumbnailUrl = state.screenData.thumbnailURL,
+                    val baseRadius = (size.minDimension / 2f) - outerInsetPx
+                    val sweepDeg = (renderProgress * 360f).coerceIn(0f, 360f)
+
+                    // 1. Remaining inactive circular track with expressive cap gaps around active arc
+                    val knobGapDeg = if (sweepDeg > 0.5f && sweepDeg < 353f) 5.5f else 0f
+                    val startGapDeg = if (sweepDeg > 0.5f && sweepDeg < 353f) 3.5f else 0f
+                    val remainingStartDeg = -90f + sweepDeg + knobGapDeg
+                    val remainingSweepDeg = (360f - sweepDeg - knobGapDeg - startGapDeg).coerceAtLeast(0f)
+
+                    if (sweepDeg <= 0.5f) {
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.18f),
+                            radius = baseRadius,
+                            center = center,
+                            style = Stroke(width = inactiveStrokePx),
+                        )
+                    } else if (remainingSweepDeg > 0.5f) {
+                        val arcTopLeft = Offset(center.x - baseRadius, center.y - baseRadius)
+                        val arcSize = Size(baseRadius * 2f, baseRadius * 2f)
+                        drawArc(
+                            color = Color.White.copy(alpha = 0.18f),
+                            startAngle = remainingStartDeg,
+                            sweepAngle = remainingSweepDeg,
+                            useCenter = false,
+                            topLeft = arcTopLeft,
+                            size = arcSize,
+                            style = Stroke(width = inactiveStrokePx, cap = StrokeCap.Round),
+                        )
+                    }
+
+                    // 2. Material 3 Expressive Wavy Active Ring
+                    if (sweepDeg > 0.5f) {
+                        val wavePath = Path()
+                        val waveCycles = 16
+                        val stepDeg = 1.25f
+                        val steps = ceil((sweepDeg / stepDeg).toDouble()).toInt().coerceAtLeast(2)
+                        val taperWindowDeg = 10f
+
+                        for (i in 0..steps) {
+                            val frac = i.toFloat() / steps.toFloat()
+                            val currentDeg = -90f + sweepDeg * frac
+                            val angleRad = currentDeg * PI / 180.0
+
+                            val distFromStart = sweepDeg * frac
+                            val distFromEnd = sweepDeg * (1f - frac)
+                            val edgeTaper = minOf(
+                                (distFromStart / taperWindowDeg),
+                                (distFromEnd / taperWindowDeg),
+                                1f,
+                            ).coerceIn(0f, 1f)
+                            val smoothTaper = edgeTaper * edgeTaper * (3f - 2f * edgeTaper)
+
+                            val waveOffset = sin(angleRad * waveCycles - wavePhase).toFloat() *
+                                waveMaxAmpPx * waveAmpFactor * smoothTaper
+                            val r = baseRadius + waveOffset
+                            val px = center.x + r * cos(angleRad).toFloat()
+                            val py = center.y + r * sin(angleRad).toFloat()
+                            if (i == 0) wavePath.moveTo(px, py) else wavePath.lineTo(px, py)
+                        }
+
+                        val activeRingBrush = Brush.sweepGradient(
+                            colors = listOf(
+                                Color(0xFFFFD59E),
+                                Color(0xFFFFB347),
+                                Color.White,
+                                Color(0xFFFFB347),
+                                Color(0xFFFFD59E),
+                            ),
+                        )
+
+                        // Soft outer glow behind wavy active arc
+                        drawPath(
+                            path = wavePath,
+                            color = Color(0xFFFFB347).copy(alpha = 0.24f),
+                            style = Stroke(
+                                width = strokeWidthPx * 2.1f,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round,
+                            ),
+                        )
+
+                        // Main luminous Material Expressive wavy path
+                        drawPath(
+                            path = wavePath,
+                            brush = activeRingBrush,
+                            style = Stroke(
+                                width = strokeWidthPx,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round,
+                            ),
+                        )
+                    }
+
+                    // 3. Morphing glowing scrub thumb at current angle
+                    val knobAngleRad = (-90f + sweepDeg) * PI / 180.0
+                    val knobX = center.x + baseRadius * cos(knobAngleRad).toFloat()
+                    val knobY = center.y + baseRadius * sin(knobAngleRad).toFloat()
+                    val knobRadiusPx = knobRadiusDp.toPx()
+
+                    drawCircle(
+                        color = Color.White.copy(alpha = if (isScrubbing) 0.42f else 0.28f),
+                        radius = knobRadiusPx * 1.85f,
+                        center = Offset(knobX, knobY),
+                    )
+                    drawCircle(
+                        color = Color.White,
+                        radius = knobRadiusPx,
+                        center = Offset(knobX, knobY),
                     )
                 }
-
             } // end BoxWithConstraints
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Material Expressive 3 Progress Bar & Audio Quality Badge
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+            // Compact centered Audio Quality Badge (progress ring sits around circular album art)
+            val audioQualityText = when {
+                state.audioCodecLabel?.contains("flac", ignoreCase = true) == true -> "FLAC 24-BIT"
+                state.audioCodecLabel?.contains("lossless", ignoreCase = true) == true -> "LOSSLESS HD"
+                state.audioCodecLabel?.contains("opus", ignoreCase = true) == true -> "256 KBPS OPUS"
+                state.audioCodecLabel?.contains("aac", ignoreCase = true) == true -> "320 KBPS AAC"
+                !state.audioCodecLabel.isNullOrBlank() -> "${state.audioCodecLabel.uppercase()} HD"
+                else -> "320 KBPS AAC"
+            }
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color.White.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f)),
                 ) {
-                    val currentDurationFormatted = formatDuration(
-                        if (state.sliderValue > 0f && state.timelineState.total > 0L) {
-                            ((state.sliderValue / 100f) * state.timelineState.total).roundToLong()
-                        } else {
-                            state.timelineState.current
-                        },
-                    )
-                    val totalDurationFormatted = formatDuration(state.timelineState.total)
-
-                    Text(
-                        text = currentDurationFormatted,
-                        style = typo().labelSmall.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White.copy(alpha = 0.70f),
-                        ),
-                    )
-
-                    // Audio Quality Badge: which quality is playing
-                    val audioQualityText = when {
-                        state.audioCodecLabel?.contains("flac", ignoreCase = true) == true -> "FLAC 24-BIT"
-                        state.audioCodecLabel?.contains("lossless", ignoreCase = true) == true -> "LOSSLESS HD"
-                        state.audioCodecLabel?.contains("opus", ignoreCase = true) == true -> "256 KBPS OPUS"
-                        state.audioCodecLabel?.contains("aac", ignoreCase = true) == true -> "320 KBPS AAC"
-                        !state.audioCodecLabel.isNullOrBlank() -> "${state.audioCodecLabel.uppercase()} HD"
-                        else -> "320 KBPS AAC"
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color.White.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f)),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
-                        ) {
-                            Icon(
-                                imageVector = PulseIcons.VolumeUp,
-                                contentDescription = null,
-                                tint = Color(0xFFFFD59E),
-                                modifier = Modifier.size(11.dp),
-                            )
-                            Text(
-                                text = audioQualityText,
-                                style = typo().labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    color = Color(0xFFFFD59E),
-                                    letterSpacing = 0.8.sp,
-                                ),
-                            )
-                        }
+                        Icon(
+                            imageVector = PulseIcons.VolumeUp,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD59E),
+                            modifier = Modifier.size(11.dp),
+                        )
+                        Text(
+                            text = audioQualityText,
+                            style = typo().labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                color = Color(0xFFFFD59E),
+                                letterSpacing = 0.8.sp,
+                            ),
+                        )
                     }
-
-                    Text(
-                        text = totalDurationFormatted,
-                        style = typo().labelSmall.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White.copy(alpha = 0.70f),
-                        ),
-                    )
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Material Expressive 3 squiggly/wavy progress slider bar
-                MaterialExpressive3ProgressBar(
-                    progress = (state.sliderValue / 100f).coerceIn(0f, 1f),
-                    isPlaying = state.controllerState.isPlaying,
-                    primaryColor = primaryAmbient,
-                    secondaryColor = secondaryAmbient,
-                    onSeek = { actions.onSliderChange(it * 100f) },
-                    onSeekFinished = actions.onSliderChangeFinished,
-                    modifier = Modifier.fillMaxWidth().height(26.dp),
-                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Primary 5-Button Transport Row: âŠ– |â—€ â–¶| â–¶| â™¥
+            val controlHaptic = LocalHapticFeedback.current
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -822,13 +756,17 @@ private fun NowPlayingVibrantExpressiveLayout(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // 1. Remove / Skip / Dislike
+                val skipInteraction = remember { MutableInteractionSource() }
                 IconButton(
                     onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         if (state.currentOrderIndex in state.artworkQueue.indices) {
                             actions.onRemoveQueueItem(state.currentOrderIndex)
                         }
                         actions.onUIEvent(UIEvent.Next)
                     },
+                    interactionSource = skipInteraction,
+                    modifier = Modifier.pixelTapScale(skipInteraction, pressedScale = 0.84f, hoveredScale = 1.08f),
                 ) {
                     Icon(
                         imageVector = PulseIcons.RemoveCircleOutline,
@@ -839,8 +777,14 @@ private fun NowPlayingVibrantExpressiveLayout(
                 }
 
                 // 2. Previous
+                val prevInteraction = remember { MutableInteractionSource() }
                 IconButton(
-                    onClick = { actions.onUIEvent(UIEvent.Previous) },
+                    onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.Previous)
+                    },
+                    interactionSource = prevInteraction,
+                    modifier = Modifier.pixelTapScale(prevInteraction, pressedScale = 0.84f, hoveredScale = 1.08f),
                 ) {
                     Icon(
                         imageVector = PulseIcons.SkipPrevious,
@@ -850,30 +794,60 @@ private fun NowPlayingVibrantExpressiveLayout(
                     )
                 }
 
-                // 3. Big Solid White Circular Play/Pause Button
+                // 3. Big Solid White Pixel Morphing Play/Pause Button
+                val playInteraction = remember { MutableInteractionSource() }
+                val playPressed by playInteraction.collectIsPressedAsState()
+                val playCorner by animateDpAsState(
+                    targetValue = when {
+                        playPressed -> 16.dp
+                        state.controllerState.isPlaying -> 22.dp
+                        else -> 33.dp
+                    },
+                    animationSpec = PixelMotion.SpringDpBouncy,
+                    label = "vibrantPlayCorner",
+                )
                 Surface(
-                    onClick = { actions.onUIEvent(UIEvent.PlayPause) },
-                    shape = CircleShape,
+                    onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.PlayPause)
+                    },
+                    interactionSource = playInteraction,
+                    shape = RoundedCornerShape(playCorner),
                     color = Color.White,
                     shadowElevation = 8.dp,
-                    modifier = Modifier.size(66.dp),
+                    modifier = Modifier
+                        .size(66.dp)
+                        .pixelTapScale(playInteraction, pressedScale = 0.90f, hoveredScale = 1.05f),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        Icon(
-                            imageVector = if (state.controllerState.isPlaying) PulseIcons.Pause else PulseIcons.PlayArrow,
-                            contentDescription = "Play/Pause",
-                            tint = Color.Black,
-                            modifier = Modifier.size(34.dp),
-                        )
+                        AnimatedContent(
+                            targetState = state.controllerState.isPlaying,
+                            transitionSpec = { PixelMotion.iconMorphTransition() },
+                            contentAlignment = Alignment.Center,
+                            label = "vibrantPlayMorph",
+                        ) { playing ->
+                            Icon(
+                                imageVector = if (playing) PulseIcons.Pause else PulseIcons.PlayArrow,
+                                contentDescription = "Play/Pause",
+                                tint = Color.Black,
+                                modifier = Modifier.size(34.dp),
+                            )
+                        }
                     }
                 }
 
                 // 4. Next
+                val nextInteraction = remember { MutableInteractionSource() }
                 IconButton(
-                    onClick = { actions.onUIEvent(UIEvent.Next) },
+                    onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.Next)
+                    },
+                    interactionSource = nextInteraction,
+                    modifier = Modifier.pixelTapScale(nextInteraction, pressedScale = 0.84f, hoveredScale = 1.08f),
                 ) {
                     Icon(
                         imageVector = PulseIcons.SkipNext,
@@ -885,19 +859,37 @@ private fun NowPlayingVibrantExpressiveLayout(
 
                 // 5. Heart / Like Button
                 val heartBurstState = rememberHeartBurstState()
+                val likeInteraction = remember { MutableInteractionSource() }
+                val likeTint by animateColorAsState(
+                    targetValue = if (state.likeStatus) Color(0xFFFF5252) else Color.White.copy(alpha = 0.70f),
+                    animationSpec = tween(220),
+                    label = "vibrantLikeTint",
+                )
                 IconButton(
                     onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         if (!state.likeStatus) heartBurstState.fire()
                         actions.onUIEvent(UIEvent.ToggleLike)
                     },
-                    modifier = Modifier.heartBurst(heartBurstState),
+                    interactionSource = likeInteraction,
+                    modifier = Modifier
+                        .heartBurst(heartBurstState)
+                        .pixelTapScale(likeInteraction, pressedScale = 0.80f, hoveredScale = 1.10f)
+                        .pixelPopOnChange(state.likeStatus, peakScale = 1.24f, onlyWhen = state.likeStatus),
                 ) {
-                    Icon(
-                        imageVector = if (state.likeStatus) PulseIcons.Favorite else PulseIcons.FavoriteBorder,
-                        contentDescription = "Like",
-                        tint = if (state.likeStatus) Color(0xFFFF5252) else Color.White.copy(alpha = 0.70f),
-                        modifier = Modifier.size(24.dp),
-                    )
+                    AnimatedContent(
+                        targetState = state.likeStatus,
+                        transitionSpec = { PixelMotion.iconMorphTransition() },
+                        contentAlignment = Alignment.Center,
+                        label = "vibrantLikeMorph",
+                    ) { liked ->
+                        Icon(
+                            imageVector = if (liked) PulseIcons.Favorite else PulseIcons.FavoriteBorder,
+                            contentDescription = "Like",
+                            tint = likeTint,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                 }
             }
 
@@ -912,20 +904,39 @@ private fun NowPlayingVibrantExpressiveLayout(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // 1. Shuffle
+                val shuffleInteraction = remember { MutableInteractionSource() }
+                val shuffleTint by animateColorAsState(
+                    targetValue = if (state.controllerState.isShuffle) Color.White else Color.White.copy(alpha = 0.40f),
+                    animationSpec = tween(220),
+                    label = "vibrantShuffleTint",
+                )
                 IconButton(
-                    onClick = { actions.onUIEvent(UIEvent.Shuffle) },
+                    onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.Shuffle)
+                    },
+                    interactionSource = shuffleInteraction,
+                    modifier = Modifier
+                        .pixelTapScale(shuffleInteraction, pressedScale = 0.84f, hoveredScale = 1.08f)
+                        .pixelPopOnChange(state.controllerState.isShuffle, peakScale = 1.2f, onlyWhen = state.controllerState.isShuffle),
                 ) {
                     Icon(
                         imageVector = PulseIcons.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (state.controllerState.isShuffle) Color.White else Color.White.copy(alpha = 0.40f),
+                        tint = shuffleTint,
                         modifier = Modifier.size(22.dp),
                     )
                 }
 
                 // 2. Queue
+                val queueInteraction = remember { MutableInteractionSource() }
                 IconButton(
-                    onClick = actions.onShowQueue,
+                    onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onShowQueue()
+                    },
+                    interactionSource = queueInteraction,
+                    modifier = Modifier.pixelTapScale(queueInteraction, pressedScale = 0.84f, hoveredScale = 1.08f),
                 ) {
                     Icon(
                         imageVector = PulseIcons.QueueMusic,
@@ -942,8 +953,13 @@ private fun NowPlayingVibrantExpressiveLayout(
                     device.isHeadphones -> PulseIcons.Headphones
                     else -> PulseIcons.VolumeUp
                 }
+                val outputInteraction = remember { MutableInteractionSource() }
                 IconButton(
-                    onClick = { /* audio output */ },
+                    onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    },
+                    interactionSource = outputInteraction,
+                    modifier = Modifier.pixelTapScale(outputInteraction, pressedScale = 0.84f, hoveredScale = 1.08f),
                 ) {
                     Icon(
                         imageVector = outputIcon,
@@ -954,17 +970,36 @@ private fun NowPlayingVibrantExpressiveLayout(
                 }
 
                 // 4. Repeat
-                val isRepeatOne = state.controllerState.repeatState is RepeatState.One
                 val isRepeatActive = state.controllerState.repeatState !is RepeatState.None
+                val repeatInteraction = remember { MutableInteractionSource() }
+                val repeatTint by animateColorAsState(
+                    targetValue = if (isRepeatActive) Color.White else Color.White.copy(alpha = 0.40f),
+                    animationSpec = tween(220),
+                    label = "vibrantRepeatTint",
+                )
                 IconButton(
-                    onClick = { actions.onUIEvent(UIEvent.Repeat) },
+                    onClick = {
+                        controlHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.Repeat)
+                    },
+                    interactionSource = repeatInteraction,
+                    modifier = Modifier
+                        .pixelTapScale(repeatInteraction, pressedScale = 0.84f, hoveredScale = 1.08f)
+                        .pixelPopOnChange(state.controllerState.repeatState, peakScale = 1.2f, onlyWhen = isRepeatActive),
                 ) {
-                    Icon(
-                        imageVector = if (isRepeatOne) PulseIcons.RepeatOne else PulseIcons.Repeat,
-                        contentDescription = "Repeat",
-                        tint = if (isRepeatActive) Color.White else Color.White.copy(alpha = 0.40f),
-                        modifier = Modifier.size(22.dp),
-                    )
+                    AnimatedContent(
+                        targetState = state.controllerState.repeatState,
+                        transitionSpec = { PixelMotion.iconMorphTransition() },
+                        contentAlignment = Alignment.Center,
+                        label = "vibrantRepeatMorph",
+                    ) { rs ->
+                        Icon(
+                            imageVector = if (rs is RepeatState.One) PulseIcons.RepeatOne else PulseIcons.Repeat,
+                            contentDescription = "Repeat",
+                            tint = repeatTint,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
                 }
             }
 
@@ -977,270 +1012,6 @@ private fun NowPlayingVibrantExpressiveLayout(
             )
 
             Spacer(modifier = Modifier.height(48.dp))
-        }
-    }
-}
-
-/**
- * Apple Music / iOS-style Cover Flow carousel that appears as an animated overlay while the user
- * swipes the album disc. Shows up to 5 cards (prev-prev, prev, current, next, next-next) in a
- * perspective-fan layout with 3D Y-axis rotation and depth scaling. The card layout mirrors the
- * reference image: large centre card, smaller angled side cards peaking from behind.
- */
-@Composable
-private fun CoverFlowOverlay(
-    queue: List<com.manikandan.domain.data.model.browse.album.Track>,
-    currentIndex: Int,
-    swipeOffset: Float,
-    primaryAmbient: Color,
-    cardWidth: androidx.compose.ui.unit.Dp,
-    cardHeight: androidx.compose.ui.unit.Dp,
-    currentThumbnailUrl: String?,
-) {
-    // Normalise offset to [-1 .. 1] range where 1 = full width of card
-    val density = LocalDensity.current
-    val cardWidthPx = with(density) { cardWidth.toPx() }
-    val normOffset = (swipeOffset / (cardWidthPx * 1.4f)).coerceIn(-1f, 1f)
-
-    // Dark blurred backdrop so the cover flow pops against the player UI
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.72f * abs(normOffset))),
-        contentAlignment = Alignment.Center,
-    ) {
-        // Render cards from -2 to +2 relative to current, back to front
-        (-2..2).forEach { relIdx ->
-            val track = queue.getOrNull(currentIndex + relIdx)
-            val thumbUrl = track?.thumbnails?.lastOrNull()?.url
-                ?: if (relIdx == 0) currentThumbnailUrl else null
-
-            // Position: each card is shifted by its relative index Ã— card width Ã— spacing factor
-            // The swipe offset shifts all cards so the dragging feels like the carousel moving
-            val baseTranslateX = (relIdx.toFloat() - normOffset) * cardWidthPx * 0.78f
-            // 3D rotation: neighbouring cards are angled inward; more distant = more tilted
-            val rotY = when (relIdx) {
-                0  -> -normOffset * 20f                 // current card tilts with drag
-                1, -1 -> (relIdx * 38f) + (-normOffset * 10f)
-                else   -> relIdx * 55f
-            }
-            // Scale: front card is 100%, each step back is smaller
-            val scale = 1f - (abs(relIdx.toFloat() - normOffset).coerceIn(0f, 2f) * 0.17f)
-            // Alpha: fade out distant cards
-            val alpha = (1f - abs(relIdx.toFloat() - normOffset).coerceIn(0f, 2f) * 0.35f).coerceIn(0f, 1f)
-            // Elevation (z-order): current card is on top
-            val zOffset = (2f - abs(relIdx.toFloat() - normOffset)).coerceIn(0f, 2f)
-
-            if (thumbUrl != null || relIdx == 0) {
-                Box(
-                    modifier = Modifier
-                        .size(cardWidth, cardHeight)
-                        .graphicsLayer {
-                            translationX = baseTranslateX
-                            scaleX = scale
-                            scaleY = scale
-                            this.alpha = alpha
-                            cameraDistance = 10f * density.density
-                            rotationY = rotY
-                            shadowElevation = zOffset * 20f
-                        }
-                        .clip(RoundedCornerShape(18.dp))
-                        .shadow(
-                            elevation = (zOffset * 12f).dp,
-                            shape = RoundedCornerShape(18.dp),
-                            ambientColor = primaryAmbient.copy(alpha = 0.4f),
-                            spotColor = primaryAmbient.copy(alpha = 0.6f),
-                        ),
-                ) {
-                    if (thumbUrl != null) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalPlatformContext.current)
-                                .data(thumbUrl)
-                                .crossfade(200)
-                                .memoryCachePolicy(CachePolicy.ENABLED)
-                                .diskCachePolicy(CachePolicy.ENABLED)
-                                .build(),
-                            contentDescription = track?.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(primaryAmbient.copy(alpha = 0.3f)),
-                        )
-                    }
-                    // Track name label at bottom of each card
-                    if (track != null && scale > 0.65f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                        startY = cardHeight.value * 0.55f,
-                                    ),
-                                ),
-                            contentAlignment = Alignment.BottomCenter,
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(bottom = 12.dp, start = 8.dp, end = 8.dp),
-                            ) {
-                                Text(
-                                    text = track.title ?: "",
-                                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        fontSize = 11.sp,
-                                    ),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center,
-                                )
-                                if (relIdx == 0) {
-                                    Text(
-                                        text = track.artists?.firstOrNull()?.name ?: "",
-                                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall.copy(
-                                            color = Color.White.copy(alpha = 0.65f),
-                                            fontSize = 10.sp,
-                                        ),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Material 3 Expressive squiggly wave progress bar with interactive scrubbing,
- * dynamic undulating wave when playing, smooth straightening when paused,
- * and glowing scrub knob.
- */
-@Composable
-private fun MaterialExpressive3ProgressBar(
-    progress: Float,
-    isPlaying: Boolean,
-    primaryColor: Color,
-    secondaryColor: Color,
-    onSeek: (Float) -> Unit,
-    onSeekFinished: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(100),
-        label = "expressiveProgress",
-    )
-
-    val waveTransition = rememberInfiniteTransition(label = "expressiveWaveTransition")
-    val wavePhase by waveTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2f * kotlin.math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "expressiveWavePhase",
-    )
-
-    val waveAmplitude by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0f,
-        animationSpec = tween(500),
-        label = "expressiveWaveAmplitude",
-    )
-
-    Canvas(
-        modifier = modifier.pointerInput(Unit) {
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
-                fun update(x: Float) {
-                    val p = (x / size.width.toFloat()).coerceIn(0f, 1f)
-                    onSeek(p)
-                }
-                update(down.position.x)
-                down.consume()
-
-                while (true) {
-                    val event = awaitPointerEvent()
-                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                    if (change.pressed) {
-                        change.consume()
-                        update(change.position.x)
-                    } else {
-                        break
-                    }
-                }
-                onSeekFinished()
-            }
-        },
-    ) {
-        val trackHeight = 5.dp.toPx()
-        val centerY = size.height / 2f
-        val w = size.width
-        val activeW = (w * animatedProgress).coerceIn(0f, w)
-
-        // Inactive background track
-        drawLine(
-            color = Color.White.copy(alpha = 0.20f),
-            start = Offset(0f, centerY),
-            end = Offset(w, centerY),
-            strokeWidth = trackHeight,
-            cap = StrokeCap.Round,
-        )
-
-        // Active track with expressive squiggly wave when playing
-        if (activeW > 0f) {
-            val path = Path()
-            val ampPx = 3.5.dp.toPx() * waveAmplitude
-            val wavelengthPx = 28.dp.toPx()
-            path.moveTo(0f, centerY)
-
-            var x = 0f
-            val step = 3f
-            while (x <= activeW) {
-                val waveY = centerY + sin((x / wavelengthPx) * 2f * kotlin.math.PI.toFloat() - wavePhase) * ampPx
-                path.lineTo(x, waveY)
-                x += step
-            }
-
-            drawPath(
-                path = path,
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color(0xFFFFD59E),
-                        Color(0xFFFFB347),
-                        Color.White,
-                    ),
-                    startX = 0f,
-                    endX = activeW.coerceAtLeast(1f),
-                ),
-                style = Stroke(
-                    width = trackHeight,
-                    cap = StrokeCap.Round,
-                ),
-            )
-
-            // Expressive thumb knob at current position
-            val thumbY = centerY + sin((activeW / wavelengthPx) * 2f * kotlin.math.PI.toFloat() - wavePhase) * ampPx
-            drawCircle(
-                color = Color.White.copy(alpha = 0.35f),
-                radius = 8.dp.toPx(),
-                center = Offset(activeW, thumbY),
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 5.dp.toPx(),
-                center = Offset(activeW, thumbY),
-            )
         }
     }
 }

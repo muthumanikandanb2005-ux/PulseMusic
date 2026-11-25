@@ -1,6 +1,12 @@
 package com.pulse.music.ui.screen.player.content
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import com.pulse.music.ui.component.PixelMotion
+import com.pulse.music.ui.component.pixelPopOnChange
+import com.pulse.music.ui.component.pixelTapScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -1295,6 +1301,7 @@ internal fun BitChordTransportRow(
     val isLavender = LocalIsPearlLavenderTheme.current
     val isShuffle = state.controllerState.isShuffle
     val repeatState = state.controllerState.repeatState
+    val haptic = LocalHapticFeedback.current
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -1302,14 +1309,27 @@ internal fun BitChordTransportRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Shuffle Toggle
+        val shuffleInteraction = remember { MutableInteractionSource() }
+        val shuffleTint by animateColorAsState(
+            targetValue = if (isShuffle) accentColor else Color.White.copy(alpha = 0.45f),
+            animationSpec = tween(220),
+            label = "bitChordShuffleTint",
+        )
         IconButton(
-            onClick = { actions.onUIEvent(UIEvent.Shuffle) },
-            modifier = Modifier.size(44.dp),
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                actions.onUIEvent(UIEvent.Shuffle)
+            },
+            interactionSource = shuffleInteraction,
+            modifier = Modifier
+                .size(44.dp)
+                .pixelTapScale(shuffleInteraction, pressedScale = 0.84f, hoveredScale = 1.08f)
+                .pixelPopOnChange(isShuffle, peakScale = 1.2f, onlyWhen = isShuffle),
         ) {
             Icon(
                 imageVector = PulseIcons.Shuffle,
                 contentDescription = "Shuffle",
-                tint = if (isShuffle) accentColor else Color.White.copy(alpha = 0.45f),
+                tint = shuffleTint,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -1318,8 +1338,8 @@ internal fun BitChordTransportRow(
         val prevInteraction = remember { MutableInteractionSource() }
         val isPrevPressed by prevInteraction.collectIsPressedAsState()
         val prevScale by animateFloatAsState(
-            targetValue = if (isPrevPressed) 0.92f else 1f,
-            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+            targetValue = if (isPrevPressed) 0.90f else 1f,
+            animationSpec = PixelMotion.SpringBouncy,
             label = "M3EPrevPressScale",
         )
         Box(
@@ -1337,7 +1357,10 @@ internal fun BitChordTransportRow(
                 .clickable(
                     interactionSource = prevInteraction,
                     indication = null,
-                    onClick = { actions.onUIEvent(UIEvent.Previous) }
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.Previous)
+                    }
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -1350,21 +1373,25 @@ internal fun BitChordTransportRow(
         }
 
         // Material Expressive 3 Play/Pause Button (Morphing corner, clean tactile surface, zero glow)
+        val playInteraction = remember { MutableInteractionSource() }
+        val isPlayPressed by playInteraction.collectIsPressedAsState()
         val playCornerRadius by animateDpAsState(
-            targetValue = if (isPlaying) 20.dp else 36.dp,
-            animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
+            targetValue = when {
+                isPlayPressed -> 16.dp
+                isPlaying -> 20.dp
+                else -> 36.dp
+            },
+            animationSpec = PixelMotion.SpringDpBouncy,
             label = "M3EPlayCorner",
         )
         val playWidth by animateDpAsState(
             targetValue = if (isPlaying) 76.dp else 72.dp,
-            animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
+            animationSpec = PixelMotion.SpringDpBouncy,
             label = "M3EPlayWidth",
         )
-        val playInteraction = remember { MutableInteractionSource() }
-        val isPlayPressed by playInteraction.collectIsPressedAsState()
         val playScale by animateFloatAsState(
-            targetValue = if (isPlayPressed) 0.94f else 1f,
-            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+            targetValue = if (isPlayPressed) 0.92f else 1f,
+            animationSpec = PixelMotion.SpringBouncy,
             label = "M3EPlayPressScale",
         )
 
@@ -1373,30 +1400,38 @@ internal fun BitChordTransportRow(
                 .size(width = playWidth, height = 72.dp)
                 .scale(playScale)
                 .clip(RoundedCornerShape(playCornerRadius))
-                .background(
-                    if (isLavender) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary
-                )
+                .background(MaterialTheme.colorScheme.primary)
                 .clickable(
                     interactionSource = playInteraction,
                     indication = null,
-                    onClick = { actions.onUIEvent(UIEvent.PlayPause) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.PlayPause)
+                    },
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = if (isPlaying) PulseIcons.Pause else PulseIcons.PlayArrow,
-                contentDescription = if (isPlaying) "Pause" else "Play",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(36.dp),
-            )
+            AnimatedContent(
+                targetState = isPlaying,
+                transitionSpec = { PixelMotion.iconMorphTransition() },
+                contentAlignment = Alignment.Center,
+                label = "bitChordPlayMorph",
+            ) { playing ->
+                Icon(
+                    imageVector = if (playing) PulseIcons.Pause else PulseIcons.PlayArrow,
+                    contentDescription = if (playing) "Pause" else "Play",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(36.dp),
+                )
+            }
         }
 
         // Next — Material Expressive 3 Pill Button
         val nextInteraction = remember { MutableInteractionSource() }
         val isNextPressed by nextInteraction.collectIsPressedAsState()
         val nextScale by animateFloatAsState(
-            targetValue = if (isNextPressed) 0.92f else 1f,
-            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+            targetValue = if (isNextPressed) 0.90f else 1f,
+            animationSpec = PixelMotion.SpringBouncy,
             label = "M3ENextPressScale",
         )
         Box(
@@ -1414,7 +1449,10 @@ internal fun BitChordTransportRow(
                 .clickable(
                     interactionSource = nextInteraction,
                     indication = null,
-                    onClick = { actions.onUIEvent(UIEvent.Next) }
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        actions.onUIEvent(UIEvent.Next)
+                    }
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -1427,24 +1465,36 @@ internal fun BitChordTransportRow(
         }
 
         // Repeat Toggle
+        val repeatInteraction = remember { MutableInteractionSource() }
+        val repeatTint by animateColorAsState(
+            targetValue = if (repeatState == RepeatState.None) Color.White.copy(alpha = 0.45f) else accentColor,
+            animationSpec = tween(220),
+            label = "bitChordRepeatTint",
+        )
         IconButton(
-            onClick = { actions.onUIEvent(UIEvent.Repeat) },
-            modifier = Modifier.size(44.dp),
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                actions.onUIEvent(UIEvent.Repeat)
+            },
+            interactionSource = repeatInteraction,
+            modifier = Modifier
+                .size(44.dp)
+                .pixelTapScale(repeatInteraction, pressedScale = 0.84f, hoveredScale = 1.08f)
+                .pixelPopOnChange(repeatState, peakScale = 1.2f, onlyWhen = repeatState != RepeatState.None),
         ) {
-            val repeatIcon = when (repeatState) {
-                RepeatState.One -> PulseIcons.RepeatOne
-                else -> PulseIcons.Repeat
+            AnimatedContent(
+                targetState = repeatState,
+                transitionSpec = { PixelMotion.iconMorphTransition() },
+                contentAlignment = Alignment.Center,
+                label = "bitChordRepeatMorph",
+            ) { rs ->
+                Icon(
+                    imageVector = if (rs == RepeatState.One) PulseIcons.RepeatOne else PulseIcons.Repeat,
+                    contentDescription = "Repeat",
+                    tint = repeatTint,
+                    modifier = Modifier.size(24.dp),
+                )
             }
-            val repeatTint = when (repeatState) {
-                RepeatState.None -> Color.White.copy(alpha = 0.45f)
-                else -> accentColor
-            }
-            Icon(
-                imageVector = repeatIcon,
-                contentDescription = "Repeat",
-                tint = repeatTint,
-                modifier = Modifier.size(24.dp),
-            )
         }
     }
 }

@@ -95,6 +95,8 @@ interface PlaylistRepository {
 
     fun getSpotifyTrendingPlaylists(): Flow<List<PlaylistsResult>?>
 
+    fun getSpotifyTrendingTracks(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?>
+
     fun getSpotifyRecentlyPlayed(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?>
 
     suspend fun syncSpotifyPlaylists(spdc: String): Result<Int>

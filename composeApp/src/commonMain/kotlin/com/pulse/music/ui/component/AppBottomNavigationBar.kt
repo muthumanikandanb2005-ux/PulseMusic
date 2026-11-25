@@ -1,13 +1,25 @@
 package com.pulse.music.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -146,17 +158,47 @@ fun AppBottomNavigationBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 6.dp),
             ) {
-                // Far-Left: Circular Brand Emblem / Search Button
+                val haptic = LocalHapticFeedback.current
+                val searchInteraction = androidx.compose.runtime.remember { MutableInteractionSource() }
+                val searchPressed by searchInteraction.collectIsPressedAsState()
+                val searchCorner by animateDpAsState(
+                    targetValue = when {
+                        searchPressed -> 14.dp
+                        searchSelected -> 16.dp
+                        else -> 24.dp
+                    },
+                    animationSpec = PixelMotion.SpringDpBouncy,
+                    label = "searchFabCorner",
+                )
+                val searchBgColor by animateColorAsState(
+                    targetValue = if (searchSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    animationSpec = tween(220, easing = PixelMotion.EmphasizedDecelerate),
+                    label = "searchFabBg",
+                )
+                val searchElevation by animateDpAsState(
+                    targetValue = if (searchSelected) 6.dp else 2.dp,
+                    animationSpec = PixelMotion.SpringDpDefault,
+                    label = "searchFabElevation",
+                )
+                // Far-Left: Circular Brand Emblem / Search Button with Pixel Squircle Morph
                 Surface(
-                    onClick = { selectTab(BottomNavScreen.Search) },
-                    shape = CircleShape,
-                    color = if (searchSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    shadowElevation = if (searchSelected) 6.dp else 2.dp,
-                    modifier = Modifier.size(48.dp),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        selectTab(BottomNavScreen.Search)
+                    },
+                    interactionSource = searchInteraction,
+                    shape = RoundedCornerShape(searchCorner),
+                    color = searchBgColor,
+                    shadowElevation = searchElevation,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .pixelTapScale(searchInteraction, pressedScale = 0.88f, hoveredScale = 1.04f),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pixelPopOnChange(searchSelected, peakScale = 1.15f, onlyWhen = searchSelected),
                     ) {
                         CompositionLocalProvider(
                             LocalContentColor provides if (searchSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
@@ -174,7 +216,7 @@ fun AppBottomNavigationBar(
                     val selectedPosition = barTabs.indexOfFirst { it.ordinal == selectedIndex }
                     val indicatorOffset by animateDpAsState(
                         targetValue = tabWidth * selectedPosition.coerceAtLeast(0),
-                        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                        animationSpec = PixelMotion.SpringDpBouncy,
                         label = "flatBarIndicator",
                     )
 
@@ -193,24 +235,35 @@ fun AppBottomNavigationBar(
                     Row {
                         barTabs.forEach { screen ->
                             val selected = selectedIndex == screen.ordinal
-                            val contentColor =
-                                if (selected) {
+                            val contentColor by animateColorAsState(
+                                targetValue = if (selected) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
-                                }
+                                },
+                                animationSpec = tween(220, easing = PixelMotion.EmphasizedDecelerate),
+                                label = "tabContentColor_${screen.ordinal}",
+                            )
                             Column(
                                 modifier =
                                     Modifier
                                         .width(tabWidth)
                                         .height(FlatIndicatorHeight)
                                         .clip(RoundedCornerShape(14.dp))
-                                        .clickable { selectTab(screen) },
+                                        .pixelClickable(
+                                            pressedScale = 0.90f,
+                                            hoveredScale = 1.03f,
+                                            role = Role.Tab,
+                                        ) { selectTab(screen) },
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
-                                CompositionLocalProvider(LocalContentColor provides contentColor) {
-                                    screen.icon()
+                                Box(
+                                    modifier = Modifier.pixelPopOnChange(selected, peakScale = 1.16f, onlyWhen = selected),
+                                ) {
+                                    CompositionLocalProvider(LocalContentColor provides contentColor) {
+                                        screen.icon()
+                                    }
                                 }
                                 Text(
                                     stringResource(screen.title),
@@ -221,15 +274,21 @@ fun AppBottomNavigationBar(
                                     color = contentColor,
                                     maxLines = 1,
                                 )
-                                // Active Tab Dot Indicator (as seen in reference image)
-                                if (selected) {
-                                    Spacer(Modifier.height(2.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(4.dp)
-                                            .clip(CircleShape)
-                                            .background(contentColor),
-                                    )
+                                // Active Tab Dot Indicator with spring pop
+                                AnimatedVisibility(
+                                    visible = selected,
+                                    enter = scaleIn(PixelMotion.SpringBouncy) + fadeIn(tween(180)),
+                                    exit = scaleOut(PixelMotion.SpringFast) + fadeOut(tween(120)),
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Spacer(Modifier.height(2.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(contentColor),
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -356,6 +356,18 @@ internal class SongRepositoryImpl(
                 var newContinuation: String? = null
                 Logger.d(TAG, "getContinueTrack -> playlistId: $playlistId")
                 Logger.d(TAG, "getContinueTrack -> continuation: $continuation")
+                if (
+                    playlistId.startsWith("saavn:") ||
+                    playlistId.startsWith(JioSaavnService.SAAVN_RADIO_PREFIX) ||
+                    continuation.startsWith(JioSaavnService.SAAVN_CONT_PREFIX)
+                ) {
+                    val (tracks, nextCont) = JioSaavnService.getContinueRadioTracks(
+                        playlistId = playlistId,
+                        continuation = continuation,
+                    )
+                    emit(Pair(if (tracks.isNotEmpty()) ArrayList(tracks) else null, nextCont))
+                    return@runCatching
+                }
                 if (!fromPlaylist) {
                     youTube
                         .next(
@@ -529,16 +541,9 @@ internal class SongRepositoryImpl(
     override fun getRelatedData(videoId: String): Flow<Resource<Pair<List<Track>, String?>>> =
         flow {
             runCatching {
-                if (videoId.startsWith("saavn:")) {
-                    val cleanId = videoId.removePrefix("saavn:")
-                    val cachedTrack = JioSaavnService.getCachedTrack(videoId) ?: JioSaavnService.getCachedTrack(cleanId)
-                    val artistName = cachedTrack?.artists?.firstOrNull()?.name
-                    val title = cachedTrack?.title
-                    val query = if (!artistName.isNullOrBlank() && !title.isNullOrBlank()) "$title $artistName" else title ?: cleanId
-                    val related = JioSaavnService.searchSongs(query)
-                        .filter { it.videoId != videoId }
-                        .map { it.toTrack() }
-                    emit(Resource.Success<Pair<List<Track>, String?>>(Pair(related, null)))
+                if (videoId.startsWith("saavn:") || videoId.startsWith(JioSaavnService.SAAVN_RADIO_PREFIX)) {
+                    val relatedResult = JioSaavnService.getRelatedRadio(videoId)
+                    emit(Resource.Success(relatedResult))
                     return@runCatching
                 }
                 youTube
@@ -571,17 +576,14 @@ internal class SongRepositoryImpl(
             runCatching {
                 val vId = endpoint.videoId ?: ""
                 val pId = endpoint.playlistId ?: ""
-                if (vId.startsWith("saavn:") || pId.contains("saavn:")) {
-                    val actualId = if (vId.startsWith("saavn:")) vId else pId.removePrefix("RDAMVM")
-                    val cleanId = actualId.removePrefix("saavn:")
-                    val cachedTrack = JioSaavnService.getCachedTrack(actualId) ?: JioSaavnService.getCachedTrack(cleanId)
-                    val artistName = cachedTrack?.artists?.firstOrNull()?.name
-                    val title = cachedTrack?.title
-                    val query = if (!artistName.isNullOrBlank() && !title.isNullOrBlank()) "$title $artistName" else title ?: cleanId
-                    val related = JioSaavnService.searchSongs(query)
-                        .filter { it.videoId != actualId }
-                        .map { it.toTrack() }
-                    emit(Resource.Success(Pair(related, null)))
+                if (vId.startsWith("saavn:") || pId.contains("saavn:") || pId.startsWith(JioSaavnService.SAAVN_RADIO_PREFIX)) {
+                    val actualId = if (vId.startsWith("saavn:")) {
+                        vId
+                    } else {
+                        pId.removePrefix(JioSaavnService.SAAVN_RADIO_PREFIX).removePrefix("RDAMVM")
+                    }
+                    val relatedResult = JioSaavnService.getRelatedRadio(actualId)
+                    emit(Resource.Success(relatedResult))
                     return@runCatching
                 }
                 youTube

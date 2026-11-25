@@ -1,11 +1,16 @@
 package com.pulse.music
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import com.pulse.music.ui.component.PixelMotion
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -447,14 +452,21 @@ fun App(
                 if (!isTablet) {
                     AnimatedVisibility(
                         isNavBarVisible,
-                        enter = fadeIn() + slideInHorizontally(),
-                        exit = fadeOut(),
+                        enter = slideInVertically(animationSpec = PixelMotion.SpringOffsetDefault) { it / 2 } +
+                            scaleIn(initialScale = 0.96f, animationSpec = PixelMotion.SpringDefault) +
+                            fadeIn(tween(240, easing = PixelMotion.EmphasizedDecelerate)),
+                        exit = slideOutVertically(animationSpec = PixelMotion.SpringOffsetFast) { it / 2 } +
+                            fadeOut(tween(180)),
                     ) {
                         Column {
                             AnimatedVisibility(
                                 isShowMiniPlayer && !effectiveLiquidGlass,
-                                enter = fadeIn() + slideInHorizontally(),
-                                exit = fadeOut(),
+                                enter = slideInVertically(animationSpec = PixelMotion.SpringOffsetDefault) { it / 2 } +
+                                    scaleIn(initialScale = 0.95f, animationSpec = PixelMotion.SpringDefault) +
+                                    fadeIn(tween(220, easing = PixelMotion.EmphasizedDecelerate)),
+                                exit = slideOutVertically(animationSpec = PixelMotion.SpringOffsetFast) { it / 2 } +
+                                    scaleOut(targetScale = 0.95f, animationSpec = PixelMotion.SpringFast) +
+                                    fadeOut(tween(160)),
                             ) {
                                 MiniPlayer(
                                     Modifier
@@ -586,8 +598,12 @@ fun App(
                                         .padding(innerPadding)
                                         .align(Alignment.BottomCenter),
                                 visible = isShowMiniPlayer && isTablet && !isInFullscreen,
-                                enter = fadeIn() + slideInHorizontally(),
-                                exit = fadeOut(),
+                                enter = slideInVertically(animationSpec = PixelMotion.SpringOffsetDefault) { it / 2 } +
+                                    scaleIn(initialScale = 0.94f, animationSpec = PixelMotion.SpringBouncy) +
+                                    fadeIn(tween(240, easing = PixelMotion.EmphasizedDecelerate)),
+                                exit = slideOutVertically(animationSpec = PixelMotion.SpringOffsetFast) { it / 2 } +
+                                    scaleOut(targetScale = 0.95f, animationSpec = PixelMotion.SpringFast) +
+                                    fadeOut(tween(170)),
                             ) {
                                 MiniPlayer(
                                     if (getPlatform() == Platform.Android) {
@@ -630,8 +646,11 @@ fun App(
                         if (isTablet && isTabletLandscape && !isInFullscreen) {
                             AnimatedVisibility(
                                 isShowNowPlaylistScreen,
-                                enter = expandHorizontally() + fadeIn(),
-                                exit = fadeOut() + shrinkHorizontally(),
+                                enter = expandHorizontally(animationSpec = PixelMotion.SpringSizeDefault) +
+                                    scaleIn(initialScale = 0.97f, animationSpec = PixelMotion.SpringDefault) +
+                                    fadeIn(tween(280, easing = PixelMotion.EmphasizedDecelerate)),
+                                exit = fadeOut(tween(180)) +
+                                    shrinkHorizontally(animationSpec = PixelMotion.SpringSizeFast),
                             ) {
                                 Row(
                                     Modifier

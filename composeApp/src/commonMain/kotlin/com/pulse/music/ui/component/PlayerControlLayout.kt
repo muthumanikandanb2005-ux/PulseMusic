@@ -1,8 +1,9 @@
 ﻿package com.pulse.music.ui.component
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,10 +15,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.manikandan.domain.mediaservice.handler.ControlState
@@ -66,37 +69,30 @@ fun PlayerControlLayout(
                 .padding(horizontal = horizontalPadding),
     ) {
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            val shuffleTint by animateColorAsState(
+                targetValue = if (controllerState.isShuffle) activeColor else contentColor,
+                animationSpec = tween(220),
+                label = "shuffleTint",
+            )
             Box(
                 modifier =
                     Modifier
                         .background(Color.Transparent)
                         .size(smallIcon.second)
                         .aspectRatio(1f)
-                        .clip(
-                            CircleShape,
-                        )
-                        .clickable {
+                        .clip(CircleShape)
+                        .pixelClickable(pressedScale = 0.82f, hoveredScale = 1.08f, role = Role.Button) {
                             onUIEvent(UIEvent.Shuffle)
-                        },
+                        }
+                        .pixelPopOnChange(controllerState.isShuffle, peakScale = 1.2f, onlyWhen = controllerState.isShuffle),
                 contentAlignment = Alignment.Center,
             ) {
-                Crossfade(targetState = controllerState.isShuffle, label = "Shuffle Button") { isShuffle ->
-                    if (!isShuffle) {
-                        Icon(
-                            imageVector = PulseIcons.Shuffle,
-                            tint = contentColor,
-                            contentDescription = "",
-                            modifier = Modifier.size(smallIcon.first),
-                        )
-                    } else {
-                        Icon(
-                            imageVector = PulseIcons.Shuffle,
-                            tint = activeColor,
-                            contentDescription = "",
-                            modifier = Modifier.size(smallIcon.first),
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = PulseIcons.Shuffle,
+                    tint = shuffleTint,
+                    contentDescription = "",
+                    modifier = Modifier.size(smallIcon.first),
+                )
             }
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -106,10 +102,13 @@ fun PlayerControlLayout(
                         .background(Color.Transparent)
                         .size(mediumIcon.second)
                         .aspectRatio(1f)
-                        .clip(
-                            CircleShape,
-                        )
-                        .clickable {
+                        .clip(CircleShape)
+                        .pixelClickable(
+                            enabled = controllerState.isPreviousAvailable,
+                            pressedScale = 0.84f,
+                            hoveredScale = 1.08f,
+                            role = Role.Button,
+                        ) {
                             if (controllerState.isPreviousAvailable) {
                                 onUIEvent(UIEvent.Previous)
                             }
@@ -131,30 +130,29 @@ fun PlayerControlLayout(
                         .background(Color.Transparent)
                         .size(bigIcon.second)
                         .aspectRatio(1f)
-                        .clip(
-                            CircleShape,
-                        )
-                        .clickable {
+                        .clip(CircleShape)
+                        .pixelClickable(pressedScale = 0.85f, hoveredScale = 1.07f, role = Role.Button) {
                             onUIEvent(UIEvent.PlayPause)
-                        },
+                        }
+                        .pixelPopOnChange(controllerState.isPlaying, peakScale = 1.12f),
                 contentAlignment = Alignment.Center,
             ) {
-                Crossfade(targetState = controllerState.isPlaying) { isPlaying ->
-                    if (!isPlaying) {
-                        Icon(
-                            imageVector = if (plainPlayPause) PulseIcons.PlayArrow else PulseIcons.PlayCircle,
-                            tint = contentColor,
-                            contentDescription = "",
-                            modifier = Modifier.size(bigIcon.first),
-                        )
-                    } else {
-                        Icon(
-                            imageVector = if (plainPlayPause) PulseIcons.Pause else PulseIcons.PauseCircle,
-                            tint = contentColor,
-                            contentDescription = "",
-                            modifier = Modifier.size(bigIcon.first),
-                        )
-                    }
+                AnimatedContent(
+                    targetState = controllerState.isPlaying,
+                    transitionSpec = { PixelMotion.iconMorphTransition() },
+                    contentAlignment = Alignment.Center,
+                    label = "playPauseTransportMorph",
+                ) { isPlaying ->
+                    Icon(
+                        imageVector = if (!isPlaying) {
+                            if (plainPlayPause) PulseIcons.PlayArrow else PulseIcons.PlayCircle
+                        } else {
+                            if (plainPlayPause) PulseIcons.Pause else PulseIcons.PauseCircle
+                        },
+                        tint = contentColor,
+                        contentDescription = "",
+                        modifier = Modifier.size(bigIcon.first),
+                    )
                 }
             }
         }
@@ -165,10 +163,13 @@ fun PlayerControlLayout(
                         .background(Color.Transparent)
                         .size(mediumIcon.second)
                         .aspectRatio(1f)
-                        .clip(
-                            CircleShape,
-                        )
-                        .clickable {
+                        .clip(CircleShape)
+                        .pixelClickable(
+                            enabled = controllerState.isNextAvailable,
+                            pressedScale = 0.84f,
+                            hoveredScale = 1.08f,
+                            role = Role.Button,
+                        ) {
                             if (controllerState.isNextAvailable) {
                                 onUIEvent(UIEvent.Next)
                             }
@@ -184,48 +185,39 @@ fun PlayerControlLayout(
             }
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            val repeatTint by animateColorAsState(
+                targetValue = if (controllerState.repeatState != RepeatState.None) activeColor else contentColor,
+                animationSpec = tween(220),
+                label = "repeatTint",
+            )
             Box(
                 modifier =
                     Modifier
                         .size(smallIcon.second)
                         .aspectRatio(1f)
-                        .clip(
-                            CircleShape,
-                        )
-                        .clickable {
+                        .clip(CircleShape)
+                        .pixelClickable(pressedScale = 0.82f, hoveredScale = 1.08f, role = Role.Button) {
                             onUIEvent(UIEvent.Repeat)
-                        },
+                        }
+                        .pixelPopOnChange(
+                            controllerState.repeatState,
+                            peakScale = 1.2f,
+                            onlyWhen = controllerState.repeatState != RepeatState.None,
+                        ),
                 contentAlignment = Alignment.Center,
             ) {
-                Crossfade(targetState = controllerState.repeatState) { rs ->
-                    when (rs) {
-                        is RepeatState.None -> {
-                            Icon(
-                                imageVector = PulseIcons.Repeat,
-                                tint = contentColor,
-                                contentDescription = "",
-                                modifier = Modifier.size(smallIcon.first),
-                            )
-                        }
-
-                        RepeatState.All -> {
-                            Icon(
-                                imageVector = PulseIcons.Repeat,
-                                tint = activeColor,
-                                contentDescription = "",
-                                modifier = Modifier.size(smallIcon.first),
-                            )
-                        }
-
-                        RepeatState.One -> {
-                            Icon(
-                                imageVector = PulseIcons.RepeatOne,
-                                tint = activeColor,
-                                contentDescription = "",
-                                modifier = Modifier.size(smallIcon.first),
-                            )
-                        }
-                    }
+                AnimatedContent(
+                    targetState = controllerState.repeatState,
+                    transitionSpec = { PixelMotion.iconMorphTransition() },
+                    contentAlignment = Alignment.Center,
+                    label = "repeatMorph",
+                ) { rs ->
+                    Icon(
+                        imageVector = if (rs == RepeatState.One) PulseIcons.RepeatOne else PulseIcons.Repeat,
+                        tint = repeatTint,
+                        contentDescription = "",
+                        modifier = Modifier.size(smallIcon.first),
+                    )
                 }
             }
         }

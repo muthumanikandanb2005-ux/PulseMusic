@@ -1,5 +1,6 @@
 package com.manikandan.data.mediaservice
 
+import com.manikandan.data.service.JioSaavnService
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.logger.Logger
 
@@ -18,11 +19,96 @@ object TrackLanguageFilter {
     const val LANG_KANNADA = "kn"
     const val LANG_PUNJABI = "pa"
     const val LANG_BENGALI = "bn"
+    const val LANG_MARATHI = "mr"
+    const val LANG_GUJARATI = "gu"
+    const val LANG_BHOJPURI = "bho"
+    const val LANG_HARYANVI = "bgc"
+    const val LANG_RAJASTHANI = "raj"
+    const val LANG_ODIA = "or"
+    const val LANG_ASSAMESE = "as"
+    const val LANG_URDU = "ur"
+    const val LANG_SANSKRIT = "sa"
     const val LANG_KOREAN = "ko"
     const val LANG_JAPANESE = "ja"
     const val LANG_SPANISH = "es"
     const val LANG_ENGLISH = "en"
     const val LANG_UNKNOWN = "unknown"
+
+    private val REGIONAL_LANGUAGES = setOf(
+        LANG_TAMIL,
+        LANG_TELUGU,
+        LANG_HINDI,
+        LANG_MALAYALAM,
+        LANG_KANNADA,
+        LANG_PUNJABI,
+        LANG_BENGALI,
+        LANG_MARATHI,
+        LANG_GUJARATI,
+        LANG_BHOJPURI,
+        LANG_HARYANVI,
+        LANG_RAJASTHANI,
+        LANG_ODIA,
+        LANG_ASSAMESE,
+        LANG_URDU,
+        LANG_SANSKRIT,
+    )
+
+    private val LANGUAGE_NAME_TO_CODE = mapOf(
+        "tamil" to LANG_TAMIL, "tamizh" to LANG_TAMIL, "ta" to LANG_TAMIL,
+        "telugu" to LANG_TELUGU, "te" to LANG_TELUGU,
+        "hindi" to LANG_HINDI, "hi" to LANG_HINDI,
+        "malayalam" to LANG_MALAYALAM, "ml" to LANG_MALAYALAM,
+        "kannada" to LANG_KANNADA, "kn" to LANG_KANNADA,
+        "punjabi" to LANG_PUNJABI, "pa" to LANG_PUNJABI,
+        "bengali" to LANG_BENGALI, "bangla" to LANG_BENGALI, "bn" to LANG_BENGALI,
+        "marathi" to LANG_MARATHI, "mr" to LANG_MARATHI,
+        "gujarati" to LANG_GUJARATI, "gu" to LANG_GUJARATI,
+        "bhojpuri" to LANG_BHOJPURI, "bho" to LANG_BHOJPURI,
+        "haryanvi" to LANG_HARYANVI, "bgc" to LANG_HARYANVI,
+        "rajasthani" to LANG_RAJASTHANI, "raj" to LANG_RAJASTHANI,
+        "odia" to LANG_ODIA, "oriya" to LANG_ODIA, "or" to LANG_ODIA,
+        "assamese" to LANG_ASSAMESE, "as" to LANG_ASSAMESE,
+        "urdu" to LANG_URDU, "ur" to LANG_URDU,
+        "sanskrit" to LANG_SANSKRIT, "sa" to LANG_SANSKRIT,
+        "korean" to LANG_KOREAN, "ko" to LANG_KOREAN,
+        "japanese" to LANG_JAPANESE, "ja" to LANG_JAPANESE,
+        "spanish" to LANG_SPANISH, "es" to LANG_SPANISH,
+        "english" to LANG_ENGLISH, "en" to LANG_ENGLISH,
+    )
+
+    private val CODE_TO_QUERY_NAME = mapOf(
+        LANG_TAMIL to "tamil",
+        LANG_TELUGU to "telugu",
+        LANG_HINDI to "hindi",
+        LANG_MALAYALAM to "malayalam",
+        LANG_KANNADA to "kannada",
+        LANG_PUNJABI to "punjabi",
+        LANG_BENGALI to "bengali",
+        LANG_MARATHI to "marathi",
+        LANG_GUJARATI to "gujarati",
+        LANG_BHOJPURI to "bhojpuri",
+        LANG_HARYANVI to "haryanvi",
+        LANG_RAJASTHANI to "rajasthani",
+        LANG_ODIA to "odia",
+        LANG_ASSAMESE to "assamese",
+        LANG_URDU to "urdu",
+        LANG_SANSKRIT to "sanskrit",
+        LANG_KOREAN to "korean",
+        LANG_JAPANESE to "japanese",
+        LANG_SPANISH to "spanish",
+        LANG_ENGLISH to "english",
+    )
+
+    fun normalizeLanguageCode(raw: String?): String {
+        val cleaned = raw?.trim()?.lowercase()?.takeIf { it.isNotBlank() } ?: return LANG_UNKNOWN
+        return LANGUAGE_NAME_TO_CODE[cleaned] ?: cleaned
+    }
+
+    fun toLanguageQueryName(codeOrName: String?): String? {
+        val code = normalizeLanguageCode(codeOrName)
+        if (code == LANG_UNKNOWN) return null
+        return CODE_TO_QUERY_NAME[code] ?: code
+    }
 
     // Unicode script ranges
     private val SCRIPT_RANGES = listOf(
@@ -48,6 +134,14 @@ object TrackLanguageFilter {
         LANG_HINDI to Regex("(?i)\\b(hindi|bollywood)\\b"),
         LANG_PUNJABI to Regex("(?i)\\b(punjabi|pollywood)\\b"),
         LANG_BENGALI to Regex("(?i)\\b(bengali|bangla)\\b"),
+        LANG_MARATHI to Regex("(?i)\\b(marathi)\\b"),
+        LANG_GUJARATI to Regex("(?i)\\b(gujarati)\\b"),
+        LANG_BHOJPURI to Regex("(?i)\\b(bhojpuri)\\b"),
+        LANG_HARYANVI to Regex("(?i)\\b(haryanvi)\\b"),
+        LANG_RAJASTHANI to Regex("(?i)\\b(rajasthani)\\b"),
+        LANG_ODIA to Regex("(?i)\\b(odia|oriya)\\b"),
+        LANG_ASSAMESE to Regex("(?i)\\b(assamese)\\b"),
+        LANG_URDU to Regex("(?i)\\b(urdu)\\b"),
         LANG_KOREAN to Regex("(?i)\\b(kpop|k-pop|korean|ost)\\b"),
         LANG_JAPANESE to Regex("(?i)\\b(jpop|j-pop|japanese|anime|opening|ending)\\b"),
         LANG_SPANISH to Regex("(?i)\\b(spanish|español|latino|reggaeton)\\b"),
@@ -148,6 +242,13 @@ object TrackLanguageFilter {
      * Detects the language of a [Track] using Unicode scripts, title/album keywords, and prominent artists.
      */
     fun detectLanguage(track: Track): String {
+        if (track.videoId.startsWith("saavn:")) {
+            val apiLang = JioSaavnService.getTrackLanguage(track.videoId)
+            if (!apiLang.isNullOrBlank() && apiLang != LANG_UNKNOWN) {
+                return apiLang
+            }
+        }
+
         val title = track.title
         val album = track.album?.name.orEmpty()
         val artistNames = track.artists?.map { it.name.trim().lowercase() }.orEmpty()
@@ -194,7 +295,17 @@ object TrackLanguageFilter {
     fun isCompatibleLanguage(candidate: Track, referenceTracks: List<Track>): Boolean {
         if (referenceTracks.isEmpty()) return true
 
-        // Rule 1: Artist continuity. If candidate shares any artist with reference tracks, keep it!
+        val dominantLang = getDominantLanguage(referenceTracks)
+        val candidateLang = detectLanguage(candidate)
+
+        // Rule 1: Explicit known language conflict takes priority even across multilingual artists/composers
+        if (dominantLang != LANG_UNKNOWN && candidateLang != LANG_UNKNOWN) {
+            if (candidateLang == dominantLang) return true
+            Logger.d(TAG, "Rejected track '${candidate.title}' ($candidateLang) due to language mismatch with queue ($dominantLang)")
+            return false
+        }
+
+        // Rule 2: Artist continuity when candidate/reference language metadata isn't explicitly known
         val referenceArtists = referenceTracks.flatMap { it.artists.orEmpty() }
             .map { it.name.trim().lowercase() }
             .filter { it.isNotBlank() }
@@ -208,35 +319,13 @@ object TrackLanguageFilter {
             return true
         }
 
-        // Rule 2: Dominant reference language
-        val dominantLang = getDominantLanguage(referenceTracks)
         if (dominantLang == LANG_UNKNOWN) {
             return true
         }
 
-        val candidateLang = detectLanguage(candidate)
-
-        // Rule 3: Direct language match
-        if (candidateLang == dominantLang) {
-            return true
-        }
-
-        // Rule 4: If dominant language is regional (Tamil, Telugu, Hindi, Malayalam, Kannada, Punjabi, etc.)
-        // Strictly reject English songs and candidate tracks without matching regional signals!
-        val isRegional = dominantLang in setOf(
-            LANG_TAMIL, LANG_TELUGU, LANG_HINDI, LANG_MALAYALAM, LANG_KANNADA, LANG_PUNJABI, LANG_BENGALI
-        )
-
-        if (isRegional) {
-            if (candidateLang == LANG_ENGLISH || candidateLang != dominantLang) {
-                Logger.d(TAG, "Rejected candidate '${candidate.title}' ($candidateLang) incompatible with regional language ($dominantLang)")
-                return false
-            }
-        }
-
-        // Rule 5: If candidate has a distinct known language that conflicts with dominantLang, reject it
-        if (candidateLang != LANG_UNKNOWN && candidateLang != dominantLang) {
-            Logger.d(TAG, "Rejected track '${candidate.title}' ($candidateLang) due to language mismatch with queue ($dominantLang)")
+        // Rule 3: For regional languages, reject unverified unknown-language candidates
+        if (dominantLang in REGIONAL_LANGUAGES) {
+            Logger.d(TAG, "Rejected candidate '${candidate.title}' ($candidateLang) incompatible with regional language ($dominantLang)")
             return false
         }
 

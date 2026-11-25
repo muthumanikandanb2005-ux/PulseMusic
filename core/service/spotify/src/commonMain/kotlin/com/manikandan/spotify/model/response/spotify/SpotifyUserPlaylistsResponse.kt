@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SpotifyUserPlaylistsResponse(
     @SerialName("items")
-    val items: List<SpotifyPlaylistItem> = emptyList(),
+    val items: List<SpotifyPlaylistItem?> = emptyList(),
     @SerialName("total")
     val total: Int = 0,
     @SerialName("limit")
@@ -72,7 +72,7 @@ data class SpotifyUserProfileResponse(
 @Serializable
 data class SpotifyRecentlyPlayedResponse(
     @SerialName("items")
-    val items: List<SpotifyRecentlyPlayedItem> = emptyList(),
+    val items: List<SpotifyRecentlyPlayedItem?> = emptyList(),
 )
 
 @Serializable
@@ -81,6 +81,68 @@ data class SpotifyRecentlyPlayedItem(
     val track: SpotifyTrackItem? = null,
     @SerialName("played_at")
     val playedAt: String? = null,
+)
+
+@Serializable
+data class SpotifyTopTracksResponse(
+    @SerialName("items")
+    val items: List<SpotifyTrackItem?> = emptyList(),
+)
+
+@Serializable
+data class SpotifySavedTracksResponse(
+    @SerialName("items")
+    val items: List<SpotifySavedTrackItem?> = emptyList(),
+)
+
+@Serializable
+data class SpotifySavedTrackItem(
+    @SerialName("track")
+    val track: SpotifyTrackItem? = null,
+    @SerialName("added_at")
+    val addedAt: String? = null,
+)
+
+@Serializable
+data class SpotifyTracksSearchResponse(
+    @SerialName("tracks")
+    val tracks: SpotifyTrackSearchPage = SpotifyTrackSearchPage(),
+)
+
+@Serializable
+data class SpotifyTrackSearchPage(
+    @SerialName("items")
+    val items: List<SpotifyTrackItem?> = emptyList(),
+)
+
+@Serializable
+data class SpotifyPlaylistDetailResponse(
+    @SerialName("id")
+    val id: String = "",
+    @SerialName("name")
+    val name: String = "",
+    @SerialName("description")
+    val description: String? = null,
+    @SerialName("images")
+    val images: List<SpotifyImage> = emptyList(),
+    @SerialName("owner")
+    val owner: SpotifyOwner? = null,
+    @SerialName("tracks")
+    val tracks: SpotifyPlaylistTracksPage = SpotifyPlaylistTracksPage(),
+)
+
+@Serializable
+data class SpotifyPlaylistTracksPage(
+    @SerialName("items")
+    val items: List<SpotifyPlaylistTrackEntry?> = emptyList(),
+    @SerialName("total")
+    val total: Int = 0,
+)
+
+@Serializable
+data class SpotifyPlaylistTrackEntry(
+    @SerialName("track")
+    val track: SpotifyTrackItem? = null,
 )
 
 @Serializable
@@ -126,7 +188,7 @@ data class SpotifyFeaturedPlaylistsResponse(
 @Serializable
 data class SpotifyPlaylistsWrapper(
     @SerialName("items")
-    val items: List<SpotifyPlaylistItem> = emptyList(),
+    val items: List<SpotifyPlaylistItem?> = emptyList(),
     @SerialName("total")
     val total: Int = 0,
 )

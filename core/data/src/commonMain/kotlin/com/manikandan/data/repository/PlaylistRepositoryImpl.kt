@@ -1,6 +1,7 @@
 ﻿package com.manikandan.data.repository
 
 import com.manikandan.data.db.datasource.LocalDataSource
+import com.manikandan.data.parser.OnlinePlaylistFetcher
 import com.manikandan.data.service.JioSaavnService
 import com.manikandan.data.extension.getFullDataFromDB
 import com.manikandan.data.mapping.toListTrack
@@ -40,6 +41,9 @@ import com.manikandan.kotlinytmusicscraper.parser.getPlaylistShuffleEndpoint
 import com.manikandan.logger.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -318,6 +322,93 @@ internal class PlaylistRepositoryImpl(
                 if (jioBrowse != null) {
                     emit(Resource.Success(jioBrowse))
                     return@flow
+                }
+            }
+            if (playlistId.startsWith("spotify:")) {
+                val cleanSpotifyId = playlistId.removePrefix("spotify:").substringBefore("?")
+                val spdc = dataStoreManager.spdc.first()
+                val detail = if (spdc.isNotBlank()) spotify.fetchPlaylistByIdWithSpdc(spdc, cleanSpotifyId).getOrNull() else null
+                val rawItems = detail?.tracks?.items?.mapNotNull { it?.track }?.filter { it.name.isNotBlank() }.orEmpty()
+                if (detail != null && rawItems.isNotEmpty()) {
+                    val resolvedTracks = coroutineScope {
+                        rawItems.take(30).chunked(5).flatMap { batch ->
+                            batch.map { spTrack ->
+                                async {
+                                    val artistText = spTrack.artists.joinToString(", ") { it.name }
+                                    val q = "${spTrack.name} ${spTrack.artists.firstOrNull()?.name ?: ""}".trim()
+                                    val jioMatch = runCatching { JioSaavnService.searchSongs(q).firstOrNull()?.toTrack() }.getOrNull()
+                                    jioMatch ?: Track(
+                                        album = com.manikandan.domain.data.model.searchResult.songs.Album(id = spTrack.album?.id ?: "", name = spTrack.album?.name ?: ""),
+                                        artists = spTrack.artists.map { com.manikandan.domain.data.model.searchResult.songs.Artist(id = it.id, name = it.name) },
+                                        duration = "${(spTrack.durationMs / 1000) / 60}:${((spTrack.durationMs / 1000) % 60).toString().padStart(2, '0')}",
+                                        durationSeconds = (spTrack.durationMs / 1000).toInt(),
+                                        isAvailable = true,
+                                        isExplicit = false,
+                                        likeStatus = null,
+                                        thumbnails = spTrack.album?.images?.map { img -> Thumbnail(height = img.height ?: 300, width = img.width ?: 300, url = img.url) } ?: emptyList(),
+                                        title = spTrack.name,
+                                        videoId = spTrack.id,
+                                        videoType = "Song",
+                                        category = "SONG",
+                                        feedbackTokens = null,
+                                        resultType = "Song",
+                                        year = "",
+                                    )
+                                }
+                            }.awaitAll()
+                        }
+                    }
+                    emit(
+                        Resource.Success(
+                            PlaylistBrowse(
+                                author = Author(id = detail.owner?.id ?: "", name = detail.owner?.displayName ?: "Spotify"),
+                                description = detail.description,
+                                duration = "",
+                                durationSeconds = resolvedTracks.sumOf { it.durationSeconds ?: 0 },
+                                id = playlistId,
+                                privacy = "PUBLIC",
+                                thumbnails = detail.images.map { img -> Thumbnail(height = img.height ?: 300, width = img.width ?: 300, url = img.url) },
+                                title = detail.name,
+                                trackCount = resolvedTracks.size,
+                                tracks = resolvedTracks,
+                                year = "",
+                            ),
+                        ),
+                    )
+                    return@flow
+                } else {
+                    val parsed = runCatching { OnlinePlaylistFetcher.fetch("https://open.spotify.com/playlist/$cleanSpotifyId", youTube) }.getOrNull()
+                    if (parsed != null && parsed.tracks.isNotEmpty()) {
+                        val resolvedTracks = coroutineScope {
+                            parsed.tracks.take(30).chunked(5).flatMap { batch ->
+                                batch.map { pt ->
+                                    async {
+                                        JioSaavnService.searchSongs(pt.query).firstOrNull()?.toTrack()
+                                    }
+                                }.awaitAll().filterNotNull()
+                            }
+                        }
+                        if (resolvedTracks.isNotEmpty()) {
+                            emit(
+                                Resource.Success(
+                                    PlaylistBrowse(
+                                        author = Author(id = "", name = "Spotify"),
+                                        description = null,
+                                        duration = "",
+                                        durationSeconds = resolvedTracks.sumOf { it.durationSeconds ?: 0 },
+                                        id = playlistId,
+                                        privacy = "PUBLIC",
+                                        thumbnails = emptyList(),
+                                        title = parsed.title,
+                                        trackCount = resolvedTracks.size,
+                                        tracks = resolvedTracks,
+                                        year = "",
+                                    ),
+                                ),
+                            )
+                            return@flow
+                        }
+                    }
                 }
             }
             runCatching {
@@ -870,8 +961,55 @@ internal class PlaylistRepositoryImpl(
                 }
                 emit(results)
             } else {
+                Logger.w("Spotify", "getSpotifyTrendingPlaylists failed: ${trendingRes.exceptionOrNull()?.message}")
                 emit(emptyList())
             }
+        }.flowOn(Dispatchers.IO)
+
+    override fun getSpotifyTrendingTracks(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?> =
+        flow {
+            val spdc = dataStoreManager.spdc.first()
+            if (spdc.isBlank()) {
+                emit(emptyList())
+                return@flow
+            }
+            val tracksRes = spotify.fetchTrendingTracksWithSpdc(spdc, limit = 20)
+            if (tracksRes.isSuccess) {
+                val items = tracksRes.getOrNull().orEmpty()
+                val mapped = items.mapNotNull { track ->
+                    if (track.name.isBlank()) return@mapNotNull null
+                    com.manikandan.domain.data.model.spotify.SpotifyRecentTrack(
+                        id = track.id,
+                        title = track.name,
+                        artist = track.artists.joinToString(", ") { it.name },
+                        thumbnail = track.album?.images?.firstOrNull()?.url,
+                        playedAt = null,
+                    )
+                }
+                if (mapped.isNotEmpty()) {
+                    emit(mapped)
+                    return@flow
+                }
+            } else {
+                Logger.w("Spotify", "getSpotifyTrendingTracks failed: ${tracksRes.exceptionOrNull()?.message}")
+            }
+
+            // Fallback via Spotify public Top 50 embed page
+            val fallbackParsed = runCatching {
+                OnlinePlaylistFetcher.fetch("https://open.spotify.com/playlist/37i9dQZEVXbLZ52XmnySJg", youTube)
+                    ?: OnlinePlaylistFetcher.fetch("https://open.spotify.com/playlist/37i9dQZEVXbMDoHDwVN2tF", youTube)
+            }.getOrNull()
+            val embedTracks = fallbackParsed?.tracks?.take(20)?.mapIndexed { idx, t ->
+                val resolvedTitle = t.title ?: t.query
+                com.manikandan.domain.data.model.spotify.SpotifyRecentTrack(
+                    id = "trending_${idx}_${resolvedTitle.hashCode()}",
+                    title = resolvedTitle,
+                    artist = t.artist ?: "",
+                    thumbnail = null,
+                    playedAt = null,
+                )
+            } ?: emptyList()
+            emit(embedTracks)
         }.flowOn(Dispatchers.IO)
 
     override fun getSpotifyRecentlyPlayed(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?> =
@@ -896,6 +1034,7 @@ internal class PlaylistRepositoryImpl(
                 }
                 emit(results)
             } else {
+                Logger.w("Spotify", "getSpotifyRecentlyPlayed failed: ${recentlyRes.exceptionOrNull()?.message}")
                 emit(emptyList())
             }
         }.flowOn(Dispatchers.IO)

@@ -245,29 +245,78 @@ class SpotifyClient {
         )
     }
 
+    suspend fun getSpotifyOpenHomeHtml(spdc: String) =
+        spotifyClient.get("https://open.spotify.com/") {
+            userAgent(MODERN_CHROME_UA)
+            if (spdc.isNotBlank()) {
+                header("Cookie", "sp_dc=$spdc")
+            }
+            header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            header("Accept-Language", "en-US,en;q=0.9")
+        }
+
     suspend fun getSpotifyUserProfile(token: String) =
         spotifyClient.get("https://api.spotify.com/v1/me") {
-            userAgent(USER_AGENT)
+            userAgent(MODERN_CHROME_UA)
             header(HttpHeaders.Authorization, "Bearer $token")
         }
 
     suspend fun getSpotifyUserPlaylists(token: String, limit: Int = 50) =
         spotifyClient.get("https://api.spotify.com/v1/me/playlists") {
-            userAgent(USER_AGENT)
+            userAgent(MODERN_CHROME_UA)
             header(HttpHeaders.Authorization, "Bearer $token")
             parameter("limit", limit)
         }
 
-    suspend fun getSpotifyRecentlyPlayed(token: String, limit: Int = 20) =
+    suspend fun getSpotifyRecentlyPlayed(token: String, limit: Int = 25) =
         spotifyClient.get("https://api.spotify.com/v1/me/player/recently-played") {
-            userAgent(USER_AGENT)
+            userAgent(MODERN_CHROME_UA)
             header(HttpHeaders.Authorization, "Bearer $token")
             parameter("limit", limit)
+        }
+
+    suspend fun getSpotifyTopTracks(token: String, limit: Int = 20) =
+        spotifyClient.get("https://api.spotify.com/v1/me/top/tracks") {
+            userAgent(MODERN_CHROME_UA)
+            header(HttpHeaders.Authorization, "Bearer $token")
+            parameter("time_range", "short_term")
+            parameter("limit", limit)
+        }
+
+    suspend fun getSpotifySavedTracks(token: String, limit: Int = 20) =
+        spotifyClient.get("https://api.spotify.com/v1/me/tracks") {
+            userAgent(MODERN_CHROME_UA)
+            header(HttpHeaders.Authorization, "Bearer $token")
+            parameter("limit", limit)
+        }
+
+    suspend fun searchSpotifyPlaylists(token: String, query: String, limit: Int = 20) =
+        spotifyClient.get("https://api.spotify.com/v1/search") {
+            userAgent(MODERN_CHROME_UA)
+            header(HttpHeaders.Authorization, "Bearer $token")
+            parameter("q", query)
+            parameter("type", "playlist")
+            parameter("limit", limit)
+        }
+
+    suspend fun searchSpotifyTracksApi(token: String, query: String, limit: Int = 20) =
+        spotifyClient.get("https://api.spotify.com/v1/search") {
+            userAgent(MODERN_CHROME_UA)
+            header(HttpHeaders.Authorization, "Bearer $token")
+            parameter("q", query)
+            parameter("type", "track")
+            parameter("limit", limit)
+        }
+
+    suspend fun getSpotifyPlaylistById(token: String, playlistId: String) =
+        spotifyClient.get("https://api.spotify.com/v1/playlists/$playlistId") {
+            userAgent(MODERN_CHROME_UA)
+            header(HttpHeaders.Authorization, "Bearer $token")
         }
 
     suspend fun getSpotifyFeaturedPlaylists(token: String, limit: Int = 20) =
         spotifyClient.get("https://api.spotify.com/v1/browse/featured-playlists") {
-            userAgent(USER_AGENT)
+            userAgent(MODERN_CHROME_UA)
             header(HttpHeaders.Authorization, "Bearer $token")
             parameter("limit", limit)
         }
@@ -300,6 +349,7 @@ class SpotifyClient {
     }
 
     companion object {
-        const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36"
+        const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+        const val MODERN_CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
     }
 }

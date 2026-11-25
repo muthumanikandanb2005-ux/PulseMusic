@@ -1,16 +1,19 @@
 package com.pulse.music.ui.navigation.graph
 
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.pulse.music.ui.component.PixelMotion
 import com.pulse.music.ui.navigation.destination.home.AnalyticsDestination
 import com.pulse.music.ui.navigation.destination.home.HomeDestination
 import com.pulse.music.ui.navigation.destination.home.WrappedDestination
@@ -26,6 +29,51 @@ import com.pulse.music.ui.screen.library.LibraryScreen
 import com.pulse.music.ui.screen.library.MixForYouScreen
 import com.pulse.music.ui.screen.other.SearchScreen
 import com.pulse.music.ui.screen.player.FullscreenPlayer
+
+private fun NavDestination?.isTopLevelTab(): Boolean =
+    this != null && (
+        hasRoute(HomeDestination::class) ||
+            hasRoute(SearchDestination::class) ||
+            hasRoute(LibraryDestination::class) ||
+            hasRoute(MixForYouDestination::class) ||
+            hasRoute(AnalyticsDestination::class)
+        )
+
+private val topLevelEnterTransition:
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    if (initialState.destination.isTopLevelTab()) {
+        PixelMotion.fadeThroughEnter()
+    } else {
+        PixelMotion.sharedAxisForwardEnter()
+    }
+}
+
+private val topLevelExitTransition:
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    if (targetState.destination.isTopLevelTab()) {
+        PixelMotion.fadeThroughExit()
+    } else {
+        PixelMotion.sharedAxisForwardExit()
+    }
+}
+
+private val topLevelPopEnterTransition:
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    if (initialState.destination.isTopLevelTab()) {
+        PixelMotion.fadeThroughEnter()
+    } else {
+        PixelMotion.sharedAxisPopEnter()
+    }
+}
+
+private val topLevelPopExitTransition:
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    if (targetState.destination.isTopLevelTab()) {
+        PixelMotion.fadeThroughExit()
+    } else {
+        PixelMotion.sharedAxisPopExit()
+    }
+}
 
 @Composable
 @ExperimentalMaterial3Api
@@ -43,31 +91,46 @@ fun AppNavigationGraph(
         navController,
         startDestination = startDestination,
         enterTransition = {
-            fadeIn() + slideInHorizontally { -it }
+            PixelMotion.sharedAxisForwardEnter()
         },
         exitTransition = {
-            fadeOut() + slideOutHorizontally { it }
+            PixelMotion.sharedAxisForwardExit()
         },
         popEnterTransition = {
-            fadeIn() + slideInHorizontally { -it }
+            PixelMotion.sharedAxisPopEnter()
         },
         popExitTransition = {
-            fadeOut() + slideOutHorizontally { it }
+            PixelMotion.sharedAxisPopExit()
         },
     ) {
-        // Bottom bar destinations
-        composable<HomeDestination> {
+        // Bottom bar destinations (Pixel M3 Fade-Through between tabs, Shared Axis into details)
+        composable<HomeDestination>(
+            enterTransition = topLevelEnterTransition,
+            exitTransition = topLevelExitTransition,
+            popEnterTransition = topLevelPopEnterTransition,
+            popExitTransition = topLevelPopExitTransition,
+        ) {
             HomeScreen(
                 onScrolling = onScrolling,
                 navController = navController,
             )
         }
-        composable<SearchDestination> {
+        composable<SearchDestination>(
+            enterTransition = topLevelEnterTransition,
+            exitTransition = topLevelExitTransition,
+            popEnterTransition = topLevelPopEnterTransition,
+            popExitTransition = topLevelPopExitTransition,
+        ) {
             SearchScreen(
                 navController = navController,
             )
         }
-        composable<LibraryDestination> {
+        composable<LibraryDestination>(
+            enterTransition = topLevelEnterTransition,
+            exitTransition = topLevelExitTransition,
+            popEnterTransition = topLevelPopEnterTransition,
+            popExitTransition = topLevelPopExitTransition,
+        ) {
             LibraryScreen(
                 innerPadding = innerPadding,
                 navController = navController,
@@ -75,7 +138,12 @@ fun AppNavigationGraph(
             )
         }
         // Only reachable as a tab while signed in to YouTube
-        composable<MixForYouDestination> {
+        composable<MixForYouDestination>(
+            enterTransition = topLevelEnterTransition,
+            exitTransition = topLevelExitTransition,
+            popEnterTransition = topLevelPopEnterTransition,
+            popExitTransition = topLevelPopExitTransition,
+        ) {
             MixForYouScreen(
                 innerPadding = innerPadding,
                 navController = navController,
@@ -86,7 +154,12 @@ fun AppNavigationGraph(
         // ForceDarkContent for the same reason as album/playlist/artist: the page background comes
         // from the artwork via toImmersiveBackground(), which always lands dark, so the light
         // theme's dark-on-light text and icons would be unreadable on it.
-        composable<AnalyticsDestination> {
+        composable<AnalyticsDestination>(
+            enterTransition = topLevelEnterTransition,
+            exitTransition = topLevelExitTransition,
+            popEnterTransition = topLevelPopEnterTransition,
+            popExitTransition = topLevelPopExitTransition,
+        ) {
             ForceDarkContent {
                 AnalyticsScreen(
                     navController = navController,
@@ -98,7 +171,12 @@ fun AppNavigationGraph(
         // gate on local tracking. ForceDarkContent for a different reason than Analytics: the reel
         // is drawn on its own near-black ground whatever the user's theme is, because it is an
         // event and because every card is also a share image that has to survive leaving the app.
-        composable<WrappedDestination> {
+        composable<WrappedDestination>(
+            enterTransition = { PixelMotion.verticalExpandEnter() },
+            exitTransition = { PixelMotion.verticalExpandExit() },
+            popEnterTransition = { PixelMotion.verticalExpandEnter() },
+            popExitTransition = { PixelMotion.verticalExpandExit() },
+        ) {
             ForceDarkContent {
                 WrappedScreen(
                     navController = navController,
@@ -110,7 +188,12 @@ fun AppNavigationGraph(
                 )
             }
         }
-        composable<FullscreenDestination> {
+        composable<FullscreenDestination>(
+            enterTransition = { PixelMotion.verticalExpandEnter() },
+            exitTransition = { PixelMotion.verticalExpandExit() },
+            popEnterTransition = { PixelMotion.verticalExpandEnter() },
+            popExitTransition = { PixelMotion.verticalExpandExit() },
+        ) {
             ForceDarkContent {
                 FullscreenPlayer(
                     navController,

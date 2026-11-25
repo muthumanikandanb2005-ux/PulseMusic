@@ -1,6 +1,8 @@
 package com.pulse.music.ui.component
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,10 +14,14 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.pulse.music.extension.NonLazyGrid
@@ -103,12 +109,24 @@ fun LibraryTilingItem(
     onClick: () -> Unit = {},
 ) {
     val title = stringResource(state.title)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+    val cornerRadius by animateDpAsState(
+        targetValue = if (isPressed) 18.dp else 10.dp,
+        animationSpec = PixelMotion.SpringDpBouncy,
+        label = "tilingItemCorner",
+    )
     ElevatedCard(
-        modifier =
-            Modifier.fillMaxWidth().clickable {
-                onClick.invoke()
-            },
-        shape = RoundedCornerShape(8.dp),
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick.invoke()
+        },
+        interactionSource = interactionSource,
+        modifier = Modifier
+            .fillMaxWidth()
+            .pixelTapScale(interactionSource, pressedScale = 0.93f, hoveredScale = 1.025f),
+        shape = RoundedCornerShape(cornerRadius),
         elevation = CardDefaults.elevatedCardElevation(),
         colors =
             CardDefaults.elevatedCardColors().copy(

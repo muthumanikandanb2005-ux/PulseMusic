@@ -3,7 +3,6 @@ package com.pulse.music.ui.component
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -132,6 +131,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     contentPadding = contentPadding,
                     state = state,
+                    modifier = Modifier.pixelVerticalOverscroll(),
                 ) {
                     if (header != null) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -142,9 +142,11 @@ internal inline fun <reified T> GridLibraryPlaylist(
                         item {
                             Box(
                                 modifier =
-                                    Modifier.clickable {
-                                        createNewPlaylist()
-                                    },
+                                    Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .pixelClickable(pressedScale = 0.94f, hoveredScale = 1.025f) {
+                                            createNewPlaylist()
+                                        },
                             ) {
                                 Column(
                                     modifier =
@@ -211,7 +213,20 @@ internal inline fun <reified T> GridLibraryPlaylist(
                         if (item !is PlaylistType) {
                             return@items
                         }
-                        HomeItemContentPlaylist(
+                        val gridKey = when (item) {
+                            is ChartItem -> "chart_${item.ytPlaylistId}"
+                            is LocalPlaylistEntity -> "local_${item.id}"
+                            is PlaylistsResult -> "yt_${item.browseId}"
+                            is AlbumEntity -> "album_${item.browseId}"
+                            is PlaylistEntity -> "playlist_${item.id}"
+                            else -> item.hashCode().toString()
+                        }
+                        Box(
+                            modifier = Modifier
+                                .animateItem()
+                                .pixelGridScrollScale(state, key = gridKey, minScale = 0.94f, minAlpha = 0.88f),
+                        ) {
+                            HomeItemContentPlaylist(
                             onClick = {
                                 when (item) {
                                     is ChartItem -> {
@@ -284,6 +299,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                             data = item,
                             thumbSize = 132.dp,
                         )
+                        }
                     }
 
 

@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import com.pulse.music.ui.component.pixelVerticalOverscroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -258,6 +259,7 @@ fun LibraryScreen(
                             top = topAppBarHeight,
                         ),
                     state = state,
+                    modifier = Modifier.pixelVerticalOverscroll(),
                 ) {
                     item {
                         LibraryTilingBox(navController)

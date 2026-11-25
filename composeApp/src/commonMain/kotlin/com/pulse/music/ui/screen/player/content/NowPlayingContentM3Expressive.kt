@@ -1,7 +1,13 @@
 package com.pulse.music.ui.screen.player.content
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import com.pulse.music.ui.component.PixelMotion
+import com.pulse.music.ui.component.pixelPopOnChange
+import com.pulse.music.ui.component.pixelTapScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -1026,7 +1032,13 @@ private fun ExpressiveConnectedGroup(
             active = state.controllerState.isShuffle,
             onClick = { actions.onUIEvent(UIEvent.Shuffle) },
         ) {
-            Crossfade(targetState = state.controllerState.isShuffle, label = "expressiveShuffle") { isShuffle ->
+            AnimatedContent(
+                targetState = state.controllerState.isShuffle,
+                transitionSpec = { PixelMotion.iconMorphTransition() },
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.pixelPopOnChange(state.controllerState.isShuffle, peakScale = 1.18f, onlyWhen = state.controllerState.isShuffle),
+                label = "expressiveShuffle",
+            ) { isShuffle ->
                 Icon(
                     imageVector = PulseIcons.Shuffle,
                     contentDescription = "",
@@ -1040,7 +1052,14 @@ private fun ExpressiveConnectedGroup(
             active = state.controllerState.repeatState !is RepeatState.None,
             onClick = { actions.onUIEvent(UIEvent.Repeat) },
         ) {
-            Crossfade(targetState = state.controllerState.repeatState, label = "expressiveRepeat") { rs ->
+            val isRepeatActive = state.controllerState.repeatState !is RepeatState.None
+            AnimatedContent(
+                targetState = state.controllerState.repeatState,
+                transitionSpec = { PixelMotion.iconMorphTransition() },
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.pixelPopOnChange(state.controllerState.repeatState, peakScale = 1.18f, onlyWhen = isRepeatActive),
+                label = "expressiveRepeat",
+            ) { rs ->
                 when (rs) {
                     is RepeatState.None -> {
                         Icon(
@@ -1104,16 +1123,27 @@ private fun RowScope.ExpressiveConnectedSlot(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val container = if (active) colorScheme.primaryContainer else colorScheme.surfaceContainerHigh
+    val container by animateColorAsState(
+        targetValue = if (active) colorScheme.primaryContainer else colorScheme.surfaceContainerHigh,
+        animationSpec = tween(220, easing = PixelMotion.EmphasizedDecelerate),
+        label = "connectedSlotColor",
+    )
     if (onClick != null) {
+        val slotInteraction = remember { MutableInteractionSource() }
+        val haptic = LocalHapticFeedback.current
         Surface(
-            onClick = onClick,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
+            interactionSource = slotInteraction,
             shape = shape,
             color = container,
             modifier =
                 Modifier
                     .weight(1f)
-                    .fillMaxHeight(),
+                    .fillMaxHeight()
+                    .pixelTapScale(slotInteraction, pressedScale = 0.91f, hoveredScale = 1.03f),
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 content()

@@ -345,10 +345,10 @@ private val SoftRippleConfiguration =
         // Alpha is the only lever that softens without changing which way the contrast runs.
         rippleAlpha =
             RippleAlpha(
-                draggedAlpha = 0.06f,
-                focusedAlpha = 0.04f,
-                hoveredAlpha = 0.03f,
-                pressedAlpha = 0.04f,
+                draggedAlpha = 0.10f,
+                focusedAlpha = 0.08f,
+                hoveredAlpha = 0.07f,
+                pressedAlpha = 0.11f,
             ),
     )
 

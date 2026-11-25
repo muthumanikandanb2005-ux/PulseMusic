@@ -169,7 +169,7 @@ fun LoginScreen(
                     },
             title = {
                 Text(
-                    text = stringResource(Res.string.log_in),
+                    text = "YouTube Login",
                     style = typo().titleMedium,
                 )
             },

@@ -117,6 +117,11 @@ import com.pulse.music.ui.component.ArtistFullWidthItems
 import com.pulse.music.ui.component.Chip
 import com.pulse.music.ui.component.EndOfPage
 import com.pulse.music.ui.component.NowPlayingBottomSheet
+import com.pulse.music.ui.component.PixelMotion
+import com.pulse.music.ui.component.pixelClickable
+import com.pulse.music.ui.component.pixelGridScrollScale
+import com.pulse.music.ui.component.pixelTapScale
+import com.pulse.music.ui.component.pixelVerticalOverscroll
 import com.pulse.music.ui.component.PlaylistFullWidthItems
 import com.pulse.music.ui.component.ShimmerSearchItem
 import com.pulse.music.ui.component.SongFullWidthItems
@@ -380,14 +385,18 @@ fun SearchScreen(
     ) {
         // Content scrolls under the bar (it is the haze source), so it needs top padding
         // equal to the bar's measured height to keep its first item clear of it.
-        Crossfade(
+        AnimatedContent(
             targetState = searchUIType,
+            transitionSpec = { PixelMotion.fadeThroughContentTransform() },
             modifier = Modifier.fillMaxSize().hazeSource(hazeState),
+            label = "searchUiTypeTransition",
         ) {
             when (it) {
                 SearchUIType.SEARCH_SUGGESTIONS -> {
                     LazyColumn(
-                        Modifier.padding(horizontal = 16.dp),
+                        Modifier
+                            .padding(horizontal = 16.dp)
+                            .pixelVerticalOverscroll(),
                         state = suggestionsState,
                         contentPadding = PaddingValues(top = searchBarHeight, bottom = 10.dp),
                     ) {
@@ -418,9 +427,9 @@ fun SearchScreen(
                                                 QueueData.Data(
                                                     listTracks = arrayListOf(firstTrack),
                                                     firstPlayedTrack = firstTrack,
-                                                    playlistId = if (isJio) firstTrack.videoId else "RDAMVM${firstTrack.videoId}",
+                                                    playlistId = if (isJio) "saavn_radio:${firstTrack.videoId}" else "RDAMVM${firstTrack.videoId}",
                                                     playlistName = "\"${searchText}\" ${getStringBlocking(Res.string.in_search)}",
-                                                    playlistType = if (isJio) PlaylistType.PLAYLIST else PlaylistType.RADIO,
+                                                    playlistType = PlaylistType.RADIO,
                                                     continuation = null,
                                                 ),
                                             )
@@ -518,6 +527,7 @@ fun SearchScreen(
                     ) {
                         LazyColumn(
                             state = historyState,
+                            modifier = Modifier.pixelVerticalOverscroll(),
                             contentPadding = PaddingValues(top = searchBarHeight, bottom = 10.dp),
                         ) {
                             stickyHeader {
@@ -551,7 +561,9 @@ fun SearchScreen(
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()
-                                            .clickable {
+                                            .animateItem()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .pixelClickable(pressedScale = 0.98f, hoveredScale = 1.008f) {
                                                 searchText = historyItem
                                                 focusManager.clearFocus()
                                                 isSearchSubmitted = true
@@ -623,7 +635,8 @@ fun SearchScreen(
                                 Modifier
                                     .fillMaxHeight()
                                     .widthIn(max = 1100.dp)
-                                    .padding(horizontal = 16.dp),
+                                    .padding(horizontal = 16.dp)
+                                    .pixelVerticalOverscroll(),
                             state = moodGridState,
                             contentPadding = PaddingValues(top = searchBarHeight),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -681,11 +694,22 @@ fun SearchScreen(
                                     LaunchedEffect(item.params) {
                                         searchViewModel.loadMoodArtwork(item.params)
                                     }
-                                    MoodCategoryCard(
-                                        title = item.title,
-                                        artworkUrl = moodArtwork[item.params],
+                                    Box(
+                                        modifier = Modifier
+                                            .animateItem()
+                                            .pixelGridScrollScale(
+                                                gridState = moodGridState,
+                                                key = "${section.title}/${item.params}",
+                                                minScale = 0.94f,
+                                                minAlpha = 0.88f,
+                                            ),
                                     ) {
-                                        navController.navigate(MoodDestination(item.params))
+                                        MoodCategoryCard(
+                                            title = item.title,
+                                            artworkUrl = moodArtwork[item.params],
+                                        ) {
+                                            navController.navigate(MoodDestination(item.params))
+                                        }
                                     }
                                 }
                             }
@@ -738,7 +762,11 @@ fun SearchScreen(
                                 )
                             },
                         ) {
-                            Crossfade(targetState = uiState) { uiState ->
+                            AnimatedContent(
+                                targetState = uiState,
+                                transitionSpec = { PixelMotion.fadeThroughContentTransform() },
+                                label = "searchResultStateTransition",
+                            ) { uiState ->
                                 when (uiState) {
                                     is SearchScreenUIState.Loading -> {
                                         // Loading state — same top inset as the results list, or
@@ -775,9 +803,14 @@ fun SearchScreen(
                                                     SearchType.PODCASTS -> searchScreenState.searchPodcastsResult
                                                 }
 
-                                            Crossfade(targetState = currentResults.isNotEmpty()) {
+                                            AnimatedContent(
+                                                targetState = currentResults.isNotEmpty(),
+                                                transitionSpec = { PixelMotion.fadeThroughContentTransform() },
+                                                label = "searchResultsEmptyTransition",
+                                            ) {
                                                 if (it) {
                                                     LazyColumn(
+                                                        modifier = Modifier.pixelVerticalOverscroll(),
                                                         contentPadding =
                                                             PaddingValues(
                                                                 start = 4.dp,
@@ -815,20 +848,18 @@ fun SearchScreen(
                                                                             focusManager.clearFocus()
                                                                             val firstTrack = result.toTrack()
                                                                             val isJio = result.videoId.startsWith("saavn:")
-                                                                            val songTracks = currentResults.filterIsInstance<SongsResult>().map { it.toTrack() }
-                                                                            val queueTracks = if (songTracks.isNotEmpty()) ArrayList(songTracks) else arrayListOf(firstTrack)
                                                                             searchViewModel.setQueueData(
                                                                                 QueueData.Data(
-                                                                                    listTracks = queueTracks,
+                                                                                    listTracks = arrayListOf(firstTrack),
                                                                                     firstPlayedTrack = firstTrack,
-                                                                                    playlistId = if (isJio) result.videoId else "RDAMVM${result.videoId}",
+                                                                                    playlistId = if (isJio) "saavn_radio:${result.videoId}" else "RDAMVM${result.videoId}",
                                                                                     playlistName =
                                                                                         "\"${searchText}\" ${
                                                                                             getStringBlocking(
                                                                                                 Res.string.in_search,
                                                                                             )
                                                                                         }",
-                                                                                    playlistType = if (isJio) PlaylistType.PLAYLIST else PlaylistType.RADIO,
+                                                                                    playlistType = PlaylistType.RADIO,
                                                                                     continuation = null,
                                                                                 ),
                                                                             )
@@ -1092,13 +1123,7 @@ fun SearchScreen(
                         AnimatedContent(
                             targetState = currentPlaceholderIndex,
                             transitionSpec = {
-                                (
-                                    fadeIn(animationSpec = tween(500)) +
-                                        slideInVertically { height -> height }
-                                ).togetherWith(
-                                    fadeOut(animationSpec = tween(500)) +
-                                        slideOutVertically { height -> -height },
-                                )
+                                PixelMotion.trackChangeTransition(forward = true)
                             },
                             label = "placeholder_animation",
                         ) { index ->
@@ -1117,8 +1142,12 @@ fun SearchScreen(
                     trailingIcon = {
                         // X button only shows when there's text
                         if (searchText.isNotEmpty()) {
+                            val clearInteraction = remember { MutableInteractionSource() }
                             IconButton(
-                                modifier = Modifier.clip(CircleShape),
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .pixelTapScale(clearInteraction, pressedScale = 0.84f),
+                                interactionSource = clearInteraction,
                                 onClick = {
                                     searchText = ""
                                     isSearchSubmitted = false

@@ -1,6 +1,7 @@
 package com.pulse.music.ui.component
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -8,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -252,52 +257,77 @@ fun PulseSettingSwitch(
     enabled: Boolean = true,
 ) {
     val colors = getSettingsThemeColors()
-    val trackWidth = 48.dp
-    val trackHeight = 28.dp
-    val thumbSize = 22.dp
-    val padding = 3.dp
+    val trackWidth = 50.dp
+    val trackHeight = 30.dp
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+
+    val thumbHeight by animateDpAsState(
+        targetValue = when {
+            isPressed -> 24.dp
+            checked -> 22.dp
+            else -> 16.dp
+        },
+        animationSpec = PixelMotion.SpringDpBouncy,
+        label = "switchThumbH",
+    )
+    val thumbWidth by animateDpAsState(
+        targetValue = when {
+            isPressed -> 26.dp
+            checked -> 22.dp
+            else -> 16.dp
+        },
+        animationSpec = PixelMotion.SpringDpBouncy,
+        label = "switchThumbW",
+    )
 
     val trackColor by animateColorAsState(
         targetValue = if (checked) colors.switchTrackChecked else colors.switchTrackUnchecked,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = 220, easing = PixelMotion.EmphasizedDecelerate),
+        label = "switchTrack",
     )
     val thumbColor by animateColorAsState(
         targetValue = if (checked) colors.switchThumbChecked else colors.switchThumbUnchecked,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = 220, easing = PixelMotion.EmphasizedDecelerate),
+        label = "switchThumb",
     )
     val thumbOffsetPercent by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        animationSpec = PixelMotion.SpringBouncy,
+        label = "switchThumbOffset",
     )
 
-    val maxOffsetPx = with(androidx.compose.ui.platform.LocalDensity.current) {
-        (trackWidth - trackHeight).toPx()
-    }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val maxTravelPx = with(density) { (trackWidth - 8.dp - thumbWidth).coerceAtLeast(0.dp).toPx() }
 
     Box(
         modifier = modifier
+            .pixelTapScale(interactionSource, pressedScale = 0.94f, hoveredScale = 1.04f, enabled = enabled)
             .size(width = trackWidth, height = trackHeight)
             .clip(CircleShape)
             .background(trackColor)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interactionSource,
                 indication = null,
                 enabled = enabled,
+                role = Role.Switch,
             ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onCheckedChange(!checked)
             }
-            .padding(padding),
+            .padding(horizontal = 4.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(
             modifier = Modifier
                 .offset {
                     IntOffset(
-                        x = (thumbOffsetPercent * maxOffsetPx).roundToInt(),
+                        x = (thumbOffsetPercent * maxTravelPx).roundToInt(),
                         y = 0,
                     )
                 }
-                .size(thumbSize)
+                .size(width = thumbWidth, height = thumbHeight)
                 .clip(CircleShape)
                 .background(thumbColor),
         )
@@ -325,12 +355,24 @@ fun PulseSegmentedControl(
     ) {
         options.forEachIndexed { index, title ->
             val isSelected = index == selectedIndex
+            val bgColor by animateColorAsState(
+                targetValue = if (isSelected) colors.switchTrackChecked else Color.Transparent,
+                animationSpec = tween(220, easing = PixelMotion.EmphasizedDecelerate),
+                label = "segmentBg_$index",
+            )
+            val txtColor by animateColorAsState(
+                targetValue = if (isSelected) colors.switchThumbChecked else colors.subtitleText,
+                animationSpec = tween(220, easing = PixelMotion.EmphasizedDecelerate),
+                label = "segmentTxt_$index",
+            )
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(9.dp))
-                    .background(if (isSelected) colors.switchTrackChecked else Color.Transparent)
-                    .clickable { onOptionSelected(index) }
+                    .background(bgColor)
+                    .pixelClickable(pressedScale = 0.94f, hoveredScale = 1.02f, role = Role.Tab) {
+                        onOptionSelected(index)
+                    }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -339,7 +381,7 @@ fun PulseSegmentedControl(
                     style = typo().labelMedium.copy(
                         fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) colors.switchThumbChecked else colors.subtitleText,
+                        color = txtColor,
                     ),
                 )
             }
@@ -377,7 +419,7 @@ fun PulseSettingRow(
             .fillMaxWidth()
             .then(
                 if (onClick != null && enabled) {
-                    Modifier.clickable { onClick() }
+                    Modifier.pixelClickable(pressedScale = 0.985f, hoveredScale = 1.008f) { onClick() }
                 } else {
                     Modifier
                 },

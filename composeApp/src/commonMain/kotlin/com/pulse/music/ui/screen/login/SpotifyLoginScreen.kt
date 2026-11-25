@@ -175,7 +175,7 @@ fun SpotifyLoginScreen(
                     },
             title = {
                 Text(
-                    text = stringResource(Res.string.log_in_to_spotify),
+                    text = "Spotify Login",
                     style = typo().titleMedium,
                 )
             },

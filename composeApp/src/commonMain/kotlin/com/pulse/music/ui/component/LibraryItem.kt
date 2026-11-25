@@ -3,7 +3,6 @@ package com.pulse.music.ui.component
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -157,11 +156,16 @@ fun LibraryItem(
                                                 showBottomSheet = true
                                             },
                                             onClickListener = {
+                                                val plId = if (item.videoId.startsWith("saavn:")) {
+                                                    "saavn_radio:${item.videoId}"
+                                                } else {
+                                                    "RDAMVM${item.videoId}"
+                                                }
                                                 viewModel.setQueueData(
                                                     QueueData.Data(
                                                         listTracks = arrayListOf(item.toTrack()),
                                                         firstPlayedTrack = item.toTrack(),
-                                                        playlistId = "RDAMVM${item.videoId}",
+                                                        playlistId = plId,
                                                         playlistName = item.title,
                                                         playlistType = DomainPlaylistType.RADIO,
                                                         continuation = null,
@@ -254,13 +258,19 @@ fun LibraryItem(
                                         .padding(horizontal = 10.dp)
                                         .height(300.dp)
                                         .width(170.dp)
-                                        .clickable {
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .pixelClickable(pressedScale = 0.94f, hoveredScale = 1.02f) {
                                             val firstQueue: Track = song.toTrack()
+                                            val plId = if (firstQueue.videoId.startsWith("saavn:")) {
+                                                "saavn_radio:${firstQueue.videoId}"
+                                            } else {
+                                                "RDAMVM${firstQueue.videoId}"
+                                            }
                                             viewModel.setQueueData(
                                                 QueueData.Data(
                                                     listTracks = arrayListOf(firstQueue),
                                                     firstPlayedTrack = firstQueue,
-                                                    playlistId = "RDAMVM${firstQueue.videoId}",
+                                                    playlistId = plId,
                                                     playlistName = "\"${song.title}\" $radioString",
                                                     playlistType = DomainPlaylistType.RADIO,
                                                     continuation = null,

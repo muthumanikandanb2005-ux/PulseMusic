@@ -1,66 +1,64 @@
 {
-  "version": "4.2.1",
-  "versionCode": 121,
-  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Universal.apk",
-  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Universal.apk",
-  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.1/PulseMusic-Universal.apk",
-  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.1/PulseMusic-Universal.apk",
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.1",
-  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.1",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.1",
-  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.1",
-  "tag_name": "v4.2.1",
-  "name": "Pulse Music v4.2.1 - Windows Playback Hotfix & Enhanced JioSaavn Search Integration",
+  "version": "4.2.2",
+  "versionCode": 122,
+  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-Universal.apk",
+  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-Universal.apk",
+  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.2/PulseMusic-Universal.apk",
+  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.2/PulseMusic-Universal.apk",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.2",
+  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.2",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.2",
+  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.2",
+  "tag_name": "v4.2.2",
+  "name": "Pulse Music v4.2.2 - Pixel Expressive Motion, Wavy Ring Player, Spotify Home & JioSaavn Endless Language Radio",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-11-24T16:44:48Z",
-  "body": "# Pulse Music v4.2.1 - Windows Playback Hotfix & Enhanced JioSaavn Search Integration\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83d\ude80 Windows MPV Native Audio Engine & Auto-Skip Hotfix\n- **Bundled `libmpv-2.dll`**: Solved missing native MPV library on Windows desktop by bundling `libmpv-2.dll` into app resources and root installation directories.\n- **Multi-Path Dynamic Discovery**: `MpvLibrary` now searches application execution directory, `app/resources`, and native paths with prioritized candidate loading.\n- **Runaway Auto-Skip Elimination**: Fixed automatic skipping bug where error counters were reset prematurely during auto-advances. The player now enforces strict error thresholds without cycling through the queue.\n\n### \ud83d\udd0d Enhanced JioSaavn Search Console Integration\n- **Parallel Autocomplete Suggestions**: As users type in the SearchBar, suggestions from JioSaavn autocomplete and YouTube Music are gathered simultaneously.\n- **Instant 320kbps Lossless Playback**: Top JioSaavn songs display seamlessly in recommended items with pre-cached direct 320kbps streams for zero-delay playback.\n- **Smart Result Interleaving**: JioSaavn regional and high-res results are interleaved and deduplicated alongside YouTube Music results.\n- **Robust Radio & Queue Seeding**: Fixed queue loading for JioSaavn tracks (`saavn:...`) to ensure seamless continuous playback without YouTube radio errors.\n\n### \ud83c\udfa8 Visual & Performance Refinements\n- **Complete Vibrant Expressive Circular Player**: Continued refinements to the modern circular disc artwork player and ambient multi-color light ring.\n- **3D Cover Flow Carousel**: Smooth perspective rotation and frosted track info banner.\n- **Ultra-low latency audio buffering** with automated high-bitrate fallback resolution.\n",
+  "published_at": "2026-11-25T17:25:49Z",
+  "body": "# Pulse Music v4.2.2 - Pixel Expressive Motion, Wavy Ring Player, Spotify Home & JioSaavn Endless Language Radio\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83c\udfa8 Vibrant Expressive Circular Player Overhaul\n- **Material 3 Expressive Wavy Circular Progress Ring**: Interactive undulating sine-wave arc around the circular album artwork while playing, smoothly settling flat when paused or scrubbing, with glowing scrub thumb and micro-haptics.\n- **Stationary Clean Layout**: Removed horizontal marquee, slide transitions, horizontal album carousel scroll, rotating vinyl animation, and the duplicate lower progress bar; centered the audio quality badge cleanly beneath the album art.\n\n### \ud83d\udcf1 Google Pixel Expressive Motion & Scrolling Physics\n- **Tactile Springs & Haptics**: Pixel spatial spring transitions (`PixelMotion`), press scale-down, hover lift, shape morphing, and micro-haptics across navigation bars, mini-player, buttons, cards, and chips.\n- **Pixel Scroll Physics**: Vertical overscroll stretch (`pixelVerticalOverscroll`) and item scale/alpha kinematics (`pixelScrollScale`, `pixelGridScrollScale`) across Home, Search, Library, Playlist Grid, and Settings.\n\n### \ud83d\udd01 Same-Language Endless Queue\n- **Continuous Regional Radio**: Playing any search or library track seamlessly extends endless same-language radio queues with expanded regional Indic language filtering and duplicate prevention without cross-language leakage.\n\n### \ud83d\udfe2 Spotify Home Feeds & Explicit Account Controls\n- **Playlists, Trending Songs & History**: Fixed Spotify token acquisition (TOTP, transport & web session fallbacks), nullable JSON deserialization, Trending Songs charts, Listening History fallbacks (`/recently-played` -> `/me/top/tracks` -> `/me/tracks`), and standalone Home rendering.\n- **Clear Account Controls**: Explicit **YouTube Login / YouTube Logout** and **Spotify Login / Spotify Logout** entries in Settings, dialogs, and login screens.\n",
   "changelog": [
-    "Windows MPV Native Engine: Bundled libmpv-2.dll and expanded multi-path discovery, eliminating playback errors and auto-skipping",
-    "Enhanced JioSaavn Search Integration: Parallel real-time autocomplete suggestions and recommended song dropdown in search console",
-    "Continuous JioSaavn Queue: Seamless queue extension and radio playback without YouTube API endpoint conflicts",
-    "Vibrant Expressive Theme Player: Circular disc artwork, glowing concentric progress ring, 5-button main transport row, and ambient light backdrop",
-    "Cover Flow 3D Perspective Carousel: 3D rotation, depth scaling, card overlapping, and frosted track info banner",
-    "Pinterest-Style Floating Navigation Dock: Unified capsule pill, far-left circular brand emblem, sliding squircle chip, and active glow dot"
+    "Vibrant Expressive Player: Material 3 Expressive wavy circular progress ring around stationary album art, no track-change marquee/slide, no disc rotation, and removed bottom progress bar",
+    "Google Pixel Expressive Motion & Scroll Physics: Tactile springs, tap scale, hover lift, haptics, vertical overscroll stretch, and list/grid scroll kinematics",
+    "Same-Language Endless Queue: Continuous multi-page regional language radio without cross-language artist leakage or stalling",
+    "Spotify Home & Account Controls: Fixed user playlists, trending songs charts, listening history fallbacks, and explicit YouTube / Spotify Login and Logout controls"
   ],
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 58086484
+      "size": 58125986
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30217365
+      "size": 30256870
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30181496
+      "size": 30221018
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 31682827
+      "size": 31722355
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/vnd.microsoft.portable-executable",
-      "size": 247374904
+      "size": 215850744
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 246921926
+      "size": 215398814
     }
   ],
-  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.exe",
-  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.1/PulseMusic-Windows-x64-Setup.exe"
+  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-Windows-x64-Setup.exe",
+  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.2/PulseMusic-Windows-x64-Setup.exe"
 }

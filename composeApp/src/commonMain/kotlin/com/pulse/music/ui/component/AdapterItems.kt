@@ -6,8 +6,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -138,7 +136,7 @@ fun HomeItem(
                     Modifier
                         .focusable(true)
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable {
+                        .pixelClickable(pressedScale = 0.96f, hoveredScale = 1.02f) {
                             navController.navigate(
                                 ArtistDestination(
                                     channelId = channelId,
@@ -342,8 +340,8 @@ fun HomeItemContentPlaylist(
         Modifier
             .wrapContentSize()
             .focusable(true)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable {
+            .clip(RoundedCornerShape(10.dp))
+            .pixelClickable(pressedScale = 0.94f, hoveredScale = 1.025f) {
                 onClick()
             },
     ) {
@@ -599,7 +597,9 @@ fun QuickPicksItem(
                 .width(widthDp - 30.dp)
                 .focusable(true)
                 .clip(RoundedCornerShape(12.dp))
-                .combinedClickable(
+                .pixelCombinedClickable(
+                    pressedScale = 0.96f,
+                    hoveredScale = 1.015f,
                     onClick = onClick,
                     onLongClick = onLongClick,
                 ),
@@ -697,8 +697,10 @@ fun HomeItemSong(
             Modifier
                 .fillMaxSize()
                 .focusable(true)
-                .clip(RoundedCornerShape(8.dp))
-                .combinedClickable(
+                .clip(RoundedCornerShape(10.dp))
+                .pixelCombinedClickable(
+                    pressedScale = 0.94f,
+                    hoveredScale = 1.025f,
                     onClick = onClick,
                     onLongClick = onLongClick,
                 ),
@@ -798,8 +800,10 @@ fun HomeItemVideo(
         Modifier
             .fillMaxSize()
             .focusable(true)
-            .clip(RoundedCornerShape(8.dp))
-            .combinedClickable(
+            .clip(RoundedCornerShape(10.dp))
+            .pixelCombinedClickable(
+                pressedScale = 0.94f,
+                hoveredScale = 1.025f,
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),
@@ -881,8 +885,8 @@ fun HomeItemArtist(
         Modifier
             .fillMaxSize()
             .focusable(true)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable {
+            .clip(RoundedCornerShape(10.dp))
+            .pixelClickable(pressedScale = 0.94f, hoveredScale = 1.025f) {
                 onClick()
             },
     ) {
@@ -997,8 +1001,8 @@ fun ItemVideoChart(
         Modifier
             .wrapContentSize()
             .focusable(true)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable {
+            .clip(RoundedCornerShape(10.dp))
+            .pixelClickable(pressedScale = 0.94f, hoveredScale = 1.025f) {
                 onClick()
             },
     ) {
@@ -1092,7 +1096,7 @@ fun ItemArtistChart(
             .wrapContentSize()
             .focusable(true)
             .clip(RoundedCornerShape(12.dp))
-            .clickable {
+            .pixelClickable(pressedScale = 0.96f, hoveredScale = 1.015f) {
                 onClick()
             },
     ) {
@@ -1191,7 +1195,7 @@ fun ItemTrackChart(
                 .wrapContentSize()
                 .focusable(true)
                 .clip(RoundedCornerShape(12.dp))
-                .clickable {
+                .pixelClickable(pressedScale = 0.96f, hoveredScale = 1.015f) {
                     onClick()
                 },
     ) {

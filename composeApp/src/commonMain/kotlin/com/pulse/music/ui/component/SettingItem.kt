@@ -1,6 +1,5 @@
 package com.pulse.music.ui.component
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.pulse.music.extension.greyScale
 import com.pulse.music.ui.theme.typo
@@ -42,11 +43,12 @@ fun SettingItem(
     // row at all, so it could not do the job it existed for. Clearing a child flag now belongs to the
     // logout that invalidates it (SettingsViewModel: setSpotifyLogIn, logOutDiscord, logOutLastfm,
     // setUsedAccount, logOutAllYouTube, setAIApiKey), which is a real event and cannot misfire.
+    val haptic = LocalHapticFeedback.current
     Box(
         Modifier
             .then(
                 if (onClick != null && isEnable) {
-                    Modifier.clickable { onClick.invoke() }
+                    Modifier.pixelClickable(pressedScale = 0.985f, hoveredScale = 1.008f) { onClick.invoke() }
                 } else {
                     Modifier
                 },
@@ -112,6 +114,7 @@ fun SettingItem(
                     modifier = Modifier.wrapContentWidth(),
                     checked = switch.first,
                     onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         switch.second.invoke(it)
                     },
                     enabled = isEnable,

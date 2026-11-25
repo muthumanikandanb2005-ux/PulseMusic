@@ -14,9 +14,9 @@ import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -139,6 +139,7 @@ fun SongFullWidthItems(
         .mapNotNull { it?.downloadState }
         .collectAsState(initial = DownloadState.STATE_NOT_DOWNLOADED)
     val offsetX = remember { Animatable(initialValue = 0f) }
+    val haptic = LocalHapticFeedback.current
     var heightDp by remember { mutableStateOf(0.dp) }
 
     Box(
@@ -155,7 +156,8 @@ fun SongFullWidthItems(
                             .height(heightDp)
                             .aspectRatio(1f)
                             .padding(start = 15.dp)
-                            .align(Alignment.CenterStart),
+                            .align(Alignment.CenterStart)
+                            .pixelPopOnChange(true, peakScale = 1.25f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -173,7 +175,9 @@ fun SongFullWidthItems(
                     .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                     .background(
                         if (isSelected) seed.copy(alpha = 0.18f) else Color.Transparent,
-                    ).combinedClickable(
+                    ).pixelCombinedClickable(
+                        pressedScale = 0.975f,
+                        hoveredScale = 1.008f,
                         onClick = {
                             if (selectionMode) {
                                 onSelectToggle?.invoke(itemVideoId)
@@ -205,12 +209,13 @@ fun SongFullWidthItems(
                                 },
                                 onDragEnd = {
                                     if (offsetX.value == maxOffset) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onAddToQueue(
                                             track?.videoId ?: songEntity?.videoId ?: "",
                                         )
                                     }
                                     coroutineScope.launch {
-                                        offsetX.animateTo(0f)
+                                        offsetX.animateTo(0f, PixelMotion.SpringDefault)
                                     }
                                 },
                             )
@@ -412,7 +417,7 @@ fun SuggestItems(
     Box(
         modifier =
             Modifier
-                .clickable {
+                .pixelClickable(pressedScale = 0.975f, hoveredScale = 1.008f) {
                     if (onClickListener != null) {
                         onClickListener()
                     }
@@ -518,7 +523,7 @@ fun PlaylistFullWidthItems(
     Box(
         modifier =
             modifier
-                .clickable {
+                .pixelClickable(pressedScale = 0.975f, hoveredScale = 1.008f) {
                     onClickListener?.invoke()
                 }.animateContentSize(),
     ) {
@@ -701,7 +706,7 @@ fun ArtistFullWidthItems(
         }
     Box(
         modifier
-            .clickable {
+            .pixelClickable(pressedScale = 0.975f, hoveredScale = 1.008f) {
                 onClickListener?.invoke()
             },
     ) {

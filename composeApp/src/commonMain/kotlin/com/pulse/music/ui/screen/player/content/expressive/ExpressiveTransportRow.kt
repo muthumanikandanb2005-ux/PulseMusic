@@ -1,8 +1,10 @@
 ﻿package com.pulse.music.ui.screen.player.content.expressive
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -27,9 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.manikandan.domain.mediaservice.handler.ControlState
 import com.manikandan.domain.mediaservice.handler.RepeatState
+import com.pulse.music.ui.component.PixelMotion
+import com.pulse.music.ui.component.pixelTapScale
 import com.pulse.music.ui.icon.Pause
 import com.pulse.music.ui.icon.PlayArrow
 import com.pulse.music.ui.icon.Repeat
@@ -112,6 +118,7 @@ fun ExpressiveTransportRow(
         label = "playCorner",
     )
 
+    val haptic = LocalHapticFeedback.current
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -132,6 +139,7 @@ fun ExpressiveTransportRow(
         Surface(
             onClick = {
                 if (controllerState.isPreviousAvailable) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onUIEvent(UIEvent.Previous)
                 }
             },
@@ -141,7 +149,8 @@ fun ExpressiveTransportRow(
             modifier =
                 Modifier
                     .weight(prevWeight)
-                    .fillMaxHeight(),
+                    .fillMaxHeight()
+                    .pixelTapScale(prevInteraction, pressedScale = 0.94f, hoveredScale = 1.03f, enabled = controllerState.isPreviousAvailable),
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
@@ -158,6 +167,7 @@ fun ExpressiveTransportRow(
         // Play / Pause — primary container, corner radius morphs with playback state.
         Surface(
             onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onUIEvent(UIEvent.PlayPause)
             },
             shape = RoundedCornerShape(playCorner),
@@ -166,12 +176,14 @@ fun ExpressiveTransportRow(
             modifier =
                 Modifier
                     .weight(playWeight)
-                    .fillMaxHeight(),
+                    .fillMaxHeight()
+                    .pixelTapScale(playInteraction, pressedScale = 0.94f, hoveredScale = 1.03f),
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Crossfade(
+                AnimatedContent(
                     targetState = controllerState.isPlaying,
-                    animationSpec = motionScheme.fastEffectsSpec(),
+                    transitionSpec = { PixelMotion.iconMorphTransition() },
+                    contentAlignment = Alignment.Center,
                     label = "playPauseIcon",
                     modifier = Modifier.fillMaxSize(),
                 ) { isPlaying ->
@@ -190,6 +202,7 @@ fun ExpressiveTransportRow(
         Surface(
             onClick = {
                 if (controllerState.isNextAvailable) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onUIEvent(UIEvent.Next)
                 }
             },
@@ -199,7 +212,8 @@ fun ExpressiveTransportRow(
             modifier =
                 Modifier
                     .weight(nextWeight)
-                    .fillMaxHeight(),
+                    .fillMaxHeight()
+                    .pixelTapScale(nextInteraction, pressedScale = 0.94f, hoveredScale = 1.03f, enabled = controllerState.isNextAvailable),
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
@@ -236,22 +250,47 @@ private fun RowScope.ExpressiveToggleButton(
     onClick: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+    val corner by animateDpAsState(
+        targetValue = if (isPressed) 16.dp else if (active) 22.dp else 34.dp,
+        animationSpec = PixelMotion.SpringDpBouncy,
+        label = "toggleCorner",
+    )
+    val bgColor by animateColorAsState(
+        targetValue = if (active) colorScheme.primaryContainer else colorScheme.surfaceContainerHigh,
+        animationSpec = tween(220, easing = PixelMotion.EmphasizedDecelerate),
+        label = "toggleBg",
+    )
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(34.dp),
-        color = if (active) colorScheme.primaryContainer else colorScheme.surfaceContainerHigh,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(corner),
+        color = bgColor,
         modifier =
             Modifier
                 .weight(TOGGLE_WEIGHT)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .pixelTapScale(interactionSource, pressedScale = 0.90f, hoveredScale = 1.04f),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(
-                imageVector = icon,
-                contentDescription = "",
-                tint = if (active) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
+            AnimatedContent(
+                targetState = icon,
+                transitionSpec = { PixelMotion.iconMorphTransition() },
+                contentAlignment = Alignment.Center,
+                label = "toggleIconMorph",
+            ) { targetIcon ->
+                Icon(
+                    imageVector = targetIcon,
+                    contentDescription = "",
+                    tint = if (active) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
     }
 }

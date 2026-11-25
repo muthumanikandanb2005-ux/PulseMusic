@@ -31,6 +31,7 @@ import com.manikandan.common.TITLE
 import com.manikandan.data.db.Converters
 import com.manikandan.data.lastfm.LastfmScrobbler
 import com.manikandan.data.mediaservice.isDolbyAtmosHardwareSupported
+import com.manikandan.data.service.JioSaavnService
 import com.manikandan.domain.data.entities.NewFormatEntity
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.model.browse.album.Track
@@ -245,6 +246,7 @@ internal class MediaServiceHandlerImpl(
     private var systemEqualizerSelected = false
 
     private var consecutivePlayerErrors = 0
+    private var endlessBatchRetryCount = 0
 
     @Volatile
     private var isEndlessQueueCached: Boolean = true
@@ -1142,6 +1144,7 @@ internal class MediaServiceHandlerImpl(
             PlayerEvent.Next -> {
                 resetCrossfade()
                 consecutivePlayerErrors = 0
+        endlessBatchRetryCount = 0
                 val currentIdx = player.currentMediaItemIndex
                 val totalItems = player.mediaItemCount
                 val tracks = queueData.value.data.listTracks
@@ -1170,7 +1173,9 @@ internal class MediaServiceHandlerImpl(
                         return
                     } else if (targetIdx >= tracks.size) {
                         fetchNextEndlessQueueBatch()
-                        player.seekToNext()
+                        if (player.hasNextMediaItem()) {
+                            player.seekToNext()
+                        }
                         return
                     }
                 }
@@ -1256,11 +1261,16 @@ internal class MediaServiceHandlerImpl(
         coroutineScope.launch {
             val currentSong = nowPlayingState.value.songEntity ?: return@launch
             Logger.d(TAG, "toggleRadio: ${currentSong.title}")
+            val radioPlaylistId = if (currentSong.videoId.startsWith("saavn:")) {
+                "${JioSaavnService.SAAVN_RADIO_PREFIX}${currentSong.videoId}"
+            } else {
+                "RDAMVM${currentSong.videoId}"
+            }
             songRepository
                 .getRadioFromEndpoint(
                     YouTubeWatchEndpoint(
                         videoId = currentSong.videoId,
-                        playlistId = "RDAMVM${currentSong.videoId}",
+                        playlistId = radioPlaylistId,
                     ),
                 ).collectLatest { res ->
                     val data = res.data
@@ -1270,7 +1280,7 @@ internal class MediaServiceHandlerImpl(
                                 QueueData.Data(
                                     listTracks = data.first,
                                     firstPlayedTrack = data.first.first(),
-                                    playlistId = "RDAMVM${currentSong.videoId}",
+                                    playlistId = radioPlaylistId,
                                     playlistName = "\"${currentSong.title}\" Radio",
                                     playlistType = PlaylistType.RADIO,
                                     continuation = data.second,
@@ -1735,9 +1745,8 @@ internal class MediaServiceHandlerImpl(
                         .firstOrNull()
                         .let { response ->
                             val list = response?.first
-                            if (list != null) {
+                            if (!list.isNullOrEmpty()) {
                                 Logger.w(TAG, "Check loadMore response $response")
-                                loadMoreCatalog(list)
                                 _queueData.update {
                                     it.copy(
                                         data =
@@ -1746,8 +1755,9 @@ internal class MediaServiceHandlerImpl(
                                             ),
                                     )
                                 }
+                                loadMoreCatalog(list)
                             } else {
-                                if (isEndlessQueueCached) {
+                                if (isEndlessQueueCached || queueData.value.isRadio()) {
                                     fetchNextEndlessQueueBatch()
                                 } else {
                                     _queueData.update {
@@ -1765,7 +1775,7 @@ internal class MediaServiceHandlerImpl(
                 }
             }
         } else {
-            if (isEndlessQueueCached) {
+            if (isEndlessQueueCached || queueData.value.isRadio()) {
                 fetchNextEndlessQueueBatch()
             }
         }
@@ -1790,7 +1800,11 @@ internal class MediaServiceHandlerImpl(
             ?: return
 
         usedRadioSeedVideoIds.add(seedTrack.videoId)
-        val radioId = "RDAMVM${seedTrack.videoId}"
+        val radioId = if (seedTrack.videoId.startsWith("saavn:")) {
+            "${JioSaavnService.SAAVN_RADIO_PREFIX}${seedTrack.videoId}"
+        } else {
+            "RDAMVM${seedTrack.videoId}"
+        }
         _queueData.update {
             it.copy(
                 queueState = QueueData.StateSource.STATE_INITIALIZING,
@@ -1829,8 +1843,18 @@ internal class MediaServiceHandlerImpl(
                         val tracksToAdd = languageMatched
 
                         if (tracksToAdd.isNotEmpty()) {
+                            endlessBatchRetryCount = 0
                             tracksToAdd.forEach { sessionSeenVideoIds.add(it.videoId) }
+                            _queueData.update {
+                                it.copy(
+                                    data = it.data.copy(
+                                        continuation = nextContinuation,
+                                    ),
+                                )
+                            }
                             loadMoreCatalog(ArrayList(tracksToAdd))
+                        } else {
+                            endlessBatchRetryCount++
                             _queueData.update {
                                 it.copy(
                                     data = it.data.copy(
@@ -1839,13 +1863,12 @@ internal class MediaServiceHandlerImpl(
                                     queueState = QueueData.StateSource.STATE_INITIALIZED,
                                 )
                             }
-                        } else {
-                            _queueData.update {
-                                it.copy(
-                                    queueState = QueueData.StateSource.STATE_INITIALIZED,
-                                )
+                            if (endlessBatchRetryCount <= 3 && (isEndlessQueueCached || queueData.value.isRadio())) {
+                                delay(150)
+                                fetchNextEndlessQueueBatch()
+                            } else {
+                                endlessBatchRetryCount = 0
                             }
-                            fetchNextEndlessQueueBatch()
                         }
                     }
 
@@ -1931,6 +1954,7 @@ internal class MediaServiceHandlerImpl(
     override fun reset() {
         _queueData.value = QueueData()
         usedRadioSeedVideoIds.clear()
+        endlessBatchRetryCount = 0
     }
 
     override suspend fun load(
@@ -2818,6 +2842,23 @@ internal class MediaServiceHandlerImpl(
             PlayerConstants.STATE_ENDED -> {
                 _simpleMediaState.value = SimpleMediaState.Ended
                 Logger.d(TAG, "onPlaybackStateChanged: Ended")
+                if (!player.hasNextMediaItem() &&
+                    (isEndlessQueueCached || queueData.value.isRadio()) &&
+                    player.repeatMode == PlayerConstants.REPEAT_MODE_OFF
+                ) {
+                    loadMore()
+                    coroutineScope.launch {
+                        repeat(12) {
+                            delay(250)
+                            if (player.hasNextMediaItem()) {
+                                player.seekToNext()
+                                player.playWhenReady = true
+                                player.play()
+                                return@launch
+                            }
+                        }
+                    }
+                }
             }
 
             PlayerConstants.STATE_READY -> {
@@ -2838,6 +2879,7 @@ internal class MediaServiceHandlerImpl(
         _controlState.value = _controlState.value.copy(isPlaying = isPlaying)
         if (isPlaying) {
             consecutivePlayerErrors = 0
+        endlessBatchRetryCount = 0
             startProgressUpdate()
             nowPlayingState.value.songEntity?.let { updateDiscordRpc(it) }
         } else {
@@ -2864,6 +2906,7 @@ internal class MediaServiceHandlerImpl(
         reason: Int,
     ) {
         consecutivePlayerErrors = 0
+        endlessBatchRetryCount = 0
         Logger.w(TAG, "Checking current state before transition ${simpleMediaState.value}")
         val lastPlayed = nowPlayingState.value.songEntity
         val currentState = simpleMediaState.value
@@ -2894,7 +2937,7 @@ internal class MediaServiceHandlerImpl(
             nowPlayingState.value.songEntity?.let { updateDiscordRpc(it) }
         }
         queueData.value.data.listTracks.let { list ->
-            if (list.size - player.currentMediaItemIndex < 5 &&
+            if (list.size - player.currentMediaItemIndex <= 6 &&
                 list.size - player.currentMediaItemIndex >= 0 &&
                 queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZED
             ) {
@@ -2998,6 +3041,7 @@ internal class MediaServiceHandlerImpl(
         if (consecutivePlayerErrors >= 10) {
             Logger.w("Player Error", "Too many errors ($consecutivePlayerErrors), fetching fresh batch to resume...")
             consecutivePlayerErrors = 0
+        endlessBatchRetryCount = 0
             fetchNextEndlessQueueBatch()
             if (player.hasNextMediaItem()) {
                 player.seekToNext()

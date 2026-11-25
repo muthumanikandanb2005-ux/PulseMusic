@@ -128,6 +128,7 @@ import com.pulse.music.extension.isValidProxyHost
 import com.pulse.music.getPlatform
 import com.pulse.music.ui.component.ActionButton
 import com.pulse.music.ui.component.AmbientThemeGlow
+import com.pulse.music.ui.component.pixelVerticalOverscroll
 import com.pulse.music.ui.component.CenterLoadingBox
 import com.pulse.music.ui.component.DevLogInBottomSheet
 import com.pulse.music.ui.component.DevLogInType
@@ -540,7 +541,9 @@ fun SettingScreen(
                 top = innerPadding.calculateTopPadding() + 8.dp,
                 bottom = innerPadding.calculateBottomPadding() + 40.dp,
             ),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pixelVerticalOverscroll(),
         ) {
             // TOP BAR & SEARCH
             item(key = "header_section") {
@@ -589,16 +592,16 @@ fun SettingScreen(
                 }
             }
 
-            // GROUP 1: YOUTUBE SIGN IN & ACCOUNT
-            if (matchesSearch("YouTube", "Sign in", "Account & integrations", "Listen together", "Spotify", "Last.fm", profileName, ytAccountName)) {
+            // GROUP 1: YOUTUBE & SPOTIFY LOGIN / LOGOUT
+            if (matchesSearch("YouTube", "Sign in", "Login", "Logout", "Sign out", "Account & integrations", "Listen together", "Spotify", "Last.fm", profileName, ytAccountName, spotifyAccountName)) {
                 item(key = "card_account") {
                     PulseSettingsCard {
                         if (!isYouTubeSignedIn) {
                             PulseSettingRow(
-                                title = "Sign in to YouTube",
-                                subtitle = "Connect your YouTube Music account to access your playlists, liked music, and subscriptions",
+                                title = "YouTube Login",
+                                subtitle = "Sign in to YouTube Music to access your playlists, liked music, and subscriptions",
                                 leadingIcon = PulseIcons.PlayArrow,
-                                trailingText = "Sign In",
+                                trailingText = "Log In",
                                 showChevron = true,
                                 onClick = {
                                     navController.navigate(LoginDestination)
@@ -606,8 +609,8 @@ fun SettingScreen(
                             )
                         } else {
                             PulseSettingRow(
-                                title = if (!ytAccountName.isNullOrBlank()) ytAccountName!! else "YouTube Account",
-                                subtitle = "Connected to YouTube Music • Tap to manage or switch account",
+                                title = if (!ytAccountName.isNullOrBlank()) "YouTube: $ytAccountName" else "YouTube Account",
+                                subtitle = "Connected to YouTube Music • Tap to switch account",
                                 leadingIcon = PulseIcons.PlayArrow,
                                 badgeText = "ACTIVE",
                                 showChevron = true,
@@ -615,14 +618,29 @@ fun SettingScreen(
                                     showYouTubeAccountDialog = true
                                 },
                             )
+                            PulseSettingDivider()
+                            PulseSettingRow(
+                                title = "YouTube Logout",
+                                subtitle = "Sign out of your connected YouTube Music account",
+                                leadingIcon = PulseIcons.Close,
+                                badgeText = "Log Out",
+                                badgeBg = Color(0x22EF4444),
+                                badgeTextColor = Color(0xFFEF4444),
+                                onClick = {
+                                    viewModel.confirmLogOut("YouTube Logout") {
+                                        viewModel.logOutAllYouTube()
+                                        sharedViewModel.makeToast("Signed out from YouTube")
+                                    }
+                                },
+                            )
                         }
                         PulseSettingDivider()
                         if (!spotifyLoggedIn) {
                             PulseSettingRow(
-                                title = "Sign in to Spotify",
-                                subtitle = "Connect your Spotify account to sync your playlists and enable Canvas looping videos",
+                                title = "Spotify Login",
+                                subtitle = "Connect your Spotify account for playlists, trending songs, listening history, and Canvas",
                                 leadingIcon = PulseIcons.GraphicEq,
-                                trailingText = "Sign In",
+                                trailingText = "Log In",
                                 showChevron = true,
                                 onClick = {
                                     navController.navigate(SpotifyLoginDestination)
@@ -630,13 +648,28 @@ fun SettingScreen(
                             )
                         } else {
                             PulseSettingRow(
-                                title = if (spotifyAccountName.isNotBlank()) spotifyAccountName else "Spotify Account",
-                                subtitle = "Connected to Spotify • Playlists synced & Canvas enabled",
+                                title = if (spotifyAccountName.isNotBlank()) "Spotify: $spotifyAccountName" else "Spotify Account",
+                                subtitle = "Connected to Spotify • Playlists, history & Canvas active",
                                 leadingIcon = PulseIcons.GraphicEq,
                                 badgeText = "ACTIVE",
                                 showChevron = true,
                                 onClick = {
                                     showSpotifyAccountDialog = true
+                                },
+                            )
+                            PulseSettingDivider()
+                            PulseSettingRow(
+                                title = "Spotify Logout",
+                                subtitle = "Sign out of Spotify and clear synced session data",
+                                leadingIcon = PulseIcons.Close,
+                                badgeText = "Log Out",
+                                badgeBg = Color(0x22EF4444),
+                                badgeTextColor = Color(0xFFEF4444),
+                                onClick = {
+                                    viewModel.confirmLogOut("Spotify Logout") {
+                                        viewModel.setSpotifyLogIn(false)
+                                        sharedViewModel.makeToast("Signed out from Spotify")
+                                    }
                                 },
                             )
                         }
@@ -1726,7 +1759,7 @@ fun SettingScreen(
                         sharedViewModel.makeToast("Signed out from YouTube")
                     },
                 ) {
-                    Text(text = stringResource(Res.string.log_out), color = Color(0xFFEF4444))
+                    Text(text = "YouTube Logout", color = Color(0xFFEF4444))
                 }
             },
         )
@@ -1776,7 +1809,7 @@ fun SettingScreen(
                         sharedViewModel.makeToast("Signed out from Spotify")
                     },
                 ) {
-                    Text(text = stringResource(Res.string.log_out), color = Color(0xFFEF4444))
+                    Text(text = "Spotify Logout", color = Color(0xFFEF4444))
                 }
             },
         )

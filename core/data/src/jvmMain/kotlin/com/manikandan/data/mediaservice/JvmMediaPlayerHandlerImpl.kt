@@ -21,6 +21,7 @@ import com.manikandan.data.lastfm.LastfmScrobbler
 import com.manikandan.data.mediaservice.mac.MacOSMediaIntegration
 import com.manikandan.data.mediaservice.mac.MacOSRemoteCommandListener
 import com.manikandan.data.mediaservice.mac.NowPlayingInfo
+import com.manikandan.data.service.JioSaavnService
 import com.manikandan.domain.data.entities.NewFormatEntity
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.model.browse.album.Track
@@ -202,6 +203,8 @@ class JvmMediaPlayerHandlerImpl(
 
     // macOS Media Integration (Now Playing Center + Remote Command Center)
     private var consecutivePlayerErrors = 0
+    private var endlessBatchRetryCount = 0
+    private var lastLoadMoreTimeMs = 0L
 
     @Volatile
     private var isEndlessQueueCached: Boolean = true
@@ -1208,7 +1211,9 @@ class JvmMediaPlayerHandlerImpl(
                         return
                     } else if (targetIdx >= tracks.size) {
                         fetchNextEndlessQueueBatch()
-                        player.seekToNext()
+                        if (player.hasNextMediaItem()) {
+                            player.seekToNext()
+                        }
                         return
                     }
                 }
@@ -1298,11 +1303,16 @@ class JvmMediaPlayerHandlerImpl(
         coroutineScope.launch {
             val currentSong = nowPlayingState.value.songEntity ?: return@launch
             Logger.d(TAG, "toggleRadio: ${currentSong.title}")
+            val radioPlaylistId = if (currentSong.videoId.startsWith("saavn:")) {
+                "${JioSaavnService.SAAVN_RADIO_PREFIX}${currentSong.videoId}"
+            } else {
+                "RDAMVM${currentSong.videoId}"
+            }
             songRepository
                 .getRadioFromEndpoint(
                     YouTubeWatchEndpoint(
                         videoId = currentSong.videoId,
-                        playlistId = "RDAMVM${currentSong.videoId}",
+                        playlistId = radioPlaylistId,
                     ),
                 ).collectLatest { res ->
                     val data = res.data
@@ -1312,7 +1322,7 @@ class JvmMediaPlayerHandlerImpl(
                                 QueueData.Data(
                                     listTracks = data.first,
                                     firstPlayedTrack = data.first.first(),
-                                    playlistId = "RDAMVM${currentSong.videoId}",
+                                    playlistId = radioPlaylistId,
                                     playlistName = "\"${currentSong.title}\" Radio",
                                     playlistType = PlaylistType.RADIO,
                                     continuation = data.second,
@@ -1581,7 +1591,10 @@ class JvmMediaPlayerHandlerImpl(
     }
 
     override fun loadMore() {
-        if (queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZING) return
+        val now = System.currentTimeMillis()
+        val isStuck = (now - lastLoadMoreTimeMs) > 4000L
+        if (queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZING && !isStuck) return
+        lastLoadMoreTimeMs = now
         // Separate local and remote data
         // Local Add Prefix to PlaylistID to differentiate between local and remote
         // Local: LC-PlaylistID
@@ -1779,9 +1792,8 @@ class JvmMediaPlayerHandlerImpl(
                         .firstOrNull()
                         .let { response ->
                             val list = response?.first
-                            if (list != null) {
+                            if (!list.isNullOrEmpty()) {
                                 Logger.w(TAG, "Check loadMore response $response")
-                                loadMoreCatalog(list)
                                 _queueData.update {
                                     it.copy(
                                         data =
@@ -1790,8 +1802,9 @@ class JvmMediaPlayerHandlerImpl(
                                             ),
                                     )
                                 }
+                                loadMoreCatalog(list)
                             } else {
-                                if (isEndlessQueueCached) {
+                                if (isEndlessQueueCached || queueData.value.isRadio()) {
                                     fetchNextEndlessQueueBatch()
                                 } else {
                                     _queueData.update {
@@ -1809,7 +1822,7 @@ class JvmMediaPlayerHandlerImpl(
                 }
             }
         } else {
-            if (isEndlessQueueCached) {
+            if (isEndlessQueueCached || queueData.value.isRadio()) {
                 fetchNextEndlessQueueBatch()
             }
         }
@@ -1834,7 +1847,11 @@ class JvmMediaPlayerHandlerImpl(
             ?: return
 
         usedRadioSeedVideoIds.add(seedTrack.videoId)
-        val radioId = "RDAMVM${seedTrack.videoId}"
+        val radioId = if (seedTrack.videoId.startsWith("saavn:")) {
+            "${JioSaavnService.SAAVN_RADIO_PREFIX}${seedTrack.videoId}"
+        } else {
+            "RDAMVM${seedTrack.videoId}"
+        }
         _queueData.update {
             it.copy(
                 queueState = QueueData.StateSource.STATE_INITIALIZING,
@@ -1873,8 +1890,18 @@ class JvmMediaPlayerHandlerImpl(
                         val tracksToAdd = languageMatched
 
                         if (tracksToAdd.isNotEmpty()) {
+                            endlessBatchRetryCount = 0
                             tracksToAdd.forEach { sessionSeenVideoIds.add(it.videoId) }
+                            _queueData.update {
+                                it.copy(
+                                    data = it.data.copy(
+                                        continuation = nextContinuation,
+                                    ),
+                                )
+                            }
                             loadMoreCatalog(ArrayList(tracksToAdd))
+                        } else {
+                            endlessBatchRetryCount++
                             _queueData.update {
                                 it.copy(
                                     data = it.data.copy(
@@ -1883,13 +1910,12 @@ class JvmMediaPlayerHandlerImpl(
                                     queueState = QueueData.StateSource.STATE_INITIALIZED,
                                 )
                             }
-                        } else {
-                            _queueData.update {
-                                it.copy(
-                                    queueState = QueueData.StateSource.STATE_INITIALIZED,
-                                )
+                            if (endlessBatchRetryCount <= 3 && (isEndlessQueueCached || queueData.value.isRadio())) {
+                                delay(150)
+                                fetchNextEndlessQueueBatch()
+                            } else {
+                                endlessBatchRetryCount = 0
                             }
-                            fetchNextEndlessQueueBatch()
                         }
                     }
 
@@ -1975,6 +2001,7 @@ class JvmMediaPlayerHandlerImpl(
     override fun reset() {
         _queueData.value = QueueData()
         usedRadioSeedVideoIds.clear()
+        endlessBatchRetryCount = 0
     }
 
     override suspend fun load(
@@ -2789,6 +2816,23 @@ class JvmMediaPlayerHandlerImpl(
             PlayerConstants.STATE_ENDED -> {
                 _simpleMediaState.value = SimpleMediaState.Ended
                 Logger.d(TAG, "onPlaybackStateChanged: Ended")
+                if (!player.hasNextMediaItem() &&
+                    (isEndlessQueueCached || queueData.value.isRadio()) &&
+                    player.repeatMode == PlayerConstants.REPEAT_MODE_OFF
+                ) {
+                    loadMore()
+                    coroutineScope.launch {
+                        repeat(12) {
+                            delay(250)
+                            if (player.hasNextMediaItem()) {
+                                player.seekToNext()
+                                player.playWhenReady = true
+                                player.play()
+                                return@launch
+                            }
+                        }
+                    }
+                }
             }
 
             PlayerConstants.STATE_READY -> {
@@ -2830,6 +2874,7 @@ class JvmMediaPlayerHandlerImpl(
         if (reason != PlayerConstants.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
             consecutivePlayerErrors = 0
         }
+        endlessBatchRetryCount = 0
         resetPositionSmoothing()
         Logger.w(TAG, "Checking current state before transition ${simpleMediaState.value}")
         val lastPlayed = nowPlayingState.value.songEntity
@@ -2861,7 +2906,7 @@ class JvmMediaPlayerHandlerImpl(
             nowPlayingState.value.songEntity?.let { updateDiscordRpc(it) }
         }
         queueData.value.data.listTracks.let { list ->
-            if (list.size - player.currentMediaItemIndex < 5 &&
+            if (list.size - player.currentMediaItemIndex <= 6 &&
                 list.size - player.currentMediaItemIndex >= 0 &&
                 queueData.value.queueState == QueueData.StateSource.STATE_INITIALIZED
             ) {
@@ -2949,15 +2994,23 @@ class JvmMediaPlayerHandlerImpl(
         pushPlayerError(error)
         consecutivePlayerErrors++
 
-        if (consecutivePlayerErrors >= 2 || !player.hasNextMediaItem()) {
+        if (consecutivePlayerErrors >= 4) {
             Logger.w("Player Error", "Stopping playback: consecutive errors=$consecutivePlayerErrors, hasNext=${player.hasNextMediaItem()}")
             consecutivePlayerErrors = 0
             showToast(ToastType.PlayerError(error.errorCodeName))
             player.pause()
-        } else {
-            Logger.w("Player Error", "Track playback error (${error.errorCodeName}), auto-advancing to next track in queue (attempt $consecutivePlayerErrors/2)")
+        } else if (player.hasNextMediaItem()) {
+            Logger.w("Player Error", "Track playback error (${error.errorCodeName}), auto-advancing to next track in queue (attempt $consecutivePlayerErrors/4)")
             resetCrossfade()
             player.seekToNext()
+        } else if (isEndlessQueueCached || queueData.value.isRadio()) {
+            Logger.w("Player Error", "Track playback error (${error.errorCodeName}), fetching endless batch to continue")
+            resetCrossfade()
+            fetchNextEndlessQueueBatch()
+        } else {
+            consecutivePlayerErrors = 0
+            showToast(ToastType.PlayerError(error.errorCodeName))
+            player.pause()
         }
     }
 

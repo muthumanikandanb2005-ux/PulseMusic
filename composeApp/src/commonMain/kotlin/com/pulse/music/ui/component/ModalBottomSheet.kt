@@ -1,5 +1,6 @@
 package com.pulse.music.ui.component
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -2066,16 +2067,26 @@ fun HeartCheckBox(
                 // would trim it to the heart's own circle.
                 .heartBurst(burstState)
                 .clip(CircleShape)
-                .clickable {
+                .pixelClickable(
+                    pressedScale = 0.78f,
+                    hoveredScale = 1.12f,
+                ) {
                     // Judged at TAP time: tapping an unchecked heart is a like. Firing from the
                     // tap — not from watching `checked` — is what keeps a track change onto an
                     // already-liked song from celebrating a like nobody gave.
                     if (!checked) burstState.fire()
                     onStateChange?.invoke()
-                },
+                }
+                .pixelPopOnChange(checked, peakScale = 1.24f, onlyWhen = checked),
     ) {
-        Crossfade(targetState = checked, modifier = Modifier.fillMaxSize()) {
-            if (it) {
+        AnimatedContent(
+            targetState = checked,
+            transitionSpec = { PixelMotion.iconMorphTransition() },
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
+            label = "heartMorph",
+        ) { isLiked ->
+            if (isLiked) {
                 Image(
                     painter = painterResource(Res.drawable.baseline_favorite_24),
                     contentDescription = "Favorite checked",
