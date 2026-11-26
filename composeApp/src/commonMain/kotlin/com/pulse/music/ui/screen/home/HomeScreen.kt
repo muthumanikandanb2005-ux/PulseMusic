@@ -550,23 +550,7 @@ fun HomeScreen(
                             key = { index, item -> "home_sec_${index}_${item.title.orEmpty()}" },
                             contentType = { _, item -> item.title ?: "section" },
                         ) { index, item ->
-                            val itemKey = "home_sec_${index}_${item.title.orEmpty()}"
-                            Box(
-                                modifier = Modifier
-                                    .animateItem()
-                                    .then(
-                                        if (index == 0) {
-                                            Modifier
-                                        } else {
-                                            Modifier.pixelScrollScale(
-                                                listState = scrollState,
-                                                key = itemKey,
-                                                minScale = 0.965f,
-                                                minAlpha = 0.9f,
-                                            )
-                                        },
-                                    ),
-                            ) {
+                            Box {
                                 if (index == 0) {
                                     Box(
                                         modifier =
@@ -847,98 +831,91 @@ fun HomeScreen(
                 scrollState.firstVisibleItemIndex == 0 && scrollState.firstVisibleItemScrollOffset <= 20
             }
         }
-        AnimatedContent(
-            targetState = isAtTop,
-            transitionSpec = {
-                fadeIn(tween(250)).togetherWith(fadeOut(tween(250)))
-            },
-        ) { target ->
-            Column(
-                modifier =
-                    Modifier
-                        .align(Alignment.TopCenter)
-                        .then(
-                            if (target) {
-                                Modifier.background(Color.Transparent)
-                            } else {
-                                Modifier
-                                    .hazeEffect(hazeState, style = HazeMaterials.ultraThin()) {
-                                        blurEnabled = true
-                                        blurRadius = 16.dp
-                                    }
-                            },
-                        ).onGloballyPositioned { coordinates ->
-                            if (topAppBarHeightPx == 0) {
-                                topAppBarHeightPx = coordinates.size.height
-                            }
-                        },
-            ) {
-                AnimatedVisibility(
-                    visible = isScrollingUp,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
-                ) {
-                    HomeTopAppBar(
-                        navController = navController,
-                        profileName = profileName,
-                        accountName = accountInfo?.first,
-                    )
-                }
-                AnimatedVisibility(
-                    visible = !isScrollingUp,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
-                ) {
-                    Spacer(
-                        modifier =
+        Column(
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .then(
+                        if (isAtTop) {
+                            Modifier.background(Color.Transparent)
+                        } else {
                             Modifier
-                                .fillMaxWidth()
-                                .windowInsetsPadding(
-                                    WindowInsets.statusBars,
-                                ),
-                    )
-                }
-                Row(
+                                .hazeEffect(hazeState, style = HazeMaterials.ultraThin()) {
+                                    blurEnabled = true
+                                    blurRadius = 10.dp
+                                }
+                        },
+                    ).onGloballyPositioned { coordinates ->
+                        if (topAppBarHeightPx == 0) {
+                            topAppBarHeightPx = coordinates.size.height
+                        }
+                    },
+        ) {
+            AnimatedVisibility(
+                visible = isScrollingUp,
+                enter = fadeIn(tween(150)) + expandVertically(tween(180)),
+                exit = fadeOut(tween(120)) + shrinkVertically(tween(150)),
+            ) {
+                HomeTopAppBar(
+                    navController = navController,
+                    profileName = profileName,
+                    accountName = accountInfo?.first,
+                )
+            }
+            AnimatedVisibility(
+                visible = !isScrollingUp,
+                enter = fadeIn(tween(150)) + expandVertically(tween(180)),
+                exit = fadeOut(tween(120)) + shrinkVertically(tween(150)),
+            ) {
+                Spacer(
                     modifier =
                         Modifier
-                            .horizontalScroll(chipRowState)
-                            .padding(vertical = 8.dp, horizontal = 15.dp)
-                            .background(Color.Transparent),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    listOfHomeChip.forEach { id ->
-                        val isSelected =
-                            when (params) {
-                                HOME_PARAMS_RELAX -> id == Res.string.relax
-                                HOME_PARAMS_SLEEP -> id == Res.string.sleep
-                                HOME_PARAMS_ENERGIZE -> id == Res.string.energize
-                                HOME_PARAMS_SAD -> id == Res.string.sad
-                                HOME_PARAMS_ROMANCE -> id == Res.string.romance
-                                HOME_PARAMS_FEEL_GOOD -> id == Res.string.feel_good
-                                HOME_PARAMS_WORKOUT -> id == Res.string.workout
-                                HOME_PARAMS_PARTY -> id == Res.string.party
-                                HOME_PARAMS_COMMUTE -> id == Res.string.commute
-                                HOME_PARAMS_FOCUS -> id == Res.string.focus
-                                else -> id == Res.string.all
-                            }
-                        Chip(
-                            isAnimated = loading,
-                            isSelected = isSelected,
-                            text = stringResource(id),
-                        ) {
-                            when (id) {
-                                Res.string.all -> viewModel.setParams(null)
-                                Res.string.relax -> viewModel.setParams(HOME_PARAMS_RELAX)
-                                Res.string.sleep -> viewModel.setParams(HOME_PARAMS_SLEEP)
-                                Res.string.energize -> viewModel.setParams(HOME_PARAMS_ENERGIZE)
-                                Res.string.sad -> viewModel.setParams(HOME_PARAMS_SAD)
-                                Res.string.romance -> viewModel.setParams(HOME_PARAMS_ROMANCE)
-                                Res.string.feel_good -> viewModel.setParams(HOME_PARAMS_FEEL_GOOD)
-                                Res.string.workout -> viewModel.setParams(HOME_PARAMS_WORKOUT)
-                                Res.string.party -> viewModel.setParams(HOME_PARAMS_PARTY)
-                                Res.string.commute -> viewModel.setParams(HOME_PARAMS_COMMUTE)
-                                Res.string.focus -> viewModel.setParams(HOME_PARAMS_FOCUS)
-                            }
+                            .fillMaxWidth()
+                            .windowInsetsPadding(
+                                WindowInsets.statusBars,
+                            ),
+                )
+            }
+            Row(
+                modifier =
+                    Modifier
+                        .horizontalScroll(chipRowState)
+                        .padding(vertical = 8.dp, horizontal = 15.dp)
+                        .background(Color.Transparent),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                listOfHomeChip.forEach { id ->
+                    val isSelected =
+                        when (params) {
+                            HOME_PARAMS_RELAX -> id == Res.string.relax
+                            HOME_PARAMS_SLEEP -> id == Res.string.sleep
+                            HOME_PARAMS_ENERGIZE -> id == Res.string.energize
+                            HOME_PARAMS_SAD -> id == Res.string.sad
+                            HOME_PARAMS_ROMANCE -> id == Res.string.romance
+                            HOME_PARAMS_FEEL_GOOD -> id == Res.string.feel_good
+                            HOME_PARAMS_WORKOUT -> id == Res.string.workout
+                            HOME_PARAMS_PARTY -> id == Res.string.party
+                            HOME_PARAMS_COMMUTE -> id == Res.string.commute
+                            HOME_PARAMS_FOCUS -> id == Res.string.focus
+                            else -> id == Res.string.all
+                        }
+                    Chip(
+                        isAnimated = loading,
+                        isSelected = isSelected,
+                        text = stringResource(id),
+                    ) {
+                        when (id) {
+                            Res.string.all -> viewModel.setParams(null)
+                            Res.string.relax -> viewModel.setParams(HOME_PARAMS_RELAX)
+                            Res.string.sleep -> viewModel.setParams(HOME_PARAMS_SLEEP)
+                            Res.string.energize -> viewModel.setParams(HOME_PARAMS_ENERGIZE)
+                            Res.string.sad -> viewModel.setParams(HOME_PARAMS_SAD)
+                            Res.string.romance -> viewModel.setParams(HOME_PARAMS_ROMANCE)
+                            Res.string.feel_good -> viewModel.setParams(HOME_PARAMS_FEEL_GOOD)
+                            Res.string.workout -> viewModel.setParams(HOME_PARAMS_WORKOUT)
+                            Res.string.party -> viewModel.setParams(HOME_PARAMS_PARTY)
+                            Res.string.commute -> viewModel.setParams(HOME_PARAMS_COMMUTE)
+                            Res.string.focus -> viewModel.setParams(HOME_PARAMS_FOCUS)
                         }
                     }
                 }
@@ -975,26 +952,15 @@ fun HomeTopAppBar(
                 TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Start),
             ),
         title = {
-            Column {
-                Text(
-                    text = "Pulse Music",
-                    style = typo().titleLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = greeting,
-                    style = typo().bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium,
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                text = greeting,
+                style = typo().titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         },
         actions = {
             RippleIconButton(imageVector = PulseIcons.Notifications, tint = MaterialTheme.colorScheme.onBackground) {
@@ -1529,7 +1495,7 @@ fun SpotifyRecentlyPlayedSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
-                                .crossfade(200)
+                                .crossfade(false)
                                 .build(),
                             contentDescription = track.title,
                             modifier = Modifier.fillMaxSize(),
@@ -1639,7 +1605,7 @@ fun SpotifyTrendingSongsSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
-                                .crossfade(200)
+                                .crossfade(false)
                                 .build(),
                             contentDescription = track.title,
                             modifier = Modifier.fillMaxSize(),
@@ -1749,7 +1715,7 @@ fun SpotifyPlaylistsSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
-                                .crossfade(200)
+                                .crossfade(false)
                                 .build(),
                             contentDescription = pl.title,
                             modifier = Modifier.fillMaxSize(),
@@ -1844,7 +1810,7 @@ fun SpotifyTrendingSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
-                                .crossfade(200)
+                                .crossfade(false)
                                 .build(),
                             contentDescription = pl.title,
                             modifier = Modifier.fillMaxSize(),

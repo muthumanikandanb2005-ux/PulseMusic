@@ -256,6 +256,7 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
                     scrim = Color.Transparent.toArgb(),
                 ),
         )
+        enableHighestRefreshRate()
         // Update all home screen widgets safely with throttling when playback or song changes
         lifecycleScope.launch(Dispatchers.Default) {
             launch {
@@ -526,6 +527,31 @@ class PulseMusicActivity : AppCompatActivity(), EasyPermissions.PermissionCallba
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun enableHighestRefreshRate() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        runCatching {
+            val activeDisplay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                display
+            } else {
+                windowManager?.defaultDisplay
+            } ?: return
+            val currentMode = activeDisplay.mode ?: return
+            val bestMode = activeDisplay.supportedModes
+                .filter {
+                    it.physicalWidth == currentMode.physicalWidth &&
+                        it.physicalHeight == currentMode.physicalHeight
+                }
+                .maxByOrNull { it.refreshRate }
+                ?: return
+            if (bestMode.modeId != currentMode.modeId) {
+                window.attributes = window.attributes.apply {
+                    preferredDisplayModeId = bestMode.modeId
+                }
+            }
+        }
     }
 }
 

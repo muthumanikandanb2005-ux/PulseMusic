@@ -227,12 +227,16 @@ fun LiquidGlassTabBar(
                             saturation = 1.5f,
                         )
                         blur(
-                            // Stronger than the bar's blur so the active pill reads as a clearly
-                            // frosted surface (the previous amount was too weak / too close to the bar).
-                            (if (l > 0f) lerp(8f.dp.toPx(), 16f.dp.toPx(), l) else lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)) +
-                                20f.dp.toPx(),
+                            // Balanced blur so the active pill reads clearly as frosted glass
+                            // without stalling frame times during fast normal-mode scrolling.
+                            (if (l > 0f) lerp(6f.dp.toPx(), 12f.dp.toPx(), l) else lerp(6f.dp.toPx(), 2f.dp.toPx(), -l)) +
+                                10f.dp.toPx(),
                         )
-                        lens(10f.dp.toPx() * progress, 14f.dp.toPx() * progress, chromaticAberration = true)
+                        lens(
+                            10f.dp.toPx() * progress,
+                            14f.dp.toPx() * progress,
+                            chromaticAberration = progress > 0.05f,
+                        )
                     },
                     highlight = { Highlight.Default.copy(alpha = 0.6f) },
                     shadow = { Shadow(radius = 4f.dp, alpha = 0.4f) },

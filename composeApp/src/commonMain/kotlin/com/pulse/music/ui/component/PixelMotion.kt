@@ -529,7 +529,9 @@ fun Modifier.pixelVerticalOverscroll(
                             val next = cur + available.y * 0.45f
                             val clamped = if ((cur > 0f && next <= 0f) || (cur < 0f && next >= 0f)) 0f else next
                             val consumedY = (clamped - cur) / 0.45f
-                            scope.launch { overscrollAnim.snapTo(clamped) }
+                            if (abs(clamped - cur) > 0.35f || clamped == 0f) {
+                                scope.launch { overscrollAnim.snapTo(clamped) }
+                            }
                             return Offset(0f, consumedY)
                         }
                     }
@@ -537,10 +539,12 @@ fun Modifier.pixelVerticalOverscroll(
                 }
 
                 override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                    if (source == NestedScrollSource.UserInput && available.y != 0f) {
+                    if (source == NestedScrollSource.UserInput && abs(available.y) > 0.5f) {
                         val delta = available.y * 0.28f
                         val next = (overscrollAnim.value + delta).coerceIn(-110f, 110f)
-                        scope.launch { overscrollAnim.snapTo(next) }
+                        if (abs(next - overscrollAnim.value) > 0.35f) {
+                            scope.launch { overscrollAnim.snapTo(next) }
+                        }
                     }
                     return Offset.Zero
                 }
@@ -588,9 +592,12 @@ fun Modifier.pixelScrollScale(
         val viewportSpan = (viewportEnd - viewportStart).coerceAtLeast(1f)
         val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.key == key } ?: return@graphicsLayer
 
-        val edgeBand = (viewportSpan * 0.16f).coerceIn(48f, 150f)
+        val edgeBand = (viewportSpan * 0.14f).coerceIn(40f, 120f)
         val itemTop = itemInfo.offset.toFloat()
         val itemBottom = (itemInfo.offset + itemInfo.size).toFloat()
+        if (itemTop >= viewportStart + edgeBand && itemBottom <= viewportEnd - edgeBand) {
+            return@graphicsLayer
+        }
 
         val visibility = when {
             itemBottom <= viewportStart || itemTop >= viewportEnd -> 0f
@@ -599,10 +606,10 @@ fun Modifier.pixelScrollScale(
             else -> 1f
         }
         val eased = PixelMotion.EmphasizedDecelerate.transform(visibility)
-        val s = minScale + (1f - minScale) * eased
+        val effectiveMinScale = minScale.coerceAtLeast(0.97f)
+        val s = effectiveMinScale + (1f - effectiveMinScale) * eased
         scaleX = s
         scaleY = s
-        alpha = minAlpha + (1f - minAlpha) * eased
     }
 
 /**
@@ -621,9 +628,12 @@ fun Modifier.pixelGridScrollScale(
         val viewportSpan = (viewportEnd - viewportStart).coerceAtLeast(1f)
         val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.key == key } ?: return@graphicsLayer
 
-        val edgeBand = (viewportSpan * 0.16f).coerceIn(48f, 140f)
+        val edgeBand = (viewportSpan * 0.14f).coerceIn(40f, 120f)
         val itemTop = itemInfo.offset.y.toFloat()
         val itemBottom = (itemInfo.offset.y + itemInfo.size.height).toFloat()
+        if (itemTop >= viewportStart + edgeBand && itemBottom <= viewportEnd - edgeBand) {
+            return@graphicsLayer
+        }
 
         val visibility = when {
             itemBottom <= viewportStart || itemTop >= viewportEnd -> 0f
@@ -632,8 +642,8 @@ fun Modifier.pixelGridScrollScale(
             else -> 1f
         }
         val eased = PixelMotion.EmphasizedDecelerate.transform(visibility)
-        val s = minScale + (1f - minScale) * eased
+        val effectiveMinScale = minScale.coerceAtLeast(0.97f)
+        val s = effectiveMinScale + (1f - effectiveMinScale) * eased
         scaleX = s
         scaleY = s
-        alpha = minAlpha + (1f - minAlpha) * eased
     }

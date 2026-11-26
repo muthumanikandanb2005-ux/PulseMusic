@@ -384,8 +384,7 @@ fun PlaylistScreen(
                                     Modifier
                                         .fillMaxWidth()
                                         .wrapContentHeight()
-                                        .background(Color.Transparent)
-                                        .animateItem(),
+                                        .background(Color.Transparent),
                             ) {
                                 Column(
                                     Modifier
@@ -1058,7 +1057,7 @@ fun PlaylistScreen(
                     }) { index ->
                         val item = filteredTrack.getOrNull(index)
                         if (item != null) {
-                            Column(modifier = Modifier.animateItem()) {
+                            Column {
                                 if (playingTrack?.videoId == item.videoId && isPlaying) {
                                     SongFullWidthItems(
                                         forceDark = true,
@@ -1177,7 +1176,7 @@ fun PlaylistScreen(
                             .onGloballyPositioned { searchBarHeightPx = it.size.height }
                             .hazeEffect(hazeState) {
                                 blurEnabled = true
-                                blurRadius = 24.dp
+                                blurRadius = 12.dp
                                 backgroundColor = mutedPaletteBg
                                 tints = listOf(HazeTint(mutedPaletteBg.copy(alpha = 0.55f)))
                             },
@@ -1252,7 +1251,7 @@ fun PlaylistScreen(
                         modifier =
                             Modifier.hazeEffect(hazeState) {
                                 blurEnabled = true
-                                blurRadius = 24.dp
+                                blurRadius = 12.dp
                                 backgroundColor = mutedPaletteBg
                                 tints = listOf(HazeTint(mutedPaletteBg.copy(alpha = 0.55f)))
                             },
@@ -1387,7 +1386,7 @@ fun PlaylistScreen(
                         modifier =
                             Modifier.hazeEffect(hazeState) {
                                 blurEnabled = true
-                                blurRadius = 24.dp
+                                blurRadius = 12.dp
                                 backgroundColor = mutedPaletteBg
                                 tints = listOf(HazeTint(mutedPaletteBg.copy(alpha = 0.55f)))
                             },

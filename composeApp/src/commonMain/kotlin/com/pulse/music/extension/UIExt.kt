@@ -417,10 +417,10 @@ expect fun KeepScreenOn()
 fun LazyListState.isScrollingUp(): State<Boolean> {
     var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
     var previousScrollOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
+    var lastDirectionUp by remember(this) { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(this) {
         snapshotFlow { layoutInfo.totalItemsCount }.collect {
-            Logger.w("isScrollingUp", "firstVisibleItemIndex: $firstVisibleItemIndex")
             previousIndex = firstVisibleItemIndex
             previousScrollOffset = firstVisibleItemScrollOffset
         }
@@ -430,15 +430,19 @@ fun LazyListState.isScrollingUp(): State<Boolean> {
         derivedStateOf {
             if (firstVisibleItemIndex > 0) {
                 if (previousIndex != firstVisibleItemIndex) {
-                    previousIndex > firstVisibleItemIndex
-                } else {
-                    previousScrollOffset >= firstVisibleItemScrollOffset
-                }.also {
+                    lastDirectionUp = previousIndex > firstVisibleItemIndex
                     previousIndex = firstVisibleItemIndex
                     previousScrollOffset = firstVisibleItemScrollOffset
+                } else {
+                    val delta = firstVisibleItemScrollOffset - previousScrollOffset
+                    if (kotlin.math.abs(delta) > 12) {
+                        lastDirectionUp = delta < 0
+                        previousScrollOffset = firstVisibleItemScrollOffset
+                    }
                 }
+                lastDirectionUp
             } else {
-                true
+                true.also { lastDirectionUp = true }
             }
         }
     }
@@ -448,10 +452,10 @@ fun LazyListState.isScrollingUp(): State<Boolean> {
 fun LazyGridState.isScrollingUp(): State<Boolean> {
     var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
     var previousScrollOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
+    var lastDirectionUp by remember(this) { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(this) {
         snapshotFlow { layoutInfo.totalItemsCount }.collect {
-            Logger.w("isScrollingUp", "firstVisibleItemIndex: $firstVisibleItemIndex")
             previousIndex = firstVisibleItemIndex
             previousScrollOffset = firstVisibleItemScrollOffset
         }
@@ -461,15 +465,19 @@ fun LazyGridState.isScrollingUp(): State<Boolean> {
         derivedStateOf {
             if (firstVisibleItemIndex > 0) {
                 if (previousIndex != firstVisibleItemIndex) {
-                    previousIndex > firstVisibleItemIndex
-                } else {
-                    previousScrollOffset >= firstVisibleItemScrollOffset
-                }.also {
+                    lastDirectionUp = previousIndex > firstVisibleItemIndex
                     previousIndex = firstVisibleItemIndex
                     previousScrollOffset = firstVisibleItemScrollOffset
+                } else {
+                    val delta = firstVisibleItemScrollOffset - previousScrollOffset
+                    if (kotlin.math.abs(delta) > 12) {
+                        lastDirectionUp = delta < 0
+                        previousScrollOffset = firstVisibleItemScrollOffset
+                    }
                 }
+                lastDirectionUp
             } else {
-                true
+                true.also { lastDirectionUp = true }
             }
         }
     }

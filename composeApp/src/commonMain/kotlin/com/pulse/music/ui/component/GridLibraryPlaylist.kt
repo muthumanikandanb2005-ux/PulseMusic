@@ -252,7 +252,7 @@ internal inline fun <reified T> GridLibraryPlaylist(
                                         navController.navigate(
                                             PlaylistDestination(
                                                 item.browseId,
-                                                isYourYouTubePlaylist = true,
+                                                isYourYouTubePlaylist = !item.browseId.startsWith("spotify:"),
                                             ),
                                         )
                                     }

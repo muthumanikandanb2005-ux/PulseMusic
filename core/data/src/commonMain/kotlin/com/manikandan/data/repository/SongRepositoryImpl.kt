@@ -2,7 +2,9 @@
 
 import com.manikandan.common.MERGING_DATA_TYPE
 import com.manikandan.data.db.datasource.LocalDataSource
+import com.manikandan.data.parser.search.parseSearchSong
 import com.manikandan.data.service.JioSaavnService
+import com.manikandan.data.service.SpotifyTrackCache
 import com.manikandan.domain.utils.toSongEntity
 import com.manikandan.domain.utils.toTrack
 import com.manikandan.data.extension.getFullDataFromDB
@@ -538,16 +540,35 @@ internal class SongRepositoryImpl(
                 )
             }
 
+    private suspend fun resolveSeedForRelated(rawId: String): String {
+        if (!rawId.startsWith("sp_track:")) return rawId
+        val song = localDataSource.getSong(rawId)
+            ?: SpotifyTrackCache.get(rawId)?.toSongEntity()?.also { localDataSource.insertSong(it) }
+            ?: return rawId
+        val q = "${song.title} ${song.artistName?.firstOrNull().orEmpty()}".trim()
+        val saavnId = runCatching { JioSaavnService.searchSongs(q).firstOrNull()?.videoId }.getOrNull()
+        if (!saavnId.isNullOrBlank()) {
+            return if (saavnId.startsWith("saavn:")) saavnId else "saavn:$saavnId"
+        }
+        val ytId = runCatching {
+            youTube.search(q, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
+                parseSearchSong(res).firstOrNull()?.videoId
+            }
+        }.getOrNull()
+        return ytId?.takeIf { it.isNotBlank() } ?: rawId
+    }
+
     override fun getRelatedData(videoId: String): Flow<Resource<Pair<List<Track>, String?>>> =
         flow {
             runCatching {
-                if (videoId.startsWith("saavn:") || videoId.startsWith(JioSaavnService.SAAVN_RADIO_PREFIX)) {
-                    val relatedResult = JioSaavnService.getRelatedRadio(videoId)
+                val seedId = resolveSeedForRelated(videoId)
+                if (seedId.startsWith("saavn:") || seedId.startsWith(JioSaavnService.SAAVN_RADIO_PREFIX)) {
+                    val relatedResult = JioSaavnService.getRelatedRadio(seedId)
                     emit(Resource.Success(relatedResult))
                     return@runCatching
                 }
                 youTube
-                    .next(WatchEndpoint(videoId = videoId))
+                    .next(WatchEndpoint(videoId = seedId))
                     .onSuccess { next ->
                         val data: ArrayList<SongItem> = arrayListOf()
                         // Always a radio, though not directly: `next(videoId)` alone answers with
@@ -557,7 +578,7 @@ internal class SongRepositoryImpl(
                         // content, and this is what extends the queue once it runs dry.
                         data.addAll(
                             next.items
-                                .filter { it.id != videoId }
+                                .filter { it.id != seedId }
                                 .toSet()
                                 .toList()
                                 .dropVideosWhenRadioAudioOnly(isRadio = true),
@@ -574,7 +595,8 @@ internal class SongRepositoryImpl(
     override fun getRadioFromEndpoint(endpoint: YouTubeWatchEndpoint): Flow<Resource<Pair<List<Track>, String?>>> =
         flow {
             runCatching {
-                val vId = endpoint.videoId ?: ""
+                val rawVId = endpoint.videoId ?: ""
+                val vId = if (rawVId.startsWith("sp_track:")) resolveSeedForRelated(rawVId) else rawVId
                 val pId = endpoint.playlistId ?: ""
                 if (vId.startsWith("saavn:") || pId.contains("saavn:") || pId.startsWith(JioSaavnService.SAAVN_RADIO_PREFIX)) {
                     val actualId = if (vId.startsWith("saavn:")) {

@@ -190,11 +190,6 @@ fun App(
         mutableStateOf(true)
     }
 
-    val hazeState =
-        rememberHazeState(
-            blurEnabled = true,
-        )
-
     LaunchedEffect(intent) {
         val intent = intent ?: return@LaunchedEffect
         val data = intent.data
@@ -573,7 +568,7 @@ fun App(
                                         } else {
                                             Modifier
                                         },
-                                    ).hazeSource(hazeState),
+                                    ),
                             ) {
                                 AppNavigationGraph(
                                     innerPadding = innerPadding,

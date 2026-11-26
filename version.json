@@ -1,63 +1,64 @@
 {
-  "version": "4.2.3",
-  "versionCode": 123,
-  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-Universal.apk",
-  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-Universal.apk",
-  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.3/PulseMusic-Universal.apk",
-  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.3/PulseMusic-Universal.apk",
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.3",
-  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.3",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.3",
-  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.3",
-  "tag_name": "v4.2.3",
-  "name": "Pulse Music v4.2.3 - Scroll Crash Fix, Reliable Pause/Resume & Clean Top Header",
+  "version": "4.2.4",
+  "versionCode": 124,
+  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-Universal.apk",
+  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-Universal.apk",
+  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.4/PulseMusic-Universal.apk",
+  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.4/PulseMusic-Universal.apk",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.4",
+  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.4",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.4",
+  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.4",
+  "tag_name": "v4.2.4",
+  "name": "Pulse Music v4.2.4 - Butter-Smooth 120Hz Normal Mode & Full Spotify Login Playlists",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-11-25T19:05:30Z",
-  "body": "# Pulse Music v4.2.3 - Scroll Crash Fix, Reliable Pause/Resume & Clean Top Header\n\nOfficial multi-platform stability release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83d\udee1\ufe0f Crash-Free Home & Library Scrolling\n- **Duplicate Lazy Key Fix**: Resolved `IllegalArgumentException` crashes when scrolling Home playlists/charts (`Trending community playlists` and duplicate API sections), Library dynamic playlists, Search results/mood grids, Artist discographies, Album versions, Unified Shelf, and filter sheets by assigning unique index-qualified item keys everywhere.\n\n### \u25b6\ufe0f Reliable Resume After Long Pause\n- **Stale Stream & Audio Focus Recovery**: Reduced stale-pause threshold to 2 minutes to match Android foreground service lock teardown, force-re-requested audio focus on resume, fixed `PlayPause` toggle state mismatch from lingering `playWhenReady`, added a 3.5s resume recovery watchdog, and handled Bluetooth `KEYCODE_MEDIA_PLAY` + Desktop MPV stalled resume cleanly.\n\n### \u2728 Clean Home Header\n- **Minimal Top Header**: Removed the pulsing pink dot effect and dot indicator beside the **Pulse Music** title in the Home top bar.\n",
+  "published_at": "2026-11-26T13:03:56Z",
+  "body": "# Pulse Music v4.2.4 - Butter-Smooth 120Hz Normal Mode & Full Spotify Login Playlists\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \u26a1 Butter-Smooth Scrolling & Selection in Normal Mode\n- **120Hz Native Display Unlock**: Automatically enables your display's highest native refresh rate (90Hz / 120Hz / 144Hz) on Android so normal mode scrolls smoothly right out of the box.\n- **Zero-Lag Scrolling & Selection**: Eliminated unused root offscreen compositing layers, multi-card carousel offscreen fade allocations, duplicate row modifiers, per-row `animateContentSize` overhead, scroll-direction layout bounce, and list thumbnail crossfade stalls.\n- **Balanced GPU Shaders**: Refined blur radii and glass dispersion overhead so translucent surfaces stay visually crisp without frame drops.\n\n- **Minimal Greeting Header**: Removed the \"Pulse Music\" app name text from the Home top bar for a cleaner greeting-first layout.\n\n### \ud83c\udfa7 Full Spotify Login Playlists, Trending & Liked Songs\n- **Native Playlist & Liked Songs Parity**: Browse and open Spotify playlists, **Spotify Liked Songs**, **Trending Songs**, **Trending Playlists**, and **Listening History** directly in Home and Library \u2014 with instant track loading, Play All, Shuffle, Start Radio, Queue, and Offline Downloads just like YouTube Music login playlists.\n- **Hardened Credential Protection**: Upgraded the internal Spotify web-player engine with obfuscated credential storage and stripped debug/header logging across requests.\n",
   "changelog": [
-    "Stability Fix: Prevented duplicate LazyColumn/LazyRow/LazyVerticalGrid key crashes across Home, Search, Library, Artist, and Album screens",
-    "Playback Resume Fix: Reliable resume after pausing for extended periods on Android and Desktop, with audio focus re-acquisition and stream reload watchdog",
-    "UI Polish: Removed the pulsing pink dot effect and dot badge from the Home top header"
+    "Normal Mode Smoothness: Enabled native high-refresh-rate display mode (90Hz/120Hz/144Hz), removed heavy offscreen scroll layers, eliminated selection/scroll row jank, and tuned GPU blur shaders",
+    "Clean Home Header: Removed 'Pulse Music' app title text from the Home top bar",
+    "Spotify Login Playlists & Trending: Full playlist browsing, Spotify Liked Songs, Trending Songs & Playlists, Shuffle, Radio, and instant stream resolution matching YouTube Music playlists",
+    "Security Hardening: Obfuscated internal web-player configuration and disabled secret/header logging"
   ],
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 58123390
+      "size": 58140749
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30254266
+      "size": 30271631
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30218396
+      "size": 30235774
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 31719744
+      "size": 31737110
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/vnd.microsoft.portable-executable",
-      "size": 215836416
+      "size": 215936280
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 215383691
+      "size": 215483991
     }
   ],
-  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-Windows-x64-Setup.exe",
-  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.3/PulseMusic-Windows-x64-Setup.exe"
+  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-Windows-x64-Setup.exe",
+  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.4/PulseMusic-Windows-x64-Setup.exe"
 }

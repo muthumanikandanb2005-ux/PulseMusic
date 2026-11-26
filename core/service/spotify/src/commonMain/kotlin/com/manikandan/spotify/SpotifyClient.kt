@@ -1,8 +1,8 @@
 package com.manikandan.spotify
 
-import com.manikandan.ktorext.curl.CurlLogger
 import com.manikandan.ktorext.encoding.brotli
 import com.manikandan.ktorext.getEngine
+import com.manikandan.spotify.auth.SpotApiVault
 import com.manikandan.spotify.model.body.CanvasBody
 import com.manikandan.spotify.model.body.SpotifyClientBody
 import io.ktor.client.HttpClient
@@ -14,16 +14,13 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.DEFAULT
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
@@ -33,6 +30,11 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.serialization.kotlinx.protobuf.protobuf
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import kotlinx.serialization.protobuf.ProtoBuf
 import kotlin.random.Random
 
@@ -49,21 +51,18 @@ class SpotifyClient {
             field = value
             spotifyClient.close()
             spotifyClient = createSpotifyClient()
+            jsonClient.close()
+            jsonClient = createSpotifyClient(onlyJson = true)
         }
 
+    // Security: Do NOT attach HTTP header/body loggers or cURL loggers so Spotify cookies (sp_dc),
+    // Bearer tokens, Client-Tokens, TOTP params, and persisted query hashes remain hidden from logs.
     @OptIn(ExperimentalSerializationApi::class)
     private fun createSpotifyClient(onlyJson: Boolean = false) =
         HttpClient(getEngine()) {
             followRedirects = true
             expectSuccess = false
             install(HttpCache)
-            install(Logging) {
-                logger = Logger.DEFAULT
-                level = LogLevel.ALL
-            }
-            install(CurlLogger) {
-                logger = { Logger.DEFAULT.log(it) }
-            }
             install(HttpSend) {
                 maxSendCount = 100
             }
@@ -115,9 +114,12 @@ class SpotifyClient {
             }
         }
 
-    /**
-     * Thanks to @Thereallo1026 and @misiektoja for providing the latest TOTP secret
-     */
+    suspend fun getPublicText(url: String): String =
+        spotifyClient.get(url) {
+            userAgent(MODERN_CHROME_UA)
+            header(HttpHeaders.Accept, "*/*")
+        }.bodyAsText()
+
     suspend fun getSpotifyLastestTotpSecret() =
         spotifyClient.get("https://raw.githubusercontent.com/xyloflake/spot-secrets-go/refs/heads/main/secrets/secretDict.json") {
             userAgent(USER_AGENT)
@@ -128,13 +130,10 @@ class SpotifyClient {
         spotifyClient.get("https://open.spotify.com/api/server-time") {
             userAgent(USER_AGENT)
             if (spdc.isNotBlank()) {
-                header(
-                    "Cookie",
-                    "sp_dc=$spdc",
-                )
+                header("Cookie", "sp_dc=$spdc")
             }
             header("App-platform", "WebPlayer")
-            header("Spotify-App-Version", "1.2.61.20.g3b4cd5b2")
+            header("Spotify-App-Version", SpotApiVault.defaultAppVersion())
             header("Accept", "application/json")
             header("Origin", "https://open.spotify.com")
             header("Referer", "https://open.spotify.com/")
@@ -147,17 +146,15 @@ class SpotifyClient {
         sTime: String,
         cTime: String,
         totpVersion: Int,
+        productType: String = "web-player",
     ) = spotifyClient.get("https://open.spotify.com/api/token") {
         userAgent(USER_AGENT)
         contentType(ContentType.Application.Json)
         if (spdc.isNotBlank()) {
-            header(
-                "Cookie",
-                "sp_dc=$spdc",
-            )
+            header("Cookie", "sp_dc=$spdc")
         }
         parameter("reason", reason)
-        parameter("productType", "mobile-web-player")
+        parameter("productType", productType)
         parameter("totp", otpValue)
         parameter("totpServer", otpValue)
         parameter("totpVer", totpVersion)
@@ -191,30 +188,57 @@ class SpotifyClient {
         q: String,
         authToken: String,
         clientToken: String,
+        shaHash: String? = null,
     ) = spotifyClient.get("https://api-partner.spotify.com/pathfinder/v1/query?operationName=searchTracks") {
         userAgent(USER_AGENT)
         contentType(ContentType.Application.Json)
         header("Authorization", "Bearer $authToken")
         header("Client-Token", clientToken)
-        header(
-            HttpHeaders
-                .AcceptEncoding,
-            "gzip, deflate, br",
-        )
+        header(HttpHeaders.AcceptEncoding, "gzip, deflate, br")
         val variable =
-            "{\"searchTerm\":\"${q}\",\"offset\":0,\"limit\":3,\"numberOfTopResults\":3,\"includeAudiobooks\":true,\"includePreReleases\":false}"
-        val sha = "bc1ca2fcd0ba1013a0fc88e6cc4f190af501851e3dafd3e1ef85840297694428"
-        parameter(
-            "variables",
-            variable,
-        )
+            "{\"searchTerm\":\"${q.replace("\"", "\\\"")}\",\"offset\":0,\"limit\":3,\"numberOfTopResults\":3,\"includeAudiobooks\":true,\"includePreReleases\":false}"
+        val sha = shaHash ?: SpotApiVault.fallbackQueryHash("searchTracks").orEmpty()
+        parameter("variables", variable)
         parameter(
             "extensions",
-            "{\"persistedQuery\":{\"version\":1,\"sha256Hash\":\"${sha}\"}}",
+            "{\"persistedQuery\":{\"version\":1,\"sha256Hash\":\"$sha\"}}",
         )
     }
-    // {"searchTerm":"trình+hieuthuhai","offset":0,"limit":20,"numberOfTopResults":20,"includeAudiobooks":true,"includePreReleases":false}
-    // {"persistedQuery":{"version":1,"sha256Hash":"e4ed1f91a2cc5415befedb85acf8671dc1a4bf3ca1a5b945a6386101a22e28a6"}}
+
+    /**
+     * Execute a SpotAPI Pathfinder GraphQL v2 query with full WebPlayer headers.
+     */
+    suspend fun pathfinderQuery(
+        operationName: String,
+        sha256Hash: String,
+        variables: JsonObject,
+        authToken: String,
+        clientToken: String,
+        clientVersion: String = SpotApiVault.defaultAppVersion(),
+    ) = jsonClient.post("https://api-partner.spotify.com/pathfinder/v2/query") {
+        userAgent(MODERN_CHROME_UA)
+        header(HttpHeaders.Accept, "application/json")
+        contentType(ContentType.Application.Json)
+        header(HttpHeaders.Authorization, "Bearer $authToken")
+        header("Client-Token", clientToken)
+        header("Spotify-App-Version", clientVersion)
+        header("App-platform", "WebPlayer")
+        header("Origin", "https://open.spotify.com")
+        header("Referer", "https://open.spotify.com/")
+        header("Accept-Language", "en")
+        setBody(
+            buildJsonObject {
+                put("variables", variables)
+                put("operationName", operationName)
+                putJsonObject("extensions") {
+                    putJsonObject("persistedQuery") {
+                        put("version", JsonPrimitive(1))
+                        put("sha256Hash", JsonPrimitive(sha256Hash))
+                    }
+                }
+            },
+        )
+    }
 
     suspend fun getSpotifyCanvas(
         trackId: String,
@@ -224,11 +248,7 @@ class SpotifyClient {
         headers {
             append(HttpHeaders.Accept, "application/protobuf")
             append(HttpHeaders.ContentType, "application/protobuf")
-            append(
-                HttpHeaders
-                    .AcceptEncoding,
-                "gzip, deflate, br",
-            )
+            append(HttpHeaders.AcceptEncoding, "gzip, deflate, br")
             append(HttpHeaders.Authorization, "Bearer $token")
             append("Client-Token", clientToken)
             append(HttpHeaders.UserAgent, "Spotify/9.0.34.593 iOS/18.4 (iPhone15,3)")
@@ -261,11 +281,12 @@ class SpotifyClient {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
 
-    suspend fun getSpotifyUserPlaylists(token: String, limit: Int = 50) =
+    suspend fun getSpotifyUserPlaylists(token: String, limit: Int = 50, offset: Int = 0) =
         spotifyClient.get("https://api.spotify.com/v1/me/playlists") {
             userAgent(MODERN_CHROME_UA)
             header(HttpHeaders.Authorization, "Bearer $token")
             parameter("limit", limit)
+            parameter("offset", offset)
         }
 
     suspend fun getSpotifyRecentlyPlayed(token: String, limit: Int = 25) =
@@ -283,11 +304,12 @@ class SpotifyClient {
             parameter("limit", limit)
         }
 
-    suspend fun getSpotifySavedTracks(token: String, limit: Int = 20) =
+    suspend fun getSpotifySavedTracks(token: String, limit: Int = 50, offset: Int = 0) =
         spotifyClient.get("https://api.spotify.com/v1/me/tracks") {
             userAgent(MODERN_CHROME_UA)
             header(HttpHeaders.Authorization, "Bearer $token")
             parameter("limit", limit)
+            parameter("offset", offset)
         }
 
     suspend fun searchSpotifyPlaylists(token: String, query: String, limit: Int = 20) =
@@ -321,23 +343,25 @@ class SpotifyClient {
             parameter("limit", limit)
         }
 
-    suspend fun getSpotifyClientToken() =
-        jsonClient.post("https://clienttoken.spotify.com/v1/clienttoken") {
-            headers {
-                append(HttpHeaders.Accept, "application/json")
-                append(HttpHeaders.ContentType, "application/json")
-                append(HttpHeaders.AcceptEncoding, "gzip, deflate, br")
-                append(
-                    HttpHeaders.UserAgent,
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0",
-                )
-            }
-            setBody(
-                SpotifyClientBody(
-                    client_data = SpotifyClientBody.ClientData(),
-                ),
-            )
+    suspend fun getSpotifyClientToken(
+        clientId: String? = null,
+        clientVersion: String? = null,
+    ) = jsonClient.post("https://clienttoken.spotify.com/v1/clienttoken") {
+        headers {
+            append(HttpHeaders.Accept, "application/json")
+            append(HttpHeaders.ContentType, "application/json")
+            append(HttpHeaders.AcceptEncoding, "gzip, deflate, br")
+            append(HttpHeaders.UserAgent, MODERN_CHROME_UA)
         }
+        setBody(
+            SpotifyClientBody(
+                client_data = SpotifyClientBody.ClientData(
+                    client_version = clientVersion?.takeIf { it.isNotBlank() } ?: SpotApiVault.defaultAppVersion(),
+                    client_id = clientId?.takeIf { it.isNotBlank() } ?: SpotApiVault.defaultClientId(),
+                ),
+            ),
+        )
+    }
 
     fun getRandomUserAgent(): String {
         val macOSVersion = "${Random.nextInt(11, 15)}_${Random.nextInt(4, 9)}"

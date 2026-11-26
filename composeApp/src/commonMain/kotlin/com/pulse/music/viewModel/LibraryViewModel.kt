@@ -169,7 +169,10 @@ class LibraryViewModel(
                     dataStoreManager.spdc.distinctUntilChanged().collect { spdc ->
                         if (spdc.isNotEmpty()) {
                             getSpotifyPlaylists()
+                        } else {
+                            _spotifyPlaylists.value = LocalResource.Success(emptyList())
                         }
+                        getRecentlyAdded()
                     }
                 }
             currentScreenJob.join()
@@ -206,6 +209,18 @@ class LibraryViewModel(
                             id = "LM",
                             description = "PIN",
                             thumbnails = "https://www.gstatic.com/youtube/media/ytm/images/pbg/liked-songs-delhi-1200.png",
+                        ),
+                    )
+                }
+                if (dataStoreManager.spdc.first().isNotBlank()) {
+                    temp.removeIf { it is PlaylistEntity && it.id == "spotify:liked" }
+                    temp.add(
+                        PlaylistEntity(
+                            title = "Spotify Liked Songs",
+                            author = "Spotify",
+                            id = "spotify:liked",
+                            description = "PIN",
+                            thumbnails = "https://misc.scdn.co/liked-songs/liked-songs-640.png",
                         ),
                     )
                 }

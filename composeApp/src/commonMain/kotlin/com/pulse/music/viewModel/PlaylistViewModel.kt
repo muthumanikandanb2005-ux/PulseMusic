@@ -493,8 +493,25 @@ class PlaylistViewModel(
             PlaylistUIEvent.Shuffle -> {
                 val shuffleEndpoint = data.shuffleEndpoint
                 if (shuffleEndpoint == null) {
-                    makeToast(
-                        getString(Res.string.shuffle_not_available),
+                    val shuffledTracks = tracks.value.shuffled()
+                    if (shuffledTracks.isEmpty()) {
+                        makeToast(getString(Res.string.playlist_is_empty))
+                        return
+                    }
+                    setQueueData(
+                        QueueData.Data(
+                            listTracks = shuffledTracks.toCollection(arrayListOf<Track>()),
+                            firstPlayedTrack = shuffledTracks.first(),
+                            playlistId = data.id,
+                            playlistName = "\"${data.title}\" ${getString(Res.string.shuffle)}",
+                            playlistType = PlaylistType.PLAYLIST,
+                            continuation = continuation.value,
+                        ),
+                    )
+                    loadMediaItem(
+                        shuffledTracks.first(),
+                        Config.PLAYLIST_CLICK,
+                        0,
                     )
                     return
                 } else {
@@ -535,9 +552,33 @@ class PlaylistViewModel(
             PlaylistUIEvent.StartRadio -> {
                 val radioEndpoint = data.radioEndpoint
                 if (radioEndpoint == null) {
-                    makeToast(
-                        getString(Res.string.radio_not_available),
-                    )
+                    val seedTrack = tracks.value.firstOrNull()
+                    if (seedTrack == null) {
+                        makeToast(getString(Res.string.playlist_is_empty))
+                        return
+                    }
+                    viewModelScope.launch {
+                        songRepository.getRelatedData(seedTrack.videoId).collectLatest { res ->
+                            val radioTracks = ((listOf(seedTrack) + (res.data?.first.orEmpty()))
+                                .distinctBy { it.videoId })
+                                .ifEmpty { tracks.value }
+                            setQueueData(
+                                QueueData.Data(
+                                    listTracks = radioTracks.toCollection(arrayListOf<Track>()),
+                                    firstPlayedTrack = seedTrack,
+                                    playlistId = "RDAMVM${seedTrack.videoId}",
+                                    playlistName = "\"${data.title}\" ${getString(Res.string.radio)}",
+                                    playlistType = PlaylistType.RADIO,
+                                    continuation = res.data?.second,
+                                ),
+                            )
+                            loadMediaItem(
+                                seedTrack,
+                                Config.RADIO_CLICK,
+                                0,
+                            )
+                        }
+                    }
                     return
                 } else {
                     viewModelScope.launch {

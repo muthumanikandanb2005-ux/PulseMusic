@@ -5,7 +5,9 @@ import com.manikandan.common.MERGING_DATA_TYPE
 import com.manikandan.common.QUALITY
 import com.manikandan.common.VIDEO_QUALITY
 import com.manikandan.data.db.datasource.LocalDataSource
+import com.manikandan.data.parser.search.parseSearchSong
 import com.manikandan.data.service.JioSaavnService
+import com.manikandan.data.service.SpotifyTrackCache
 import com.manikandan.domain.utils.toSongEntity
 import com.manikandan.data.mapping.toSponsorSkipSegments
 import com.manikandan.data.mapping.toTrack
@@ -42,6 +44,36 @@ internal class StreamRepositoryImpl(
         }
 
     override fun getNewFormat(videoId: String): Flow<NewFormatEntity?> = flow { emit(localDataSource.getNewFormat(videoId)) }.flowOn(Dispatchers.IO)
+
+    private suspend fun insertFallbackAudioFormat(
+        videoId: String,
+        streamUrl: String,
+        lengthSeconds: Int?,
+    ) {
+        insertNewFormat(
+            NewFormatEntity(
+                videoId = videoId,
+                itag = ITAG.AUDIO_AAC_VERY_HIGH,
+                mimeType = "audio/mp4",
+                codecs = "mp4a.40.2",
+                bitrate = 320000,
+                sampleRate = 44100,
+                contentLength = null,
+                loudnessDb = null,
+                lengthSeconds = lengthSeconds,
+                playbackTrackingVideostatsPlaybackUrl = null,
+                playbackTrackingAtrUrl = null,
+                playbackTrackingVideostatsWatchtimeUrl = null,
+                cpn = null,
+                expiredTime = now().plusSeconds(86400L),
+                audioUrl = streamUrl,
+                videoUrl = null,
+                bpm = null,
+                musicKey = null,
+                keyScale = null,
+            ),
+        )
+    }
 
     override suspend fun getFormatFlow(videoId: String) = localDataSource.getNewFormatAsFlow(videoId)
 
@@ -110,30 +142,35 @@ internal class StreamRepositoryImpl(
                     if (song != null) {
                         localDataSource.insertSong(song)
                     }
-                    val fallbackFormat = NewFormatEntity(
-                        videoId = videoId,
-                        itag = ITAG.AUDIO_AAC_VERY_HIGH,
-                        mimeType = "audio/mp4",
-                        codecs = "mp4a.40.2",
-                        bitrate = 320000,
-                        sampleRate = 44100,
-                        contentLength = null,
-                        loudnessDb = null,
-                        lengthSeconds = song?.durationSeconds,
-                        playbackTrackingVideostatsPlaybackUrl = null,
-                        playbackTrackingAtrUrl = null,
-                        playbackTrackingVideostatsWatchtimeUrl = null,
-                        cpn = null,
-                        expiredTime = now().plusSeconds(86400L),
-                        audioUrl = streamUrl,
-                        videoUrl = null,
-                        bpm = null,
-                        musicKey = null,
-                        keyScale = null,
-                    )
-                    insertNewFormat(fallbackFormat)
+                    insertFallbackAudioFormat(videoId, streamUrl, song?.durationSeconds)
                     emit(streamUrl)
                     return@flow
+                }
+            }
+            var effectiveVideoId = videoId
+            if (videoId.startsWith("sp_track:")) {
+                val cachedTrack = SpotifyTrackCache.get(videoId)
+                val song = localDataSource.getSong(videoId)
+                    ?: cachedTrack?.toSongEntity()?.also { localDataSource.insertSong(it) }
+                if (song != null) {
+                    val artist = song.artistName?.firstOrNull()
+                    if (!isVideo) {
+                        val jioStream = JioSaavnService.resolveStream(song.title, artist)
+                        if (jioStream != null) {
+                            insertFallbackAudioFormat(videoId, jioStream, song.durationSeconds)
+                            emit(jioStream)
+                            return@flow
+                        }
+                    }
+                    val query = "${song.title} ${artist.orEmpty()}".trim()
+                    val resolvedYtId = runCatching {
+                        youTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
+                            parseSearchSong(res).firstOrNull()?.videoId
+                        }
+                    }.getOrNull()
+                    if (!resolvedYtId.isNullOrBlank()) {
+                        effectiveVideoId = resolvedYtId
+                    }
                 }
             }
             val itag =
@@ -158,7 +195,7 @@ internal class StreamRepositoryImpl(
                     ITAG.MUXED_360P
                 }
             youTube
-                .player(videoId, noLogIn = true)
+                .player(effectiveVideoId, noLogIn = true)
                 .onSuccess { data ->
                     val response = data.second
                     if (data.third == MediaType.Song) {

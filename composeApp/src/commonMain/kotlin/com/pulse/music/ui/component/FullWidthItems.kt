@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -142,42 +143,40 @@ fun SongFullWidthItems(
     val haptic = LocalHapticFeedback.current
     var heightDp by remember { mutableStateOf(0.dp) }
 
+    val shouldShowQueueHint by remember {
+        derivedStateOf { offsetX.value >= maxOffset / 2 }
+    }
     Box(
-        modifier =
-        modifier,
+        modifier = modifier,
     ) {
-        Crossfade(
-            offsetX.value >= maxOffset / 2,
-        ) { shouldShowAddToQueue ->
-            if (shouldShowAddToQueue) {
-                Box(
-                    modifier =
-                        Modifier
-                            .height(heightDp)
-                            .aspectRatio(1f)
-                            .padding(start = 15.dp)
-                            .align(Alignment.CenterStart)
-                            .pixelPopOnChange(true, peakScale = 1.25f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        tint = contentColor,
-                        imageVector = PulseIcons.QueueMusic,
-                        contentDescription = stringResource(Res.string.add_to_queue),
-                    )
-                }
+        if (shouldShowQueueHint) {
+            Box(
+                modifier =
+                    Modifier
+                        .height(heightDp)
+                        .aspectRatio(1f)
+                        .padding(start = 15.dp)
+                        .align(Alignment.CenterStart),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    tint = contentColor,
+                    imageVector = PulseIcons.QueueMusic,
+                    contentDescription = stringResource(Res.string.add_to_queue),
+                )
             }
         }
         val itemVideoId = track?.videoId ?: songEntity?.videoId ?: ""
         Box(
             modifier =
-                modifier
+                Modifier
+                    .fillMaxWidth()
                     .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                     .background(
                         if (isSelected) seed.copy(alpha = 0.18f) else Color.Transparent,
                     ).pixelCombinedClickable(
-                        pressedScale = 0.975f,
-                        hoveredScale = 1.008f,
+                        pressedScale = 0.985f,
+                        hoveredScale = 1.005f,
                         onClick = {
                             if (selectionMode) {
                                 onSelectToggle?.invoke(itemVideoId)
@@ -191,7 +190,7 @@ fun SongFullWidthItems(
                             } else {
                                 null
                             },
-                    ).animateContentSize()
+                    )
                     // Keyed on selectionMode so the swipe detector is torn down when selection
                     // starts — keyed on Unit it would keep running with the stale flag captured.
                     .pointerInput(selectionMode) {
@@ -284,7 +283,7 @@ fun SongFullWidthItems(
                                         .diskCacheKey(thumb)
                                         .memoryCachePolicy(CachePolicy.ENABLED)
                                         .memoryCacheKey(thumb)
-                                        .crossfade(true)
+                                        .crossfade(false)
                                         .build(),
                                 placeholder = rememberHolderPainter(),
                                 error = rememberHolderPainter(),

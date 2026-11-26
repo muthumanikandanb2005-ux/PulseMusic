@@ -237,7 +237,7 @@ fun MiniPlayer(
                 averageLuminance.coerceIn(0.3, 0.8).toFloat(),
                 tween(500),
             )
-            delay(1.seconds)
+            delay(2.5.seconds)
         }
     }
 

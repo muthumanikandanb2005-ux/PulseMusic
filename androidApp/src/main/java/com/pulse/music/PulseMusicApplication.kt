@@ -171,6 +171,6 @@ class PulseMusicApplication :
                     .directory(context.cacheDir.resolve("image_cache").toOkioPath())
                     .maxSizeBytes(512L * 1024 * 1024)
                     .build(),
-            ).crossfade(150)
+            ).crossfade(false)
             .build()
 }
