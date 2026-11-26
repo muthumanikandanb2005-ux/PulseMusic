@@ -9,6 +9,7 @@ import com.manikandan.data.parser.search.parseSearchPlaylist
 import com.manikandan.data.parser.search.parseSearchSong
 import com.manikandan.data.parser.search.parseSearchVideo
 import com.manikandan.data.service.JioSaavnService
+import com.manikandan.data.service.TrackMatcher
 import com.manikandan.domain.data.entities.SearchHistory
 import com.manikandan.domain.data.model.searchResult.SearchSuggestions
 import com.manikandan.domain.data.model.searchResult.albums.AlbumsResult
@@ -69,7 +70,7 @@ internal class SearchRepositoryImpl(
                                         listSongs.addAll(list)
                                     }
                                     var count = 0
-                                    while (count < 2 && countinueParam != null) {
+                                    while (count < 1 && countinueParam != null) {
                                         youTube
                                             .searchContinuation(countinueParam)
                                             .onSuccess { values ->
@@ -96,12 +97,13 @@ internal class SearchRepositoryImpl(
                     val ytList = ytDeferred.await()
                     val jioList = jioDeferred.await()
 
-                    val combined = arrayListOf<SongsResult>()
+                    val combinedRaw = arrayListOf<SongsResult>()
                     val maxLen = maxOf(jioList.size, ytList.size)
                     for (i in 0 until maxLen) {
-                        if (i < jioList.size) combined.add(jioList[i])
-                        if (i < ytList.size) combined.add(ytList[i])
+                        if (i < ytList.size) combinedRaw.add(ytList[i])
+                        if (i < jioList.size) combinedRaw.add(jioList[i])
                     }
+                    val combined = ArrayList(TrackMatcher.rankSearchResults(query, combinedRaw))
 
                     val distinctSongs = ArrayList(combined.distinctBy { songItem ->
                         val normTitle = songItem.title?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
@@ -320,7 +322,7 @@ internal class SearchRepositoryImpl(
                                         listPlaylist.addAll(list)
                                     }
                                     var count = 0
-                                    while (count < 2 && countinueParam != null) {
+                                    while (count < 1 && countinueParam != null) {
                                         youTube
                                             .searchContinuation(countinueParam)
                                             .onSuccess { values ->

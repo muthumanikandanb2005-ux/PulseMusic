@@ -6,9 +6,12 @@ import com.manikandan.common.QUALITY
 import com.manikandan.common.VIDEO_QUALITY
 import com.manikandan.data.db.datasource.LocalDataSource
 import com.manikandan.data.parser.search.parseSearchSong
+import com.manikandan.data.parser.search.parseSearchVideo
 import com.manikandan.data.service.JioSaavnService
 import com.manikandan.data.service.SpotifyTrackCache
+import com.manikandan.data.service.TrackMatcher
 import com.manikandan.domain.utils.toSongEntity
+import com.manikandan.domain.utils.toTrack
 import com.manikandan.data.mapping.toSponsorSkipSegments
 import com.manikandan.data.mapping.toTrack
 import com.manikandan.domain.data.entities.NewFormatEntity
@@ -43,12 +46,24 @@ internal class StreamRepositoryImpl(
             localDataSource.insertNewFormat(newFormat)
         }
 
-    override fun getNewFormat(videoId: String): Flow<NewFormatEntity?> = flow { emit(localDataSource.getNewFormat(videoId)) }.flowOn(Dispatchers.IO)
+    override fun getNewFormat(videoId: String): Flow<NewFormatEntity?> =
+        flow {
+            val cached = localDataSource.getNewFormat(videoId)
+            // Invalidate legacy unverified sp_track cached JioSaavn streams so wrong-song rows re-resolve cleanly.
+            val sanitized =
+                if (videoId.startsWith("sp_track:") && cached != null && cached.playbackTrackingVideostatsPlaybackUrl == null && cached.cpn != SP_TRACK_FORMAT_VERSION) {
+                    null
+                } else {
+                    cached
+                }
+            emit(sanitized)
+        }.flowOn(Dispatchers.IO)
 
     private suspend fun insertFallbackAudioFormat(
         videoId: String,
         streamUrl: String,
         lengthSeconds: Int?,
+        cpnTag: String? = null,
     ) {
         insertNewFormat(
             NewFormatEntity(
@@ -64,7 +79,7 @@ internal class StreamRepositoryImpl(
                 playbackTrackingVideostatsPlaybackUrl = null,
                 playbackTrackingAtrUrl = null,
                 playbackTrackingVideostatsWatchtimeUrl = null,
-                cpn = null,
+                cpn = cpnTag,
                 expiredTime = now().plusSeconds(86400L),
                 audioUrl = streamUrl,
                 videoUrl = null,
@@ -133,7 +148,7 @@ internal class StreamRepositoryImpl(
                         val song = localDataSource.getSong(videoId)
                             ?: JioSaavnService.getCachedTrack(videoId)?.toSongEntity()
                             ?: JioSaavnService.getCachedTrack(saavnId)?.toSongEntity()
-                        if (song != null) JioSaavnService.resolveStream(song.title, song.artistName?.firstOrNull()) else null
+                        if (song != null) JioSaavnService.resolveStream(song.title, song.artistName?.firstOrNull(), song.durationSeconds) else null
                     }
                 if (streamUrl != null) {
                     val song = localDataSource.getSong(videoId)
@@ -150,26 +165,97 @@ internal class StreamRepositoryImpl(
             var effectiveVideoId = videoId
             if (videoId.startsWith("sp_track:")) {
                 val cachedTrack = SpotifyTrackCache.get(videoId)
-                val song = localDataSource.getSong(videoId)
-                    ?: cachedTrack?.toSongEntity()?.also { localDataSource.insertSong(it) }
+                val cachedEntity = cachedTrack?.toSongEntity()
+                val existing = localDataSource.getSong(videoId)
+                val song = when {
+                    existing != null && cachedEntity != null && !cachedEntity.thumbnails.isNullOrBlank() && cachedEntity.thumbnails != existing.thumbnails -> {
+                        cachedEntity.also { localDataSource.insertSong(it) }
+                    }
+                    existing != null -> existing
+                    else -> cachedEntity?.also { localDataSource.insertSong(it) }
+                }
                 if (song != null) {
-                    val artist = song.artistName?.firstOrNull()
+                    val artist = song.artistName?.joinToString(", ")?.takeIf { it.isNotBlank() }
+                    val primaryArtist = song.artistName?.firstOrNull()
                     if (!isVideo) {
-                        val jioStream = JioSaavnService.resolveStream(song.title, artist)
+                        val jioStream = JioSaavnService.resolveStream(song.title, artist, song.durationSeconds)
                         if (jioStream != null) {
-                            insertFallbackAudioFormat(videoId, jioStream, song.durationSeconds)
+                            insertFallbackAudioFormat(videoId, jioStream, song.durationSeconds, cpnTag = SP_TRACK_FORMAT_VERSION)
                             emit(jioStream)
                             return@flow
                         }
                     }
-                    val query = "${song.title} ${artist.orEmpty()}".trim()
-                    val resolvedYtId = runCatching {
+                    val query = "${song.title} ${primaryArtist.orEmpty()}".trim()
+                    val songCandidates = runCatching {
                         youTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
-                            parseSearchSong(res).firstOrNull()?.videoId
+                            parseSearchSong(res)
                         }
-                    }.getOrNull()
+                    }.getOrNull().orEmpty()
+                    val bestSongMatch = songCandidates
+                        .map { cand ->
+                            cand to TrackMatcher.scoreCandidate(
+                                expectedTitle = song.title,
+                                expectedArtist = artist,
+                                candidateTitle = cand.title.orEmpty(),
+                                candidateArtists = cand.artists?.joinToString(", ") { it.name },
+                                expectedDurationSec = song.durationSeconds,
+                                candidateDurationSec = cand.durationSeconds,
+                            )
+                        }
+                        .filter { (_, score) -> TrackMatcher.isAcceptableMatch(score) }
+                        .maxByOrNull { it.second }
+                        ?.first
+
+                    val resolvedYtId =
+                        bestSongMatch?.videoId
+                            ?: run {
+                                val videoCandidates = runCatching {
+                                    youTube.search("$query audio", YouTube.SearchFilter.FILTER_VIDEO).getOrNull()?.let { res ->
+                                        parseSearchVideo(res)
+                                    }
+                                }.getOrNull().orEmpty()
+                                val bestVideoMatch = videoCandidates
+                                    .map { cand ->
+                                        cand to TrackMatcher.scoreCandidate(
+                                            expectedTitle = song.title,
+                                            expectedArtist = artist,
+                                            candidateTitle = cand.title,
+                                            candidateArtists = cand.artists?.joinToString(", ") { it.name },
+                                            expectedDurationSec = song.durationSeconds,
+                                            candidateDurationSec = null,
+                                        )
+                                    }
+                                    .filter { (_, score) -> TrackMatcher.isAcceptableMatch(score) }
+                                    .maxByOrNull { it.second }
+                                    ?.first
+                                bestVideoMatch?.videoId
+                                    ?: songCandidates
+                                        .maxByOrNull { cand ->
+                                            TrackMatcher.scoreCandidate(
+                                                expectedTitle = song.title,
+                                                expectedArtist = artist,
+                                                candidateTitle = cand.title.orEmpty(),
+                                                candidateArtists = cand.artists?.joinToString(", ") { it.name },
+                                                expectedDurationSec = song.durationSeconds,
+                                                candidateDurationSec = cand.durationSeconds,
+                                            )
+                                        }
+                                        ?.takeIf { cand ->
+                                            TrackMatcher.scoreCandidate(
+                                                expectedTitle = song.title,
+                                                expectedArtist = artist,
+                                                candidateTitle = cand.title.orEmpty(),
+                                                candidateArtists = cand.artists?.joinToString(", ") { it.name },
+                                            ) >= 0.0
+                                        }
+                                        ?.videoId
+                            }
                     if (!resolvedYtId.isNullOrBlank()) {
                         effectiveVideoId = resolvedYtId
+                    } else {
+                        Logger.w("Stream", "No verified audio source matched Spotify track '${song.title}' ($artist)")
+                        emit(null)
+                        return@flow
                     }
                 }
             }
@@ -354,7 +440,7 @@ internal class StreamRepositoryImpl(
                                     "https://s.youtube.com",
                                     "https://music.youtube.com",
                                 ),
-                            cpn = data.first,
+                            cpn = if (videoId.startsWith("sp_track:") && response.playbackTracking?.videostatsPlaybackUrl == null) SP_TRACK_FORMAT_VERSION else data.first,
                             expiredTime = now().plusSeconds(response.streamingData?.expiresInSeconds?.toLong() ?: 0L),
                             audioUrl = if (muxed) response.streamingData?.hlsManifestUrl else {
                                 val raw = (audioFormat?.url ?: if (!isVideo) format?.url else null)
@@ -425,7 +511,7 @@ internal class StreamRepositoryImpl(
                         val title = response.videoDetails?.title ?: song?.title
                         val artist = response.videoDetails?.author ?: song?.artistName?.firstOrNull()
                         if (!title.isNullOrBlank()) {
-                            val jioStream = JioSaavnService.resolveStream(title, artist)
+                            val jioStream = JioSaavnService.resolveStream(title, artist, response.videoDetails?.lengthSeconds?.toIntOrNull() ?: song?.durationSeconds)
                             if (jioStream != null) {
                                 Logger.w("Stream", "Falling back to JioSaavn high-res stream for: $title")
                                 val fallbackFormat = NewFormatEntity(
@@ -441,7 +527,7 @@ internal class StreamRepositoryImpl(
                                     playbackTrackingVideostatsPlaybackUrl = null,
                                     playbackTrackingAtrUrl = null,
                                     playbackTrackingVideostatsWatchtimeUrl = null,
-                                    cpn = null,
+                                    cpn = if (videoId.startsWith("sp_track:")) SP_TRACK_FORMAT_VERSION else null,
                                     expiredTime = now().plusSeconds(86400L),
                                     audioUrl = jioStream,
                                     videoUrl = null,
@@ -464,7 +550,7 @@ internal class StreamRepositoryImpl(
                         val title = song?.title
                         val artist = song?.artistName?.firstOrNull()
                         if (!title.isNullOrBlank()) {
-                            val jioStream = JioSaavnService.resolveStream(title, artist)
+                            val jioStream = JioSaavnService.resolveStream(title, artist, song.durationSeconds)
                             if (jioStream != null) {
                                 Logger.w("Stream", "JioSaavn resolved stream on failure for: $title")
                                 val fallbackFormat = NewFormatEntity(
@@ -480,7 +566,7 @@ internal class StreamRepositoryImpl(
                                     playbackTrackingVideostatsPlaybackUrl = null,
                                     playbackTrackingAtrUrl = null,
                                     playbackTrackingVideostatsWatchtimeUrl = null,
-                                    cpn = null,
+                                    cpn = if (videoId.startsWith("sp_track:")) SP_TRACK_FORMAT_VERSION else null,
                                     expiredTime = now().plusSeconds(86400L),
                                     audioUrl = jioStream,
                                     videoUrl = null,
@@ -592,5 +678,9 @@ internal class StreamRepositoryImpl(
                 )
             }
         }
+    }
+
+    companion object {
+        private const val SP_TRACK_FORMAT_VERSION = "sp_v425"
     }
 }

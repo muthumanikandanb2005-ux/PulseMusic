@@ -32,6 +32,7 @@ import com.manikandan.data.db.Converters
 import com.manikandan.data.lastfm.LastfmScrobbler
 import com.manikandan.data.mediaservice.isDolbyAtmosHardwareSupported
 import com.manikandan.data.service.JioSaavnService
+import com.manikandan.data.service.SpotifyTrackCache
 import com.manikandan.domain.data.entities.NewFormatEntity
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.model.browse.album.Track
@@ -1062,7 +1063,7 @@ internal class MediaServiceHandlerImpl(
                 // the beginning (#2152). The position is otherwise only saved on pause /
                 // track change / release, which misses uninterrupted background playback.
                 val positionPersistIntervalMs = 20_000L
-                val tickIntervalMs = 50L
+                val tickIntervalMs = 25L
                 var sinceLastPositionSaveMs = 0L
                 while (true) {
                     delay(tickIntervalMs)
@@ -2332,6 +2333,9 @@ internal class MediaServiceHandlerImpl(
         if (track.isExplicit && !isExplicitContentEnabledCached) {
             showToast(ToastType.ExplicitContent)
             return
+        }
+        if (track.videoId.startsWith("sp_track:")) {
+            SpotifyTrackCache.putAll(listOf(track))
         }
         coroutineScope.launch(Dispatchers.IO) {
             songRepository.insertSong(track.toSongEntity()).firstOrNull()?.let {

@@ -98,6 +98,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import coil3.request.crossfade
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
@@ -1478,7 +1479,7 @@ fun SpotifyRecentlyPlayedSection(
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
             itemsIndexed(tracks, key = { idx, it -> "sp_rp_${idx}_${it.id}_${it.playedAt ?: ""}" }) { _, track ->
-                val thumbUrl = track.thumbnail
+                val thumbUrl = upgradeArtworkUrl(track.thumbnail)
                 Column(
                     modifier = Modifier
                         .width(130.dp)
@@ -1495,11 +1496,13 @@ fun SpotifyRecentlyPlayedSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
+                                .size(coil3.size.Size.ORIGINAL)
                                 .crossfade(false)
                                 .build(),
                             contentDescription = track.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
+                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                             placeholder = rememberHolderPainter(),
                             error = rememberHolderPainter(),
                         )
@@ -1588,7 +1591,7 @@ fun SpotifyTrendingSongsSection(
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
             itemsIndexed(tracks, key = { idx, it -> "sp_tr_${idx}_${it.id}_${it.title}" }) { _, track ->
-                val thumbUrl = track.thumbnail
+                val thumbUrl = upgradeArtworkUrl(track.thumbnail)
                 Column(
                     modifier = Modifier
                         .width(130.dp)
@@ -1605,11 +1608,13 @@ fun SpotifyTrendingSongsSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
+                                .size(coil3.size.Size.ORIGINAL)
                                 .crossfade(false)
                                 .build(),
                             contentDescription = track.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
+                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                             placeholder = rememberHolderPainter(),
                             error = rememberHolderPainter(),
                         )
@@ -1698,7 +1703,10 @@ fun SpotifyPlaylistsSection(
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
             itemsIndexed(playlists, key = { idx, it -> "sp_pl_${idx}_${it.browseId}" }) { _, pl ->
-                val thumbUrl = pl.thumbnails?.firstOrNull()?.url
+                val thumbUrl = upgradeArtworkUrl(
+                    pl.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                        ?: pl.thumbnails?.firstOrNull()?.url,
+                )
                 Column(
                     modifier = Modifier
                         .width(140.dp)
@@ -1715,11 +1723,13 @@ fun SpotifyPlaylistsSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
+                                .size(coil3.size.Size.ORIGINAL)
                                 .crossfade(false)
                                 .build(),
                             contentDescription = pl.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
+                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                             placeholder = rememberHolderPainter(),
                             error = rememberHolderPainter(),
                         )
@@ -1793,7 +1803,10 @@ fun SpotifyTrendingSection(
             contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
             itemsIndexed(trending, key = { idx, it -> "sp_tr_pl_${idx}_${it.browseId}" }) { _, pl ->
-                val thumbUrl = pl.thumbnails?.firstOrNull()?.url
+                val thumbUrl = upgradeArtworkUrl(
+                    pl.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                        ?: pl.thumbnails?.firstOrNull()?.url,
+                )
                 Column(
                     modifier = Modifier
                         .width(140.dp)
@@ -1810,11 +1823,13 @@ fun SpotifyTrendingSection(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                 .data(thumbUrl)
+                                .size(coil3.size.Size.ORIGINAL)
                                 .crossfade(false)
                                 .build(),
                             contentDescription = pl.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
+                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                             placeholder = rememberHolderPainter(),
                             error = rememberHolderPainter(),
                         )

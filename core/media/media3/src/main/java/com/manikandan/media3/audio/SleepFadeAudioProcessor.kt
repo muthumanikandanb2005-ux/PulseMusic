@@ -40,11 +40,10 @@ class SleepFadeAudioProcessor(
     }
 
     /**
-     * Always active: the gain changes at runtime, and a processor dropped from the chain would not
-     * be consulted again until the next flush — by which point the sleep timer has already stopped
-     * playback. The full-gain path below is cheap enough to keep it in place permanently.
+     * Active whenever configured for PCM 16-bit (`super.isActive()`): respects `NOT_SET`
+     * negotiation while keeping sleep fade available across gain changes.
      */
-    override fun isActive(): Boolean = true
+    override fun isActive(): Boolean = super.isActive()
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()

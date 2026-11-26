@@ -11,6 +11,7 @@ import com.manikandan.domain.data.model.searchResult.songs.Artist
 import com.manikandan.domain.data.model.searchResult.songs.SongsResult
 import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
 import com.manikandan.domain.data.type.SearchResultType
+import com.manikandan.domain.utils.toTrack
 import com.manikandan.ktorext.getEngine
 import com.manikandan.logger.Logger
 import io.ktor.client.HttpClient
@@ -916,20 +917,72 @@ object JioSaavnService {
     /**
      * Resolves a direct playable audio stream URL for a given song title and artist as fallback.
      */
-    suspend fun resolveStream(title: String, artist: String? = null): String? = withContext(Dispatchers.IO) {
+    /**
+     * Finds the best matching JioSaavn track for [title] + [artist], rejecting unrelated fuzzy hits
+     * whose normalized title or artist tokens do not match.
+     */
+    suspend fun findBestSongMatch(
+        title: String,
+        artist: String? = null,
+        expectedDurationSec: Int? = null,
+    ): Track? = withContext(Dispatchers.IO) {
         if (title.isBlank()) return@withContext null
 
-        val cleanTitle = title
-            .replace(Regex("""(?i)\(?(feat\.|ft\.|official|video|audio|lyric|remix|version)\)?.*"""), "")
-            .trim()
+        val cleanTitle = TrackMatcher.normalizeTitle(title).ifBlank { title.trim() }
         val cleanArtist = artist?.replace(Regex("""(?i)\b(topic|vevo)\b"""), "")?.trim()
         val query = if (!cleanArtist.isNullOrBlank()) "$cleanTitle $cleanArtist" else cleanTitle
 
-        Logger.d(TAG, "Resolving fallback audio stream from JioSaavn for: $query")
+        val candidates = ArrayList<SongsResult>()
+        val primaryResults = runCatching { searchSongs(query) }.getOrDefault(emptyList())
+        candidates.addAll(primaryResults)
+        if (candidates.isEmpty() && query != cleanTitle) {
+            candidates.addAll(runCatching { searchSongs(cleanTitle) }.getOrDefault(emptyList()))
+        }
 
-        tryFromSaavnDirect(query)
-            ?: tryFromSaavnDev(query)
-            ?: tryFromVercelApi(query)
+        var bestCandidate: SongsResult? = null
+        var bestScore = Double.NEGATIVE_INFINITY
+        for (cand in candidates.take(10)) {
+            val candArtistStr = cand.artists?.joinToString(", ") { it.name }
+            val score = TrackMatcher.scoreCandidate(
+                expectedTitle = title,
+                expectedArtist = cleanArtist,
+                candidateTitle = cand.title.orEmpty(),
+                candidateArtists = candArtistStr,
+                expectedDurationSec = expectedDurationSec,
+                candidateDurationSec = cand.durationSeconds,
+            )
+            if (score > bestScore) {
+                bestScore = score
+                bestCandidate = cand
+            }
+        }
+
+        if (bestCandidate != null && TrackMatcher.isAcceptableMatch(bestScore)) {
+            val rawId = bestCandidate.videoId.removePrefix("saavn:")
+            trackCache[rawId] ?: trackCache[bestCandidate.videoId] ?: bestCandidate.toTrack()
+        } else {
+            null
+        }
+    }
+
+    suspend fun resolveStream(
+        title: String,
+        artist: String? = null,
+        expectedDurationSec: Int? = null,
+    ): String? = withContext(Dispatchers.IO) {
+        if (title.isBlank()) return@withContext null
+
+        val matched = findBestSongMatch(title, artist, expectedDurationSec)
+        if (matched != null) {
+            val saavnId = matched.videoId.removePrefix("saavn:")
+            val stream = resolveStreamById(saavnId)
+            if (!stream.isNullOrBlank()) {
+                Logger.d(TAG, "Validated JioSaavn match for '$title' -> '${matched.title}' ($saavnId)")
+                return@withContext stream
+            }
+        }
+        Logger.d(TAG, "No verified JioSaavn match for '$title' (${artist ?: "unknown"}); deferring to YouTube")
+        null
     }
 
     private suspend fun tryFromSaavnDirect(query: String): String? {

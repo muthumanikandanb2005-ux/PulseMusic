@@ -205,9 +205,12 @@ class PlaylistViewModel(
                                                 isRadio = true,
                                                 author = data.first.author,
                                                 thumbnail =
-                                                    data.first.thumbnails
-                                                        .lastOrNull()
-                                                        ?.url,
+                                                    com.manikandan.domain.extension.upgradeArtworkUrl(
+                                                        data.first.thumbnails
+                                                            .maxByOrNull { it.width.toLong() * it.height.toLong() }
+                                                            ?.url
+                                                            ?: data.first.thumbnails.lastOrNull()?.url,
+                                                    ),
                                                 description = data.first.description,
                                                 trackCount = data.first.trackCount,
                                                 year = data.first.year,
@@ -243,9 +246,12 @@ class PlaylistViewModel(
                                                 isRadio = false,
                                                 author = data.first.author,
                                                 thumbnail =
-                                                    data.first.thumbnails
-                                                        .lastOrNull()
-                                                        ?.url,
+                                                    com.manikandan.domain.extension.upgradeArtworkUrl(
+                                                        data.first.thumbnails
+                                                            .maxByOrNull { it.width.toLong() * it.height.toLong() }
+                                                            ?.url
+                                                            ?: data.first.thumbnails.lastOrNull()?.url,
+                                                    ),
                                                 description = data.first.description,
                                                 trackCount = data.first.trackCount,
                                                 year = data.first.year,

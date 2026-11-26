@@ -135,13 +135,10 @@ object PixelMotion {
      */
     fun sharedAxisForwardEnter(): EnterTransition =
         slideInHorizontally(
-            animationSpec = tween(durationMillis = 360, easing = EmphasizedEasing),
-            initialOffsetX = { fullWidth -> (fullWidth * 0.18f).toInt() },
-        ) + scaleIn(
-            animationSpec = tween(durationMillis = 360, easing = EmphasizedEasing),
-            initialScale = 0.94f,
+            animationSpec = tween(durationMillis = 220, easing = EmphasizedDecelerate),
+            initialOffsetX = { fullWidth -> (fullWidth * 0.08f).toInt() },
         ) + fadeIn(
-            animationSpec = tween(durationMillis = 220, delayMillis = 45, easing = EmphasizedDecelerate),
+            animationSpec = tween(durationMillis = 150, easing = EmphasizedDecelerate),
         )
 
     /**
@@ -149,13 +146,10 @@ object PixelMotion {
      */
     fun sharedAxisForwardExit(): ExitTransition =
         slideOutHorizontally(
-            animationSpec = tween(durationMillis = 360, easing = EmphasizedEasing),
-            targetOffsetX = { fullWidth -> -(fullWidth * 0.10f).toInt() },
-        ) + scaleOut(
-            animationSpec = tween(durationMillis = 360, easing = EmphasizedEasing),
-            targetScale = 0.96f,
+            animationSpec = tween(durationMillis = 180, easing = EmphasizedAccelerate),
+            targetOffsetX = { fullWidth -> -(fullWidth * 0.05f).toInt() },
         ) + fadeOut(
-            animationSpec = tween(durationMillis = 160, easing = EmphasizedAccelerate),
+            animationSpec = tween(durationMillis = 120, easing = EmphasizedAccelerate),
         )
 
     /**
@@ -163,27 +157,21 @@ object PixelMotion {
      */
     fun sharedAxisPopEnter(): EnterTransition =
         slideInHorizontally(
-            animationSpec = tween(durationMillis = 340, easing = EmphasizedEasing),
-            initialOffsetX = { fullWidth -> -(fullWidth * 0.10f).toInt() },
-        ) + scaleIn(
-            animationSpec = tween(durationMillis = 340, easing = EmphasizedEasing),
-            initialScale = 0.96f,
+            animationSpec = tween(durationMillis = 200, easing = EmphasizedDecelerate),
+            initialOffsetX = { fullWidth -> -(fullWidth * 0.06f).toInt() },
         ) + fadeIn(
-            animationSpec = tween(durationMillis = 220, delayMillis = 30, easing = EmphasizedDecelerate),
+            animationSpec = tween(durationMillis = 140, easing = EmphasizedDecelerate),
         )
 
     /**
-     * Pixel predictive-back pop exit (leaving top screen shrinks slightly and slides right).
+     * Pixel predictive-back pop exit (leaving top screen slides cleanly right).
      */
     fun sharedAxisPopExit(): ExitTransition =
         slideOutHorizontally(
-            animationSpec = tween(durationMillis = 320, easing = EmphasizedEasing),
-            targetOffsetX = { fullWidth -> (fullWidth * 0.22f).toInt() },
-        ) + scaleOut(
-            animationSpec = tween(durationMillis = 320, easing = EmphasizedEasing),
-            targetScale = 0.92f,
+            animationSpec = tween(durationMillis = 190, easing = EmphasizedAccelerate),
+            targetOffsetX = { fullWidth -> (fullWidth * 0.12f).toInt() },
         ) + fadeOut(
-            animationSpec = tween(durationMillis = 180, easing = EmphasizedAccelerate),
+            animationSpec = tween(durationMillis = 120, easing = EmphasizedAccelerate),
         )
 
     /**
@@ -191,18 +179,15 @@ object PixelMotion {
      */
     fun fadeThroughEnter(): EnterTransition =
         fadeIn(
-            animationSpec = tween(durationMillis = 220, delayMillis = 50, easing = EmphasizedDecelerate),
+            animationSpec = tween(durationMillis = 150, easing = EmphasizedDecelerate),
         ) + scaleIn(
-            animationSpec = tween(durationMillis = 260, delayMillis = 40, easing = EmphasizedDecelerate),
-            initialScale = 0.94f,
+            animationSpec = tween(durationMillis = 160, easing = EmphasizedDecelerate),
+            initialScale = 0.985f,
         )
 
     fun fadeThroughExit(): ExitTransition =
         fadeOut(
-            animationSpec = tween(durationMillis = 110, easing = EmphasizedAccelerate),
-        ) + scaleOut(
-            animationSpec = tween(durationMillis = 130, easing = EmphasizedAccelerate),
-            targetScale = 0.97f,
+            animationSpec = tween(durationMillis = 90, easing = EmphasizedAccelerate),
         )
 
     /**
@@ -210,26 +195,26 @@ object PixelMotion {
      */
     fun verticalExpandEnter(): EnterTransition =
         slideInVertically(
-            animationSpec = tween(durationMillis = 380, easing = EmphasizedEasing),
-            initialOffsetY = { fullHeight -> (fullHeight * 0.14f).toInt() },
+            animationSpec = tween(durationMillis = 240, easing = EmphasizedDecelerate),
+            initialOffsetY = { fullHeight -> (fullHeight * 0.10f).toInt() },
         ) + scaleIn(
-            animationSpec = tween(durationMillis = 380, easing = EmphasizedEasing),
-            initialScale = 0.93f,
+            animationSpec = tween(durationMillis = 240, easing = EmphasizedDecelerate),
+            initialScale = 0.96f,
             transformOrigin = TransformOrigin(0.5f, 0.7f),
         ) + fadeIn(
-            animationSpec = tween(durationMillis = 240, easing = EmphasizedDecelerate),
+            animationSpec = tween(durationMillis = 150, easing = EmphasizedDecelerate),
         )
 
     fun verticalExpandExit(): ExitTransition =
         slideOutVertically(
-            animationSpec = tween(durationMillis = 300, easing = EmphasizedEasing),
-            targetOffsetY = { fullHeight -> (fullHeight * 0.14f).toInt() },
+            animationSpec = tween(durationMillis = 190, easing = EmphasizedAccelerate),
+            targetOffsetY = { fullHeight -> (fullHeight * 0.10f).toInt() },
         ) + scaleOut(
-            animationSpec = tween(durationMillis = 300, easing = EmphasizedEasing),
-            targetScale = 0.93f,
+            animationSpec = tween(durationMillis = 190, easing = EmphasizedAccelerate),
+            targetScale = 0.96f,
             transformOrigin = TransformOrigin(0.5f, 0.7f),
         ) + fadeOut(
-            animationSpec = tween(durationMillis = 180, easing = EmphasizedAccelerate),
+            animationSpec = tween(durationMillis = 120, easing = EmphasizedAccelerate),
         )
 
     /**
@@ -237,24 +222,24 @@ object PixelMotion {
      */
     fun iconMorphTransition(): ContentTransform =
         (
-            fadeIn(tween(150, easing = EmphasizedDecelerate)) +
-                scaleIn(spring(dampingRatio = 0.62f, stiffness = 950f), initialScale = 0.58f)
+            fadeIn(tween(110, easing = EmphasizedDecelerate)) +
+                scaleIn(spring(dampingRatio = 0.68f, stiffness = 1100f), initialScale = 0.72f)
         ).togetherWith(
-            fadeOut(tween(100, easing = EmphasizedAccelerate)) +
-                scaleOut(tween(110, easing = EmphasizedAccelerate), targetScale = 0.68f),
+            fadeOut(tween(80, easing = EmphasizedAccelerate)) +
+                scaleOut(tween(85, easing = EmphasizedAccelerate), targetScale = 0.78f),
         )
 
     /**
-     * Pixel Shared Axis Y track-info text transition (smoothly slides/fades on song skip).
+     * Pixel Shared Axis Y track-info text transition (snappily slides/fades on song skip without text blur).
      */
     fun trackChangeTransition(forward: Boolean = true): ContentTransform {
         val dir = if (forward) 1 else -1
         return (
-            slideInVertically(tween(260, easing = EmphasizedDecelerate)) { dir * (it / 2).coerceAtLeast(18) } +
-                fadeIn(tween(220, delayMillis = 40, easing = EmphasizedDecelerate))
+            slideInVertically(tween(150, easing = EmphasizedDecelerate)) { dir * (it / 3).coerceAtLeast(12) } +
+                fadeIn(tween(130, easing = EmphasizedDecelerate))
         ).togetherWith(
-            slideOutVertically(tween(180, easing = EmphasizedAccelerate)) { -dir * (it / 2).coerceAtLeast(18) } +
-                fadeOut(tween(150, easing = EmphasizedAccelerate)),
+            slideOutVertically(tween(110, easing = EmphasizedAccelerate)) { -dir * (it / 3).coerceAtLeast(12) } +
+                fadeOut(tween(90, easing = EmphasizedAccelerate)),
         )
     }
 

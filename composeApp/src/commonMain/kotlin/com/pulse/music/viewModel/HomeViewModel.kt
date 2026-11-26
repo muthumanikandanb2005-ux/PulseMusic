@@ -45,6 +45,7 @@ import com.manikandan.domain.repository.LocalPlaylistRepository
 import com.manikandan.domain.repository.PlaylistRepository
 import com.manikandan.domain.repository.SearchRepository
 import com.manikandan.domain.utils.toTrack
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.asStateFlow
@@ -133,85 +134,60 @@ class HomeViewModel(
             exploreChart(chartRegion)
             language = dataStoreManager.getString(SELECTED_LANGUAGE).first()
                 ?: SUPPORTED_LANGUAGE.codes.first()
-            //  refresh when region change
-            val job1 =
+            // Single coordinated startup + settings collector: prevents 5x duplicate getHomeItemList()
+            // calls and forced 1s cookie shimmer stalls on startup.
+            var lastMusicLang: String? = null
+            var lastCookie: String? = null
+            val jobHome =
                 launch {
-                    dataStoreManager.location.distinctUntilChanged().collect {
-                        regionCode = it
-                        getHomeItemList(params.value)
-                    }
-                }
-            //  refresh when language change
-            val job2 =
-                launch {
-                    dataStoreManager.language.distinctUntilChanged().collect {
-                        language = it
-                        getHomeItemList(params.value)
-                    }
-                }
-            val jobMusicLang =
-                launch {
-                    dataStoreManager.musicLanguage.distinctUntilChanged().collect {
-                        musicStreamingLanguage = it
-                        val langRegion = SUPPORTED_MUSIC_LANGUAGE.getDefaultRegionForCode(it)
-                        if (langRegion != null) {
-                            exploreChart(langRegion)
-                        }
-                        delay(200)
-                        getHomeItemList(params.value)
-                    }
-                }
-            val job3 =
-                launch {
-                    dataStoreManager.cookie.distinctUntilChanged().collect {
-                        getHomeItemList(params.value)
-                        _accountInfo.emit(
-                            Pair(
-                                dataStoreManager.getString("AccountName").first(),
-                                dataStoreManager.getString("AccountThumbUrl").first(),
-                            ),
-                        )
-                    }
-                }
-            val job4 =
-                launch {
-                    params.collectLatest {
-                        getHomeItemList(it)
-                    }
-                }
-            val job5 =
-                launch {
-                    dataStoreManager
-                        .cookie
-                        .distinctUntilChanged()
-                        .collectLatest {
-                            if (it.isNotEmpty()) {
-                                Logger.w(tag, "Cookie changed, refreshing home")
-                                loading.value = true
-                                delay(1000) // To wait for the cookie to be saved properly
-                                getHomeItemList(params.value)
+                    combine(
+                        dataStoreManager.location.distinctUntilChanged(),
+                        dataStoreManager.language.distinctUntilChanged(),
+                        dataStoreManager.musicLanguage.distinctUntilChanged(),
+                        dataStoreManager.cookie.distinctUntilChanged(),
+                        params,
+                    ) { loc, lang, musicLang, cookieVal, paramVal ->
+                        HomeTriggerState(loc, lang, musicLang, cookieVal, paramVal)
+                    }.distinctUntilChanged().collectLatest { trigger ->
+                        regionCode = trigger.location
+                        language = trigger.language
+                        musicStreamingLanguage = trigger.musicLanguage
+                        if (trigger.musicLanguage != lastMusicLang) {
+                            lastMusicLang = trigger.musicLanguage
+                            val langRegion = SUPPORTED_MUSIC_LANGUAGE.getDefaultRegionForCode(trigger.musicLanguage)
+                            if (langRegion != null) {
+                                exploreChart(langRegion)
                             }
                         }
+                        if (trigger.cookie != lastCookie) {
+                            lastCookie = trigger.cookie
+                            _accountInfo.emit(
+                                Pair(
+                                    dataStoreManager.getString("AccountName").first(),
+                                    dataStoreManager.getString("AccountThumbUrl").first(),
+                                ),
+                            )
+                        }
+                        getHomeItemList(trigger.params)
+                    }
                 }
             val job6 =
                 launch {
                     homeItemList.collectLatest { list ->
                         _mainHomeThumbnail.value =
-                            list
-                                .firstOrNull()
-                                ?.contents
-                                ?.firstOrNull()
-                                ?.thumbnails
-                                ?.lastOrNull()
-                                ?.url
+                            upgradeArtworkUrl(
+                                list
+                                    .firstOrNull()
+                                    ?.contents
+                                    ?.firstOrNull()
+                                    ?.thumbnails
+                                    ?.maxByOrNull { it.width.toLong() * it.height.toLong() }
+                                    ?.url
+                                    ?: list.firstOrNull()?.contents?.firstOrNull()?.thumbnails?.lastOrNull()?.url,
+                            )
                     }
                 }
-            job1.join()
-            job2.join()
-            jobMusicLang.join()
-            job3.join()
-            job4.join()
-            job5.join()
+            jobHome.join()
             job6.join()
         }
         viewModelScope.launch {
@@ -270,38 +246,73 @@ class HomeViewModel(
         }
     }
 
+    private data class HomeTriggerState(
+        val location: String,
+        val language: String,
+        val musicLanguage: String,
+        val cookie: String,
+        val params: String?,
+    )
+
+    private fun SpotifyRecentTrack.toPlayableTrack(): com.manikandan.domain.data.model.browse.album.Track {
+        val cleanId = id.removePrefix("sp_track:")
+        val crispThumb = upgradeArtworkUrl(thumbnail)
+        val parsedArtists = artist
+            .split(",")
+            .mapNotNull { part ->
+                val trimmed = part.trim()
+                if (trimmed.isNotEmpty()) com.manikandan.domain.data.model.searchResult.songs.Artist(id = "", name = trimmed) else null
+            }
+            .ifEmpty { listOf(com.manikandan.domain.data.model.searchResult.songs.Artist(id = "", name = "Spotify")) }
+        return com.manikandan.domain.data.model.browse.album.Track(
+            album = com.manikandan.domain.data.model.searchResult.songs.Album(id = "", name = ""),
+            artists = parsedArtists,
+            duration = "",
+            durationSeconds = 0,
+            isAvailable = true,
+            isExplicit = false,
+            likeStatus = null,
+            thumbnails = crispThumb?.let { listOf(com.manikandan.domain.data.model.searchResult.songs.Thumbnail(height = 640, url = it, width = 640)) } ?: emptyList(),
+            title = title,
+            videoId = "sp_track:$cleanId",
+            videoType = "Song",
+            category = "SONG",
+            feedbackTokens = null,
+            resultType = "Song",
+            year = "",
+        )
+    }
+
     fun playSpotifyTrack(track: SpotifyRecentTrack) {
         viewModelScope.launch {
-            val query = "${track.title} ${track.artist}".trim()
-            loading.value = true
-            searchRepository.getSearchDataSong(query).collect { res ->
-                val firstResult = res.data?.firstOrNull()
-                if (firstResult != null) {
-                    val targetTrack = firstResult.toTrack()
-                    val radioId = if (targetTrack.videoId.startsWith("saavn:")) {
-                        "saavn_radio:${targetTrack.videoId}"
-                    } else {
-                        "RDAMVM${targetTrack.videoId}"
-                    }
-                    setQueueData(
-                        QueueData.Data(
-                            listTracks = arrayListOf(targetTrack),
-                            firstPlayedTrack = targetTrack,
-                            playlistId = radioId,
-                            playlistName = "\"${track.title}\" Radio",
-                            playlistType = PlaylistType.RADIO,
-                            continuation = null,
-                        ),
-                    )
-                    loadMediaItem(
-                        targetTrack,
-                        type = Config.SONG_CLICK,
-                    )
-                } else {
-                    showSnackBarErrorState.emit("Could not find track: ${track.title}")
+            val sourceList =
+                when {
+                    spotifyTrendingTracks.value.any { it.id == track.id && it.title == track.title } ->
+                        spotifyTrendingTracks.value
+                    spotifyRecentlyPlayed.value.any { it.id == track.id && it.title == track.title } ->
+                        spotifyRecentlyPlayed.value
+                    else -> listOf(track)
                 }
-                loading.value = false
-            }
+            val queueTracks = ArrayList(sourceList.map { it.toPlayableTrack() })
+            val targetTrack =
+                queueTracks.find { it.videoId == "sp_track:${track.id.removePrefix("sp_track:")}" }
+                    ?: track.toPlayableTrack().also { queueTracks.add(0, it) }
+            val startIndex = queueTracks.indexOf(targetTrack).coerceAtLeast(0)
+            setQueueData(
+                QueueData.Data(
+                    listTracks = queueTracks,
+                    firstPlayedTrack = targetTrack,
+                    playlistId = "spotify:home",
+                    playlistName = "Spotify",
+                    playlistType = PlaylistType.RADIO,
+                    continuation = null,
+                ),
+            )
+            loadMediaItem(
+                targetTrack,
+                type = Config.SONG_CLICK,
+                index = startIndex,
+            )
         }
     }
 
@@ -319,7 +330,10 @@ class HomeViewModel(
                 localPlaylistRepository.insertLocalPlaylist(
                     LocalPlaylistEntity(
                         title = playlist.title,
-                        thumbnail = playlist.thumbnails?.firstOrNull()?.url,
+                        thumbnail = upgradeArtworkUrl(
+                            playlist.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                                ?: playlist.thumbnails?.firstOrNull()?.url,
+                        ),
                         youtubePlaylistId = spotifyId,
                     ),
                     "Created playlist",
@@ -345,7 +359,9 @@ class HomeViewModel(
     }
 
     fun getHomeItemList(params: String? = null) {
-        loading.value = true
+        if (_homeItemList.value.isEmpty()) {
+            loading.value = true
+        }
         _homeListState.value = ListState.LOADING
         loadSpotifyHomeData()
         homeJob?.cancel()

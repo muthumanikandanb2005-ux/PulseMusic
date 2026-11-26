@@ -111,6 +111,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.kmpalette.rememberPaletteState
 import com.manikandan.common.Config.MAIN_PLAYER
 import com.manikandan.domain.mediaservice.handler.RepeatState
@@ -545,8 +546,11 @@ fun NowPlayingContentSpotify(
                                     // retry once with `hqdefault.jpg`, which YouTube guarantees for
                                     // every video. Song artwork (googleusercontent) never matches
                                     // the replace, so this is a no-op for it.
-                                    var artworkUrl by remember(state.screenData.thumbnailURL) {
-                                        mutableStateOf(state.screenData.thumbnailURL)
+                                    val upgradedThumb = remember(state.screenData.thumbnailURL) {
+                                        upgradeArtworkUrl(state.screenData.thumbnailURL)
+                                    }
+                                    var artworkUrl by remember(upgradedThumb) {
+                                        mutableStateOf(upgradedThumb)
                                     }
                                     Box(
                                         contentAlignment = Alignment.Center,
@@ -570,8 +574,9 @@ fun NowPlayingContentSpotify(
                                                     .Builder(LocalPlatformContext.current)
                                                     .data(artworkUrl)
                                                     .diskCachePolicy(CachePolicy.ENABLED)
-                                                    .diskCacheKey(artworkUrl + "BIGGER")
-                                                    .crossfade(550)
+                                                    .diskCacheKey(artworkUrl + "BIGGER_ORIG")
+                                                    .size(coil3.size.Size.ORIGINAL)
+                                                    .crossfade(100)
                                                     .build(),
                                             contentDescription = "",
                                             onSuccess = {
@@ -584,6 +589,7 @@ fun NowPlayingContentSpotify(
                                                 if (fallback != null && fallback != artworkUrl) artworkUrl = fallback
                                             },
                                             contentScale = ContentScale.Crop,
+                                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                             placeholder = rememberHolderPainter(),
                                             error = rememberHolderPainter(),
                                             modifier =
@@ -759,9 +765,11 @@ fun NowPlayingContentSpotify(
                                 } else if (pageTrack != null) {
                                     // Adjacent page — static thumbnail from Track.thumbnails.
                                     val staticThumb =
-                                        pageTrack.thumbnails
-                                            ?.maxByOrNull { it.width * it.height }
-                                            ?.url
+                                        upgradeArtworkUrl(
+                                            pageTrack.thumbnails
+                                                ?.maxByOrNull { it.width.toLong() * it.height.toLong() }
+                                                ?.url,
+                                        )
                                     val palettePageScope = rememberCoroutineScope()
                                     Box(
                                         contentAlignment = Alignment.Center,
@@ -782,11 +790,13 @@ fun NowPlayingContentSpotify(
                                                     .Builder(LocalPlatformContext.current)
                                                     .data(staticThumb)
                                                     .diskCachePolicy(CachePolicy.ENABLED)
-                                                    .diskCacheKey(staticThumb)
-                                                    .crossfade(300)
+                                                    .diskCacheKey(staticThumb + "ORIG")
+                                                    .size(coil3.size.Size.ORIGINAL)
+                                                    .crossfade(100)
                                                     .build(),
                                             contentDescription = pageTrack.title,
                                             contentScale = ContentScale.Crop,
+                                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                             placeholder = rememberHolderPainter(),
                                             error = rememberHolderPainter(),
                                             // Feed the per-page palette using the SAME bitmap

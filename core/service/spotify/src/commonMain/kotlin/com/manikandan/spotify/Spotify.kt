@@ -494,14 +494,15 @@ class Spotify {
                 val artists = identity.obj("contributors")?.arr("items")?.mapNotNull { c ->
                     (c as? JsonObject)?.str("name")?.let { SpotifyArtistItem(name = it) }
                 }.orEmpty()
-                val coverUrl = entity.obj("visualIdentityTrait")?.obj("squareCoverImage")
-                    ?.obj("image")?.obj("data")?.arr("sources")
-                    ?.firstOrNull()?.let { (it as? JsonObject)?.str("url") }
+                val coverUrl = parseCoverSources(
+                    entity.obj("visualIdentityTrait")?.obj("squareCoverImage")
+                        ?.obj("image")?.obj("data")?.arr("sources"),
+                ).lastOrNull()?.url
                 SpotifyTrackItem(
                     id = uri.removePrefix("spotify:track:"),
                     name = name,
                     artists = artists,
-                    album = coverUrl?.let { SpotifyAlbumItem(images = listOf(SpotifyImage(url = it))) },
+                    album = coverUrl?.let { SpotifyAlbumItem(images = listOf(SpotifyImage(url = it, width = 640, height = 640))) },
                 )
             }.orEmpty()
         recentsTracks.map { SpotifyRecentlyPlayedItem(track = it, playedAt = null) }
@@ -898,17 +899,26 @@ class Spotify {
         return result
     }
 
+    private fun upgradeSpotifyCdnUrl(url: String): String =
+        url
+            .replace("ab67616d00004851", "ab67616d0000b273")
+            .replace("ab67616d00001e02", "ab67616d0000b273")
+
     private fun parseCoverSources(sources: JsonArray?): List<SpotifyImage> {
         if (sources == null) return emptyList()
-        return sources.mapNotNull { s ->
+        val parsed = sources.mapNotNull { s ->
             val obj = s as? JsonObject ?: return@mapNotNull null
-            val url = obj.str("url")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val rawUrl = obj.str("url")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val url = upgradeSpotifyCdnUrl(rawUrl)
+            val wasUpgraded = url != rawUrl
             SpotifyImage(
                 url = url,
-                width = obj.int("width"),
-                height = obj.int("height"),
+                width = if (wasUpgraded) 640 else obj.int("width"),
+                height = if (wasUpgraded) 640 else obj.int("height"),
             )
-        }.sortedByDescending { it.width ?: 0 }
+        }
+        val best = parsed.maxByOrNull { (it.width ?: 0).toLong() * (it.height ?: 0).toLong() }
+        return listOfNotNull(best)
     }
 
     private fun JsonObject.obj(key: String): JsonObject? = get(key) as? JsonObject

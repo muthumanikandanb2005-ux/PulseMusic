@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.os.Handler
+import android.os.Looper
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -228,7 +230,13 @@ internal class CrossfadeExoPlayerAdapter(
     // of "music stops between tracks" (see androidx/media#2100). Instead we hold one
     // app-level AudioFocusRequest at the adapter level so focus survives every swap.
 
-    private val duckVolumeFactor = 0.2f
+    private val duckVolumeFactor = 0.35f
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
+    private var duckRampJob: Job? = null
+    private var transientFocusPauseJob: Job? = null
+
+    @Volatile
+    private var pausedByTransientFocus = false
 
     private val audioManager: AudioManager? by lazy {
         context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -241,12 +249,39 @@ internal class CrossfadeExoPlayerAdapter(
     @Volatile
     private var resumeOnFocusGain = false
 
+    private fun animatePlayerVolume(targetVolume: Float, durationMs: Long = 160L) {
+        duckRampJob?.cancel()
+        val player = currentPlayer ?: return
+        if (isCrossfading) return
+        val startVol = player.volume
+        if (abs(startVol - targetVolume) < 0.02f) {
+            player.volume = targetVolume
+            return
+        }
+        val steps = 6
+        val stepMs = (durationMs / steps).coerceAtLeast(15L)
+        duckRampJob = coroutineScope.launch {
+            for (step in 1..steps) {
+                if (!isActive || isCrossfading) break
+                val fraction = step.toFloat() / steps.toFloat()
+                currentPlayer?.volume = startVol + (targetVolume - startVol) * fraction
+                delay(stepMs)
+            }
+            if (isActive && !isCrossfading) {
+                currentPlayer?.volume = targetVolume
+            }
+        }
+    }
+
     private val audioFocusListener =
         AudioManager.OnAudioFocusChangeListener { focusChange ->
             when (focusChange) {
                 AudioManager.AUDIOFOCUS_GAIN -> {
-                    // Don't fight the crossfade ramp; while crossfading it owns the volume.
-                    if (!isCrossfading) currentPlayer?.volume = internalVolume
+                    transientFocusPauseJob?.cancel()
+                    transientFocusPauseJob = null
+                    pausedByTransientFocus = false
+                    // Smoothly restore full volume so notification chimes end without a pop/click.
+                    if (!isCrossfading) animatePlayerVolume(internalVolume, durationMs = 200L)
                     if (resumeOnFocusGain) {
                         resumeOnFocusGain = false
                         play()
@@ -255,24 +290,39 @@ internal class CrossfadeExoPlayerAdapter(
 
                 AudioManager.AUDIOFOCUS_LOSS -> {
                     // Permanent loss (another app took over): pause and stop tracking focus.
+                    transientFocusPauseJob?.cancel()
+                    transientFocusPauseJob = null
+                    duckRampJob?.cancel()
+                    pausedByTransientFocus = false
                     resumeOnFocusGain = false
                     hasAudioFocus = false
                     pause()
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                    // Temporary loss (e.g. an incoming call): pause and remember to resume ONLY IF
-                    // playback was actively occurring with user intent. Under NO circumstances should
-                    // a paused, priming, preparing, or idle player auto-resume on focus gain.
-                    val wasActivelyPlaying = internalPlayWhenReady && (internalState == InternalState.PLAYING) && (currentPlayer?.isPlaying == true)
-                    pause()
+                    // Temporary loss (e.g. an incoming call or OEM notification chime):
+                    // Remember playback intent even if mid-transition/buffering, softly duck first,
+                    // and only tear down into pause() if focus doesn't return within 180ms.
+                    val wasActivelyPlaying =
+                        internalPlayWhenReady ||
+                            isCrossfading ||
+                            (currentPlayer?.playWhenReady == true)
                     resumeOnFocusGain = wasActivelyPlaying
+                    pausedByTransientFocus = true
+                    transientFocusPauseJob?.cancel()
+                    if (!isCrossfading) animatePlayerVolume(internalVolume * 0.08f, durationMs = 70L)
+                    transientFocusPauseJob = coroutineScope.launch {
+                        delay(180L)
+                        if (isActive && pausedByTransientFocus) {
+                            pause()
+                            resumeOnFocusGain = wasActivelyPlaying
+                        }
+                    }
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                    // Lower the volume instead of pausing (e.g. a navigation prompt).
-                    // Skip during crossfade — the ramp owns volume and would override this.
-                    if (!isCrossfading) currentPlayer?.volume = internalVolume * duckVolumeFactor
+                    // Smoothly duck volume instead of hard-stepping on notification sounds.
+                    if (!isCrossfading) animatePlayerVolume(internalVolume * duckVolumeFactor, durationMs = 120L)
                 }
             }
         }
@@ -286,7 +336,7 @@ internal class CrossfadeExoPlayerAdapter(
                     .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build(),
-            ).setOnAudioFocusChangeListener(audioFocusListener)
+            ).setOnAudioFocusChangeListener(audioFocusListener, mainHandler)
             .setWillPauseWhenDucked(false)
             .build()
     }
@@ -392,6 +442,7 @@ internal class CrossfadeExoPlayerAdapter(
         resumeRecoveryJob = coroutineScope.launch {
             delay(3_500L)
             if (isActive &&
+                !pausedByTransientFocus &&
                 internalPlayWhenReady &&
                 player == currentPlayer &&
                 localCurrentMediaItemIndex == expectedTrackIndex &&
@@ -421,8 +472,8 @@ internal class CrossfadeExoPlayerAdapter(
             var prevBufferedPos = player.bufferedPosition
             var attempts = 0
             while (attempts < 3) {
-                delay(if (attempts == 0) 8_000L else 5_000L)
-                if (!isActive || player != currentPlayer || !internalPlayWhenReady) return@launch
+                delay(if (attempts == 0) 14_000L else 6_000L)
+                if (!isActive || player != currentPlayer || !internalPlayWhenReady || pausedByTransientFocus) return@launch
                 if (player.playbackState != Player.STATE_BUFFERING && player.isPlaying) return@launch
                 val curBuffered = player.bufferedPosition
                 if (curBuffered > prevBufferedPos + 500L && attempts < 2) {
@@ -433,8 +484,8 @@ internal class CrossfadeExoPlayerAdapter(
                     break
                 }
             }
-            if (isActive && player == currentPlayer && internalPlayWhenReady &&
-                (player.playbackState == Player.STATE_BUFFERING || !player.isPlaying)
+            if (isActive && player == currentPlayer && internalPlayWhenReady && !pausedByTransientFocus &&
+                player.playbackState == Player.STATE_BUFFERING && !player.isPlaying
             ) {
                 val currentVideoId = playlist.getOrNull(localCurrentMediaItemIndex)?.mediaId
                 if (currentVideoId != null) {
@@ -638,13 +689,13 @@ internal class CrossfadeExoPlayerAdapter(
                 ): AudioSink =
                     DefaultAudioSink
                         .Builder(context)
-                        .setEnableFloatOutput(true)
+                        .setEnableFloatOutput(false)
                         .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                         .setAudioTrackBufferSizeProvider(
                             DefaultAudioTrackBufferSizeProvider.Builder()
-                                .setPcmBufferMultiplicationFactor(8)
-                                .setMinPcmBufferDurationUs(2_000_000)
-                                .setMaxPcmBufferDurationUs(5_000_000)
+                                .setPcmBufferMultiplicationFactor(4)
+                                .setMinPcmBufferDurationUs(400_000)
+                                .setMaxPcmBufferDurationUs(1_000_000)
                                 .build()
                         )
                         .setAudioProcessorChain(
@@ -659,22 +710,14 @@ internal class CrossfadeExoPlayerAdapter(
                                 // than the other way round. The sleep fade stays last, because it
                                 // is the master attenuation and has to survive everything above.
                                 arrayOf(equalizer, echo, reverb, cinematic, dolbyAtmos, crossfadeFilter, sleepFade),
-                                SilenceSkippingAudioProcessor(
-                                    2_000_000,
-                                    (20_000 / 2_000_000).toFloat(),
-                                    2_000_000,
-                                    0,
-                                    256,
-                                ).apply {
-                                    setEnabled(false)
-                                },
+                                SilenceSkippingAudioProcessor(),
                                 SonicAudioProcessor(),
                             ),
                         ).build()
             }.apply {
                 setAllowedVideoJoiningTimeMs(5000)
                 setEnableDecoderFallback(true)
-                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
             }
 
         val player =
@@ -702,7 +745,6 @@ internal class CrossfadeExoPlayerAdapter(
                 .build()
                 .apply {
                     playWhenReady = false
-                    pause()
                 }
 
         return PlayerWithFilter(player, crossfadeFilter)
@@ -838,6 +880,11 @@ internal class CrossfadeExoPlayerAdapter(
         Logger.d(TAG, "pause() called (state: $internalState, playWhenReady: $internalPlayWhenReady)")
         internalPlayWhenReady = false
         resumeOnFocusGain = false
+        pausedByTransientFocus = false
+        transientFocusPauseJob?.cancel()
+        transientFocusPauseJob = null
+        duckRampJob?.cancel()
+        duckRampJob = null
         lastPauseTimeMs = System.currentTimeMillis()
         cancelResumeRecoveryWatchdog()
         cancelBufferingWatchdog()
@@ -1636,6 +1683,10 @@ internal class CrossfadeExoPlayerAdapter(
         currentLoadJob?.cancel()
         precacheJob?.cancel()
         positionUpdateJob?.cancel()
+        transientFocusPauseJob?.cancel()
+        duckRampJob?.cancel()
+        bufferingWatchdogJob?.cancel()
+        resumeRecoveryJob?.cancel()
 
         // Cancel crossfade
         crossfadeJob?.cancel()
@@ -3228,13 +3279,16 @@ internal class CrossfadeExoPlayerAdapter(
      * and calls prepare(), which triggers URL resolution and buffering via MediaSourceFactory.
      */
     private fun triggerPrecachingInternal() {
-        if (!precacheEnabled || playlist.isEmpty() || isCastActive) return
+        // Avoid allocating extra ExoPlayer + AudioTrack + hardware codecs during normal non-crossfade playback;
+        // simultaneous secondary decoders/AudioTracks contend with active playback during multitasking.
+        if (!precacheEnabled || !crossfadeEnabled || crossfadeSuppressed || playlist.isEmpty() || isCastActive) return
 
         cancelPrecaching()
         Logger.d(TAG, "Trigger precache")
         precacheJob =
             coroutineScope.launch {
                 try {
+                    delay(800L) // Wait until current player's AudioTrack & codec settle cleanly before preparing next.
                     val indicesToPrecache = mutableListOf<Int>()
 
                     val index = localCurrentMediaItemIndex

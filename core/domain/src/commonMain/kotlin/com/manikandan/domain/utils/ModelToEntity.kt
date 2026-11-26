@@ -21,6 +21,8 @@ import com.manikandan.domain.data.model.searchResult.songs.Artist
 import com.manikandan.domain.data.model.searchResult.songs.SongsResult
 import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
 import com.manikandan.domain.data.model.searchResult.videos.VideosResult
+import com.manikandan.domain.extension.bestThumbnailUrl
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import kotlin.jvm.JvmName
 
 fun SearchHistory.toQuery(): String = this.query
@@ -106,16 +108,7 @@ fun Track.toSongEntity(): SongEntity {
         isAvailable = this.isAvailable,
         isExplicit = this.isExplicit,
         likeStatus = this.likeStatus ?: "",
-        thumbnails =
-            this.thumbnails?.last()?.url?.let {
-                if (it.contains("w120")) {
-                    return@let Regex("([wh])120").replace(it, "$1544")
-                } else if (it.contains("sddefault")) {
-                    return@let it.replace("sddefault", "maxresdefault")
-                } else {
-                    return@let it
-                }
-            },
+        thumbnails = this.thumbnails.bestThumbnailUrl(),
         title = this.title,
         videoType = this.videoType ?: "",
         category = this.category,
@@ -134,7 +127,13 @@ fun SongEntity.toTrack(): Track {
             listArtist.add(Artist(this.artistId?.get(i) ?: "", artistName[i]))
         }
     }
-    val isSong = (this.thumbnails?.contains("w544") == true && this.thumbnails?.contains("h544") == true)
+    val thumb = upgradeArtworkUrl(this.thumbnails).orEmpty()
+    val isSong =
+        (thumb.contains("w544") && thumb.contains("h544")) ||
+            (thumb.contains("w1080") && thumb.contains("h1080")) ||
+            thumb.contains("ab67616d") ||
+            thumb.contains("500x500") ||
+            this.videoType == "Song"
     return Track(
         album = this.albumId?.let { this.albumName?.let { it1 -> Album(it, it1) } },
         artists = listArtist,
@@ -143,7 +142,7 @@ fun SongEntity.toTrack(): Track {
         isAvailable = this.isAvailable,
         isExplicit = this.isExplicit,
         likeStatus = this.likeStatus,
-        thumbnails = if (isSong) listOf(Thumbnail(544, this.thumbnails ?: "", 544)) else listOf(Thumbnail(720, this.thumbnails ?: "", 1080)),
+        thumbnails = if (isSong) listOf(Thumbnail(640, thumb, 640)) else listOf(Thumbnail(720, thumb, 1080)),
         title = this.title,
         videoId = this.videoId,
         videoType = this.videoType,

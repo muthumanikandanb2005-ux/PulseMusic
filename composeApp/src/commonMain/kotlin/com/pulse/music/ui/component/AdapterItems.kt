@@ -612,19 +612,24 @@ fun QuickPicksItem(
                     .fillMaxWidth()
                     .padding(10.dp),
         ) {
+            val cardThumb = com.manikandan.domain.extension.upgradeArtworkUrl(
+                data.thumbnails.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                    ?: data.thumbnails.lastOrNull()?.url,
+            )
             AsyncImage(
                 model =
                     ImageRequest
                         .Builder(LocalPlatformContext.current)
-                        .data(data.thumbnails.lastOrNull()?.url)
+                        .data(cardThumb)
                         .crossfade(false)
-                        .diskCacheKey(data.thumbnails.lastOrNull()?.url)
+                        .diskCacheKey(cardThumb)
                         .diskCachePolicy(CachePolicy.ENABLED)
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .build(),
                 placeholder = rememberHolderPainter(),
                 contentDescription = stringResource(Res.string.description),
                 contentScale = ContentScale.Crop,
+                filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                 modifier =
                     Modifier
                         .align(Alignment.CenterVertically)

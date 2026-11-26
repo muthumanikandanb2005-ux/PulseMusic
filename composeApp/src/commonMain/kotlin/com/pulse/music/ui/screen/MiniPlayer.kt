@@ -128,6 +128,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.kmpalette.rememberPaletteState
 import com.manikandan.domain.data.entities.SongEntity
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.utils.connectArtists
 import com.manikandan.logger.Logger
@@ -210,7 +211,7 @@ fun MiniPlayer(
                 Color.White
             },
         label = "MiniPlayerTextColor",
-        animationSpec = tween(500),
+        animationSpec = tween(180),
     )
 
     LaunchedEffect(layer, useGlassSurface) {
@@ -489,17 +490,18 @@ fun MiniPlayer(
                                         )
                                     },
                         ) {
+                            val miniThumb = upgradeArtworkUrl(songEntity?.thumbnails)
                             AsyncImage(
                                 model =
                                     ImageRequest
                                         .Builder(LocalPlatformContext.current)
-                                        .data(songEntity?.thumbnails)
-                                        .crossfade(150)
+                                        .data(miniThumb)
+                                        .crossfade(false)
                                         .build(),
                                 placeholder = rememberHolderPainter(),
                                 error = rememberHolderPainter(),
                                 contentDescription = null,
-                                contentScale = ContentScale.FillWidth,
+                                contentScale = ContentScale.Crop,
                                 onSuccess = {
                                     bitmap =
                                         it.result.image.toImageBitmap()
@@ -509,7 +511,7 @@ fun MiniPlayer(
                                         .size(40.dp)
                                         .align(Alignment.CenterVertically)
                                         .clip(
-                                            RoundedCornerShape(4.dp),
+                                            RoundedCornerShape(6.dp),
                                         ),
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -814,17 +816,19 @@ fun MiniPlayer(
                                 .graphicsLayer { alpha = infoAlpha },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        val desktopThumb = upgradeArtworkUrl(songEntity?.thumbnails)
                         AsyncImage(
                             model =
                                 ImageRequest
                                     .Builder(LocalPlatformContext.current)
-                                    .data(songEntity?.thumbnails)
-                                    .crossfade(150)
+                                    .data(desktopThumb)
+                                    .crossfade(false)
                                     .build(),
                             placeholder = rememberHolderPainter(),
                             error = rememberHolderPainter(),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
+                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                             onSuccess = {
                                 bitmap =
                                     it.result.image.toImageBitmap()

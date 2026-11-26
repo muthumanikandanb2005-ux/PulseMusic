@@ -449,25 +449,19 @@ private fun provideRendererFactory(context: Context): DefaultRenderersFactory =
         ): AudioSink =
             DefaultAudioSink
                 .Builder(context)
-                .setEnableFloatOutput(true)
+                .setEnableFloatOutput(false)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioTrackBufferSizeProvider(
                     DefaultAudioTrackBufferSizeProvider.Builder()
-                        .setPcmBufferMultiplicationFactor(8)
-                        .setMinPcmBufferDurationUs(1_500_000)
-                        .setMaxPcmBufferDurationUs(3_000_000)
+                        .setPcmBufferMultiplicationFactor(4)
+                        .setMinPcmBufferDurationUs(400_000)
+                        .setMaxPcmBufferDurationUs(1_000_000)
                         .build()
                 )
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
                         emptyArray(),
-                        SilenceSkippingAudioProcessor(
-                            2_000_000,
-                            (20_000 / 2_000_000).toFloat(),
-                            2_000_000,
-                            0,
-                            256,
-                        ),
+                        SilenceSkippingAudioProcessor(),
                         SonicAudioProcessor(),
                     ),
                 ).build()

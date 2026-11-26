@@ -273,7 +273,12 @@ fun SongFullWidthItems(
                                 modifier = Modifier.fillMaxSize(),
                             )
                         } else if (index == null) {
-                            val thumb = track?.thumbnails?.lastOrNull()?.url ?: songEntity?.thumbnails
+                            val thumb =
+                                com.manikandan.domain.extension.upgradeArtworkUrl(
+                                    track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                                        ?: track?.thumbnails?.lastOrNull()?.url
+                                        ?: songEntity?.thumbnails,
+                                )
                             AsyncImage(
                                 model =
                                     ImageRequest
@@ -283,12 +288,13 @@ fun SongFullWidthItems(
                                         .diskCacheKey(thumb)
                                         .memoryCachePolicy(CachePolicy.ENABLED)
                                         .memoryCacheKey(thumb)
+                                        .size(coil3.size.Size.ORIGINAL)
                                         .crossfade(false)
                                         .build(),
                                 placeholder = rememberHolderPainter(),
                                 error = rememberHolderPainter(),
                                 contentDescription = null,
-                                contentScale = ContentScale.FillWidth,
+                                contentScale = ContentScale.Crop,
                                 modifier =
                                     Modifier
                                         .fillMaxSize()

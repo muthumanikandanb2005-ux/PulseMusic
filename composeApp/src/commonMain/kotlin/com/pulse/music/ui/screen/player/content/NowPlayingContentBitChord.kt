@@ -739,16 +739,9 @@ private fun BitChordTopBar(
     }
 }
 
-/** Upgrades YouTube and GoogleUserContent thumbnail URLs to maximum uncompressed resolution. */
-private fun getHighResArtworkUrl(url: String?): String? {
-    if (url.isNullOrBlank()) return null
-    var res = url
-    if (res.contains("googleusercontent.com") || res.contains("ggpht.com")) {
-        res = res.replace(Regex("=w\\d+-h\\d+.*"), "=w1200-h1200-l90-rj")
-            .replace(Regex("=s\\d+.*"), "=s1200")
-    }
-    return res
-}
+/** Upgrades Spotify, YouTube, JioSaavn, and GoogleUserContent thumbnail URLs to maximum resolution. */
+private fun getHighResArtworkUrl(url: String?): String? =
+    com.manikandan.domain.extension.upgradeArtworkUrl(url)
 
 /** Artwork / Video Hero with breathing scale animation (1.0f play / 0.94f pause) and rounded corners. */
 @OptIn(ExperimentalFoundationApi::class)
@@ -856,16 +849,21 @@ private fun BitChordArtworkHero(
                         if (isVideo == true) {
                             state.screenData.canvasData?.url?.let { url ->
                                 Box(modifier = Modifier.fillMaxSize()) {
-                                    val fallbackArt = track?.thumbnails?.lastOrNull()?.url ?: state.screenData.thumbnailURL
+                                    val fallbackArt = getHighResArtworkUrl(
+                                        track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                                            ?: state.screenData.thumbnailURL,
+                                    )
                                     if (fallbackArt != null) {
                                         AsyncImage(
                                             model = ImageRequest.Builder(LocalPlatformContext.current)
                                                 .data(fallbackArt)
-                                                .crossfade(200)
+                                                .size(coil3.size.Size.ORIGINAL)
+                                                .crossfade(100)
                                                 .build(),
                                             contentDescription = track?.title ?: "Artwork",
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Crop,
+                                            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                         )
                                     }
                                     MediaPlayerView(
@@ -897,7 +895,8 @@ private fun BitChordArtworkHero(
                         }
                     }
                 } else {
-                    val rawUrl = track?.thumbnails?.lastOrNull()?.url
+                    val rawUrl = track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                        ?: track?.thumbnails?.lastOrNull()?.url
                         ?: track?.thumbnails?.firstOrNull()?.url
                         ?: (if (isCurrentArtworkPage) state.screenData.thumbnailURL else null)
                     var artworkUrl by remember(rawUrl) {
@@ -909,11 +908,13 @@ private fun BitChordArtworkHero(
                             .data(artworkUrl)
                             .diskCachePolicy(CachePolicy.ENABLED)
                             .memoryCachePolicy(CachePolicy.ENABLED)
-                            .crossfade(300)
+                            .size(coil3.size.Size.ORIGINAL)
+                            .crossfade(100)
                             .build(),
                         contentDescription = track?.title ?: "Artwork",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
+                        filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                         onSuccess = {
                             if (isCurrentArtworkPage) {
                                 actions.onArtworkBitmap(it.result.image.toImageBitmap())

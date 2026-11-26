@@ -22,6 +22,7 @@ import com.manikandan.data.mediaservice.mac.MacOSMediaIntegration
 import com.manikandan.data.mediaservice.mac.MacOSRemoteCommandListener
 import com.manikandan.data.mediaservice.mac.NowPlayingInfo
 import com.manikandan.data.service.JioSaavnService
+import com.manikandan.data.service.SpotifyTrackCache
 import com.manikandan.domain.data.entities.NewFormatEntity
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.model.browse.album.Track
@@ -1086,7 +1087,7 @@ class JvmMediaPlayerHandlerImpl(
                 // faster made it worse. The smoothed value is derived from the wall clock, so it
                 // differs on every tick and nothing is swallowed. Rate is now free to choose, and
                 // twice as many even steps reads better than half as many.
-                val tickIntervalMs = 200L
+                val tickIntervalMs = 33L
                 var sinceLastPositionSaveMs = 0L
                 while (true) {
                     delay(tickIntervalMs)
@@ -2404,6 +2405,9 @@ class JvmMediaPlayerHandlerImpl(
         if (track.isExplicit && !isExplicitContentEnabledCached) {
             showToast(ToastType.ExplicitContent)
             return
+        }
+        if (track.videoId.startsWith("sp_track:")) {
+            SpotifyTrackCache.putAll(listOf(track))
         }
         coroutineScope.launch(Dispatchers.IO) {
             songRepository.insertSong(track.toSongEntity()).firstOrNull()?.let {

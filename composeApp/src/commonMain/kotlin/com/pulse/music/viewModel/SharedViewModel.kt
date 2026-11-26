@@ -34,6 +34,7 @@ import com.manikandan.domain.extension.isSong
 import com.manikandan.domain.extension.isVideo
 import com.manikandan.domain.extension.toGenericMediaItem
 import com.manikandan.domain.extension.toSongEntity
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.data.model.lyrics.RomanizationLanguage
 import com.manikandan.domain.manager.DataStoreManager.Values.FALSE
@@ -98,6 +99,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.pulsemusic.lastfm.completeLogin
@@ -425,15 +428,18 @@ class SharedViewModel(
                         ?: state.mediaItem.metadata.artist
                         ?: ""
 
+                    val resolvedThumb = upgradeArtworkUrl(
+                        state.track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                            ?: state.songEntity?.thumbnails
+                            ?: state.mediaItem.metadata.artworkUri
+                            ?: state.track?.thumbnails?.firstOrNull()?.url,
+                    )
                     _nowPlayingScreenData.value =
                         NowPlayingScreenData(
                             nowPlayingTitle = title,
                             artistName = artist,
                             isVideo = state.mediaItem.isVideo(),
-                            thumbnailURL = state.mediaItem.metadata.artworkUri
-                                ?: state.songEntity?.thumbnails
-                                ?: state.track?.thumbnails?.lastOrNull()?.url
-                                ?: state.track?.thumbnails?.firstOrNull()?.url,
+                            thumbnailURL = resolvedThumb,
                             canvasData = null,
                             lyricsData = null, // ALWAYS wipe old lyrics immediately on track change!
                             songInfoData = null,
@@ -454,7 +460,7 @@ class SharedViewModel(
                         _nowPlayingScreenData.update {
                             it.copy(
                                 isExplicit = song.isExplicit,
-                                thumbnailURL = if (it.thumbnailURL.isNullOrBlank()) song.thumbnails else it.thumbnailURL,
+                                thumbnailURL = if (it.thumbnailURL.isNullOrBlank()) upgradeArtworkUrl(song.thumbnails) else it.thumbnailURL,
                             )
                         }
                     }
@@ -1471,101 +1477,103 @@ class SharedViewModel(
         lyricsJob = viewModelScope.launch {
             coroutineScope {
                 val preferredProvider = dataStoreManager.lyricsProvider.first()
-                Logger.d(tag, "fetchSmartLyrics: start high priority smart search for $targetVideoId (${song.title}), preferred=$preferredProvider")
+                Logger.d(tag, "fetchSmartLyrics: parallel race for $targetVideoId (${song.title}), preferred=$preferredProvider")
 
-                // Query High-Priority Rich Synced providers (BiniLyrics & Lyrica) in parallel for ultra-fast response
+                val applyMutex = kotlinx.coroutines.sync.Mutex()
+                // 0 = none, 1 = LINE_SYNCED, 2 = RICH_SYNCED
+                var bestAppliedTier = 0
+                var bestAppliedProvider: LyricsProvider? = null
+
+                suspend fun tryApplySyncedCandidate(data: Lyrics?, provider: LyricsProvider) {
+                    val lines = data?.lines
+                    if (data == null || lines.isNullOrEmpty()) return
+                    val candidateTier = when (data.syncType) {
+                        "RICH_SYNCED" -> 2
+                        "LINE_SYNCED" -> 1
+                        else -> 0
+                    }
+                    if (candidateTier == 0) return
+
+                    var shouldApply = false
+                    applyMutex.withLock {
+                        val isPreferredTieBreak =
+                            candidateTier == bestAppliedTier &&
+                                candidateTier == 2 &&
+                                ((preferredProvider == DataStoreManager.LYRICA && provider == LyricsProvider.LYRICA) ||
+                                    (preferredProvider != DataStoreManager.LYRICA && provider == LyricsProvider.BINI_LYRICS)) &&
+                                bestAppliedProvider != provider
+                        if (candidateTier > bestAppliedTier || isPreferredTieBreak) {
+                            bestAppliedTier = candidateTier
+                            bestAppliedProvider = provider
+                            shouldApply = true
+                        }
+                    }
+                    if (shouldApply) {
+                        val currentSongId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                            ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                        if (currentSongId != null && currentSongId != targetVideoId) return
+                        Logger.d(tag, "Instant lyrics hit ($provider, tier=$candidateTier) for ${song.title}")
+                        applyResolvedLyrics(targetVideoId, duration, data, provider)
+                    }
+                }
+
+                // Launch ALL THREE synced providers concurrently so first synced result renders immediately!
                 val biniDeferred = async<Lyrics?> {
                     try {
-                        lyricsCanvasRepository.getBiniLyrics(
+                        val res = lyricsCanvasRepository.getBiniLyrics(
                             artist = artist,
                             track = song.title,
                             duration = duration,
                             isrc = null,
                         ).firstOrNull()?.data
-                    } catch (e: Exception) {
+                        tryApplySyncedCandidate(res, LyricsProvider.BINI_LYRICS)
+                        res
+                    } catch (_: Exception) {
                         null
                     }
                 }
 
                 val lyricaDeferred = async<Lyrics?> {
                     try {
-                        lyricsCanvasRepository.getLyricaLyrics(
+                        val res = lyricsCanvasRepository.getLyricaLyrics(
                             artist = artist,
                             track = song.title,
                             duration = duration,
                         ).firstOrNull()?.data
-                    } catch (e: Exception) {
+                        tryApplySyncedCandidate(res, LyricsProvider.LYRICA)
+                        res
+                    } catch (_: Exception) {
                         null
                     }
                 }
 
-                val biniData: Lyrics? = biniDeferred.await()
-                val lyricaData: Lyrics? = lyricaDeferred.await()
+                val lrclibDeferred = async<Lyrics?> {
+                    try {
+                        val res = lyricsCanvasRepository.getLrclibLyricsData(
+                            sartist = artist,
+                            strack = song.title,
+                            duration = duration,
+                        ).firstOrNull()
+                        val data = if (res is Resource.Success) res.data else null
+                        tryApplySyncedCandidate(data, LyricsProvider.LRCLIB)
+                        data
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+
+                val biniData = biniDeferred.await()
+                val lyricaData = lyricaDeferred.await()
+                lrclibDeferred.await()
 
                 val currentSongId = nowPlayingState.value?.mediaItem?.mediaId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
                     ?: nowPlayingState.value?.songEntity?.videoId?.removePrefix(MERGING_DATA_TYPE.VIDEO)
                 if (currentSongId != null && currentSongId != targetVideoId) return@coroutineScope
 
-                val isBiniRich = biniData != null && !biniData.lines.isNullOrEmpty() && biniData.syncType == "RICH_SYNCED"
-                val isLyricaRich = lyricaData != null && !lyricaData.lines.isNullOrEmpty() && lyricaData.syncType == "RICH_SYNCED"
+                val alreadySynced = applyMutex.withLock { bestAppliedTier > 0 }
+                if (alreadySynced) return@coroutineScope
 
-                // Priority 1: High-priority RICH_SYNCED (word-by-word) lyrics from BiniLyrics or Lyrica
-                if (isBiniRich && isLyricaRich) {
-                    if (preferredProvider == DataStoreManager.LYRICA) {
-                        Logger.d(tag, "Found RICH_SYNCED lyrics from Lyrica for ${song.title}!")
-                        applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
-                    } else {
-                        Logger.d(tag, "Found RICH_SYNCED lyrics from BiniLyrics for ${song.title}!")
-                        applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
-                    }
-                    return@coroutineScope
-                } else if (isBiniRich) {
-                    Logger.d(tag, "Found RICH_SYNCED lyrics from BiniLyrics for ${song.title}!")
-                    applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
-                    return@coroutineScope
-                } else if (isLyricaRich) {
-                    Logger.d(tag, "Found RICH_SYNCED lyrics from Lyrica for ${song.title}!")
-                    applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
-                    return@coroutineScope
-                }
-
-                // Priority 2: Line-synced lyrics from BiniLyrics or Lyrica
-                val biniLineSynced = biniData != null && !biniData.lines.isNullOrEmpty() && biniData.syncType == "LINE_SYNCED"
-                val lyricaLineSynced = lyricaData != null && !lyricaData.lines.isNullOrEmpty() && lyricaData.syncType == "LINE_SYNCED"
-
-                if (biniLineSynced && lyricaLineSynced) {
-                    if (preferredProvider == DataStoreManager.LYRICA) {
-                        Logger.d(tag, "Applying LINE_SYNCED lyrics from Lyrica for ${song.title}")
-                        applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
-                    } else {
-                        Logger.d(tag, "Applying LINE_SYNCED lyrics from BiniLyrics for ${song.title}")
-                        applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
-                    }
-                    return@coroutineScope
-                } else if (biniLineSynced) {
-                    Logger.d(tag, "Applying LINE_SYNCED lyrics from BiniLyrics for ${song.title}")
-                    applyResolvedLyrics(targetVideoId, duration, biniData!!, LyricsProvider.BINI_LYRICS)
-                    return@coroutineScope
-                } else if (lyricaLineSynced) {
-                    Logger.d(tag, "Applying LINE_SYNCED lyrics from Lyrica for ${song.title}")
-                    applyResolvedLyrics(targetVideoId, duration, lyricaData!!, LyricsProvider.LYRICA)
-                    return@coroutineScope
-                }
-
-                // Priority 3: Fallback to LRCLIB
-                val lrclibRes = lyricsCanvasRepository.getLrclibLyricsData(
-                    sartist = artist,
-                    strack = song.title,
-                    duration = duration,
-                ).firstOrNull()
-                val lrclibData: Lyrics? = lrclibRes?.data
-                if (lrclibRes is Resource.Success && lrclibData != null && !lrclibData.lines.isNullOrEmpty()) {
-                    Logger.d(tag, "Applying LINE_SYNCED lyrics from LRCLIB for ${song.title}")
-                    applyResolvedLyrics(targetVideoId, duration, lrclibData, LyricsProvider.LRCLIB)
-                    return@coroutineScope
-                }
-
-                // Priority 4: Fallback to unsynced candidates from BiniLyrics or Lyrica
+                // Fallback to unsynced candidates from BiniLyrics or Lyrica if no synced result won
                 val biniCandidate: Lyrics? = biniData?.takeIf { !it.lines.isNullOrEmpty() }
                 val lyricaCandidate: Lyrics? = lyricaData?.takeIf { !it.lines.isNullOrEmpty() }
                 val bestCandidate: Pair<Lyrics, LyricsProvider>? = if (preferredProvider == DataStoreManager.LYRICA) {

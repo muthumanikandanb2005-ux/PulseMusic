@@ -1,6 +1,7 @@
 ﻿package com.manikandan.data.mapping
 
 import com.manikandan.data.parser.toListThumbnail
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.canvas.CanvasResult
 import com.manikandan.domain.data.model.mediaService.SponsorSkipSegments
@@ -212,7 +213,7 @@ internal fun PipedResponse.toTrack(videoId: String): Track =
             listOf(
                 Thumbnail(
                     720,
-                    this.thumbnailUrl ?: "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg",
+                    upgradeArtworkUrl(this.thumbnailUrl) ?: "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg",
                     1080,
                 ),
             ),
@@ -375,7 +376,7 @@ internal fun SearchSuggestions.toDomainSearchSuggestions(): com.manikandan.domai
                                 listOf(
                                     Thumbnail(
                                         width = 720,
-                                        url = it.thumbnail,
+                                        url = upgradeArtworkUrl(it.thumbnail) ?: it.thumbnail,
                                         height = 720,
                                     ),
                                 ),
@@ -397,7 +398,7 @@ internal fun SearchSuggestions.toDomainSearchSuggestions(): com.manikandan.domai
                                 listOf(
                                     Thumbnail(
                                         width = 720,
-                                        url = it.thumbnail,
+                                        url = upgradeArtworkUrl(it.thumbnail) ?: it.thumbnail,
                                         height = 720,
                                     ),
                                 ),
@@ -415,7 +416,7 @@ internal fun SearchSuggestions.toDomainSearchSuggestions(): com.manikandan.domai
                                 listOf(
                                     Thumbnail(
                                         width = 720,
-                                        url = it.thumbnail,
+                                        url = upgradeArtworkUrl(it.thumbnail) ?: it.thumbnail,
                                         height = 720,
                                     ),
                                 ),

@@ -104,7 +104,7 @@ private const val TAG = "LyricsView"
 // and JvmMediaPlayerHandlerImpl both tick on `tickIntervalMs`). It is the ceiling on how far the interpolated
 // playhead below is allowed to run ahead of the last real tick, so a stalled tick — paused
 // playback, a wedged player — can never drift further than the granularity we already live with.
-private const val PLAYHEAD_TICK_MS = 100L
+private const val PLAYHEAD_TICK_MS = 45L
 
 // A rich-synced line followed by a silence at least this long gets a row of dots standing in for
 // the instrumental, the way Apple Music marks one. Rich sync only: it is the one format that knows
@@ -157,8 +157,8 @@ private const val FLARE_REACH_CHARS = 2.8f
 //
 // Roughly one sung word long. Much shorter and the hand-over is not visible; much longer and half
 // the line glows at once, which is a smear rather than a light.
-private const val FLARE_FADE_MS = 120
-private const val FLARE_ATTACK_MS = 25
+private const val FLARE_FADE_MS = 75
+private const val FLARE_ATTACK_MS = 12
 
 // Distance, in characters, over which the wake behind the playhead falls to about a third of full
 // brightness. The decay is EXPONENTIAL, not linear, and that distinction is the whole point: a long
@@ -509,9 +509,10 @@ fun LyricsView(
             }
         }
 
-    val currentLineIndex by remember(timedLineIndexes) {
+    val linePlayhead = rememberSmoothPlayhead(current.current, enabled = timedLineIndexes.isNotEmpty() && !current.loading)
+    val currentLineIndex by remember(timedLineIndexes, lyricsOffsetMs) {
         derivedStateOf {
-            val now = current.current - lyricsOffsetMs
+            val now = linePlayhead.value - lyricsOffsetMs
             if (now <= 0L) -1 else timedLineIndexes.activeIndexAt(now)
         }
     }
@@ -1066,17 +1067,21 @@ private fun rememberSmoothPlayhead(
 ): State<Long> {
     val playhead = remember { mutableLongStateOf(rawMs) }
     LaunchedEffect(rawMs, enabled) {
+        playhead.longValue = rawMs
         if (!enabled) {
-            playhead.longValue = rawMs
             return@LaunchedEffect
         }
-        // Keyed on rawMs, so the next real tick cancels this loop and restarts it from the truth —
-        // the interpolation can accumulate error for at most one tick before being corrected.
+        // Capture when this tick arrived on this coroutine so the very first frame already
+        // advances by real wall-clock elapsed time since the tick arrived (zero frame phase lag).
         var baseNanos = -1L
+        var tickOffsetNs = 0L
         while (true) {
             withFrameNanos { frameNanos ->
-                if (baseNanos < 0L) baseNanos = frameNanos
-                val elapsedMs = (frameNanos - baseNanos) / 1_000_000L
+                if (baseNanos < 0L) {
+                    baseNanos = frameNanos
+                    tickOffsetNs = 8_000_000L // ~half frame compensation for IPC/flow dispatch
+                }
+                val elapsedMs = ((frameNanos - baseNanos) + tickOffsetNs) / 1_000_000L
                 playhead.longValue = rawMs + elapsedMs.coerceIn(0L, PLAYHEAD_TICK_MS)
             }
         }

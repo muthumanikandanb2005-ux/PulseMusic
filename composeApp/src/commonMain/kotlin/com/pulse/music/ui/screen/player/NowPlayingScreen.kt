@@ -631,26 +631,33 @@ fun NowPlayingScreenContent(
         // What the ear is hearing right now, which is what a lyric answers to. Keyed on the offset
         // as well so dragging the setting while paused still moves the line.
         val nowMs = timelineState.current - lyricsOffsetMs
-        if (nowMs > 0L) {
-            lines.indices.forEach { i ->
-                val startTimeMs = lines[i].startTimeMs.toLongOrNull() ?: 0L
-                val endTimeMs =
-                    if (i < lines.size - 1) {
-                        lines[i + 1].startTimeMs.toLongOrNull() ?: 0L
+        if (nowMs <= 0L || lines.isEmpty()) {
+            currentLyricLineIndex = -1
+        } else {
+            val firstStart = lines[0].startTimeMs.toLongOrNull() ?: 0L
+            if (nowMs < firstStart) {
+                currentLyricLineIndex = -1
+            } else {
+                var lo = 0
+                var hi = lines.lastIndex
+                var ans = -1
+                while (lo <= hi) {
+                    val mid = (lo + hi) ushr 1
+                    val startMs = lines[mid].startTimeMs.toLongOrNull() ?: 0L
+                    if (startMs <= nowMs) {
+                        ans = mid
+                        lo = mid + 1
                     } else {
-                        startTimeMs + 60000
+                        hi = mid - 1
                     }
-                if (nowMs in startTimeMs..endTimeMs) {
-                    currentLyricLineIndex = i
+                }
+                if (ans >= 0 && ans == lines.lastIndex) {
+                    val lastStart = lines[ans].startTimeMs.toLongOrNull() ?: 0L
+                    currentLyricLineIndex = if (nowMs <= lastStart + 60_000L) ans else -1
+                } else {
+                    currentLyricLineIndex = ans
                 }
             }
-            if (lines.isNotEmpty() &&
-                nowMs in 0..(lines.getOrNull(0)?.startTimeMs?.toLongOrNull() ?: 0L)
-            ) {
-                currentLyricLineIndex = -1
-            }
-        } else {
-            currentLyricLineIndex = -1
         }
     }
 

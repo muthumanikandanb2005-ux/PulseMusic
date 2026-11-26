@@ -4,7 +4,9 @@ import com.manikandan.data.db.datasource.LocalDataSource
 import com.manikandan.data.parser.OnlinePlaylistFetcher
 import com.manikandan.data.service.JioSaavnService
 import com.manikandan.data.service.SpotifyTrackCache
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.manikandan.domain.utils.toSongEntity
+import com.manikandan.spotify.model.response.spotify.SpotifyImage
 import com.manikandan.spotify.model.response.spotify.SpotifyTrackItem
 import com.manikandan.data.extension.getFullDataFromDB
 import com.manikandan.data.mapping.toListTrack
@@ -833,6 +835,28 @@ internal class PlaylistRepositoryImpl(
                 }
         }.flowOn(Dispatchers.IO)
 
+    private fun bestSpotifyImagesToThumbnails(images: List<SpotifyImage>?): List<Thumbnail> {
+        if (images.isNullOrEmpty()) return emptyList()
+        val best = images.maxByOrNull { (it.width ?: 0).toLong() * (it.height ?: 0).toLong() } ?: images.firstOrNull()
+        val upgradedUrl = upgradeArtworkUrl(best?.url) ?: return emptyList()
+        val w = (best?.width ?: 640).coerceAtLeast(640)
+        val h = (best?.height ?: 640).coerceAtLeast(640)
+        return listOf(Thumbnail(height = h, width = w, url = upgradedUrl))
+    }
+
+    private fun bestSpotifyImageUrl(images: List<SpotifyImage>?): String? =
+        bestSpotifyImagesToThumbnails(images).lastOrNull()?.url
+
+    private fun isLowResThumbnail(url: String?): Boolean {
+        if (url.isNullOrBlank()) return true
+        return url.contains("ab67616d00004851") ||
+            url.contains("ab67616d00001e02") ||
+            url.contains("w60-") ||
+            url.contains("w120-") ||
+            url.contains("-50x50.") ||
+            url.contains("-150x150.")
+    }
+
     private suspend fun mapSpotifyTracksToBrowseTracks(items: List<SpotifyTrackItem>): List<Track> {
         val tracks = items.filter { it.name.isNotBlank() }.mapIndexed { index, spTrack ->
             val stableId = spTrack.id.takeIf { it.isNotBlank() }
@@ -854,13 +878,7 @@ internal class PlaylistRepositoryImpl(
                 isAvailable = true,
                 isExplicit = false,
                 likeStatus = null,
-                thumbnails = spTrack.album?.images?.map { img ->
-                    Thumbnail(
-                        height = img.height ?: 300,
-                        width = img.width ?: 300,
-                        url = img.url,
-                    )
-                } ?: emptyList(),
+                thumbnails = bestSpotifyImagesToThumbnails(spTrack.album?.images),
                 title = spTrack.name,
                 videoId = "sp_track:$stableId",
                 videoType = "Song",
@@ -923,13 +941,7 @@ internal class PlaylistRepositoryImpl(
                 durationSeconds = resolvedTracks.sumOf { it.durationSeconds ?: 0 },
                 id = playlistId,
                 privacy = "PUBLIC",
-                thumbnails = detail.images.map { img ->
-                    Thumbnail(
-                        height = img.height ?: 300,
-                        width = img.width ?: 300,
-                        url = img.url,
-                    )
-                },
+                thumbnails = bestSpotifyImagesToThumbnails(detail.images),
                 title = detail.name.ifBlank { "Spotify Playlist" },
                 trackCount = detail.tracks.total.takeIf { it > 0 } ?: resolvedTracks.size,
                 tracks = resolvedTracks,
@@ -945,12 +957,14 @@ internal class PlaylistRepositoryImpl(
                 parsed.tracks.take(40).chunked(8).flatMap { batch ->
                     batch.mapIndexed { idx, pt ->
                         async {
-                            JioSaavnService.searchSongs(pt.query).firstOrNull()?.toTrack() ?: Track(
+                            val rawTitle = pt.title ?: pt.query.substringBefore(" - ").ifBlank { pt.query }
+                            val rawArtist = pt.artist ?: pt.query.substringAfter(" - ", "")
+                            JioSaavnService.findBestSongMatch(rawTitle, rawArtist.ifBlank { null }) ?: Track(
                                 album = com.manikandan.domain.data.model.searchResult.songs.Album(id = "", name = ""),
                                 artists = listOf(
                                     com.manikandan.domain.data.model.searchResult.songs.Artist(
                                         id = "",
-                                        name = pt.query.substringAfter(" - ", "").ifBlank { "Spotify" },
+                                        name = rawArtist.ifBlank { "Spotify" },
                                     ),
                                 ),
                                 duration = "",
@@ -959,7 +973,7 @@ internal class PlaylistRepositoryImpl(
                                 isExplicit = false,
                                 likeStatus = null,
                                 thumbnails = emptyList(),
-                                title = pt.query.substringBefore(" - ").ifBlank { pt.query },
+                                title = rawTitle,
                                 videoId = "sp_track:raw_${idx}_${pt.query.hashCode().toUInt()}",
                                 videoType = "Song",
                                 category = "SONG",
@@ -1033,13 +1047,7 @@ internal class PlaylistRepositoryImpl(
                             category = "Spotify Playlist",
                             itemCount = "${item.tracks?.total ?: 0}",
                             resultType = "Playlist",
-                            thumbnails = item.images.map { img ->
-                                Thumbnail(
-                                    height = img.height ?: 300,
-                                    width = img.width ?: 300,
-                                    url = img.url,
-                                )
-                            },
+                            thumbnails = bestSpotifyImagesToThumbnails(item.images),
                             title = item.name,
                         ),
                     )
@@ -1061,13 +1069,7 @@ internal class PlaylistRepositoryImpl(
                         category = "Trending on Spotify",
                         itemCount = "${item.tracks?.total ?: 0}",
                         resultType = "Playlist",
-                        thumbnails = item.images.map { img ->
-                            Thumbnail(
-                                height = img.height ?: 300,
-                                width = img.width ?: 300,
-                                url = img.url,
-                            )
-                        },
+                        thumbnails = bestSpotifyImagesToThumbnails(item.images),
                         title = item.name,
                     )
                 }
@@ -1084,13 +1086,16 @@ internal class PlaylistRepositoryImpl(
             val tracksRes = spotify.fetchTrendingTracksWithSpdc(spdc, limit = 20)
             if (tracksRes.isSuccess) {
                 val items = tracksRes.getOrNull().orEmpty()
-                val mapped = items.mapNotNull { track ->
-                    if (track.name.isBlank()) return@mapNotNull null
+                val validItems = items.filter { it.name.isNotBlank() }
+                if (validItems.isNotEmpty()) {
+                    mapSpotifyTracksToBrowseTracks(validItems)
+                }
+                val mapped = validItems.map { track ->
                     com.manikandan.domain.data.model.spotify.SpotifyRecentTrack(
                         id = track.id,
                         title = track.name,
                         artist = track.artists.joinToString(", ") { it.name },
-                        thumbnail = track.album?.images?.firstOrNull()?.url,
+                        thumbnail = bestSpotifyImageUrl(track.album?.images),
                         playedAt = null,
                     )
                 }
@@ -1130,13 +1135,17 @@ internal class PlaylistRepositoryImpl(
             val recentlyRes = spotify.fetchRecentlyPlayedWithSpdc(spdc, limit = 20)
             if (recentlyRes.isSuccess) {
                 val items = recentlyRes.getOrNull() ?: emptyList()
+                val validTracks = items.mapNotNull { it.track }.filter { it.name.isNotBlank() }
+                if (validTracks.isNotEmpty()) {
+                    mapSpotifyTracksToBrowseTracks(validTracks)
+                }
                 val results = items.mapNotNull { item ->
-                    val track = item.track ?: return@mapNotNull null
+                    val track = item.track?.takeIf { it.name.isNotBlank() } ?: return@mapNotNull null
                     com.manikandan.domain.data.model.spotify.SpotifyRecentTrack(
                         id = track.id,
                         title = track.name,
                         artist = track.artists.joinToString(", ") { it.name },
-                        thumbnail = track.album?.images?.firstOrNull()?.url,
+                        thumbnail = bestSpotifyImageUrl(track.album?.images),
                         playedAt = item.playedAt,
                     )
                 }
@@ -1160,7 +1169,7 @@ internal class PlaylistRepositoryImpl(
                         profile.displayName?.let { name ->
                             dataStoreManager.setSpotifyAccountName(name)
                         }
-                        profile.images.firstOrNull()?.url?.let { thumb ->
+                        bestSpotifyImageUrl(profile.images)?.let { thumb ->
                             dataStoreManager.setSpotifyAccountThumbUrl(thumb)
                         }
                     }
@@ -1174,7 +1183,7 @@ internal class PlaylistRepositoryImpl(
                 for (pl in playlists) {
                     val spotifyId = "spotify:${pl.id}"
                     val existing = localDataSource.getLocalPlaylistByYoutubePlaylistId(spotifyId)
-                    val thumbUrl = pl.images.firstOrNull()?.url
+                    val thumbUrl = bestSpotifyImageUrl(pl.images)
                     if (existing == null) {
                         localDataSource.insertLocalPlaylist(
                             LocalPlaylistEntity(
@@ -1184,7 +1193,7 @@ internal class PlaylistRepositoryImpl(
                             ),
                         )
                         insertedCount++
-                    } else if (thumbUrl != null && existing.thumbnail.isNullOrEmpty()) {
+                    } else if (thumbUrl != null && isLowResThumbnail(existing.thumbnail)) {
                         localDataSource.updateLocalPlaylistThumbnail(thumbUrl, existing.id)
                     }
                 }

@@ -144,6 +144,7 @@ class SpotApiVaultAndPathfinderTest {
         assertEquals("Spotify", summary.owner?.displayName)
         assertEquals(50, summary.tracks?.total)
         assertEquals("https://i.scdn.co/image/cover640", summary.images.firstOrNull()?.url)
+        assertEquals("https://i.scdn.co/image/cover640", summary.images.lastOrNull()?.url)
 
         val entries = spotify.parsePathfinderPlaylistEntries(root["content"]!!.jsonObject["items"]!!.jsonArray)
         assertEquals(1, entries.size)

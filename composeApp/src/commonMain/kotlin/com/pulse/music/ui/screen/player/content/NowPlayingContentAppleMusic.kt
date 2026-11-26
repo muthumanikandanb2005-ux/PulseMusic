@@ -583,15 +583,17 @@ private fun AppleMusicMainView(
                                     model =
                                         ImageRequest
                                             .Builder(LocalPlatformContext.current)
-                                            .data(state.screenData.thumbnailURL)
+                                            .data(com.manikandan.domain.extension.upgradeArtworkUrl(state.screenData.thumbnailURL))
                                             .diskCachePolicy(CachePolicy.ENABLED)
-                                            .diskCacheKey(state.screenData.thumbnailURL)
-                                            .crossfade(300)
+                                            .diskCacheKey(com.manikandan.domain.extension.upgradeArtworkUrl(state.screenData.thumbnailURL))
+                                            .size(coil3.size.Size.ORIGINAL)
+                                            .crossfade(100)
                                             .build(),
                                     placeholder = rememberHolderPainter(),
                                     error = rememberHolderPainter(),
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
+                                    filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                     modifier = Modifier.size(55.dp).clip(RoundedCornerShape(4.dp)),
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -993,7 +995,9 @@ private fun AppleMusicArtworkPage(
                 }
             }
         } else if (pageTrack != null) {
-            val staticThumb = pageTrack.thumbnails?.maxByOrNull { it.width * it.height }?.url
+            val staticThumb = com.manikandan.domain.extension.upgradeArtworkUrl(
+                pageTrack.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url,
+            )
             Box(
                 modifier =
                     Modifier
@@ -1007,11 +1011,13 @@ private fun AppleMusicArtworkPage(
                             .Builder(LocalPlatformContext.current)
                             .data(staticThumb)
                             .diskCachePolicy(CachePolicy.ENABLED)
-                            .diskCacheKey(staticThumb)
-                            .crossfade(300)
+                            .diskCacheKey(staticThumb + "ORIG")
+                            .size(coil3.size.Size.ORIGINAL)
+                            .crossfade(100)
                             .build(),
                     contentDescription = pageTrack.title,
                     contentScale = ContentScale.Crop,
+                    filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                     placeholder = rememberHolderPainter(),
                     error = rememberHolderPainter(),
                     modifier = Modifier.fillMaxSize().appleMusicVerticalFadeEdges(topFade = 0.dp, bottomFade = 300.dp),
@@ -1034,4 +1040,4 @@ private const val BACKDROP_TINT_ALPHA = 0.62f
 // enough to cover a normal fetch on a normal connection, short enough that a song with no lyrics
 // does not leave the user staring at an empty page. Not a fixed budget for the request itself:
 // lyrics arriving at any point cancel the wait outright.
-private const val LYRICS_ABSENCE_GRACE_MS = 2_500L
+private const val LYRICS_ABSENCE_GRACE_MS = 1_500L

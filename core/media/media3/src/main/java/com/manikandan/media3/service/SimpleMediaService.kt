@@ -181,13 +181,6 @@ internal class SimpleMediaService :
         // DefaultMediaNotificationProvider registered above, ensuring Android 14/15/16 compliance
         // without dual-notification conflicts.
 
-        simpleMediaServiceHandler.onUpdateNotification = { list ->
-            val commandButtonList = list.map { it.toCommandButton(this) }
-            mediaSession?.setMediaButtonPreferences(
-                commandButtonList,
-            )
-        }
-
         setupUsbDacRouting()
     }
 
@@ -285,6 +278,9 @@ internal class SimpleMediaService :
     private var preferUsbDacJob: Job? = null
     private var audioDeviceCallback: AudioDeviceCallback? = null
 
+    @Volatile
+    private var hasPreferredUsbDeviceSet = false
+
     private fun setupUsbDacRouting() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             preferUsbDacJob?.cancel()
@@ -313,7 +309,9 @@ internal class SimpleMediaService :
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             coroutineScope.launch {
                 val preferUsb = dataStoreManager.getString(DataStoreManager.PREFER_USB_DAC).firstOrNull() == "true"
-                updatePreferredAudioDevice(preferUsb)
+                if (preferUsb || hasPreferredUsbDeviceSet) {
+                    updatePreferredAudioDevice(preferUsb)
+                }
             }
         }
     }
@@ -331,11 +329,14 @@ internal class SimpleMediaService :
                     if (usbDevice != null) {
                         Logger.d("Service", "Routing audio to USB DAC: ${usbDevice.productName}")
                         (player as? ExoPlayer)?.setPreferredAudioDevice(usbDevice)
-                    } else {
+                        hasPreferredUsbDeviceSet = true
+                    } else if (hasPreferredUsbDeviceSet) {
                         (player as? ExoPlayer)?.setPreferredAudioDevice(null)
+                        hasPreferredUsbDeviceSet = false
                     }
-                } else {
+                } else if (hasPreferredUsbDeviceSet) {
                     (player as? ExoPlayer)?.setPreferredAudioDevice(null)
+                    hasPreferredUsbDeviceSet = false
                 }
             } catch (e: Exception) {
                 Logger.w("Service", "Failed to set preferred audio device: ${e.message}")
