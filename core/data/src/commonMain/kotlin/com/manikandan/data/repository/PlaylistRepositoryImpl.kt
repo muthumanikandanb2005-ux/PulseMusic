@@ -957,8 +957,8 @@ internal class PlaylistRepositoryImpl(
                 parsed.tracks.take(40).chunked(8).flatMap { batch ->
                     batch.mapIndexed { idx, pt ->
                         async {
-                            val rawTitle = pt.title ?: pt.query.substringBefore(" - ").ifBlank { pt.query }
-                            val rawArtist = pt.artist ?: pt.query.substringAfter(" - ", "")
+                            val rawTitle = pt.title?.takeIf { it.isNotBlank() } ?: pt.query
+                            val rawArtist = pt.artist?.takeIf { it.isNotBlank() } ?: ""
                             JioSaavnService.findBestSongMatch(rawTitle, rawArtist.ifBlank { null }) ?: Track(
                                 album = com.manikandan.domain.data.model.searchResult.songs.Album(id = "", name = ""),
                                 artists = listOf(
@@ -1097,6 +1097,9 @@ internal class PlaylistRepositoryImpl(
                         artist = track.artists.joinToString(", ") { it.name },
                         thumbnail = bestSpotifyImageUrl(track.album?.images),
                         playedAt = null,
+                        albumName = track.album?.name?.takeIf { it.isNotBlank() },
+                        albumId = track.album?.id?.takeIf { it.isNotBlank() },
+                        durationSeconds = (track.durationMs / 1000).toInt(),
                     )
                 }
                 if (mapped.isNotEmpty()) {
@@ -1147,6 +1150,9 @@ internal class PlaylistRepositoryImpl(
                         artist = track.artists.joinToString(", ") { it.name },
                         thumbnail = bestSpotifyImageUrl(track.album?.images),
                         playedAt = item.playedAt,
+                        albumName = track.album?.name?.takeIf { it.isNotBlank() },
+                        albumId = track.album?.id?.takeIf { it.isNotBlank() },
+                        durationSeconds = (track.durationMs / 1000).toInt(),
                     )
                 }
                 emit(results)

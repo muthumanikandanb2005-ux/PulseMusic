@@ -226,8 +226,66 @@ class Spotify {
         nextSession
     }
 
-    suspend fun getValidAccessToken(spdc: String, forceRefresh: Boolean = false): String? =
-        getOrCreateSession(spdc, forceRefresh = forceRefresh, allowAnonymousFallback = false)?.accessToken
+    suspend fun getValidAccessToken(
+        spdc: String,
+        forceRefresh: Boolean = false,
+        allowAnonymousFallback: Boolean = false,
+    ): String? =
+        getOrCreateSession(spdc, forceRefresh = forceRefresh, allowAnonymousFallback = allowAnonymousFallback)?.accessToken
+
+    suspend fun getSessionTokens(
+        spdc: String = "",
+        forceRefresh: Boolean = false,
+        allowAnonymousFallback: Boolean = true,
+    ): Pair<String, String>? {
+        val session = getOrCreateSession(spdc, forceRefresh = forceRefresh, allowAnonymousFallback = allowAnonymousFallback)
+            ?: return null
+        if (session.accessToken.isBlank() || session.clientToken.isBlank()) return null
+        return session.accessToken to session.clientToken
+    }
+
+    suspend fun fetchTrackById(
+        spdc: String = "",
+        trackId: String,
+    ): Result<SpotifyTrackItem> = runCatching {
+        val cleanId = trackId
+            .removePrefix("sp_track:")
+            .removePrefix("spotify:track:")
+            .substringBefore("?")
+            .trim()
+        require(cleanId.matches(Regex("^[A-Za-z0-9]{22}$"))) {
+            "Invalid Spotify track ID: $trackId"
+        }
+
+        val cleanSpdc = spdc.removePrefix("sp_dc=").trim()
+        val pfData = executePathfinder(
+            spdc = cleanSpdc,
+            operationName = "getTrack",
+            variables = buildJsonObject { put("uri", "spotify:track:$cleanId") },
+            allowAnonymous = true,
+        )
+        val pfNode = pfData?.obj("trackUnion") ?: pfData?.obj("trackV2") ?: pfData?.obj("track")
+        val pfParsed = pfNode?.let { parsePathfinderTrack(it, "spotify:track:$cleanId") }
+        if (pfParsed != null && pfParsed.name.isNotBlank()) {
+            return@runCatching pfParsed
+        }
+
+        val session = getOrCreateSession(cleanSpdc, allowAnonymousFallback = true)
+            ?: throw Exception("Failed to obtain Spotify session")
+        val restItem = spotifyClient.getSpotifyTrackById(session.accessToken, cleanId).body<SpotifyTrackItem>()
+        if (restItem.name.isBlank()) throw Exception("Empty track metadata for $cleanId")
+        val upgradedAlbum = restItem.album?.let { alb ->
+            alb.copy(
+                images = alb.images.map { img ->
+                    img.copy(url = upgradeSpotifyCdnUrl(img.url))
+                },
+            )
+        }
+        restItem.copy(
+            id = restItem.id.ifBlank { cleanId },
+            album = upgradedAlbum,
+        )
+    }
 
     private suspend fun executePathfinder(
         spdc: String,
@@ -860,13 +918,20 @@ class Spotify {
         val uri = data.str("uri") ?: fallbackUri ?: ""
         val id = data.str("id")?.takeIf { it.isNotBlank() } ?: uri.substringAfterLast(":").takeIf { it.isNotBlank() } ?: ""
 
-        val artists = (data.obj("artists")?.arr("items") ?: data.obj("firstArtist")?.arr("items"))
-            ?.mapNotNull { aEl ->
-                val aObj = aEl as? JsonObject ?: return@mapNotNull null
-                val aName = aObj.obj("profile")?.str("name") ?: aObj.str("name") ?: return@mapNotNull null
-                val aId = aObj.str("uri")?.substringAfterLast(":").orEmpty()
-                SpotifyArtistItem(id = aId, name = aName)
-            }.orEmpty()
+        val artistElements = buildList {
+            data.obj("artists")?.arr("items")?.let { addAll(it) }
+            data.obj("firstArtist")?.arr("items")?.let { addAll(it) }
+            data.obj("otherArtists")?.arr("items")?.let { addAll(it) }
+        }
+        val seenArtistKeys = HashSet<String>()
+        val artists = artistElements.mapNotNull { aEl ->
+            val aObj = aEl as? JsonObject ?: return@mapNotNull null
+            val aName = aObj.obj("profile")?.str("name") ?: aObj.str("name") ?: return@mapNotNull null
+            val aId = aObj.str("id") ?: aObj.str("uri")?.substringAfterLast(":").orEmpty()
+            val dedupeKey = aId.ifBlank { aName.lowercase() }
+            if (!seenArtistKeys.add(dedupeKey)) return@mapNotNull null
+            SpotifyArtistItem(id = aId, name = aName)
+        }
 
         val albumObj = data.obj("albumOfTrack")
         val albumImages = parseCoverSources(albumObj?.obj("coverArt")?.arr("sources"))

@@ -197,8 +197,26 @@ internal class LocalDataSource(
                     artistId = song.artistId,
                 )
             }
+            if (song.videoId.startsWith("sp_track:") && song.title.isNotBlank()) {
+                databaseDao.refreshSparseTrackMetadata(
+                    videoId = song.videoId,
+                    title = song.title,
+                    artistName = artistName ?: emptyList(),
+                    artistId = song.artistId,
+                    albumName = song.albumName ?: "",
+                    albumId = song.albumId,
+                    durationSeconds = song.durationSeconds,
+                    thumbnails = song.thumbnails,
+                )
+            }
         }
         return rowId
+    }
+
+    suspend fun clearLegacySpotifyCaches() {
+        databaseDao.clearSpotifyNewFormats()
+        databaseDao.clearSpotifySongCanvases()
+        databaseDao.clearSpotifySongInfo()
     }
 
     /**

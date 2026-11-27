@@ -307,6 +307,7 @@ class SharedViewModel(
             if (dataStoreManager.appVersion.first() != VersionManager.getVersionName()) {
                 dataStoreManager.resetOpenAppTime()
                 dataStoreManager.putString(FOOTGUNS_STAR_KEY, "false")
+                songRepository.clearLegacySpotifyCaches()
                 dataStoreManager.setAppVersion(
                     VersionManager.getVersionName(),
                 )

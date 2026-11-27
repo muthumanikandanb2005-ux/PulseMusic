@@ -1,65 +1,64 @@
 {
-  "version": "4.2.5",
-  "versionCode": 125,
-  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-Universal.apk",
-  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-Universal.apk",
-  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.5/PulseMusic-Universal.apk",
-  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.5/PulseMusic-Universal.apk",
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.5",
-  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.5",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.5",
-  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.5",
-  "tag_name": "v4.2.5",
-  "name": "Pulse Music v4.2.5 - Glitch-Free Audio, Exact Spotify Playback, Ultra-Crisp Covers & Instant Synced Lyrics",
+  "version": "4.2.6",
+  "versionCode": 126,
+  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-Universal.apk",
+  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-Universal.apk",
+  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.6/PulseMusic-Universal.apk",
+  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.6/PulseMusic-Universal.apk",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.6",
+  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.6",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.6",
+  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.6",
+  "tag_name": "v4.2.6",
+  "name": "Pulse Music v4.2.6 - 100% Accurate Spotify Playback, Canvas Videos & Track Details",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-11-26T16:55:18Z",
-  "body": "# Pulse Music v4.2.5 - Glitch-Free Audio, Exact Spotify Playback, Ultra-Crisp Covers & Instant Synced Lyrics\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83d\udd0a Glitch-Free Audio Under Notifications, Multitasking & Background Play\n- **Zero Notification / Multitasking Crackling**: Dispatched Android `AudioFocus` callbacks strictly on the Main application looper, replaced hard ducking steps with smooth volume ramps, added a 180ms transient chime guard, and switched to hardware-first MediaCodec decoding with balanced `400ms\u20131000ms` 16-bit PCM AudioTrack buffers so notifications and app switching never stall or pop audio.\n- **No Background Decoder Contention**: Stopped allocating extra background `ExoPlayer` + `AudioTrack` instances during normal non-crossfade playback and guarded USB DAC routing so notification route checks never reset audio output mid-song.\n\n### \ud83c\udfaf Exact Spotify Song Playback & Zero Home Refresh\n- **Accurate Per-Track Stream Matching**: Validated JioSaavn and YouTube candidates using strict normalized title, artist token, variant (remix/lofi), and duration scoring across all results, plus auto-invalidated stale pre-v4.2.5 Spotify cache entries so every Spotify song plays its exact audio.\n- **Instant Playback Without Home Reload**: Tapping any Spotify song or cover on Home plays immediately without triggering a Home shimmer refresh.\n\n### \ud83d\uddbc\ufe0f Full-Resolution Unblurred Album Artwork\n- **Razor-Sharp 640px / 1080px Covers**: Eliminated low-res `64x64` Spotify thumbnails (`ab67616d00004851`), upgraded Spotify/Google/Saavn CDN URLs to full resolution, and enabled `Size.ORIGINAL` + `FilterQuality.High` rendering across Home, Playlists, MiniPlayer, and Now Playing.\n\n### \u26a1 Instant Startup, 120Hz Motion & Zero-Delay Synced Lyrics\n- **Single-Pass Instant Home Startup**: Consolidated Home startup collectors into a unified trigger without artificial delays.\n- **Snappy Navigation, Text & MiniPlayer**: Refined shared-axis transitions, reduced fade delays, and sped up MiniPlayer track/color transitions.\n- **Lightning-Fast Synced Lyrics**: Queried LRCLIB, BiniLyrics, and Lyrica concurrently to render the first synced lyrics immediately, upgraded playhead & canvas subtitle sync to sub-frame precision, and tightened scroll & focus transitions.\n",
+  "published_at": "2026-11-27T12:33:51Z",
+  "body": "# Pulse Music v4.2.6 - 100% Accurate Spotify Playback, Canvas Videos & Track Details\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \ud83c\udfaf 100% Accurate Spotify Song & Details Matching\n- **Authoritative Spotify Track Enrichment**: Resolves exact track title, full artist credits, album/movie soundtrack name, and duration directly via Spotify track endpoints before matching streams or metadata.\n- **Transliteration, Dual-Title & Soundtrack Disambiguation**: Handles regional spelling variants (e.g., *Halamathi Habibo* \u2194 *Halamithi Habibo*), dual titles (*Arabic Kuthu - Halamithi Habibo*), and movie/album context (*Beast*), while strictly rejecting ringtones, BGMs, unrequested remixes, and unrelated artists.\n- **Complete Song Details for Spotify Tracks**: Populates full artist credits, album name, duration, and high-res artwork for Spotify tracks in the info sheet and radio seeding instead of failing on YouTube-only IDs.\n\n### \ud83c\udfac Exact Song-Locked Canvas Videos & Spotify Lyrics\n- **Direct Spotify Canvas Lookup First**: Queries Canvas directly by authentic Spotify track ID (`sp_track:<id>`) before searching, and validates all fallback Canvas, Apple Music Motion, and Spotify Lyrics candidates using strict title, artist, album, and duration verification so unrelated Canvas videos or wrong lyrics are never displayed.\n\n### \ud83e\uddf9 Automatic Legacy Cache Repair & CDN Safety\n- **Clean Upgrade Migration**: Automatically clears stale pre-v4.2.6 `sp_track:` ExoPlayer audio caches, cached formats, Canvas URLs, and song info rows once on upgrade, and fixes format-cache `&cpn=` URL handling on direct CDN streams.\n",
   "changelog": [
-    "Audio Stability: Fixed notification/multitasking/background audio crackling with main-looper AudioFocus handling, smooth volume ducking ramps, hardware-first decoding, and stable PCM16 AudioTrack buffers",
-    "Exact Spotify Playback: Added strict title/artist/duration matching across JioSaavn and YouTube so different Spotify songs always play their exact audio",
-    "No Home Refresh & Instant Startup: Removed Home shimmer reset on Spotify card taps and consolidated startup fetches",
-    "Crisp Full-Res Artwork: Upgraded 64px thumbnails to 640px/1080px HD across Home, Playlists, MiniPlayer, and Now Playing",
-    "Instant Synced Lyrics & Smooth Transitions: Parallelized lyrics fetching, eliminated scroll/blur delay with smooth frame playhead tracking, and refined screen & MiniPlayer motion"
+    "100% Accurate Spotify Playback: Enriches tracks with authoritative Spotify metadata, matches transliterations (Halamathi/Halamithi), dual titles (Arabic Kuthu - Halamithi Habibo), and movie/album context (Beast), and rejects wrong songs or ringtones",
+    "Exact Canvas & Motion Matching: Fetches Spotify Canvas directly by track ID first and strictly validates search Canvas, Apple Music Motion, and Spotify Lyrics candidates against track title, artist, album, and duration",
+    "Complete Spotify Song Info: Resolves authentic Spotify artist, album, duration, and high-res artwork details for Spotify tracks",
+    "Automatic Cache Repair: Automatically clears stale pre-v4.2.6 sp_track audio/Canvas/format/info caches and fixes CDN format-cache URL handling"
   ],
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 58156219
+      "size": 58166690
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30287091
+      "size": 30297567
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30251231
+      "size": 30261703
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 31752576
+      "size": 31763043
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/vnd.microsoft.portable-executable",
-      "size": 215955224
+      "size": 216028480
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 215502531
+      "size": 215577536
     }
   ],
-  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-Windows-x64-Setup.exe",
-  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.5/PulseMusic-Windows-x64-Setup.exe"
+  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-Windows-x64-Setup.exe",
+  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.6/PulseMusic-Windows-x64-Setup.exe"
 }

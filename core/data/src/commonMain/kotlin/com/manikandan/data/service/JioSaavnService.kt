@@ -925,36 +925,70 @@ object JioSaavnService {
         title: String,
         artist: String? = null,
         expectedDurationSec: Int? = null,
+        albumHint: String? = null,
     ): Track? = withContext(Dispatchers.IO) {
         if (title.isBlank()) return@withContext null
 
-        val cleanTitle = TrackMatcher.normalizeTitle(title).ifBlank { title.trim() }
+        val variants = TrackMatcher.titleVariants(title)
+        val cleanTitle = variants.firstOrNull() ?: TrackMatcher.normalizeTitle(title).ifBlank { title.trim() }
         val cleanArtist = artist?.replace(Regex("""(?i)\b(topic|vevo)\b"""), "")?.trim()
+        val effAlbumHint = albumHint?.takeIf { it.isNotBlank() && !it.equals("Album", ignoreCase = true) }
+            ?: TrackMatcher.extractAlbumHintFromTitle(title)
         val query = if (!cleanArtist.isNullOrBlank()) "$cleanTitle $cleanArtist" else cleanTitle
 
         val candidates = ArrayList<SongsResult>()
-        val primaryResults = runCatching { searchSongs(query) }.getOrDefault(emptyList())
-        candidates.addAll(primaryResults)
-        if (candidates.isEmpty() && query != cleanTitle) {
-            candidates.addAll(runCatching { searchSongs(cleanTitle) }.getOrDefault(emptyList()))
+        val seenIds = HashSet<String>()
+        fun addUnique(list: List<SongsResult>) {
+            for (item in list) {
+                if (seenIds.add(item.videoId)) candidates.add(item)
+            }
         }
 
-        var bestCandidate: SongsResult? = null
-        var bestScore = Double.NEGATIVE_INFINITY
-        for (cand in candidates.take(10)) {
-            val candArtistStr = cand.artists?.joinToString(", ") { it.name }
-            val score = TrackMatcher.scoreCandidate(
-                expectedTitle = title,
-                expectedArtist = cleanArtist,
-                candidateTitle = cand.title.orEmpty(),
-                candidateArtists = candArtistStr,
-                expectedDurationSec = expectedDurationSec,
-                candidateDurationSec = cand.durationSeconds,
-            )
-            if (score > bestScore) {
-                bestScore = score
-                bestCandidate = cand
+        addUnique(runCatching { searchSongs(query) }.getOrDefault(emptyList()))
+        if (candidates.size < 3 && query != cleanTitle) {
+            addUnique(runCatching { searchSongs(cleanTitle) }.getOrDefault(emptyList()))
+        }
+
+        fun scoreAll(): Pair<SongsResult?, Double> {
+            var bestCand: SongsResult? = null
+            var bestSc = Double.NEGATIVE_INFINITY
+            for (cand in candidates.take(20)) {
+                val candArtistStr = cand.artists?.joinToString(", ") { it.name }
+                val sc = TrackMatcher.scoreCandidate(
+                    expectedTitle = title,
+                    expectedArtist = cleanArtist,
+                    candidateTitle = cand.title.orEmpty(),
+                    candidateArtists = candArtistStr,
+                    expectedDurationSec = expectedDurationSec,
+                    candidateDurationSec = cand.durationSeconds,
+                    expectedAlbum = effAlbumHint,
+                    candidateAlbum = cand.album?.name,
+                )
+                if (sc > bestSc) {
+                    bestSc = sc
+                    bestCand = cand
+                }
             }
+            return bestCand to bestSc
+        }
+
+        var (bestCandidate, bestScore) = scoreAll()
+
+        // If movie/album hint or secondary dual-title segment wasn't matched tightly yet, widen search cleanly
+        if (!TrackMatcher.isAcceptableMatch(bestScore) && !effAlbumHint.isNullOrBlank()) {
+            addUnique(runCatching { searchSongs("$cleanTitle $effAlbumHint") }.getOrDefault(emptyList()))
+            val rescored = scoreAll()
+            bestCandidate = rescored.first
+            bestScore = rescored.second
+        }
+        if (!TrackMatcher.isAcceptableMatch(bestScore) && variants.size > 1) {
+            for (subVariant in variants.drop(1).take(2)) {
+                val subQuery = if (!cleanArtist.isNullOrBlank()) "$subVariant $cleanArtist" else subVariant
+                addUnique(runCatching { searchSongs(subQuery) }.getOrDefault(emptyList()))
+            }
+            val rescored = scoreAll()
+            bestCandidate = rescored.first
+            bestScore = rescored.second
         }
 
         if (bestCandidate != null && TrackMatcher.isAcceptableMatch(bestScore)) {
@@ -969,10 +1003,11 @@ object JioSaavnService {
         title: String,
         artist: String? = null,
         expectedDurationSec: Int? = null,
+        albumHint: String? = null,
     ): String? = withContext(Dispatchers.IO) {
         if (title.isBlank()) return@withContext null
 
-        val matched = findBestSongMatch(title, artist, expectedDurationSec)
+        val matched = findBestSongMatch(title, artist, expectedDurationSec, albumHint)
         if (matched != null) {
             val saavnId = matched.videoId.removePrefix("saavn:")
             val stream = resolveStreamById(saavnId)

@@ -6,4 +6,7 @@ data class SpotifyRecentTrack(
     val artist: String,
     val thumbnail: String?,
     val playedAt: String? = null,
+    val albumName: String? = null,
+    val albumId: String? = null,
+    val durationSeconds: Int = 0,
 )

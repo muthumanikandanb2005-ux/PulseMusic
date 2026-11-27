@@ -242,10 +242,26 @@ private fun provideResolvingDataSourceFactory(
     streamRepository: StreamRepository,
     coroutineScope: CoroutineScope,
 ): DataSource.Factory {
+    var spCacheMigratedThisProcess = false
     return ResolvingDataSource.Factory(cacheDataSourceFactory) { dataSpec ->
         val mediaId = dataSpec.key ?: error("No media id")
         Logger.w("Stream", mediaId)
         Logger.w("Stream", mediaId.startsWith(MERGING_DATA_TYPE.VIDEO).toString())
+        if (!spCacheMigratedThisProcess && mediaId.contains("sp_track:")) {
+            runBlocking(Dispatchers.IO) {
+                runCatching {
+                    val migrated = dataStoreManager.getString("sp_cache_migrated_v426").firstOrNull() == "true"
+                    if (!migrated) {
+                        val spKeys = playerCache.keys.filter { it.contains("sp_track:") }
+                        spKeys.forEach { key -> runCatching { playerCache.removeResource(key) } }
+                        streamRepository.clearLegacySpotifyCaches()
+                        dataStoreManager.putString("sp_cache_migrated_v426", "true")
+                        Logger.w("Stream", "Purged ${spKeys.size} legacy sp_track playerCache entries & DB caches for v4.2.6")
+                    }
+                }
+                spCacheMigratedThisProcess = true
+            }
+        }
         if (downloadCache.isFullyCached(mediaId, dataSpec.position)) {
             if (dataSpec.position == 0L) {
                 coroutineScope.launch(Dispatchers.IO) {
@@ -314,7 +330,7 @@ private fun provideResolvingDataSourceFactory(
                     if (audioUrl != null && it.expiredTime > now().plusMinutes(15)) {
                         Logger.d("Stream", audioUrl)
                         Logger.w("Stream", "Audio from format cache (uninterrupted)")
-                        val finalUrl = if (it.cpn != null && !audioUrl.contains("&cpn=")) {
+                        val finalUrl = if (it.cpn != null && !it.cpn!!.startsWith("sp_") && audioUrl.contains("googlevideo.com") && !audioUrl.contains("&cpn=")) {
                             audioUrl.plus("&cpn=${it.cpn}")
                         } else audioUrl
                         dataSpecReturn = dataSpec.withUri(finalUrl.toUri())

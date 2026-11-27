@@ -127,4 +127,77 @@ class TrackMatcherAndArtworkTest {
             spotifyOrderedDescending.bestThumbnailUrl(),
         )
     }
+
+    @Test
+    fun matchesHalamathiTransliterationDualTitlesAndRejectsRingtoneOrWrongSong() {
+        // Phonetic transliteration ("Halamathi" vs "Halamithi") + Movie album hint ("Beast")
+        val halamithiMatch = TrackMatcher.scoreCandidate(
+            expectedTitle = "Halamathi Habibo",
+            expectedArtist = "Anirudh Ravichander, Jonita Gandhi",
+            candidateTitle = "Halamithi Habibo",
+            candidateArtists = "Anirudh Ravichander, Jonita Gandhi",
+            expectedDurationSec = 279,
+            candidateDurationSec = 279,
+            expectedAlbum = "Beast",
+            candidateAlbum = "Beast",
+        )
+        assertTrue(TrackMatcher.isAcceptableMatch(halamithiMatch), "Phonetic spelling Halamathi -> Halamithi must match ($halamithiMatch)")
+
+        // Dual title ("Arabic Kuthu - Halamithi Habibo (From \"Beast\")") matching "Halamathi Habibo"
+        val dualTitleMatch = TrackMatcher.scoreCandidate(
+            expectedTitle = "Halamathi Habibo",
+            expectedArtist = "Anirudh Ravichander",
+            candidateTitle = "Arabic Kuthu - Halamithi Habibo (From \"Beast\")",
+            candidateArtists = "Anirudh Ravichander, Jonita Gandhi",
+            expectedDurationSec = 279,
+            candidateDurationSec = 279,
+            expectedAlbum = "Beast",
+            candidateAlbum = "Beast",
+        )
+        assertTrue(TrackMatcher.isAcceptableMatch(dualTitleMatch), "Dual-title Beast soundtrack must match ($dualTitleMatch)")
+
+        // Reverse: full Spotify title matches exact Tamil full title higher than dubbed single cut
+        val fullTamilExact = TrackMatcher.scoreCandidate(
+            expectedTitle = "Arabic Kuthu - Halamithi Habibo (From \"Beast\")",
+            expectedArtist = "Anirudh Ravichander, Jonita Gandhi",
+            candidateTitle = "Arabic Kuthu - Halamithi Habibo",
+            candidateArtists = "Anirudh Ravichander, Jonita Gandhi",
+            expectedDurationSec = 279,
+            candidateDurationSec = 279,
+            expectedAlbum = "Beast",
+            candidateAlbum = "Beast",
+        )
+        val dubbedSingleCut = TrackMatcher.scoreCandidate(
+            expectedTitle = "Arabic Kuthu - Halamithi Habibo (From \"Beast\")",
+            expectedArtist = "Anirudh Ravichander, Jonita Gandhi",
+            candidateTitle = "Halamithi Habibo",
+            candidateArtists = "Anirudh Ravichander, Jonita Gandhi",
+            expectedDurationSec = 279,
+            candidateDurationSec = 279,
+            expectedAlbum = "Beast",
+            candidateAlbum = "Beast",
+        )
+        assertTrue(fullTamilExact > dubbedSingleCut, "Full dual-title Tamil original ($fullTamilExact) must outrank single dub ($dubbedSingleCut)")
+
+        // Ringtone / BGM / unrelated song must be rejected
+        val bgmRingtone = TrackMatcher.scoreCandidate(
+            expectedTitle = "Halamathi Habibo",
+            expectedArtist = "Anirudh Ravichander",
+            candidateTitle = "Halamithi Habibo BGM Ringtone",
+            candidateArtists = "DJ Ringtone",
+            expectedDurationSec = 279,
+            candidateDurationSec = 32,
+        )
+        assertFalse(TrackMatcher.isAcceptableMatch(bgmRingtone), "Ringtone/BGM must never match official song")
+
+        val unrelatedSong = TrackMatcher.scoreCandidate(
+            expectedTitle = "Arabic Kuthu - Halamithi Habibo",
+            expectedArtist = "Anirudh Ravichander",
+            candidateTitle = "Vaathi Coming",
+            candidateArtists = "Anirudh Ravichander",
+            expectedDurationSec = 230,
+            candidateDurationSec = 230,
+        )
+        assertFalse(TrackMatcher.isAcceptableMatch(unrelatedSong), "Different track by same artist must be rejected")
+    }
 }

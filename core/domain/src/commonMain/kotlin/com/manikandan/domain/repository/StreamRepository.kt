@@ -53,6 +53,8 @@ interface StreamRepository {
 
     suspend fun invalidateFormat(videoId: String)
 
+    suspend fun clearLegacySpotifyCaches() = Unit
+
     /**
      * Which extractor and cipher decoder produced this video's stream URLs, for the info sheet.
      *

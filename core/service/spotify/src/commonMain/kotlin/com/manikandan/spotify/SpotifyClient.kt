@@ -196,7 +196,14 @@ class SpotifyClient {
         header("Client-Token", clientToken)
         header(HttpHeaders.AcceptEncoding, "gzip, deflate, br")
         val variable =
-            "{\"searchTerm\":\"${q.replace("\"", "\\\"")}\",\"offset\":0,\"limit\":3,\"numberOfTopResults\":3,\"includeAudiobooks\":true,\"includePreReleases\":false}"
+            buildJsonObject {
+                put("searchTerm", q)
+                put("offset", 0)
+                put("limit", 10)
+                put("numberOfTopResults", 5)
+                put("includeAudiobooks", false)
+                put("includePreReleases", false)
+            }.toString()
         val sha = shaHash ?: SpotApiVault.fallbackQueryHash("searchTracks").orEmpty()
         parameter("variables", variable)
         parameter(
@@ -204,6 +211,12 @@ class SpotifyClient {
             "{\"persistedQuery\":{\"version\":1,\"sha256Hash\":\"$sha\"}}",
         )
     }
+
+    suspend fun getSpotifyTrackById(token: String, trackId: String) =
+        spotifyClient.get("https://api.spotify.com/v1/tracks/$trackId") {
+            userAgent(MODERN_CHROME_UA)
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
 
     /**
      * Execute a SpotAPI Pathfinder GraphQL v2 query with full WebPlayer headers.

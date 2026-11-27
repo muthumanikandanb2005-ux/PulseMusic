@@ -354,6 +354,35 @@ interface DatabaseDao {
         canvasThumbUrl: String,
     )
 
+    @Query(
+        "UPDATE song SET title = :title, artistName = :artistName, artistId = :artistId, " +
+            "albumName = CASE WHEN :albumName != '' THEN :albumName ELSE albumName END, " +
+            "albumId = CASE WHEN :albumId IS NOT NULL AND :albumId != '' THEN :albumId ELSE albumId END, " +
+            "durationSeconds = CASE WHEN :durationSeconds > 0 THEN :durationSeconds ELSE durationSeconds END, " +
+            "thumbnails = CASE WHEN :thumbnails IS NOT NULL AND :thumbnails != '' THEN :thumbnails ELSE thumbnails END " +
+            "WHERE videoId = :videoId AND (durationSeconds <= 0 OR albumName IS NULL OR albumName = '' OR albumName = 'Album' " +
+            "OR thumbnails IS NULL OR thumbnails LIKE '%ab67616d00004851%' OR thumbnails LIKE '%ab67616d00001e02%')",
+    )
+    suspend fun refreshSparseTrackMetadata(
+        videoId: String,
+        title: String,
+        artistName: List<String>,
+        artistId: List<String>?,
+        albumName: String,
+        albumId: String?,
+        durationSeconds: Int,
+        thumbnails: String?,
+    )
+
+    @Query("UPDATE song SET canvasUrl = NULL, canvasThumbUrl = NULL WHERE videoId LIKE 'sp_track:%'")
+    suspend fun clearSpotifySongCanvases()
+
+    @Query("DELETE FROM new_format WHERE videoId LIKE 'sp_track:%'")
+    suspend fun clearSpotifyNewFormats()
+
+    @Query("DELETE FROM song_info WHERE videoId LIKE 'sp_track:%'")
+    suspend fun clearSpotifySongInfo()
+
     @Query("UPDATE song SET thumbnails = :thumbnails WHERE videoId = :videoId")
     suspend fun updateThumbnailsSongEntity(
         thumbnails: String,

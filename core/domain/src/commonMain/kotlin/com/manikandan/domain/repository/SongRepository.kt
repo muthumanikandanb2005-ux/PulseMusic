@@ -139,4 +139,6 @@ interface SongRepository {
     fun getRelatedData(videoId: String): Flow<Resource<Pair<List<Track>, String?>>>
 
     fun getRadioFromEndpoint(endpoint: YouTubeWatchEndpoint): Flow<Resource<Pair<List<Track>, String?>>>
+
+    suspend fun clearLegacySpotifyCaches() = Unit
 }

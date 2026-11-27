@@ -2,9 +2,12 @@
 
 package com.manikandan.data.repository
 
+import com.manikandan.common.MERGING_DATA_TYPE
 import com.manikandan.data.db.datasource.LocalDataSource
 import com.manikandan.data.mapping.toCanvasResult
 import com.manikandan.data.mapping.toLyrics
+import com.manikandan.data.service.SpotifyTrackCache
+import com.manikandan.data.service.TrackMatcher
 import com.manikandan.domain.data.entities.LyricsEntity
 import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.entities.TranslatedLyricsEntity
@@ -13,7 +16,12 @@ import com.manikandan.domain.data.model.browse.artist.ArtistLogo
 import com.manikandan.domain.data.model.canvas.CanvasResult
 import com.manikandan.domain.data.model.metadata.Lyrics
 import com.manikandan.domain.data.model.metadata.PulseMusicLyrics
+import com.manikandan.domain.data.model.searchResult.songs.Album
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
 import com.manikandan.domain.extension.now
+import com.manikandan.domain.extension.upgradeArtworkUrl
+import com.manikandan.domain.utils.toSongEntity
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.repository.LyricsCanvasRepository
 import com.manikandan.domain.utils.Resource
@@ -110,6 +118,85 @@ internal class LyricsCanvasRepositoryImpl(
             }
         }.flowOn(Dispatchers.IO)
 
+    private suspend fun enrichSongForLookup(
+        cleanVideoId: String,
+        fallbackSong: SongEntity?,
+        spdc: String,
+    ): SongEntity? {
+        var song = localDataSource.getSong(cleanVideoId)
+            ?: SpotifyTrackCache.get(cleanVideoId)?.toSongEntity()
+            ?: fallbackSong
+        if (song == null) {
+            kotlinx.coroutines.delay(200)
+            song = localDataSource.getSong(cleanVideoId)
+                ?: SpotifyTrackCache.get(cleanVideoId)?.toSongEntity()
+                ?: fallbackSong
+        }
+        val rawSpId = cleanVideoId.removePrefix("sp_track:").trim()
+        val needsEnrichment = cleanVideoId.startsWith("sp_track:") &&
+            rawSpId.matches(SPOTIFY_TRACK_ID_REGEX) &&
+            (song == null || song.durationSeconds <= 0 || song.albumName.isNullOrBlank() || song.albumName == PLACEHOLDER_ALBUM_NAME ||
+                song.artistName.isNullOrEmpty() || song.artistName?.firstOrNull().equals("Spotify", ignoreCase = true))
+        if (needsEnrichment) {
+            val spTrack = spotify.fetchTrackById(spdc, rawSpId).getOrNull()
+            if (spTrack != null && spTrack.name.isNotBlank()) {
+                val sec = (spTrack.durationMs / 1000L).toInt().coerceAtLeast(0)
+                val bestThumb = spTrack.album?.images
+                    ?.maxByOrNull { (it.width ?: 0).toLong() * (it.height ?: 0).toLong() }
+                    ?.url
+                    ?.let { upgradeArtworkUrl(it) }
+                val enrichedTrack = Track(
+                    album = Album(id = spTrack.album?.id.orEmpty(), name = spTrack.album?.name.orEmpty()),
+                    artists = spTrack.artists.map { Artist(id = it.id, name = it.name) },
+                    duration = if (sec > 0) "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}" else "",
+                    durationSeconds = sec,
+                    isAvailable = true,
+                    isExplicit = false,
+                    likeStatus = null,
+                    thumbnails = bestThumb?.let { listOf(Thumbnail(height = 640, width = 640, url = it)) } ?: emptyList(),
+                    title = spTrack.name,
+                    videoId = cleanVideoId,
+                    videoType = "Song",
+                    category = "SONG",
+                    feedbackTokens = null,
+                    resultType = "Song",
+                    year = "",
+                )
+                SpotifyTrackCache.putAll(listOf(enrichedTrack))
+                val enrichedEntity = enrichedTrack.toSongEntity()
+                runCatching { localDataSource.insertSong(enrichedEntity) }
+                song = enrichedEntity
+            }
+        }
+        return song
+    }
+
+    private suspend fun resolveSpotifyTokens(
+        dataStoreManager: DataStoreManager,
+        spdc: String,
+    ): Pair<String, String>? {
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        val cachedPersonal = dataStoreManager.spotifyPersonalToken.first()
+        val cachedClient = dataStoreManager.spotifyClientToken.first()
+        val personalExp = dataStoreManager.spotifyPersonalTokenExpires.first()
+        val clientExp = dataStoreManager.spotifyClientTokenExpires.first()
+        if (cachedPersonal.isNotBlank() && cachedClient.isNotBlank() &&
+            personalExp > nowMs && personalExp != 0L &&
+            clientExp > nowMs && clientExp != 0L
+        ) {
+            return cachedPersonal to cachedClient
+        }
+        val sessionTokens = spotify.getSessionTokens(spdc, allowAnonymousFallback = true)
+        if (sessionTokens != null) {
+            dataStoreManager.setSpotifyPersonalToken(sessionTokens.first)
+            dataStoreManager.setSpotifyPersonalTokenExpires(nowMs + 1_500_000L)
+            dataStoreManager.setSpotifyClientToken(sessionTokens.second)
+            dataStoreManager.setSpotifyClientTokenExpires(nowMs + 3_600_000L)
+            return sessionTokens
+        }
+        return null
+    }
+
     override fun getCanvas(
         dataStoreManager: DataStoreManager,
         videoId: String,
@@ -118,100 +205,123 @@ internal class LyricsCanvasRepositoryImpl(
     ): Flow<Resource<CanvasResult>> =
         flow {
             runCatching {
-                var song = localDataSource.getSong(videoId) ?: fallbackSong
-                if (song == null) {
-                    kotlinx.coroutines.delay(250)
-                    song = localDataSource.getSong(videoId) ?: fallbackSong
-                }
+                val cleanVideoId = videoId.removePrefix(MERGING_DATA_TYPE.VIDEO)
+                val spdc = dataStoreManager.spdc.first().removePrefix("sp_dc=").trim()
+                val song = enrichSongForLookup(cleanVideoId, fallbackSong, spdc)
                 val songTitle = song?.title?.ifBlank { null } ?: fallbackSong?.title ?: ""
-                val artistName = song?.artistName?.firstOrNull()?.ifBlank { null } ?: fallbackSong?.artistName?.firstOrNull() ?: ""
-                val q =
-                    "$songTitle $artistName"
-                        .replace(
-                            Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
-                            " ",
-                        ).replace(
-                            Regex("( và | & | и | e | und |, |和| dan)"),
-                            " ",
-                        ).replace("  ", " ")
-                        .replace(Regex("([()])"), "")
-                        .replace(".", " ")
-                        .replace("  ", " ")
-                        .trim()
+                val rawArtist = song?.artistName?.joinToString(", ")?.ifBlank { null }
+                    ?: fallbackSong?.artistName?.joinToString(", ")?.ifBlank { null }
+                    ?: ""
+                val primaryArtist = song?.artistName?.firstOrNull()?.ifBlank { null }
+                    ?: fallbackSong?.artistName?.firstOrNull()
+                    ?: ""
+                val albumName = song?.albumName?.takeIf { it.isNotBlank() && it != PLACEHOLDER_ALBUM_NAME }
+                val effectiveDuration = if (duration > 0) duration else (song?.durationSeconds ?: 0)
+
+                val tokens = resolveSpotifyTokens(dataStoreManager, spdc)
+                if (tokens == null) {
+                    emit(Resource.Error<CanvasResult>("Not authenticated with Spotify"))
+                    return@runCatching
+                }
+                val (authToken, spotifyClientToken) = tokens
+
+                // Step 1: Direct Spotify Track ID Canvas lookup when playing an authentic sp_track:<id>.
+                val rawSpId = cleanVideoId.removePrefix("sp_track:").trim()
+                if (cleanVideoId.startsWith("sp_track:") && rawSpId.matches(SPOTIFY_TRACK_ID_REGEX)) {
+                    val directCanvas = spotify.getSpotifyCanvas(rawSpId, authToken, spotifyClientToken).getOrNull()
+                    val directResult = directCanvas?.toCanvasResult()
+                    if (directResult != null && directResult.canvasUrl.isNotBlank()) {
+                        emit(Resource.Success(directResult))
+                        return@runCatching
+                    }
+                }
+
+                // Step 2: Validated Spotify search fallback (strictly requires TrackMatcher match).
+                val cleanTitle = TrackMatcher.titleVariants(songTitle).firstOrNull()
+                    ?: cleanTrackTitleForLyrics(songTitle)
+                val cleanArtist = cleanArtistForLyrics(primaryArtist)
+                val q = "$cleanTitle $cleanArtist".cleanForSearch().trim().ifBlank { songTitle.cleanForSearch().trim() }
                 if (q.isBlank()) {
                     emit(Resource.Error<CanvasResult>("Empty song title"))
                     return@runCatching
                 }
-                var spotifyPersonalToken = ""
-                var spotifyClientToken = ""
-                val spdc = dataStoreManager.spdc.first().removePrefix("sp_dc=").trim()
 
-                if (dataStoreManager.spotifyPersonalToken.first().isNotEmpty() &&
-                    dataStoreManager.spotifyClientToken.first().isNotEmpty() &&
-                    dataStoreManager.spotifyPersonalTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
-                    dataStoreManager.spotifyPersonalTokenExpires.first() != 0L &&
-                    dataStoreManager.spotifyClientTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
-                    dataStoreManager.spotifyClientTokenExpires.first() != 0L
-                ) {
-                    spotifyPersonalToken = dataStoreManager.spotifyPersonalToken.first()
-                    spotifyClientToken = dataStoreManager.spotifyClientToken.first()
-                } else {
-                    // Fetch Client Token
-                    spotify.getClientToken().onSuccess {
-                        dataStoreManager.setSpotifyClientTokenExpires(
-                            (it.grantedToken.expiresAfterSeconds * 1000L) + Clock.System.now().toEpochMilliseconds(),
-                        )
-                        dataStoreManager.setSpotifyClientToken(it.grantedToken.token)
-                        spotifyClientToken = it.grantedToken.token
-                    }
-                    // Fetch Personal/Anonymous Token using valid access token helper (standard or TOTP)
-                    val personalToken = spotify.getValidAccessToken(spdc)
-                    if (personalToken != null) {
-                        spotifyPersonalToken = personalToken
-                        dataStoreManager.setSpotifyPersonalToken(spotifyPersonalToken)
-                        dataStoreManager.setSpotifyPersonalTokenExpires(Clock.System.now().toEpochMilliseconds() + 3600_000L)
-                    }
+                val candidates = ArrayList<com.manikandan.spotify.model.response.spotify.search.SpotifySearchResponse.Data.Search.TracksV2.Items>()
+                spotify.searchSpotifyTrack(q, authToken, spotifyClientToken).onSuccess { res ->
+                    candidates.addAll(res.data?.searchV2?.tracksV2?.items.orEmpty())
                 }
 
-                if (spotifyPersonalToken.isNotEmpty() && spotifyClientToken.isNotEmpty()) {
-                    val authToken = spotifyPersonalToken
-                    spotify.searchSpotifyTrack(q, authToken, spotifyClientToken)
-                        .onSuccess { searchResponse ->
-                            val items = searchResponse.data?.searchV2?.tracksV2?.items.orEmpty()
-                            val candidateTracks = if (duration > 0 && items.isNotEmpty()) {
-                                items.sortedBy { item ->
-                                    val trackSec = (item.item?.data?.duration?.totalMilliseconds ?: 0) / 1000
-                                    abs(trackSec - duration)
-                                }
-                            } else {
-                                items
-                            }
-
-                            var canvasResult: CanvasResult? = null
-                            for (track in candidateTracks) {
-                                val trackId = track.item?.data?.id
-                                if (!trackId.isNullOrEmpty()) {
-                                    val canvasResponse = spotify.getSpotifyCanvas(trackId, authToken, spotifyClientToken).getOrNull()
-                                    val res = canvasResponse?.toCanvasResult()
-                                    if (res != null && res.canvasUrl.isNotBlank()) {
-                                        canvasResult = res
-                                        break
-                                    }
-                                }
-                            }
-
-                            if (canvasResult != null) {
-                                emit(Resource.Success(canvasResult))
-                            } else {
-                                emit(Resource.Error<CanvasResult>("No canvas found"))
-                            }
-                        }.onFailure { throwable ->
-                            throwable.printStackTrace()
-                            emit(Resource.Error<CanvasResult>(throwable.message ?: "Search failed"))
+                fun scoreAndFilter(): List<Pair<com.manikandan.spotify.model.response.spotify.search.SpotifySearchResponse.Data.Search.TracksV2.Items, Double>> =
+                    candidates
+                        .mapNotNull { item ->
+                            val data = item.item?.data ?: return@mapNotNull null
+                            val id = data.id?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                            val cTitle = data.name.orEmpty()
+                            val cArtists = data.artists?.items?.mapNotNull { it.profile?.name }?.joinToString(", ")
+                            val cDur = data.duration?.totalMilliseconds?.div(1000)
+                            val cAlbum = data.albumOfTrack?.name
+                            val sc = TrackMatcher.scoreCandidate(
+                                expectedTitle = songTitle,
+                                expectedArtist = rawArtist.ifBlank { null },
+                                candidateTitle = cTitle,
+                                candidateArtists = cArtists,
+                                expectedDurationSec = effectiveDuration,
+                                candidateDurationSec = cDur,
+                                expectedAlbum = albumName,
+                                candidateAlbum = cAlbum,
+                            )
+                            if (TrackMatcher.isAcceptableMatch(sc)) (item to sc) else null
                         }
-                } else {
-                    emit(Resource.Error<CanvasResult>("Not authenticated with Spotify"))
+                        .distinctBy { it.first.item?.data?.id }
+                        .sortedWith(
+                            compareByDescending<Pair<com.manikandan.spotify.model.response.spotify.search.SpotifySearchResponse.Data.Search.TracksV2.Items, Double>> { it.second }
+                                .thenBy { pair ->
+                                    val cDur = pair.first.item?.data?.duration?.totalMilliseconds?.div(1000) ?: 0
+                                    if (effectiveDuration > 0 && cDur > 0) abs(cDur - effectiveDuration) else Int.MAX_VALUE
+                                },
+                        )
+
+                var verifiedCandidates = scoreAndFilter()
+                if (verifiedCandidates.isEmpty() && !albumName.isNullOrBlank()) {
+                    val albumQuery = "$cleanTitle $albumName".cleanForSearch().trim()
+                    spotify.searchSpotifyTrack(albumQuery, authToken, spotifyClientToken).onSuccess { res ->
+                        candidates.addAll(res.data?.searchV2?.tracksV2?.items.orEmpty())
+                    }
+                    verifiedCandidates = scoreAndFilter()
                 }
+
+                var canvasResult: CanvasResult? = null
+                val expectedArtistTokens = TrackMatcher.extractArtistTokens(rawArtist)
+                for ((track, _) in verifiedCandidates) {
+                    val trackId = track.item?.data?.id
+                    if (!trackId.isNullOrEmpty()) {
+                        val canvasResponse = spotify.getSpotifyCanvas(trackId, authToken, spotifyClientToken).getOrNull()
+                        val canvasArtist = canvasResponse?.canvases?.firstOrNull()?.artist?.artist_name
+                        if (!canvasArtist.isNullOrBlank() && expectedArtistTokens.isNotEmpty()) {
+                            val candCanvasArtistTokens = TrackMatcher.extractArtistTokens(canvasArtist)
+                            if (candCanvasArtistTokens.isNotEmpty() &&
+                                expectedArtistTokens.none { it in candCanvasArtistTokens }
+                            ) {
+                                Logger.d("Canvas", "Rejected Canvas from '$canvasArtist' for '$songTitle' ($rawArtist)")
+                                continue
+                            }
+                        }
+                        val res = canvasResponse?.toCanvasResult()
+                        if (res != null && res.canvasUrl.isNotBlank()) {
+                            canvasResult = res
+                            break
+                        }
+                    }
+                }
+
+                if (canvasResult != null) {
+                    emit(Resource.Success(canvasResult))
+                } else {
+                    emit(Resource.Error<CanvasResult>("No canvas found"))
+                }
+            }.onFailure { throwable ->
+                Logger.e("Canvas", "Canvas lookup failed: ${throwable.message}")
+                emit(Resource.Error<CanvasResult>(throwable.message ?: "Canvas lookup failed"))
             }
         }.flowOn(Dispatchers.IO)
 
@@ -225,11 +335,9 @@ internal class LyricsCanvasRepositoryImpl(
         fallbackSong: SongEntity?,
     ): Flow<Resource<CanvasResult>> =
         flow {
-            var song = localDataSource.getSong(videoId) ?: fallbackSong
-            if (song == null) {
-                kotlinx.coroutines.delay(200)
-                song = localDataSource.getSong(videoId) ?: fallbackSong
-            }
+            val spdc = runCatching { dataStoreManager.spdc.first().removePrefix("sp_dc=").trim() }.getOrDefault("")
+            val cleanId = videoId.removePrefix(MERGING_DATA_TYPE.VIDEO)
+            var song = enrichSongForLookup(cleanId, fallbackSong, spdc)
             if (song == null) {
                 Logger.e(AM_ARTWORK_TAG, "Not found $videoId")
                 emit(Resource.Error<CanvasResult>("Song not found"))
@@ -434,49 +542,45 @@ internal class LyricsCanvasRepositoryImpl(
 
             val apiUrl = dataStoreManager.spotifyLyricsApiUrl.first().trim()
 
-            // 1. Try Spotify Web Player with user's sp_dc session (if available)
-            var spotifyPersonalToken = ""
-            var spotifyClientToken = ""
-            if (dataStoreManager.spotifyPersonalToken.first().isNotEmpty() &&
-                dataStoreManager.spotifyPersonalTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
-                dataStoreManager.spotifyPersonalTokenExpires.first() != 0L &&
-                dataStoreManager.spotifyClientTokenExpires.first() > Clock.System.now().toEpochMilliseconds() &&
-                dataStoreManager.spotifyClientTokenExpires.first() != 0L
-            ) {
-                spotifyPersonalToken = dataStoreManager.spotifyPersonalToken.first()
-                spotifyClientToken = dataStoreManager.spotifyClientToken.first()
-            } else if (dataStoreManager.spdc.first().isNotEmpty()) {
-                val clientRes = spotify.getClientToken()
-                clientRes.onSuccess {
-                    dataStoreManager.setSpotifyClientTokenExpires(
-                        (it.grantedToken.expiresAfterSeconds * 1000L) + Clock.System.now().toEpochMilliseconds(),
-                    )
-                    dataStoreManager.setSpotifyClientToken(it.grantedToken.token)
-                    spotifyClientToken = it.grantedToken.token
-                }
-                val tokenRes = spotify.getPersonalTokenWithTotp(dataStoreManager.spdc.first())
-                tokenRes.onSuccess {
-                    spotifyPersonalToken = it.accessToken
-                    dataStoreManager.setSpotifyPersonalToken(spotifyPersonalToken)
-                    dataStoreManager.setSpotifyPersonalTokenExpires(it.accessTokenExpirationTimestampMs)
-                }
-            }
+            val tokens = resolveSpotifyTokens(
+                dataStoreManager,
+                dataStoreManager.spdc.first().removePrefix("sp_dc=").trim(),
+            )
 
             var resolvedTrackId: String? = null
-            if (spotifyPersonalToken.isNotEmpty() && spotifyClientToken.isNotEmpty()) {
+            if (tokens != null) {
+                val (spotifyPersonalToken, spotifyClientToken) = tokens
                 val searchRes = spotify.searchSpotifyTrack(q, spotifyPersonalToken, spotifyClientToken)
                 searchRes.onSuccess { searchResponse ->
-                    val track =
-                        if (duration != 0 && duration != null) {
-                            searchResponse.data?.searchV2?.tracksV2?.items?.find {
-                                abs(
-                                    ((it.item?.data?.duration?.totalMilliseconds ?: (0 / 1000)) - duration)
-                                ) < 1
-                            } ?: searchResponse.data?.searchV2?.tracksV2?.items?.firstOrNull()
-                        } else {
-                            searchResponse.data?.searchV2?.tracksV2?.items?.firstOrNull()
+                    val rawItems = searchResponse.data?.searchV2?.tracksV2?.items.orEmpty()
+                    val bestMatch = rawItems
+                        .mapNotNull { item ->
+                            val d = item.item?.data ?: return@mapNotNull null
+                            val cTitle = d.name.orEmpty()
+                            val cArtists = d.artists?.items?.mapNotNull { it.profile?.name }?.joinToString(", ")
+                            val cDurSec = d.duration?.totalMilliseconds?.div(1000)
+                            val cAlbum = d.albumOfTrack?.name
+                            val sc = TrackMatcher.scoreCandidate(
+                                expectedTitle = q,
+                                expectedArtist = null,
+                                candidateTitle = cTitle,
+                                candidateArtists = cArtists,
+                                expectedDurationSec = duration,
+                                candidateDurationSec = cDurSec,
+                                candidateAlbum = cAlbum,
+                            )
+                            val durPenalty = if (duration != null && duration > 0 && cDurSec != null && cDurSec > 0) {
+                                abs(cDurSec - duration)
+                            } else 0
+                            if (TrackMatcher.isAcceptableMatch(sc)) Triple(item, sc, durPenalty) else null
                         }
-                    resolvedTrackId = track?.item?.data?.id
+                        .sortedWith(
+                            compareByDescending<Triple<com.manikandan.spotify.model.response.spotify.search.SpotifySearchResponse.Data.Search.TracksV2.Items, Double, Int>> { it.second }
+                                .thenBy { it.third },
+                        )
+                        .firstOrNull()
+                        ?.first
+                    resolvedTrackId = bestMatch?.item?.data?.id
                     if (!resolvedTrackId.isNullOrEmpty()) {
                         spotify
                             .getSpotifyLyrics(resolvedTrackId!!, spotifyPersonalToken, spotifyClientToken)
@@ -1035,6 +1139,7 @@ private const val AM_PREVIEW_FRAME_SIZE = 1080
 // the same reason the DAO and the local data source each declare their own: it is a value this
 // file has to recognise, not one it shares.
 private const val PLACEHOLDER_ALBUM_NAME = "Album"
+private val SPOTIFY_TRACK_ID_REGEX = Regex("^[A-Za-z0-9]{22}$")
 
 /**
  * The query cleaning the Spotify canvas search applies before it hits the network — featured-artist
@@ -1177,8 +1282,9 @@ private fun List<AMSongWithAlbum>.pickSongMatch(
     artist: String,
     durationSeconds: Int,
     albumHint: String?,
-): AMSongWithAlbum? =
-    filter { it.artistName.agreesWith(artist) }
+): AMSongWithAlbum? {
+    val artistMatched = filter { it.artistName.agreesWith(artist) }
+    val byNameScore = artistMatched
         .bestNameMatch(
             subject = title,
             demote = { candidate ->
@@ -1190,6 +1296,27 @@ private fun List<AMSongWithAlbum>.pickSongMatch(
             },
         ) { it.songName }
         ?.takeIf { it.album.hasAnimatedArtwork() }
+    if (byNameScore != null) return byNameScore
+
+    // Fallback for dual-title / minor phonetic transliteration differences ("Halamathi" vs "Arabic Kuthu (Halamithi Habibo)")
+    return artistMatched
+        .filter { it.album.hasAnimatedArtwork() && it.matchesDuration(durationSeconds) }
+        .map { cand ->
+            cand to TrackMatcher.scoreCandidate(
+                expectedTitle = title,
+                expectedArtist = artist.ifBlank { null },
+                candidateTitle = cand.songName.orEmpty(),
+                candidateArtists = cand.artistName,
+                expectedDurationSec = durationSeconds,
+                candidateDurationSec = cand.durationInMillis?.div(1000)?.toInt(),
+                expectedAlbum = albumHint,
+                candidateAlbum = cand.album.attributes?.name,
+            )
+        }
+        .filter { (_, sc) -> TrackMatcher.isAcceptableMatch(sc) }
+        .maxByOrNull { it.second }
+        ?.first
+}
 
 /**
  * Whether this is the same recording, by length. Unknown on either side counts as agreement — an

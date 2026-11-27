@@ -15,11 +15,16 @@ import com.manikandan.domain.utils.toTrack
 import com.manikandan.data.mapping.toSponsorSkipSegments
 import com.manikandan.data.mapping.toTrack
 import com.manikandan.domain.data.entities.NewFormatEntity
+import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.mediaService.SponsorSkipSegments
+import com.manikandan.domain.data.model.searchResult.songs.Album
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
 import com.manikandan.domain.extension.isBefore
 import com.manikandan.domain.extension.now
 import com.manikandan.domain.extension.plusSeconds
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.repository.StreamRepository
 import com.manikandan.domain.utils.Resource
@@ -27,6 +32,7 @@ import com.manikandan.kotlinytmusicscraper.YouTube
 import com.manikandan.kotlinytmusicscraper.models.MediaType
 import com.manikandan.kotlinytmusicscraper.models.response.PlayerResponse
 import com.manikandan.logger.Logger
+import com.manikandan.spotify.Spotify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -40,7 +46,13 @@ import kotlinx.coroutines.withContext
 internal class StreamRepositoryImpl(
     private val localDataSource: LocalDataSource,
     private val youTube: YouTube,
+    private val spotify: Spotify? = null,
 ) : StreamRepository {
+    override suspend fun clearLegacySpotifyCaches() =
+        withContext(Dispatchers.IO) {
+            localDataSource.clearLegacySpotifyCaches()
+        }
+
     override suspend fun insertNewFormat(newFormat: NewFormatEntity) =
         withContext(Dispatchers.IO) {
             localDataSource.insertNewFormat(newFormat)
@@ -133,6 +145,71 @@ internal class StreamRepositoryImpl(
         }
     }
 
+    private suspend fun resolveSpotifySongMetadata(
+        videoId: String,
+        dataStoreManager: DataStoreManager,
+    ): SongEntity? {
+        val rawSpId = videoId.removePrefix("sp_track:").trim()
+        val cachedTrack = SpotifyTrackCache.get(videoId)
+        val cachedEntity = cachedTrack?.toSongEntity()
+        val existing = localDataSource.getSong(videoId)
+        var song = when {
+            existing != null && cachedEntity != null &&
+                ((cachedEntity.durationSeconds > 0 && existing.durationSeconds <= 0) ||
+                    (!cachedEntity.albumName.isNullOrBlank() && existing.albumName.isNullOrBlank()) ||
+                    (!cachedEntity.thumbnails.isNullOrBlank() && cachedEntity.thumbnails != existing.thumbnails)) -> {
+                cachedEntity.also { localDataSource.insertSong(it) }
+            }
+            existing != null -> existing
+            else -> cachedEntity?.also { localDataSource.insertSong(it) }
+        }
+
+        val needsEnrichment = song == null ||
+            song.title.isBlank() ||
+            song.durationSeconds <= 0 ||
+            song.albumName.isNullOrBlank() ||
+            song.albumName == "Album" ||
+            song.artistName.isNullOrEmpty() ||
+            song.artistName?.firstOrNull().equals("Spotify", ignoreCase = true)
+
+        if (needsEnrichment && spotify != null && rawSpId.matches(SPOTIFY_TRACK_ID_REGEX)) {
+            val spdc = runCatching { dataStoreManager.spdc.first() }.getOrDefault("")
+            val spTrack = spotify.fetchTrackById(spdc, rawSpId).getOrNull()
+            if (spTrack != null && spTrack.name.isNotBlank()) {
+                val sec = (spTrack.durationMs / 1000L).toInt().coerceAtLeast(0)
+                val bestThumb = spTrack.album?.images
+                    ?.maxByOrNull { (it.width ?: 0).toLong() * (it.height ?: 0).toLong() }
+                    ?.url
+                    ?.let { upgradeArtworkUrl(it) }
+                val enrichedTrack = Track(
+                    album = Album(
+                        id = spTrack.album?.id.orEmpty(),
+                        name = spTrack.album?.name.orEmpty(),
+                    ),
+                    artists = spTrack.artists.map { Artist(id = it.id, name = it.name) },
+                    duration = if (sec > 0) "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}" else "",
+                    durationSeconds = sec,
+                    isAvailable = true,
+                    isExplicit = false,
+                    likeStatus = null,
+                    thumbnails = bestThumb?.let { listOf(Thumbnail(height = 640, width = 640, url = it)) } ?: emptyList(),
+                    title = spTrack.name,
+                    videoId = videoId,
+                    videoType = "Song",
+                    category = "SONG",
+                    feedbackTokens = null,
+                    resultType = "Song",
+                    year = "",
+                )
+                SpotifyTrackCache.putAll(listOf(enrichedTrack))
+                val enrichedEntity = enrichedTrack.toSongEntity()
+                localDataSource.insertSong(enrichedEntity)
+                song = enrichedEntity
+            }
+        }
+        return song
+    }
+
     override fun getStream(
         dataStoreManager: DataStoreManager,
         videoId: String,
@@ -164,48 +241,82 @@ internal class StreamRepositoryImpl(
             }
             var effectiveVideoId = videoId
             if (videoId.startsWith("sp_track:")) {
-                val cachedTrack = SpotifyTrackCache.get(videoId)
-                val cachedEntity = cachedTrack?.toSongEntity()
-                val existing = localDataSource.getSong(videoId)
-                val song = when {
-                    existing != null && cachedEntity != null && !cachedEntity.thumbnails.isNullOrBlank() && cachedEntity.thumbnails != existing.thumbnails -> {
-                        cachedEntity.also { localDataSource.insertSong(it) }
-                    }
-                    existing != null -> existing
-                    else -> cachedEntity?.also { localDataSource.insertSong(it) }
-                }
+                val song = resolveSpotifySongMetadata(videoId, dataStoreManager)
                 if (song != null) {
                     val artist = song.artistName?.joinToString(", ")?.takeIf { it.isNotBlank() }
-                    val primaryArtist = song.artistName?.firstOrNull()
+                    val primaryArtist = song.artistName?.firstOrNull()?.takeIf { it.isNotBlank() }
+                    val albumHint = song.albumName?.takeIf { it.isNotBlank() && !it.equals("Album", ignoreCase = true) }
                     if (!isVideo) {
-                        val jioStream = JioSaavnService.resolveStream(song.title, artist, song.durationSeconds)
+                        val jioStream = JioSaavnService.resolveStream(
+                            title = song.title,
+                            artist = artist,
+                            expectedDurationSec = song.durationSeconds,
+                            albumHint = albumHint,
+                        )
                         if (jioStream != null) {
                             insertFallbackAudioFormat(videoId, jioStream, song.durationSeconds, cpnTag = SP_TRACK_FORMAT_VERSION)
                             emit(jioStream)
                             return@flow
                         }
                     }
-                    val query = "${song.title} ${primaryArtist.orEmpty()}".trim()
-                    val songCandidates = runCatching {
-                        youTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
-                            parseSearchSong(res)
+                    val titleVariants = TrackMatcher.titleVariants(song.title)
+                    val cleanTitle = titleVariants.firstOrNull() ?: song.title
+                    val query = "$cleanTitle ${primaryArtist.orEmpty()}".trim()
+
+                    fun scoreYtSong(cand: com.manikandan.domain.data.model.searchResult.songs.SongsResult): Double =
+                        TrackMatcher.scoreCandidate(
+                            expectedTitle = song.title,
+                            expectedArtist = artist,
+                            candidateTitle = cand.title.orEmpty(),
+                            candidateArtists = cand.artists?.joinToString(", ") { it.name },
+                            expectedDurationSec = song.durationSeconds,
+                            candidateDurationSec = cand.durationSeconds,
+                            expectedAlbum = albumHint,
+                            candidateAlbum = cand.album?.name,
+                        )
+
+                    val songCandidates = ArrayList<com.manikandan.domain.data.model.searchResult.songs.SongsResult>()
+                    val seenYtIds = HashSet<String>()
+                    fun addYtSongs(list: List<com.manikandan.domain.data.model.searchResult.songs.SongsResult>) {
+                        for (c in list) {
+                            if (seenYtIds.add(c.videoId)) songCandidates.add(c)
                         }
-                    }.getOrNull().orEmpty()
-                    val bestSongMatch = songCandidates
-                        .map { cand ->
-                            cand to TrackMatcher.scoreCandidate(
-                                expectedTitle = song.title,
-                                expectedArtist = artist,
-                                candidateTitle = cand.title.orEmpty(),
-                                candidateArtists = cand.artists?.joinToString(", ") { it.name },
-                                expectedDurationSec = song.durationSeconds,
-                                candidateDurationSec = cand.durationSeconds,
+                    }
+
+                    addYtSongs(
+                        runCatching {
+                            youTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
+                                parseSearchSong(res)
+                            }
+                        }.getOrNull().orEmpty(),
+                    )
+                    var bestSongEntry = songCandidates.map { it to scoreYtSong(it) }.maxByOrNull { it.second }
+
+                    if ((bestSongEntry == null || !TrackMatcher.isAcceptableMatch(bestSongEntry.second)) && !albumHint.isNullOrBlank()) {
+                        addYtSongs(
+                            runCatching {
+                                youTube.search("$cleanTitle $albumHint", YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
+                                    parseSearchSong(res)
+                                }
+                            }.getOrNull().orEmpty(),
+                        )
+                        bestSongEntry = songCandidates.map { it to scoreYtSong(it) }.maxByOrNull { it.second }
+                    }
+                    if ((bestSongEntry == null || !TrackMatcher.isAcceptableMatch(bestSongEntry.second)) && titleVariants.size > 1) {
+                        for (alt in titleVariants.drop(1).take(2)) {
+                            val altQ = "$alt ${primaryArtist.orEmpty()}".trim()
+                            addYtSongs(
+                                runCatching {
+                                    youTube.search(altQ, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
+                                        parseSearchSong(res)
+                                    }
+                                }.getOrNull().orEmpty(),
                             )
                         }
-                        .filter { (_, score) -> TrackMatcher.isAcceptableMatch(score) }
-                        .maxByOrNull { it.second }
-                        ?.first
+                        bestSongEntry = songCandidates.map { it to scoreYtSong(it) }.maxByOrNull { it.second }
+                    }
 
+                    val bestSongMatch = bestSongEntry?.takeIf { TrackMatcher.isAcceptableMatch(it.second) }?.first
                     val resolvedYtId =
                         bestSongMatch?.videoId
                             ?: run {
@@ -223,32 +334,14 @@ internal class StreamRepositoryImpl(
                                             candidateArtists = cand.artists?.joinToString(", ") { it.name },
                                             expectedDurationSec = song.durationSeconds,
                                             candidateDurationSec = null,
+                                            expectedAlbum = albumHint,
                                         )
                                     }
                                     .filter { (_, score) -> TrackMatcher.isAcceptableMatch(score) }
                                     .maxByOrNull { it.second }
                                     ?.first
                                 bestVideoMatch?.videoId
-                                    ?: songCandidates
-                                        .maxByOrNull { cand ->
-                                            TrackMatcher.scoreCandidate(
-                                                expectedTitle = song.title,
-                                                expectedArtist = artist,
-                                                candidateTitle = cand.title.orEmpty(),
-                                                candidateArtists = cand.artists?.joinToString(", ") { it.name },
-                                                expectedDurationSec = song.durationSeconds,
-                                                candidateDurationSec = cand.durationSeconds,
-                                            )
-                                        }
-                                        ?.takeIf { cand ->
-                                            TrackMatcher.scoreCandidate(
-                                                expectedTitle = song.title,
-                                                expectedArtist = artist,
-                                                candidateTitle = cand.title.orEmpty(),
-                                                candidateArtists = cand.artists?.joinToString(", ") { it.name },
-                                            ) >= 0.0
-                                        }
-                                        ?.videoId
+                                    ?: bestSongEntry?.takeIf { it.second >= 0.44 }?.first?.videoId
                             }
                     if (!resolvedYtId.isNullOrBlank()) {
                         effectiveVideoId = resolvedYtId
@@ -681,6 +774,7 @@ internal class StreamRepositoryImpl(
     }
 
     companion object {
-        private const val SP_TRACK_FORMAT_VERSION = "sp_v425"
+        private const val SP_TRACK_FORMAT_VERSION = "sp_v426"
+        private val SPOTIFY_TRACK_ID_REGEX = Regex("^[A-Za-z0-9]{22}$")
     }
 }

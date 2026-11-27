@@ -264,11 +264,17 @@ class HomeViewModel(
                 if (trimmed.isNotEmpty()) com.manikandan.domain.data.model.searchResult.songs.Artist(id = "", name = trimmed) else null
             }
             .ifEmpty { listOf(com.manikandan.domain.data.model.searchResult.songs.Artist(id = "", name = "Spotify")) }
+        val durationFmt = if (durationSeconds > 0) {
+            "${durationSeconds / 60}:${(durationSeconds % 60).toString().padStart(2, '0')}"
+        } else ""
         return com.manikandan.domain.data.model.browse.album.Track(
-            album = com.manikandan.domain.data.model.searchResult.songs.Album(id = "", name = ""),
+            album = com.manikandan.domain.data.model.searchResult.songs.Album(
+                id = albumId.orEmpty(),
+                name = albumName.orEmpty(),
+            ),
             artists = parsedArtists,
-            duration = "",
-            durationSeconds = 0,
+            duration = durationFmt,
+            durationSeconds = durationSeconds,
             isAvailable = true,
             isExplicit = false,
             likeStatus = null,

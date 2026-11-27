@@ -41,7 +41,14 @@ data class SpotifySearchResponse(
                             val name: String? = null,
                             val artists: Artists? = null,
                             val duration: Duration? = null,
+                            val albumOfTrack: AlbumOfTrack? = null,
                         ) {
+                            @Serializable
+                            data class AlbumOfTrack(
+                                val name: String? = null,
+                                val uri: String? = null,
+                            )
+
                             @Serializable
                             data class Duration(
                                 val totalMilliseconds: Int? = null,

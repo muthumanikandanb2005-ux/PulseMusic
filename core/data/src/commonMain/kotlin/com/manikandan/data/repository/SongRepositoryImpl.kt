@@ -5,6 +5,7 @@ import com.manikandan.data.db.datasource.LocalDataSource
 import com.manikandan.data.parser.search.parseSearchSong
 import com.manikandan.data.service.JioSaavnService
 import com.manikandan.data.service.SpotifyTrackCache
+import com.manikandan.data.service.TrackMatcher
 import com.manikandan.domain.utils.toSongEntity
 import com.manikandan.domain.utils.toTrack
 import com.manikandan.data.extension.getFullDataFromDB
@@ -17,7 +18,11 @@ import com.manikandan.domain.data.entities.SongEntity
 import com.manikandan.domain.data.entities.SongInfoEntity
 import com.manikandan.domain.data.model.browse.album.Track
 import com.manikandan.domain.data.model.download.DownloadProgress
+import com.manikandan.domain.data.model.searchResult.songs.Album
+import com.manikandan.domain.data.model.searchResult.songs.Artist
+import com.manikandan.domain.data.model.searchResult.songs.Thumbnail
 import com.manikandan.domain.data.model.streams.YouTubeWatchEndpoint
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.manager.DataStoreManager.Values.TRUE
 import com.manikandan.domain.mediaservice.handler.DownloadHandler
@@ -33,6 +38,7 @@ import com.manikandan.kotlinytmusicscraper.models.response.LikeStatus
 import com.manikandan.kotlinytmusicscraper.pages.NextPage
 import com.manikandan.kotlinytmusicscraper.parser.getPlaylistContinuation
 import com.manikandan.logger.Logger
+import com.manikandan.spotify.Spotify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -47,12 +53,19 @@ import kotlinx.datetime.LocalDateTime
 import org.koin.mp.KoinPlatform.getKoin
 
 private const val TAG = "SongRepositoryImpl"
+private val SPOTIFY_ID_REGEX = Regex("^[A-Za-z0-9]{22}$")
 
 internal class SongRepositoryImpl(
     private val dataStoreManager: DataStoreManager,
     private val localDataSource: LocalDataSource,
     private val youTube: YouTube,
+    private val spotify: Spotify? = null,
 ) : SongRepository {
+    override suspend fun clearLegacySpotifyCaches() =
+        withContext(Dispatchers.IO) {
+            localDataSource.clearLegacySpotifyCaches()
+        }
+
     override fun getAllSongs(limit: Int): Flow<List<SongEntity>> =
         flow {
             emit(localDataSource.getAllSongs(limit))
@@ -441,6 +454,16 @@ internal class SongRepositoryImpl(
                     } else {
                         videoId
                     }
+                if (id.startsWith("sp_track:")) {
+                    val info = resolveSpotifySongInfo(id)
+                    if (info != null) {
+                        emit(info)
+                        insertSongInfo(info)
+                    } else {
+                        emit(getSongInfoEntity(videoId).lastOrNull())
+                    }
+                    return@runCatching
+                }
                 youTube
                     .getSongInfo(id)
                     .onSuccess { songInfo ->
@@ -467,6 +490,88 @@ internal class SongRepositoryImpl(
                     }
             }
         }.flowOn(Dispatchers.IO)
+
+    private suspend fun resolveSpotifySongInfo(videoId: String): SongInfoEntity? {
+        val rawSpId = videoId.removePrefix("sp_track:").trim()
+        val cachedTrack = SpotifyTrackCache.get(videoId)
+        val cachedEntity = cachedTrack?.toSongEntity()
+        val dbEntity = localDataSource.getSong(videoId)
+        var song = dbEntity ?: cachedEntity
+
+        val needsEnrichment = song == null ||
+            song.title.isBlank() ||
+            song.durationSeconds <= 0 ||
+            song.albumName.isNullOrBlank() ||
+            song.albumName == "Album" ||
+            song.artistName.isNullOrEmpty() ||
+            song.artistName?.firstOrNull().equals("Spotify", ignoreCase = true)
+
+        if (needsEnrichment && spotify != null && rawSpId.matches(SPOTIFY_ID_REGEX)) {
+            val spdc = runCatching { dataStoreManager.spdc.first() }.getOrDefault("")
+            val spTrack = spotify.fetchTrackById(spdc, rawSpId).getOrNull()
+            if (spTrack != null && spTrack.name.isNotBlank()) {
+                val sec = (spTrack.durationMs / 1000L).toInt().coerceAtLeast(0)
+                val bestThumb = spTrack.album?.images
+                    ?.maxByOrNull { (it.width ?: 0).toLong() * (it.height ?: 0).toLong() }
+                    ?.url
+                    ?.let { upgradeArtworkUrl(it) }
+                val enrichedTrack = Track(
+                    album = Album(
+                        id = spTrack.album?.id.orEmpty(),
+                        name = spTrack.album?.name.orEmpty(),
+                    ),
+                    artists = spTrack.artists.map { Artist(id = it.id, name = it.name) },
+                    duration = if (sec > 0) "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}" else "",
+                    durationSeconds = sec,
+                    isAvailable = true,
+                    isExplicit = false,
+                    likeStatus = null,
+                    thumbnails = bestThumb?.let { listOf(Thumbnail(height = 640, width = 640, url = it)) } ?: emptyList(),
+                    title = spTrack.name,
+                    videoId = videoId,
+                    videoType = "Song",
+                    category = "SONG",
+                    feedbackTokens = null,
+                    resultType = "Song",
+                    year = "",
+                )
+                SpotifyTrackCache.putAll(listOf(enrichedTrack))
+                val enrichedEntity = enrichedTrack.toSongEntity()
+                localDataSource.insertSong(enrichedEntity)
+                song = enrichedEntity
+            }
+        }
+
+        if (song == null || song.title.isBlank()) return null
+
+        val artistNames = song.artistName?.filter { it.isNotBlank() }?.joinToString(", ").orEmpty()
+        val albumName = song.albumName?.takeIf { it.isNotBlank() && !it.equals("Album", ignoreCase = true) }
+        val durationText = song.durationSeconds.takeIf { it > 0 }?.let { sec ->
+            "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}"
+        } ?: song.duration.takeIf { it.isNotBlank() }
+        val artwork = upgradeArtworkUrl(song.thumbnails)
+
+        val description = buildString {
+            append("Track: ").append(song.title)
+            if (artistNames.isNotBlank()) append("\nArtists: ").append(artistNames)
+            if (!albumName.isNullOrBlank()) append("\nAlbum: ").append(albumName)
+            if (!durationText.isNullOrBlank()) append("\nDuration: ").append(durationText)
+            append("\nSource: Spotify")
+        }
+
+        return SongInfoEntity(
+            videoId = videoId,
+            author = artistNames.ifBlank { "Spotify" },
+            authorId = song.artistId?.firstOrNull(),
+            authorThumbnail = artwork,
+            description = description,
+            uploadDate = null,
+            subscribers = null,
+            viewCount = null,
+            like = null,
+            dislike = null,
+        )
+    }
 
     override suspend fun getLikeStatus(videoId: String): Flow<Boolean> =
         flow {
@@ -542,17 +647,47 @@ internal class SongRepositoryImpl(
 
     private suspend fun resolveSeedForRelated(rawId: String): String {
         if (!rawId.startsWith("sp_track:")) return rawId
-        val song = localDataSource.getSong(rawId)
+        val rawSpId = rawId.removePrefix("sp_track:").trim()
+        var song = localDataSource.getSong(rawId)
             ?: SpotifyTrackCache.get(rawId)?.toSongEntity()?.also { localDataSource.insertSong(it) }
-            ?: return rawId
-        val q = "${song.title} ${song.artistName?.firstOrNull().orEmpty()}".trim()
-        val saavnId = runCatching { JioSaavnService.searchSongs(q).firstOrNull()?.videoId }.getOrNull()
+        if ((song == null || song.durationSeconds <= 0 || song.albumName.isNullOrBlank()) &&
+            spotify != null && rawSpId.matches(SPOTIFY_ID_REGEX)
+        ) {
+            resolveSpotifySongInfo(rawId)
+            song = localDataSource.getSong(rawId) ?: song
+        }
+        if (song == null) return rawId
+        val artist = song.artistName?.joinToString(", ")?.takeIf { it.isNotBlank() }
+        val primaryArtist = song.artistName?.firstOrNull()?.takeIf { it.isNotBlank() }
+        val albumHint = song.albumName?.takeIf { it.isNotBlank() && !it.equals("Album", ignoreCase = true) }
+        val saavnMatch = runCatching {
+            JioSaavnService.findBestSongMatch(song.title, artist, song.durationSeconds, albumHint = albumHint)
+        }.getOrNull()
+        val saavnId = saavnMatch?.videoId
         if (!saavnId.isNullOrBlank()) {
             return if (saavnId.startsWith("saavn:")) saavnId else "saavn:$saavnId"
         }
+        val cleanTitle = TrackMatcher.titleVariants(song.title).firstOrNull() ?: song.title
+        val q = "$cleanTitle ${primaryArtist.orEmpty()}".trim()
         val ytId = runCatching {
             youTube.search(q, YouTube.SearchFilter.FILTER_SONG).getOrNull()?.let { res ->
-                parseSearchSong(res).firstOrNull()?.videoId
+                parseSearchSong(res)
+                    .map { cand ->
+                        cand to TrackMatcher.scoreCandidate(
+                            expectedTitle = song.title,
+                            expectedArtist = artist,
+                            candidateTitle = cand.title.orEmpty(),
+                            candidateArtists = cand.artists?.joinToString(", ") { it.name },
+                            expectedDurationSec = song.durationSeconds,
+                            candidateDurationSec = cand.durationSeconds,
+                            expectedAlbum = albumHint,
+                            candidateAlbum = cand.album?.name,
+                        )
+                    }
+                    .filter { (_, sc) -> TrackMatcher.isAcceptableMatch(sc) }
+                    .maxByOrNull { it.second }
+                    ?.first
+                    ?.videoId
             }
         }.getOrNull()
         return ytId?.takeIf { it.isNotBlank() } ?: rawId
