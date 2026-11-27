@@ -44,6 +44,7 @@ import com.manikandan.kotlinytmusicscraper.parser.getPlaylistContinuation
 import com.manikandan.kotlinytmusicscraper.parser.getPlaylistRadioEndpoint
 import com.manikandan.kotlinytmusicscraper.parser.getPlaylistShuffleEndpoint
 import com.manikandan.logger.Logger
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
@@ -55,15 +56,162 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.lastOrNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+@Serializable
+private data class CachedPlaylistItemDto(
+    val author: String = "",
+    val browseId: String = "",
+    val category: String = "",
+    val itemCount: String = "",
+    val resultType: String = "Playlist",
+    val thumbUrl: String? = null,
+    val thumbWidth: Int = 640,
+    val thumbHeight: Int = 640,
+    val title: String = "",
+)
+
+@Serializable
+private data class CachedRecentTrackDto(
+    val id: String = "",
+    val title: String = "",
+    val artist: String = "",
+    val thumbnail: String? = null,
+    val playedAt: String? = null,
+    val albumName: String? = null,
+    val albumId: String? = null,
+    val durationSeconds: Int = 0,
+)
 
 internal class PlaylistRepositoryImpl(
     private val dataStoreManager: DataStoreManager,
     private val localDataSource: LocalDataSource,
     private val youTube: YouTube,
+    private val spotify: Spotify = Spotify(),
 ) : PlaylistRepository {
-    private val spotify = Spotify()
+    private val cacheJson = Json { ignoreUnknownKeys = true }
+
+    private suspend fun seedSpotifySessionFromDataStore(spdc: String) {
+        if (spdc.isBlank()) return
+        val personal = runCatching { dataStoreManager.spotifyPersonalToken.first() }.getOrDefault("")
+        val client = runCatching { dataStoreManager.spotifyClientToken.first() }.getOrDefault("")
+        val exp = runCatching { dataStoreManager.spotifyPersonalTokenExpires.first() }.getOrDefault(0L)
+        if (personal.isNotBlank() && client.isNotBlank() && exp > 0L) {
+            spotify.seedSessionFromCache(spdc, personal, client, exp)
+        }
+    }
+
+    private suspend fun loadCachedPlaylists(key: String): List<PlaylistsResult>? =
+        runCatching {
+            val raw = dataStoreManager.getString(key).firstOrNull()?.takeIf { it.isNotBlank() } ?: return@runCatching null
+            cacheJson.decodeFromString<List<CachedPlaylistItemDto>>(raw).map { dto ->
+                PlaylistsResult(
+                    author = dto.author,
+                    browseId = dto.browseId,
+                    category = dto.category,
+                    itemCount = dto.itemCount,
+                    resultType = dto.resultType,
+                    thumbnails = dto.thumbUrl?.let {
+                        listOf(Thumbnail(width = dto.thumbWidth, height = dto.thumbHeight, url = upgradeArtworkUrl(it) ?: it))
+                    } ?: emptyList(),
+                    title = dto.title,
+                )
+            }.takeIf { it.isNotEmpty() }
+        }.getOrNull()
+
+    private suspend fun saveCachedPlaylists(key: String, list: List<PlaylistsResult>) {
+        if (list.isEmpty()) return
+        runCatching {
+            val dtos = list.map { item ->
+                val bestThumb = item.thumbnails.maxByOrNull { it.width.toLong() * it.height.toLong() } ?: item.thumbnails.firstOrNull()
+                CachedPlaylistItemDto(
+                    author = item.author,
+                    browseId = item.browseId,
+                    category = item.category,
+                    itemCount = item.itemCount,
+                    resultType = item.resultType,
+                    thumbUrl = bestThumb?.url,
+                    thumbWidth = bestThumb?.width ?: 640,
+                    thumbHeight = bestThumb?.height ?: 640,
+                    title = item.title,
+                )
+            }
+            dataStoreManager.putString(key, cacheJson.encodeToString(dtos))
+        }
+    }
+
+    private suspend fun loadCachedRecentTracks(key: String): List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>? =
+        runCatching {
+            val raw = dataStoreManager.getString(key).firstOrNull()?.takeIf { it.isNotBlank() } ?: return@runCatching null
+            cacheJson.decodeFromString<List<CachedRecentTrackDto>>(raw).map { dto ->
+                com.manikandan.domain.data.model.spotify.SpotifyRecentTrack(
+                    id = dto.id,
+                    title = dto.title,
+                    artist = dto.artist,
+                    thumbnail = upgradeArtworkUrl(dto.thumbnail),
+                    playedAt = dto.playedAt,
+                    albumName = dto.albumName,
+                    albumId = dto.albumId,
+                    durationSeconds = dto.durationSeconds,
+                )
+            }.takeIf { it.isNotEmpty() }
+        }.getOrNull()
+
+    private suspend fun saveCachedRecentTracks(key: String, list: List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>) {
+        if (list.isEmpty()) return
+        runCatching {
+            val dtos = list.map { t ->
+                CachedRecentTrackDto(
+                    id = t.id,
+                    title = t.title,
+                    artist = t.artist,
+                    thumbnail = t.thumbnail,
+                    playedAt = t.playedAt,
+                    albumName = t.albumName,
+                    albumId = t.albumId,
+                    durationSeconds = t.durationSeconds,
+                )
+            }
+            dataStoreManager.putString(key, cacheJson.encodeToString(dtos))
+        }
+    }
+
+    private suspend fun warmTrackCacheFromRecent(tracks: List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>) {
+        val mapped = tracks.filter { it.id.isNotBlank() && it.title.isNotBlank() }.map { r ->
+            val cleanId = r.id.removePrefix("sp_track:")
+            val artists = r.artist.split(",").mapNotNull { part ->
+                part.trim().takeIf { it.isNotEmpty() }?.let {
+                    com.manikandan.domain.data.model.searchResult.songs.Artist(id = "", name = it)
+                }
+            }
+            Track(
+                album = com.manikandan.domain.data.model.searchResult.songs.Album(
+                    id = r.albumId.orEmpty(),
+                    name = r.albumName.orEmpty(),
+                ),
+                artists = artists,
+                duration = if (r.durationSeconds > 0) "${r.durationSeconds / 60}:${(r.durationSeconds % 60).toString().padStart(2, '0')}" else "",
+                durationSeconds = r.durationSeconds,
+                isAvailable = true,
+                isExplicit = false,
+                likeStatus = null,
+                thumbnails = r.thumbnail?.let { listOf(Thumbnail(height = 640, width = 640, url = it)) } ?: emptyList(),
+                title = r.title,
+                videoId = "sp_track:$cleanId",
+                videoType = "Song",
+                category = "SONG",
+                feedbackTokens = null,
+                resultType = "Song",
+                year = "",
+            )
+        }
+        if (mapped.isNotEmpty()) SpotifyTrackCache.putAll(mapped)
+    }
     override fun getAllPlaylists(limit: Int): Flow<List<PlaylistEntity>> =
         flow {
             emit(localDataSource.getAllPlaylists(limit))
@@ -602,6 +750,10 @@ internal class PlaylistRepositoryImpl(
 
     override fun getLibraryPlaylist(): Flow<List<PlaylistsResult>?> =
         flow {
+            val cached = loadCachedPlaylists(CACHE_YT_LIBRARY_PLAYLISTS)
+            if (!cached.isNullOrEmpty()) {
+                emit(cached)
+            }
             youTube
                 .getLibraryPlaylists()
                 .onSuccess { data ->
@@ -622,7 +774,7 @@ internal class PlaylistRepositoryImpl(
                     val listItem = mutableListOf<PlaylistsResult>()
                     if (input.isNullOrEmpty()) {
                         Logger.w("Library", "No playlists found")
-                        emit(null)
+                        if (cached.isNullOrEmpty()) emit(null)
                         return@onSuccess
                     }
                     listItem.addAll(
@@ -660,7 +812,8 @@ internal class PlaylistRepositoryImpl(
                             }
                     }
                     if (listItem.isNotEmpty()) {
-                        emit(listItem)
+                        saveCachedPlaylists(CACHE_YT_LIBRARY_PLAYLISTS, listItem)
+                        if (listItem != cached) emit(listItem)
                         val account = localDataSource.getUsedGoogleAccount()
                         val isNeeded =
                             dataStoreManager.keepYouTubePlaylistOffline.first() == DataStoreManager.TRUE &&
@@ -673,7 +826,7 @@ internal class PlaylistRepositoryImpl(
                                 ),
                             )
                         }
-                    } else {
+                    } else if (cached.isNullOrEmpty()) {
                         emit(null)
                     }
                 }.onFailure { e ->
@@ -683,44 +836,50 @@ internal class PlaylistRepositoryImpl(
                     val isNeeded =
                         dataStoreManager.keepYouTubePlaylistOffline.first() == DataStoreManager.TRUE &&
                             dataStoreManager.loggedIn.first() == DataStoreManager.TRUE && account != null
-                    if (isNeeded) {
-                        val list =
-                            getYourYouTubePlaylistList("${account.email}_${account.pageId ?: ""}")
-                                .lastOrNull()
-                        if (list != null) {
-                            emit(
-                                list.listBrowseIds.mapNotNull { id ->
-                                    getPlaylist(id).lastOrNull()?.let {
-                                        PlaylistsResult(
-                                            author = it.author ?: "",
-                                            browseId = it.id,
-                                            category = "",
-                                            itemCount = "${ it.trackCount }",
-                                            resultType = "",
-                                            thumbnails =
-                                                listOf(
-                                                    Thumbnail(
-                                                        width = 544,
-                                                        url = it.thumbnails,
-                                                        height = 544,
+                    if (cached.isNullOrEmpty()) {
+                        if (isNeeded) {
+                            val list =
+                                getYourYouTubePlaylistList("${account.email}_${account.pageId ?: ""}")
+                                    .lastOrNull()
+                            if (list != null) {
+                                emit(
+                                    list.listBrowseIds.mapNotNull { id ->
+                                        getPlaylist(id).lastOrNull()?.let {
+                                            PlaylistsResult(
+                                                author = it.author ?: "",
+                                                browseId = it.id,
+                                                category = "",
+                                                itemCount = "${ it.trackCount }",
+                                                resultType = "",
+                                                thumbnails =
+                                                    listOf(
+                                                        Thumbnail(
+                                                            width = 544,
+                                                            url = it.thumbnails,
+                                                            height = 544,
+                                                        ),
                                                     ),
-                                                ),
-                                            title = it.title,
-                                        )
-                                    }
-                                },
-                            )
+                                                title = it.title,
+                                            )
+                                        }
+                                    },
+                                )
+                            } else {
+                                emit(null)
+                            }
                         } else {
                             emit(null)
                         }
-                    } else {
-                        emit(null)
                     }
                 }
         }.flowOn(Dispatchers.IO)
 
     override fun getMixedForYou(): Flow<List<PlaylistsResult>?> =
         flow {
+            val cached = loadCachedPlaylists(CACHE_YT_MIXED_PLAYLISTS)
+            if (!cached.isNullOrEmpty()) {
+                emit(cached)
+            }
             youTube
                 .getMixedForYou()
                 .onSuccess { data ->
@@ -741,7 +900,7 @@ internal class PlaylistRepositoryImpl(
                     val listItem = mutableListOf<PlaylistsResult>()
                     if (input.isNullOrEmpty()) {
                         Logger.w("Mixed For You", "No playlists found")
-                        emit(null)
+                        if (cached.isNullOrEmpty()) emit(null)
                         return@onSuccess
                     }
                     listItem.addAll(
@@ -779,8 +938,9 @@ internal class PlaylistRepositoryImpl(
                             }
                     }
                     if (listItem.isNotEmpty()) {
-                        emit(listItem)
-                    } else {
+                        saveCachedPlaylists(CACHE_YT_MIXED_PLAYLISTS, listItem)
+                        if (listItem != cached) emit(listItem)
+                    } else if (cached.isNullOrEmpty()) {
                         emit(null)
                     }
                 }
@@ -889,7 +1049,9 @@ internal class PlaylistRepositoryImpl(
             )
         }
         SpotifyTrackCache.putAll(tracks)
-        runCatching { localDataSource.insertSongs(tracks.map { it.toSongEntity() }) }
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { localDataSource.insertSongs(tracks.map { it.toSongEntity() }) }
+        }
         return tracks
     }
 
@@ -1011,6 +1173,13 @@ internal class PlaylistRepositoryImpl(
                 emit(emptyList())
                 return@flow
             }
+            seedSpotifySessionFromDataStore(spdc)
+            val cacheKey = "${CACHE_SP_PLAYLISTS_PREFIX}${spdc.hashCode()}"
+            val cached = loadCachedPlaylists(cacheKey)
+            if (!cached.isNullOrEmpty()) {
+                emit(cached)
+            }
+
             val (playlistsRes, likedRes) = coroutineScope {
                 val plDeferred = async { spotify.fetchPlaylistsWithSpdc(spdc) }
                 val likedDeferred = async { runCatching { spotify.fetchLikedTracksWithSpdc(spdc, limit = 1) }.getOrNull() }
@@ -1053,12 +1222,22 @@ internal class PlaylistRepositoryImpl(
                     )
                 }
             }
-            emit(results)
+            if (results.isNotEmpty()) {
+                saveCachedPlaylists(cacheKey, results)
+                if (results != cached) emit(results)
+            } else if (cached.isNullOrEmpty()) {
+                emit(emptyList())
+            }
         }.flowOn(Dispatchers.IO)
 
     override fun getSpotifyTrendingPlaylists(): Flow<List<PlaylistsResult>?> =
         flow {
+            val cached = loadCachedPlaylists(CACHE_SP_TRENDING_PLAYLISTS)
+            if (!cached.isNullOrEmpty()) {
+                emit(cached)
+            }
             val spdc = dataStoreManager.spdc.first()
+            seedSpotifySessionFromDataStore(spdc)
             val trendingRes = spotify.fetchFeaturedPlaylistsWithSpdc(spdc, limit = 20)
             if (trendingRes.isSuccess) {
                 val items = trendingRes.getOrNull() ?: emptyList()
@@ -1073,16 +1252,27 @@ internal class PlaylistRepositoryImpl(
                         title = item.name,
                     )
                 }
-                emit(results)
+                if (results.isNotEmpty()) {
+                    saveCachedPlaylists(CACHE_SP_TRENDING_PLAYLISTS, results)
+                    if (results != cached) emit(results)
+                } else if (cached.isNullOrEmpty()) {
+                    emit(emptyList())
+                }
             } else {
                 Logger.w("Spotify", "getSpotifyTrendingPlaylists failed: ${trendingRes.exceptionOrNull()?.message}")
-                emit(emptyList())
+                if (cached.isNullOrEmpty()) emit(emptyList())
             }
         }.flowOn(Dispatchers.IO)
 
     override fun getSpotifyTrendingTracks(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?> =
         flow {
+            val cached = loadCachedRecentTracks(CACHE_SP_TRENDING_TRACKS)
+            if (!cached.isNullOrEmpty()) {
+                warmTrackCacheFromRecent(cached)
+                emit(cached)
+            }
             val spdc = dataStoreManager.spdc.first()
+            seedSpotifySessionFromDataStore(spdc)
             val tracksRes = spotify.fetchTrendingTracksWithSpdc(spdc, limit = 20)
             if (tracksRes.isSuccess) {
                 val items = tracksRes.getOrNull().orEmpty()
@@ -1103,7 +1293,8 @@ internal class PlaylistRepositoryImpl(
                     )
                 }
                 if (mapped.isNotEmpty()) {
-                    emit(mapped)
+                    saveCachedRecentTracks(CACHE_SP_TRENDING_TRACKS, mapped)
+                    if (mapped != cached) emit(mapped)
                     return@flow
                 }
             } else {
@@ -1125,7 +1316,12 @@ internal class PlaylistRepositoryImpl(
                     playedAt = null,
                 )
             } ?: emptyList()
-            emit(embedTracks)
+            if (embedTracks.isNotEmpty()) {
+                saveCachedRecentTracks(CACHE_SP_TRENDING_TRACKS, embedTracks)
+                if (embedTracks != cached) emit(embedTracks)
+            } else if (cached.isNullOrEmpty()) {
+                emit(emptyList())
+            }
         }.flowOn(Dispatchers.IO)
 
     override fun getSpotifyRecentlyPlayed(): Flow<List<com.manikandan.domain.data.model.spotify.SpotifyRecentTrack>?> =
@@ -1134,6 +1330,13 @@ internal class PlaylistRepositoryImpl(
             if (spdc.isBlank()) {
                 emit(emptyList())
                 return@flow
+            }
+            seedSpotifySessionFromDataStore(spdc)
+            val cacheKey = "${CACHE_SP_RECENT_TRACKS_PREFIX}${spdc.hashCode()}"
+            val cached = loadCachedRecentTracks(cacheKey)
+            if (!cached.isNullOrEmpty()) {
+                warmTrackCacheFromRecent(cached)
+                emit(cached)
             }
             val recentlyRes = spotify.fetchRecentlyPlayedWithSpdc(spdc, limit = 20)
             if (recentlyRes.isSuccess) {
@@ -1155,10 +1358,15 @@ internal class PlaylistRepositoryImpl(
                         durationSeconds = (track.durationMs / 1000).toInt(),
                     )
                 }
-                emit(results)
+                if (results.isNotEmpty()) {
+                    saveCachedRecentTracks(cacheKey, results)
+                    if (results != cached) emit(results)
+                } else if (cached.isNullOrEmpty()) {
+                    emit(emptyList())
+                }
             } else {
                 Logger.w("Spotify", "getSpotifyRecentlyPlayed failed: ${recentlyRes.exceptionOrNull()?.message}")
-                emit(emptyList())
+                if (cached.isNullOrEmpty()) emit(emptyList())
             }
         }.flowOn(Dispatchers.IO)
 
@@ -1209,5 +1417,11 @@ internal class PlaylistRepositoryImpl(
 
     companion object {
         private const val SPOTIFY_LIKED_THUMB_URL = "https://misc.scdn.co/liked-songs/liked-songs-640.png"
+        private const val CACHE_SP_PLAYLISTS_PREFIX = "cache_sp_playlists_v1_"
+        private const val CACHE_SP_TRENDING_PLAYLISTS = "cache_sp_trending_playlists_v1"
+        private const val CACHE_SP_TRENDING_TRACKS = "cache_sp_trending_tracks_v1"
+        private const val CACHE_SP_RECENT_TRACKS_PREFIX = "cache_sp_recent_tracks_v1_"
+        private const val CACHE_YT_LIBRARY_PLAYLISTS = "cache_yt_library_playlists_v1"
+        private const val CACHE_YT_MIXED_PLAYLISTS = "cache_yt_mixed_playlists_v1"
     }
 }

@@ -76,7 +76,7 @@ class HomeViewModel(
         dataStoreManager
             .spdc
             .map { it.isNotBlank() }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     private val _homeItemList: MutableStateFlow<List<HomeItem>> =
         MutableStateFlow(arrayListOf())
     val homeItemList: StateFlow<List<HomeItem>> = _homeItemList
@@ -93,6 +93,7 @@ class HomeViewModel(
     val accountInfo: StateFlow<Pair<String?, String?>?> = _accountInfo
 
     private var homeJob: Job? = null
+    private var spotifyLoadJob: Job? = null
 
     val showSnackBarErrorState = MutableSharedFlow<String>()
 
@@ -128,6 +129,19 @@ class HomeViewModel(
 
     init {
         homeJob = Job()
+        viewModelScope.launch {
+            dataStoreManager.spdc.distinctUntilChanged().collectLatest { spdc ->
+                if (spdc.isNotBlank()) {
+                    loadSpotifyHomeData(forceRefresh = true)
+                } else {
+                    spotifyLoadJob?.cancel()
+                    _spotifyRecentlyPlayed.value = emptyList()
+                    _spotifyPlaylists.value = emptyList()
+                    _spotifyTrending.value = emptyList()
+                    _spotifyTrendingTracks.value = emptyList()
+                }
+            }
+        }
         viewModelScope.launch {
             regionCodeChart.value = dataStoreManager.chartKey.first()
             val chartRegion = regionCodeChart.value.let { if (it == null || it == "VN") "ZZ" else it }
@@ -190,22 +204,18 @@ class HomeViewModel(
             jobHome.join()
             job6.join()
         }
-        viewModelScope.launch {
-            dataStoreManager.spdc.distinctUntilChanged().collectLatest { spdc ->
-                if (spdc.isNotBlank()) {
-                    loadSpotifyHomeData()
-                } else {
-                    _spotifyRecentlyPlayed.value = emptyList()
-                    _spotifyPlaylists.value = emptyList()
-                    _spotifyTrending.value = emptyList()
-                    _spotifyTrendingTracks.value = emptyList()
-                }
-            }
-        }
     }
 
-    fun loadSpotifyHomeData() {
-        viewModelScope.launch {
+    private fun hasAnySpotifyHomeData(): Boolean =
+        _spotifyPlaylists.value.isNotEmpty() ||
+            _spotifyRecentlyPlayed.value.isNotEmpty() ||
+            _spotifyTrending.value.isNotEmpty() ||
+            _spotifyTrendingTracks.value.isNotEmpty()
+
+    fun loadSpotifyHomeData(forceRefresh: Boolean = false) {
+        if (!forceRefresh && spotifyLoadJob?.isActive == true) return
+        spotifyLoadJob?.cancel()
+        spotifyLoadJob = viewModelScope.launch {
             val spdc = dataStoreManager.spdc.first()
             if (spdc.isBlank()) {
                 _spotifyRecentlyPlayed.value = emptyList()
@@ -214,11 +224,12 @@ class HomeViewModel(
                 _spotifyTrendingTracks.value = emptyList()
                 return@launch
             }
-            // Fetch all Spotify shelves in parallel so a slow/empty endpoint never blocks the others
+            // Fetch all Spotify shelves concurrently; cached DataStore items emit first (~5ms) and reveal Home immediately
             launch {
                 playlistRepository.getSpotifyPlaylists().collect { list ->
                     if (list != null) {
                         _spotifyPlaylists.value = list
+                        if (list.isNotEmpty()) loading.value = false
                     }
                 }
             }
@@ -226,6 +237,7 @@ class HomeViewModel(
                 playlistRepository.getSpotifyRecentlyPlayed().collect { list ->
                     if (list != null) {
                         _spotifyRecentlyPlayed.value = list
+                        if (list.isNotEmpty()) loading.value = false
                     }
                 }
             }
@@ -233,6 +245,7 @@ class HomeViewModel(
                 playlistRepository.getSpotifyTrendingPlaylists().collect { list ->
                     if (list != null) {
                         _spotifyTrending.value = list
+                        if (list.isNotEmpty()) loading.value = false
                     }
                 }
             }
@@ -240,6 +253,7 @@ class HomeViewModel(
                 playlistRepository.getSpotifyTrendingTracks().collect { list ->
                     if (list != null) {
                         _spotifyTrendingTracks.value = list
+                        if (list.isNotEmpty()) loading.value = false
                     }
                 }
             }
@@ -364,12 +378,15 @@ class HomeViewModel(
         }
     }
 
-    fun getHomeItemList(params: String? = null) {
-        if (_homeItemList.value.isEmpty()) {
+    fun getHomeItemList(
+        params: String? = null,
+        forceRefreshSpotify: Boolean = false,
+    ) {
+        if (_homeItemList.value.isEmpty() && !hasAnySpotifyHomeData()) {
             loading.value = true
         }
         _homeListState.value = ListState.LOADING
-        loadSpotifyHomeData()
+        loadSpotifyHomeData(forceRefresh = forceRefreshSpotify)
         homeJob?.cancel()
         homeJob =
             viewModelScope.launch {
@@ -379,98 +396,80 @@ class HomeViewModel(
                 musicStreamingLanguage =
                     runCatching { dataStoreManager.musicLanguage.first() }.getOrDefault("auto")
                 regionCode = dataStoreManager.location.first()
-                combine(
-                    homeRepository.getHomeData(
-                        params,
-                        getString(Res.string.view_count),
-                        getString(Res.string.song),
-                    ),
-                    homeRepository.getMoodAndMomentsData(),
-                    homeRepository.getChartData(dataStoreManager.chartKey.first()),
-                    homeRepository.getNewRelease(
-                        getString(Res.string.new_release),
-                        getString(Res.string.music_video),
-                    ),
-                ) { home, exploreMood, exploreChart, newRelease ->
-                    HomeDataCombine(home, exploreMood, exploreChart, newRelease)
-                }.catch { e ->
-                    Logger.e("HomeViewModel", "getHomeItemList failed: ${e.message}")
-                    loading.value = false
-                    _homeListState.value = ListState.IDLE
-                    showSnackBarErrorState.emit(e.message ?: "Network error")
-                }.collect { result ->
-                    val home = result.home
-                    Logger.d("home size", "${home.data?.second?.size}")
-                    val exploreMoodItem = result.mood
-                    val chart = result.chart
-                    val newRelease = result.newRelease
-                    when (home) {
-                        is Resource.Success -> {
-                            _continuation.value = home.data?.first
-                            _homeItemList.value = filterCleanHomeItems(home.data?.second ?: listOf())
-                        }
+                val viewCountStr = getString(Res.string.view_count)
+                val songStr = getString(Res.string.song)
+                val newReleaseStr = getString(Res.string.new_release)
+                val musicVideoStr = getString(Res.string.music_video)
+                val chartKeyVal = dataStoreManager.chartKey.first()
 
-                        else -> {
-                            _continuation.value = null
-                            _homeItemList.value = listOf()
+                // Launch Home, Mood, Chart, and NewRelease in parallel without blocking Home behind slower secondary feeds
+                launch {
+                    homeRepository.getHomeData(params, viewCountStr, songStr)
+                        .catch { e ->
+                            Logger.e("HomeViewModel", "getHomeData failed: ${e.message}")
+                            loading.value = false
+                            _homeListState.value = ListState.IDLE
+                            showSnackBarErrorState.emit(e.message ?: "Network error")
                         }
-                    }
-                    if (continuation.value.isNullOrEmpty()) {
-                        _homeListState.value = ListState.PAGINATION_EXHAUST
-                    } else {
-                        _homeListState.value = ListState.IDLE
-                    }
-                    when (chart) {
-                        is Resource.Success -> {
-                            _chart.value = filterCleanChart(chart.data)
-                        }
+                        .collect { home ->
+                            Logger.d("home size", "${home.data?.second?.size}")
+                            when (home) {
+                                is Resource.Success -> {
+                                    _continuation.value = home.data?.first
+                                    _homeItemList.value = filterCleanHomeItems(home.data?.second ?: listOf())
+                                }
 
-                        else -> {
-                            _chart.value = null
+                                else -> {
+                                    _continuation.value = null
+                                    if (_homeItemList.value.isEmpty()) {
+                                        _homeItemList.value = listOf()
+                                    }
+                                    home.message?.let { showSnackBarErrorState.emit(it) }
+                                }
+                            }
+                            _homeListState.value =
+                                if (continuation.value.isNullOrEmpty()) ListState.PAGINATION_EXHAUST else ListState.IDLE
+                            regionCodeChart.value = dataStoreManager.chartKey.first()
+                            dataStoreManager.cookie.first().let {
+                                if (it != "") {
+                                    _accountInfo.emit(
+                                        Pair(
+                                            dataStoreManager.getString("AccountName").first(),
+                                            dataStoreManager.getString("AccountThumbUrl").first(),
+                                        ),
+                                    )
+                                }
+                            }
+                            loading.value = false
                         }
-                    }
-                    when (newRelease) {
-                        is Resource.Success -> {
-                            _newRelease.value = filterCleanHomeItems(newRelease.data ?: arrayListOf())
+                }
+                launch {
+                    homeRepository.getMoodAndMomentsData()
+                        .catch { e -> Logger.w("Error", "getMoodAndMomentsData: ${e.message}") }
+                        .collect { exploreMoodItem ->
+                            _exploreMoodItem.value =
+                                if (exploreMoodItem is Resource.Success) exploreMoodItem.data else null
                         }
-
-                        else -> {
-                            _newRelease.value = arrayListOf()
+                }
+                launch {
+                    homeRepository.getChartData(chartKeyVal)
+                        .catch { e -> Logger.w("Error", "getChartData: ${e.message}") }
+                        .collect { chart ->
+                            _chart.value =
+                                if (chart is Resource.Success) filterCleanChart(chart.data) else null
                         }
-                    }
-                    when (exploreMoodItem) {
-                        is Resource.Success -> {
-                            _exploreMoodItem.value = exploreMoodItem.data
+                }
+                launch {
+                    homeRepository.getNewRelease(newReleaseStr, musicVideoStr)
+                        .catch { e -> Logger.w("Error", "getNewRelease: ${e.message}") }
+                        .collect { newRelease ->
+                            _newRelease.value =
+                                if (newRelease is Resource.Success) {
+                                    filterCleanHomeItems(newRelease.data ?: arrayListOf())
+                                } else {
+                                    arrayListOf()
+                                }
                         }
-
-                        else -> {
-                            _exploreMoodItem.value = null
-                        }
-                    }
-                    regionCodeChart.value = dataStoreManager.chartKey.first()
-                    Logger.d("HomeViewModel", "getHomeItemList: $result")
-                    dataStoreManager.cookie.first().let {
-                        if (it != "") {
-                            _accountInfo.emit(
-                                Pair(
-                                    dataStoreManager.getString("AccountName").first(),
-                                    dataStoreManager.getString("AccountThumbUrl").first(),
-                                ),
-                            )
-                        }
-                    }
-                    when {
-                        home is Resource.Error -> home.message
-                        exploreMoodItem is Resource.Error -> exploreMoodItem.message
-                        chart is Resource.Error -> chart.message
-                        else -> null
-                    }?.let {
-                        showSnackBarErrorState.emit(it)
-                        Logger.w("Error", "getHomeItemList: ${home.message}")
-                        Logger.w("Error", "getHomeItemList: ${exploreMoodItem.message}")
-                        Logger.w("Error", "getHomeItemList: ${chart.message}")
-                    }
-                    loading.value = false
                 }
             }
     }

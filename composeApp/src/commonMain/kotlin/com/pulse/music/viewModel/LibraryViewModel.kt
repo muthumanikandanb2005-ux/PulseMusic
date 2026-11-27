@@ -231,28 +231,40 @@ class LibraryViewModel(
     }
 
     fun getYouTubePlaylist() {
-        _youTubePlaylist.value = LocalResource.Loading()
+        if (_youTubePlaylist.value.data.isNullOrEmpty()) {
+            _youTubePlaylist.value = LocalResource.Loading()
+        }
         viewModelScope.launch {
             playlistRepository.getLibraryPlaylist().collect { data ->
-                _youTubePlaylist.value = LocalResource.Success(data ?: emptyList())
+                if (!data.isNullOrEmpty() || _youTubePlaylist.value.data.isNullOrEmpty()) {
+                    _youTubePlaylist.value = LocalResource.Success(data ?: emptyList())
+                }
             }
         }
     }
 
     fun getSpotifyPlaylists() {
-        _spotifyPlaylists.value = LocalResource.Loading()
+        if (_spotifyPlaylists.value.data.isNullOrEmpty()) {
+            _spotifyPlaylists.value = LocalResource.Loading()
+        }
         viewModelScope.launch {
             playlistRepository.getSpotifyPlaylists().collect { data ->
-                _spotifyPlaylists.value = LocalResource.Success(data ?: emptyList())
+                if (!data.isNullOrEmpty() || _spotifyPlaylists.value.data.isNullOrEmpty()) {
+                    _spotifyPlaylists.value = LocalResource.Success(data ?: emptyList())
+                }
             }
         }
     }
 
     fun getYouTubeMixedForYou() {
-        _youTubeMixForYou.value = LocalResource.Loading()
+        if (_youTubeMixForYou.value.data.isNullOrEmpty()) {
+            _youTubeMixForYou.value = LocalResource.Loading()
+        }
         viewModelScope.launch {
             playlistRepository.getMixedForYou().collect { data ->
-                _youTubeMixForYou.value = LocalResource.Success(data ?: emptyList())
+                if (!data.isNullOrEmpty() || _youTubeMixForYou.value.data.isNullOrEmpty()) {
+                    _youTubeMixForYou.value = LocalResource.Success(data ?: emptyList())
+                }
             }
         }
     }

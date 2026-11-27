@@ -38,9 +38,43 @@ internal class SpotApiBundleSession(
     private var lastWarmMark: TimeMark? = null
     private var discoveryExhausted: Boolean = false
 
+    private var lastHtmlWarmMark: TimeMark? = null
+    private var lastEmbeddedAccessToken: String? = null
+
     fun currentClientVersion(): String = clientVersion
 
     fun currentTotpSecret(): Pair<Int, List<Int>>? = discoveredTotp
+
+    /**
+     * Fast single-request HTML warm: extracts clientVersion, embedded WebPlayer accessToken (when sp_dc
+     * cookie is set), and bundle chunk links in one lightweight HTTP GET without downloading JS bundles.
+     */
+    suspend fun warmHtmlQuick(spdc: String = "", force: Boolean = false): BundleWarmResult = lock.withLock {
+        val htmlMark = lastHtmlWarmMark
+        if (!force && htmlMark != null && htmlMark.elapsedNow().inWholeMinutes < 15 && discoveredLinks.isNotEmpty()) {
+            return@withLock BundleWarmResult(
+                clientVersion = clientVersion,
+                totpSecret = discoveredTotp,
+                embeddedAccessToken = lastEmbeddedAccessToken,
+            )
+        }
+        val html = runCatching { client.getSpotifyOpenHomeHtml(spdc).bodyAsText() }.getOrNull()
+        var embeddedToken: String? = null
+        if (!html.isNullOrBlank()) {
+            parseAppServerConfig(html)
+            embeddedToken = extractEmbeddedAccessToken(html)
+            extractHtmlJsLinks(html).forEach { discoveredLinks.add(it) }
+            if (!embeddedToken.isNullOrBlank()) {
+                lastEmbeddedAccessToken = embeddedToken
+            }
+        }
+        lastHtmlWarmMark = TimeSource.Monotonic.markNow()
+        BundleWarmResult(
+            clientVersion = clientVersion,
+            totpSecret = discoveredTotp,
+            embeddedAccessToken = embeddedToken,
+        )
+    }
 
     suspend fun warmIfNeeded(spdc: String = "", force: Boolean = false): BundleWarmResult = lock.withLock {
         val mark = lastWarmMark
@@ -48,7 +82,7 @@ internal class SpotApiBundleSession(
             return@withLock BundleWarmResult(
                 clientVersion = clientVersion,
                 totpSecret = discoveredTotp,
-                embeddedAccessToken = null,
+                embeddedAccessToken = lastEmbeddedAccessToken,
             )
         }
 
@@ -58,14 +92,18 @@ internal class SpotApiBundleSession(
             parseAppServerConfig(html)
             embeddedToken = extractEmbeddedAccessToken(html)
             extractHtmlJsLinks(html).forEach { discoveredLinks.add(it) }
+            if (!embeddedToken.isNullOrBlank()) {
+                lastEmbeddedAccessToken = embeddedToken
+            }
         }
+        lastHtmlWarmMark = TimeSource.Monotonic.markNow()
 
         val primaryUrls = discoveredLinks
             .filter { it.contains("/web-player.") }
-            .ifEmpty { discoveredLinks.take(3) }
+            .ifEmpty { discoveredLinks.take(2) }
 
         if (primaryUrls.isNotEmpty()) {
-            val bundles = fetchBundleTexts(primaryUrls.take(4))
+            val bundles = fetchBundleTexts(primaryUrls.take(2))
             bundles.forEach { (url, source) ->
                 fetchedChunkUrls.add(url)
                 ingestBundleSource(url, source)
@@ -83,21 +121,32 @@ internal class SpotApiBundleSession(
         )
     }
 
-    suspend fun resolveQueryHash(operationName: String, spdc: String = ""): String? {
-        queryHashes[operationName]?.let { return it }
+    suspend fun resolveQueryHash(
+        operationName: String,
+        spdc: String = "",
+        forceScan: Boolean = false,
+    ): String? {
+        if (!forceScan) {
+            queryHashes[operationName]?.let { return it }
+            SpotApiVault.fallbackQueryHash(operationName)?.let { return it }
+        }
 
-        warmIfNeeded(spdc)
-        queryHashes[operationName]?.let { return it }
+        warmIfNeeded(spdc, force = forceScan)
+        if (!forceScan) {
+            queryHashes[operationName]?.let { return it }
+        }
 
         lock.withLock {
-            queryHashes[operationName]?.let { return it }
-            if (!discoveryExhausted) {
+            if (!forceScan) {
+                queryHashes[operationName]?.let { return it }
+            }
+            if (!discoveryExhausted || forceScan) {
                 val pending = discoveredLinks
                     .filter { it !in fetchedChunkUrls }
                     .sortedByDescending { chunkRelevanceScore(it, operationName) }
                 // Scan top relevant chunks in bounded batches so route queries (playlist/library/home/search)
                 // resolve cleanly without downloading dozens of unrelated locale/UI chunks.
-                val candidateBatches = pending.take(24).chunked(6)
+                val candidateBatches = pending.take(12).chunked(6)
                 for (batch in candidateBatches) {
                     val fetched = fetchBundleTexts(batch)
                     fetched.forEach { (url, src) ->
@@ -106,7 +155,7 @@ internal class SpotApiBundleSession(
                     }
                     queryHashes[operationName]?.let { return it }
                 }
-                if (pending.size <= 24) {
+                if (pending.size <= 12) {
                     discoveryExhausted = true
                 }
             }

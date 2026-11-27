@@ -81,6 +81,12 @@ class SpotApiVaultAndPathfinderTest {
         val chunks = session.extractWebpackChunkLinks(sampleJs)
         assertEquals(2, chunks.size)
         assertTrue(chunks.any { it.endsWith("xpui-routes-playlist.abcd1234.js") })
+
+        // Vault-known operations resolve in 0ms without hitting network bundles when not forced
+        assertEquals(
+            SpotApiVault.fallbackQueryHash("searchDesktop"),
+            session.resolveQueryHash("searchDesktop"),
+        )
     }
 
     @Test

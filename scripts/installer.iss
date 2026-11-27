@@ -1,5 +1,5 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "4.2.6"
+#define MyAppVersion "4.2.7"
 #define MyAppPublisher "Manikandan"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"
@@ -32,11 +32,11 @@ SignTool=signtool
 SignedUninstaller=yes
 VersionInfoCompany=Manikandan
 VersionInfoDescription=Pulse Music Desktop Setup
-VersionInfoVersion=4.2.6.0
-VersionInfoTextVersion=4.2.6
+VersionInfoVersion=4.2.7.0
+VersionInfoTextVersion=4.2.7
 VersionInfoCopyright=Copyright (C) 2026 Manikandan
 VersionInfoProductName=Pulse Music
-VersionInfoProductVersion=4.2.6.0
+VersionInfoProductVersion=4.2.7.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

@@ -32,6 +32,7 @@ import com.pulse.music.viewModel.PlaylistUIState.Loading
 import com.pulse.music.viewModel.PlaylistUIState.Success
 import com.pulse.music.viewModel.base.BaseViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -228,7 +229,39 @@ class PlaylistViewModel(
                         }
                     }
             } else {
-                // This is an online playlist
+                // Fast-path: render cached playlist + ordered tracks immediately from Room before network refresh finishes
+                var showedCachedPlaylist = false
+                val cachedEntity = playlistRepository.getPlaylist(id).firstOrNull()
+                val cachedTrackIds = cachedEntity?.tracks.orEmpty()
+                if (cachedEntity != null && cachedTrackIds.isNotEmpty()) {
+                    val cachedSongs = songRepository.getSongsByListVideoId(cachedTrackIds).firstOrNull().orEmpty()
+                    if (cachedSongs.isNotEmpty()) {
+                        val orderMap = cachedTrackIds.withIndex().associate { it.value to it.index }
+                        val orderedTracks = cachedSongs
+                            .sortedBy { orderMap[it.videoId] ?: Int.MAX_VALUE }
+                            .map { it.toTrack() }
+                        _playlistEntity.value = cachedEntity
+                        _uiState.value =
+                            Success(
+                                data =
+                                    PlaylistState(
+                                        id = cachedEntity.id,
+                                        title = cachedEntity.title,
+                                        isRadio = false,
+                                        author = Author(id = "", name = cachedEntity.author ?: ""),
+                                        thumbnail = com.manikandan.domain.extension.upgradeArtworkUrl(cachedEntity.thumbnails),
+                                        description = cachedEntity.description,
+                                        trackCount = cachedEntity.trackCount.takeIf { it > 0 } ?: orderedTracks.size,
+                                        year = cachedEntity.year ?: now().year.toString(),
+                                    ),
+                            )
+                        _tracks.value = orderedTracks
+                        _tracksListState.value = ListState.PAGINATION_EXHAUST
+                        showedCachedPlaylist = true
+                    }
+                }
+
+                // Refresh live playlist metadata & tracks concurrently
                 playlistRepository
                     .getPlaylistData(id, getString(Res.string.view_count))
                     .collect { res ->
@@ -261,12 +294,15 @@ class PlaylistViewModel(
                                     )
                                 _tracks.value = data.first.tracks
                                 _continuation.value = data.second
-                                if (data.second.isNullOrEmpty()) _tracksListState.value = ListState.PAGINATION_EXHAUST
+                                _tracksListState.value =
+                                    if (data.second.isNullOrEmpty()) ListState.PAGINATION_EXHAUST else ListState.IDLE
                                 getPlaylistEntity(id = data.first.id, playlistBrowse = data.first)
                             }
 
                             else -> {
-                                getPlaylistEntity(id)
+                                if (!showedCachedPlaylist) {
+                                    getPlaylistEntity(id)
+                                }
                             }
                         }
                     }
@@ -333,7 +369,6 @@ class PlaylistViewModel(
                         playlistRepository.insertAndReplacePlaylist(
                             playlistBrowse.toPlaylistEntity(),
                         )
-                        delay(500)
                         playlistRepository.getPlaylist(id).collectLatest { playlist ->
                             _playlistEntity.value = playlist
                             playlistRepository.updatePlaylistInLibrary(
@@ -348,16 +383,15 @@ class PlaylistViewModel(
                             inLibrary = now(),
                         )
                     }
-                    playlistBrowse.tracks.forEach { tracks ->
-                        songRepository
-                            .insertSong(
-                                tracks.toSongEntity().copy(
-                                    inLibrary = Config.REMOVED_SONG_DATE_TIME,
-                                ),
-                            ).firstOrNull()
-                            ?.let {
-                                log("Insert song: $it")
-                            }
+                    launch(Dispatchers.IO) {
+                        playlistBrowse.tracks.forEach { tracks ->
+                            songRepository
+                                .insertSong(
+                                    tracks.toSongEntity().copy(
+                                        inLibrary = Config.REMOVED_SONG_DATE_TIME,
+                                    ),
+                                ).firstOrNull()
+                        }
                     }
                 } else if (playlistEntity != null) {
                     _playlistEntity.value = playlistEntity

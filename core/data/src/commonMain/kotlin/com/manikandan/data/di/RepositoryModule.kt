@@ -90,7 +90,7 @@ val repositoryModule =
         }
 
         single<PlaylistRepository>(createdAtStart = true) {
-            PlaylistRepositoryImpl(get(), get(), get())
+            PlaylistRepositoryImpl(get(), get(), get(), get())
         }
 
         single<PodcastRepository>(createdAtStart = true) {

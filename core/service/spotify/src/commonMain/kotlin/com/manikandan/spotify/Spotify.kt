@@ -30,6 +30,9 @@ import io.ktor.client.engine.ProxyBuilder
 import io.ktor.client.engine.http
 import io.ktor.client.statement.bodyAsText
 import io.ktor.util.date.getTimeMillis
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -158,6 +161,29 @@ class Spotify {
         spotifyClient.getSpotifyRecentlyPlayed(token, limit).body<SpotifyRecentlyPlayedResponse>()
     }
 
+    fun seedSessionFromCache(
+        spdc: String,
+        accessToken: String,
+        clientToken: String,
+        expiresAtMs: Long,
+    ) {
+        val cleanSpdc = spdc.removePrefix("sp_dc=").trim()
+        if (cleanSpdc.isBlank() || accessToken.isBlank() || clientToken.isBlank()) return
+        val remainingMs = expiresAtMs - getTimeMillis()
+        if (remainingMs <= 120_000L) return
+        val current = authSession
+        if (current != null && current.spdc == cleanSpdc && current.isFresh()) return
+        authSession = CachedSpotSession(
+            spdc = cleanSpdc,
+            accessToken = accessToken,
+            clientToken = clientToken,
+            clientId = SpotApiVault.defaultClientId(),
+            clientVersion = bundleSession.currentClientVersion(),
+            ttlMs = remainingMs.coerceIn(120_000L, 3_600_000L),
+            mark = TimeSource.Monotonic.markNow(),
+        )
+    }
+
     private suspend fun getOrCreateSession(
         spdc: String,
         forceRefresh: Boolean = false,
@@ -177,17 +203,48 @@ class Spotify {
             return@withLock cached
         }
 
-        // Ensure bundle session is warm (live clientVersion, live TOTP secret, dynamic query hashes)
-        val warm = runCatching { bundleSession.warmIfNeeded(cleanSpdc, force = forceRefresh) }.getOrNull()
-        val clientVer = warm?.clientVersion ?: bundleSession.currentClientVersion()
-
-        // 1. Obtain Personal / Web-Player Access Token (TOTP first -> transport -> SSR HTML fallback)
-        var tokenResp = getPersonalTokenWithTotp(cleanSpdc).getOrNull()
-        if (tokenResp == null || tokenResp.accessToken.isBlank()) {
-            tokenResp = getPersonalToken(cleanSpdc).getOrNull()
+        val quickHtml = if (!forceRefresh) {
+            runCatching { bundleSession.warmHtmlQuick(cleanSpdc, force = false) }.getOrNull()
+        } else {
+            runCatching { bundleSession.warmIfNeeded(cleanSpdc, force = true) }.getOrNull()
         }
+        val embeddedToken = quickHtml?.embeddedAccessToken?.takeIf { it.isNotBlank() }
+        val clientVer = quickHtml?.clientVersion ?: bundleSession.currentClientVersion()
+
+        val (tokenResp, prefetchedClientToken) = coroutineScope {
+            val tokenDeferred = if (embeddedToken != null && !forceRefresh) {
+                null
+            } else {
+                async {
+                    var resp = getPersonalTokenWithTotp(cleanSpdc).getOrNull()
+                    if (resp == null || resp.accessToken.isBlank()) {
+                        resp = getPersonalToken(cleanSpdc).getOrNull()
+                    }
+                    resp
+                }
+            }
+            val clientDeferred = if (!forceRefresh && !cached?.clientToken.isNullOrBlank()) {
+                null
+            } else {
+                async {
+                    val cid = SpotApiVault.defaultClientId()
+                    runCatching {
+                        spotifyClient.getSpotifyClientToken(
+                            clientId = cid,
+                            clientVersion = clientVer,
+                        ).body<ClientTokenResponse>().grantedToken.token
+                    }.getOrNull()
+                }
+            }
+            (tokenDeferred?.await()) to (clientDeferred?.await())
+        }
+
         val accessToken = tokenResp?.accessToken?.takeIf { it.isNotBlank() }
-            ?: warm?.embeddedAccessToken?.takeIf { it.isNotBlank() }
+            ?: embeddedToken
+            ?: run {
+                val warmFull = runCatching { bundleSession.warmIfNeeded(cleanSpdc, force = false) }.getOrNull()
+                warmFull?.embeddedAccessToken?.takeIf { it.isNotBlank() }
+            }
             ?: return@withLock null
 
         val clientId = tokenResp?.clientId?.takeIf { it.isNotBlank() } ?: SpotApiVault.defaultClientId()
@@ -198,9 +255,9 @@ class Spotify {
             1_800_000L
         }
 
-        // 2. Obtain companion Client-Token tied to clientId + clientVersion (required by SpotAPI Pathfinder v2)
         val existingClientToken = cached?.clientToken?.takeIf { !forceRefresh && it.isNotBlank() }
         val clientToken = existingClientToken
+            ?: prefetchedClientToken
             ?: runCatching {
                 spotifyClient.getSpotifyClientToken(
                     clientId = clientId,
@@ -330,9 +387,51 @@ class Spotify {
             }.getOrNull() ?: return null
         }
 
+        if (response.status.value !in 200..299) {
+            val freshHash = bundleSession.resolveQueryHash(operationName, cleanSpdc, forceScan = true)
+            if (!freshHash.isNullOrBlank() && freshHash != sha) {
+                val activeSession = getOrCreateSession(cleanSpdc, forceRefresh = false, allowAnonymousFallback = allowAnonymous) ?: session
+                response = runCatching {
+                    spotifyClient.pathfinderQuery(
+                        operationName = operationName,
+                        sha256Hash = freshHash,
+                        variables = variables,
+                        authToken = activeSession.accessToken,
+                        clientToken = activeSession.clientToken,
+                        clientVersion = activeSession.clientVersion,
+                    )
+                }.getOrNull() ?: return null
+            }
+        }
+
         if (response.status.value !in 200..299) return null
         val root = runCatching { json.parseToJsonElement(response.bodyAsText()).jsonObject }.getOrNull()
-        return root?.get("data") as? JsonObject
+        val dataObj = root?.get("data") as? JsonObject
+        if (dataObj != null) return dataObj
+
+        // Auto-heal rotated query hash once if GraphQL reported PersistedQueryNotFound
+        val errorsText = root?.get("errors")?.toString().orEmpty()
+        if (errorsText.contains("PersistedQueryNotFound", ignoreCase = true)) {
+            val healedHash = bundleSession.resolveQueryHash(operationName, cleanSpdc, forceScan = true)
+            if (!healedHash.isNullOrBlank() && healedHash != sha) {
+                val healedSession = getOrCreateSession(cleanSpdc, forceRefresh = false, allowAnonymousFallback = allowAnonymous) ?: session
+                val retryResp = runCatching {
+                    spotifyClient.pathfinderQuery(
+                        operationName = operationName,
+                        sha256Hash = healedHash,
+                        variables = variables,
+                        authToken = healedSession.accessToken,
+                        clientToken = healedSession.clientToken,
+                        clientVersion = healedSession.clientVersion,
+                    )
+                }.getOrNull()
+                if (retryResp != null && retryResp.status.value in 200..299) {
+                    return runCatching { json.parseToJsonElement(retryResp.bodyAsText()).jsonObject }
+                        .getOrNull()?.get("data") as? JsonObject
+                }
+            }
+        }
+        return null
     }
 
     // ========== User Playlists (SpotAPI libraryV3 + REST /v1/me/playlists) ==========
@@ -341,77 +440,100 @@ class Spotify {
         val cleanSpdc = spdc.removePrefix("sp_dc=").trim()
         val collected = LinkedHashMap<String, SpotifyPlaylistItem>()
 
-        // 1. Primary Web API: paginated /v1/me/playlists
         val session = getOrCreateSession(cleanSpdc, allowAnonymousFallback = false)
             ?: throw Exception("Failed to obtain Spotify session")
 
-        var offset = 0
-        var activeToken = session.accessToken
-        while (offset < 200) {
-            var response = runCatching {
-                spotifyClient.getSpotifyUserPlaylists(activeToken, limit = 50, offset = offset)
-            }.getOrNull()
-            if (response?.status?.value == 401) {
-                activeToken = getOrCreateSession(cleanSpdc, forceRefresh = true)?.accessToken ?: activeToken
-                response = runCatching {
-                    spotifyClient.getSpotifyUserPlaylists(activeToken, limit = 50, offset = offset)
+        // Run REST /v1/me/playlists and Pathfinder libraryV3 concurrently for minimum startup latency
+        val (restPlaylists, pfPlaylists) = coroutineScope {
+            val restDeferred = async {
+                val list = mutableListOf<SpotifyPlaylistItem>()
+                var activeToken = session.accessToken
+                var firstPageResp = runCatching {
+                    spotifyClient.getSpotifyUserPlaylists(activeToken, limit = 50, offset = 0)
                 }.getOrNull()
-            }
-            val parsed = runCatching { response?.body<SpotifyUserPlaylistsResponse>() }.getOrNull() ?: break
-            val items = parsed.items.filterNotNull()
-            items.forEach { pl ->
-                if (pl.id.isNotBlank() && pl.name.isNotBlank()) {
-                    collected.putIfAbsent(pl.id, pl)
+                if (firstPageResp?.status?.value == 401) {
+                    activeToken = getOrCreateSession(cleanSpdc, forceRefresh = true)?.accessToken ?: activeToken
+                    firstPageResp = runCatching {
+                        spotifyClient.getSpotifyUserPlaylists(activeToken, limit = 50, offset = 0)
+                    }.getOrNull()
                 }
+                val firstParsed = runCatching { firstPageResp?.body<SpotifyUserPlaylistsResponse>() }.getOrNull()
+                if (firstParsed != null) {
+                    list.addAll(firstParsed.items.filterNotNull().filter { it.id.isNotBlank() && it.name.isNotBlank() })
+                    val totalToFetch = minOf(firstParsed.total, 200)
+                    if (totalToFetch > 50 && list.size >= 50) {
+                        val offsets = (50 until totalToFetch step 50).toList()
+                        val extraPages = offsets.map { off ->
+                            async {
+                                runCatching {
+                                    spotifyClient.getSpotifyUserPlaylists(activeToken, limit = 50, offset = off)
+                                        .body<SpotifyUserPlaylistsResponse>()
+                                        .items.filterNotNull()
+                                }.getOrDefault(emptyList())
+                            }
+                        }.awaitAll()
+                        extraPages.forEach { pageItems ->
+                            list.addAll(pageItems.filter { it.id.isNotBlank() && it.name.isNotBlank() })
+                        }
+                    }
+                }
+                list
             }
-            if (items.size < 50 || collected.size >= parsed.total) break
-            offset += 50
+
+            val pfDeferred = async {
+                val list = mutableListOf<SpotifyPlaylistItem>()
+                var libOffset = 0
+                while (libOffset < 200) {
+                    val libData = executePathfinder(
+                        spdc = cleanSpdc,
+                        operationName = "libraryV3",
+                        variables = buildJsonObject {
+                            put("limit", 100)
+                            put("offset", libOffset)
+                            putJsonArray("filters") { add(JsonPrimitive("Playlists")) }
+                            put("order", null as String?)
+                            put("textFilter", "")
+                            putJsonArray("features") {}
+                            put("folderUri", null as String?)
+                            put("flatten", true)
+                            putJsonArray("expandedFolders") {}
+                            put("includeFoldersWhenFlattening", false)
+                        },
+                        allowAnonymous = false,
+                    ) ?: break
+
+                    val libraryV3 = libData.obj("me")?.obj("libraryV3") ?: break
+                    val libItems = libraryV3.arr("items") ?: break
+                    if (libItems.isEmpty()) break
+
+                    for (el in libItems) {
+                        val wrapper = (el as? JsonObject)?.obj("item") ?: continue
+                        val data = wrapper.obj("data") ?: continue
+                        val uri = wrapper.str("_uri") ?: data.str("uri") ?: continue
+                        if (!uri.startsWith("spotify:playlist:")) continue
+                        val plId = uri.removePrefix("spotify:playlist:")
+                        val name = data.str("name")?.takeIf { it.isNotBlank() } ?: continue
+                        list.add(parsePathfinderPlaylistSummary(plId, name, data))
+                    }
+
+                    val totalCount = libraryV3.int("totalCount") ?: 0
+                    if (libItems.size < 100 || (totalCount > 0 && libOffset + libItems.size >= totalCount)) break
+                    libOffset += 100
+                }
+                list
+            }
+
+            restDeferred.await() to pfDeferred.await()
         }
 
-        // 2. SpotAPI Pathfinder libraryV3 (captures followed playlists & folders even when /v1/me/playlists is restricted)
-        var libOffset = 0
-        while (libOffset < 200) {
-            val libData = executePathfinder(
-                spdc = cleanSpdc,
-                operationName = "libraryV3",
-                variables = buildJsonObject {
-                    put("limit", 100)
-                    put("offset", libOffset)
-                    putJsonArray("filters") { add(JsonPrimitive("Playlists")) }
-                    put("order", null as String?)
-                    put("textFilter", "")
-                    putJsonArray("features") {}
-                    put("folderUri", null as String?)
-                    put("flatten", true)
-                    putJsonArray("expandedFolders") {}
-                    put("includeFoldersWhenFlattening", false)
-                },
-                allowAnonymous = false,
-            ) ?: break
-
-            val libraryV3 = libData.obj("me")?.obj("libraryV3") ?: break
-            val libItems = libraryV3.arr("items") ?: break
-            if (libItems.isEmpty()) break
-
-            for (el in libItems) {
-                val wrapper = (el as? JsonObject)?.obj("item") ?: continue
-                val data = wrapper.obj("data") ?: continue
-                val uri = wrapper.str("_uri") ?: data.str("uri") ?: continue
-                if (!uri.startsWith("spotify:playlist:")) continue
-                val plId = uri.removePrefix("spotify:playlist:")
-                val name = data.str("name")?.takeIf { it.isNotBlank() } ?: continue
-                val parsedItem = parsePathfinderPlaylistSummary(plId, name, data)
-                val existing = collected[plId]
-                if (existing == null) {
-                    collected[plId] = parsedItem
-                } else if (existing.images.isEmpty() && parsedItem.images.isNotEmpty()) {
-                    collected[plId] = existing.copy(images = parsedItem.images)
-                }
+        restPlaylists.forEach { pl -> collected.putIfAbsent(pl.id, pl) }
+        pfPlaylists.forEach { parsedItem ->
+            val existing = collected[parsedItem.id]
+            if (existing == null) {
+                collected[parsedItem.id] = parsedItem
+            } else if (existing.images.isEmpty() && parsedItem.images.isNotEmpty()) {
+                collected[parsedItem.id] = existing.copy(images = parsedItem.images)
             }
-
-            val totalCount = libraryV3.int("totalCount") ?: 0
-            if (libItems.size < 100 || (totalCount > 0 && libOffset + libItems.size >= totalCount)) break
-            libOffset += 100
         }
 
         collected.values.toList()
@@ -604,29 +726,7 @@ class Spotify {
         val cleanSpdc = spdc.removePrefix("sp_dc=").trim()
         val collected = LinkedHashMap<String, SpotifyPlaylistItem>()
 
-        // 1. SpotAPI Pathfinder searchDesktop for viral & trending charts playlists
-        for (query in listOf("Top 50 Viral Hits", "Trending Hits Charts", "Hot Hits")) {
-            if (collected.size >= limit) break
-            val data = executePathfinder(
-                spdc = cleanSpdc,
-                operationName = "searchDesktop",
-                variables = searchDesktopVariables(query = query, limit = limit),
-                allowAnonymous = true,
-            ) ?: continue
-            val searchRoot = data.obj("searchV2") ?: data.obj("search") ?: continue
-            val playlistsSection = searchRoot.obj("playlists") ?: continue
-            val items = playlistsSection.arr("items") ?: continue
-            for (el in items) {
-                val pData = (el as? JsonObject)?.obj("data") ?: continue
-                val uri = pData.str("uri") ?: continue
-                if (!uri.startsWith("spotify:playlist:")) continue
-                val plId = uri.removePrefix("spotify:playlist:")
-                val name = pData.str("name")?.takeIf { it.isNotBlank() } ?: continue
-                collected.putIfAbsent(plId, parsePathfinderPlaylistSummary(plId, name, pData))
-            }
-        }
-
-        // 2. Editorial Chart Playlists (SpotAPI Charts + India charts via Pathfinder fetchPlaylist / fetchPlaylistMetadata)
+        // Run searchDesktop viral/chart queries and editorial chart metadata concurrently
         val chartIds = listOf(
             "37i9dQZEVXbLZ52XmnySJg", // Top 50 - India
             "37i9dQZEVXbMDoHDwVN2tF", // Top 50 - Global
@@ -635,13 +735,45 @@ class Spotify {
             "37i9dQZF1DXcBWIGoYBM5M", // Today's Top Hits
             "37i9dQZF1DX0XUfTFmNBRM", // Hot Hits Hindi
         )
-        if (collected.size < limit) {
-            for (chartId in chartIds) {
-                if (collected.containsKey(chartId)) continue
-                val detail = fetchPathfinderPlaylist(cleanSpdc, chartId, trackLimit = 5)
-                if (detail != null && detail.name.isNotBlank()) {
-                    collected.putIfAbsent(
-                        chartId,
+
+        val (searchResults, chartResults) = coroutineScope {
+            val searchDeferred = listOf("Top 50 Viral Hits", "Trending Hits Charts", "Hot Hits").map { query ->
+                async {
+                    val data = executePathfinder(
+                        spdc = cleanSpdc,
+                        operationName = "searchDesktop",
+                        variables = searchDesktopVariables(query = query, limit = limit),
+                        allowAnonymous = true,
+                    ) ?: return@async emptyList()
+                    val searchRoot = data.obj("searchV2") ?: data.obj("search") ?: return@async emptyList()
+                    val items = searchRoot.obj("playlists")?.arr("items") ?: return@async emptyList()
+                    items.mapNotNull { el ->
+                        val pData = (el as? JsonObject)?.obj("data") ?: return@mapNotNull null
+                        val uri = pData.str("uri") ?: return@mapNotNull null
+                        if (!uri.startsWith("spotify:playlist:")) return@mapNotNull null
+                        val plId = uri.removePrefix("spotify:playlist:")
+                        val name = pData.str("name")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                        parsePathfinderPlaylistSummary(plId, name, pData)
+                    }
+                }
+            }
+            val chartDeferred = chartIds.map { chartId ->
+                async {
+                    val meta = executePathfinder(
+                        spdc = cleanSpdc,
+                        operationName = "fetchPlaylistMetadata",
+                        variables = buildJsonObject {
+                            put("uri", "spotify:playlist:$chartId")
+                            put("enableWatchFeedEntrypoint", false)
+                        },
+                        allowAnonymous = true,
+                    )?.obj("playlistV2")
+                    if (meta != null) {
+                        val name = meta.str("name")?.takeIf { it.isNotBlank() } ?: return@async null
+                        return@async parsePathfinderPlaylistSummary(chartId, name, meta)
+                    }
+                    val detail = fetchPathfinderPlaylist(cleanSpdc, chartId, trackLimit = 1)
+                    if (detail != null && detail.name.isNotBlank()) {
                         SpotifyPlaylistItem(
                             id = chartId,
                             name = detail.name,
@@ -649,11 +781,15 @@ class Spotify {
                             images = detail.images,
                             tracks = SpotifyTracksRef(total = detail.tracks.total),
                             owner = detail.owner,
-                        ),
-                    )
+                        )
+                    } else null
                 }
             }
+            searchDeferred.awaitAll().flatten() to chartDeferred.awaitAll().filterNotNull()
         }
+
+        searchResults.forEach { pl -> collected.putIfAbsent(pl.id, pl) }
+        chartResults.forEach { pl -> collected.putIfAbsent(pl.id, pl) }
 
         // 3. REST fallbacks if token permits
         val token = getValidAccessToken(cleanSpdc)
@@ -689,16 +825,26 @@ class Spotify {
         val cleanSpdc = spdc.removePrefix("sp_dc=").trim()
         val tracks = LinkedHashMap<String, SpotifyTrackItem>()
 
-        // 1. Editorial charts via SpotAPI Pathfinder fetchPlaylistContents / fetchPlaylist
-        for (chartId in listOf(
-            "37i9dQZEVXbLZ52XmnySJg", // Top 50 - India
-            "37i9dQZEVXbMDoHDwVN2tF", // Top 50 - Global
-            "37i9dQZEVXbNG2KDcFcKOF", // Top Songs - Global
-            "37i9dQZF1DXcBWIGoYBM5M", // Today's Top Hits
-        )) {
-            val detail = fetchPathfinderPlaylist(cleanSpdc, chartId, trackLimit = limit)
-            val list = detail?.tracks?.items?.mapNotNull { it?.track }?.filter { it.name.isNotBlank() }.orEmpty()
-            if (list.isNotEmpty()) {
+        // 1. Fetch primary regional & global charts concurrently
+        val primaryCharts = coroutineScope {
+            listOf(
+                "37i9dQZEVXbLZ52XmnySJg", // Top 50 - India
+                "37i9dQZEVXbMDoHDwVN2tF", // Top 50 - Global
+            ).map { chartId ->
+                async {
+                    fetchPathfinderPlaylist(cleanSpdc, chartId, trackLimit = limit)
+                        ?.tracks?.items?.mapNotNull { it?.track }?.filter { it.name.isNotBlank() }.orEmpty()
+                }
+            }.awaitAll()
+        }
+        primaryCharts.forEach { list ->
+            list.forEach { t -> tracks.putIfAbsent(t.id.ifBlank { t.name }, t) }
+        }
+
+        if (tracks.size < limit) {
+            for (chartId in listOf("37i9dQZEVXbNG2KDcFcKOF", "37i9dQZF1DXcBWIGoYBM5M")) {
+                val detail = fetchPathfinderPlaylist(cleanSpdc, chartId, trackLimit = limit)
+                val list = detail?.tracks?.items?.mapNotNull { it?.track }?.filter { it.name.isNotBlank() }.orEmpty()
                 list.forEach { t -> tracks.putIfAbsent(t.id.ifBlank { t.name }, t) }
                 if (tracks.size >= limit) break
             }
