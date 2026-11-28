@@ -4,10 +4,15 @@ echo ========================================================
 echo   Manikandan - Publisher Certificate Trust Tool
 echo ========================================================
 echo.
-echo Installing Manikandan certificate into Windows Trust Stores...
+echo Select trust scope:
+echo   - Adds PulseMusic.cer to Windows Certificate Store for verified publisher identity.
+echo   - You can review certificate details at any time inside Pulse Music ^> Settings ^> Windows Trust Seal.
 echo.
 
 set "CER_PATH=%~dp0PulseMusic.cer"
+if not exist "%CER_PATH%" (
+    set "CER_PATH=%~dp0app\resources\PulseMusic.cer"
+)
 if not exist "%CER_PATH%" (
     set "CER_PATH=%~dp0..\dist\PulseMusic.cer"
 )
@@ -15,23 +20,23 @@ if not exist "%CER_PATH%" (
     set "CER_PATH=%~dp0dist\PulseMusic.cer"
 )
 if not exist "%CER_PATH%" (
-    echo Error: PulseMusic.cer not found at %CER_PATH%
+    echo Error: PulseMusic.cer not found next to this script.
     pause
     exit /b 1
 )
 
-:: 1. Add to CurrentUser TrustedPublisher and TrustedPeople (silent, no admin required)
-echo Configuring CurrentUser TrustedPublisher and TrustedPeople...
-certutil.exe -user -addstore -f "TrustedPublisher" "%CER_PATH%" >nul 2>&1
-certutil.exe -user -addstore -f "TrustedPeople" "%CER_PATH%" >nul 2>&1
+echo Certificate file: %CER_PATH%
+certutil.exe -dump "%CER_PATH%" | findstr /I "Subject: Thumbprint Sha1 NotAfter"
+echo.
 
-:: 2. Add to LocalMachine Root (requires admin elevation via PowerShell Start-Process -Verb RunAs)
-echo Requesting administrator privilege to trust root certificate...
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process certutil.exe -ArgumentList '-addstore -f Root \"\"\"%CER_PATH%\"\"\"' -Verb RunAs -Wait"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process certutil.exe -ArgumentList '-addstore -f TrustedPublisher \"\"\"%CER_PATH%\"\"\"' -Verb RunAs -Wait"
+echo [1/2] Registering certificate in CurrentUser TrustedPublisher and TrustedPeople...
+certutil.exe -user -addstore -f "TrustedPublisher" "%CER_PATH%"
+certutil.exe -user -addstore -f "TrustedPeople" "%CER_PATH%"
 
 echo.
-echo Trust configuration completed!
-echo Windows will now recognize Manikandan as a verified publisher.
+echo [2/2] Registering certificate in CurrentUser Trusted Root Certification Authorities (Windows will prompt to confirm)...
+certutil.exe -user -addstore -f "Root" "%CER_PATH%"
+
 echo.
+echo Trust setup finished. Re-open Pulse Music to verify the seal status.
 pause

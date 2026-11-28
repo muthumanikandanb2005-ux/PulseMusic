@@ -1,9 +1,16 @@
 package com.pulse.music
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -11,11 +18,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -63,6 +73,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import multiplatform.network.cmptoast.ToastHost
 import multiplatform.network.cmptoast.showToast
 import okhttp3.OkHttpClient
@@ -91,6 +102,12 @@ import pulsemusic.composeapp.generated.resources.time_out_check_internet_connect
  * Any `scheme://…` command-line argument. RFC 3986 §3.1 allows ALPHA followed by
  * ALPHA / DIGIT / "+" / "-" / ".".
  */
+private data class DesktopAppRuntime(
+    val sharedViewModel: SharedViewModel,
+    val mediaPlayerHandler: MediaPlayerHandler,
+    val desktopNotificationManager: DesktopNotificationManager,
+)
+
 private val DEEP_LINK_ARG = Regex("^[A-Za-z][A-Za-z0-9+.\\-]*://.+")
 
 private val sharedDesktopOkHttpClient: OkHttpClient by lazy {
@@ -219,99 +236,109 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         deepLinkArg?.let { DesktopDeepLinkHandler.onNewUri(it) }
     }
 
-    // Initialize Koin ONCE before application starts
-    startKoin {
-        loadAllModules(
-            AppIdentity(
-                applicationId = "com.pulse.music",
-                versionName = BuildKonfig.versionName,
-                platform = "${System.getProperty("os.name")} ${System.getProperty("os.version")}",
-            ),
-        )
-        loadKoinModules(viewModelModule)
-    }
-
-    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-        runCatching {
-            val language = getKoin().get<DataStoreManager>().language.first().substring(0..1)
-            changeLanguageNative(language)
-        }
-        runCatching { VersionManager.initialize() }
-        runCatching { configLastfm(BuildKonfig.lastfmApiKey, BuildKonfig.lastfmSecret) }
-        if (BuildKonfig.sentryDsn.isNotEmpty()) {
-            runCatching {
-                Sentry.init { options ->
-                    options.dsn = BuildKonfig.sentryDsn
-                    options.release = "pulsemusic-desktop@${VersionManager.getVersionName()}"
-                    options.setDiagnosticLevel(SentryLevel.ERROR)
-                }
-            }
-        }
-    }
-
-    val mediaPlayerHandler by inject<MediaPlayerHandler>(MediaPlayerHandler::class.java)
-    mediaPlayerHandler.showToast = { type ->
-        showToast(
-            when (type) {
-                ToastType.ExplicitContent -> {
-                    runBlocking { getString(Res.string.explicit_content_blocked) }
-                }
-
-                is ToastType.PlayerError -> {
-                    runBlocking { getString(Res.string.time_out_check_internet_connection_or_change_piped_instance_in_settings, type.error) }
-                }
-
-                is ToastType.HearingHealthBreak -> {
-                    runBlocking { getString(Res.string.break_reminder_toast, type.minutes) }
-                }
-
-                ToastType.SaferVolumeLimitActive -> {
-                    runBlocking { getString(Res.string.safer_volume_limit_toast) }
-                }
-            },
-        )
-    }
-    mediaPlayerHandler.pushPlayerError = { error ->
-        Sentry.withScope { scope ->
-            Sentry.captureMessage("Player Error: ${error.message}, code: ${error.errorCode}, code name: ${error.errorCodeName}")
-        }
-    }
-
-    // Register pulsemusic:// protocol handler & shortcuts on Windows asynchronously
-    // Prevents blocking the main EDT thread during initial window startup
-    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-        runCatching { WindowsProtocolRegistrar.register() }
-        runCatching { WindowsShortcutManager.ensureShortcutsCreated() }
-    }
-
-    val desktopNotificationManager = getKoin().get<DesktopNotificationManager>()
-    runCatching { desktopNotificationManager.initialize() }
-
-    val sharedViewModel = getKoin().get<SharedViewModel>()
-    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-        runCatching {
-            if (sharedViewModel.shouldCheckForUpdate()) {
-                sharedViewModel.checkForUpdate()
-            }
-        }
-    }
-
-    // Connect deep link handler to SharedViewModel
-    DesktopDeepLinkHandler.listener = { intent ->
-        sharedViewModel.setIntent(intent)
-    }
-
     application {
-        // Main Window
+        // Open the main Compose window immediately on the first frame so Windows startup feels
+        // instant, while Koin, Room/DataStore, libmpv, and WinRT SMTC initialize off the EDT.
         val windowState =
             rememberWindowState(
                 size = DpSize(1500.dp, 860.dp),
             )
         var isVisible by remember { mutableStateOf(true) }
-        val controllerState by sharedViewModel.controllerState.collectAsState()
         var lastVolumeBeforeMute by remember { mutableFloatStateOf(0.7f) }
-        val showNotificationPermissionDialog by
-            desktopNotificationManager.shouldShowPermissionDialog.collectAsState()
+        var runtime by remember { mutableStateOf<DesktopAppRuntime?>(null) }
+
+        LaunchedEffect(Unit) {
+            val initializedRuntime =
+                withContext(Dispatchers.Default) {
+                    if (org.koin.core.context.GlobalContext.getOrNull() == null) {
+                        startKoin {
+                            loadAllModules(
+                                AppIdentity(
+                                    applicationId = "com.pulse.music",
+                                    versionName = BuildKonfig.versionName,
+                                    platform = "${System.getProperty("os.name")} ${System.getProperty("os.version")}",
+                                ),
+                            )
+                            loadKoinModules(viewModelModule)
+                        }
+                    }
+
+                    val mediaPlayerHandler = getKoin().get<MediaPlayerHandler>()
+                    mediaPlayerHandler.showToast = { type ->
+                        showToast(
+                            when (type) {
+                                ToastType.ExplicitContent -> {
+                                    runBlocking { getString(Res.string.explicit_content_blocked) }
+                                }
+
+                                is ToastType.PlayerError -> {
+                                    runBlocking {
+                                        getString(
+                                            Res.string.time_out_check_internet_connection_or_change_piped_instance_in_settings,
+                                            type.error,
+                                        )
+                                    }
+                                }
+
+                                is ToastType.HearingHealthBreak -> {
+                                    runBlocking { getString(Res.string.break_reminder_toast, type.minutes) }
+                                }
+
+                                ToastType.SaferVolumeLimitActive -> {
+                                    runBlocking { getString(Res.string.safer_volume_limit_toast) }
+                                }
+                            },
+                        )
+                    }
+                    mediaPlayerHandler.pushPlayerError = { error ->
+                        Sentry.withScope {
+                            Sentry.captureMessage("Player Error: ${error.message}, code: ${error.errorCode}, code name: ${error.errorCodeName}")
+                        }
+                    }
+
+                    val desktopNotificationManager = getKoin().get<DesktopNotificationManager>()
+                    runCatching { desktopNotificationManager.initialize() }
+
+                    val sharedViewModel = getKoin().get<SharedViewModel>()
+                    DesktopDeepLinkHandler.listener = { intent ->
+                        sharedViewModel.setIntent(intent)
+                    }
+
+                    DesktopAppRuntime(
+                        sharedViewModel = sharedViewModel,
+                        mediaPlayerHandler = mediaPlayerHandler,
+                        desktopNotificationManager = desktopNotificationManager,
+                    )
+                }
+
+            runtime = initializedRuntime
+
+            launch(Dispatchers.IO) {
+                runCatching {
+                    val language = getKoin().get<DataStoreManager>().language.first().substring(0..1)
+                    changeLanguageNative(language)
+                }
+                runCatching { VersionManager.initialize() }
+                runCatching { configLastfm(BuildKonfig.lastfmApiKey, BuildKonfig.lastfmSecret) }
+                if (BuildKonfig.sentryDsn.isNotEmpty()) {
+                    runCatching {
+                        Sentry.init { options ->
+                            options.dsn = BuildKonfig.sentryDsn
+                            options.release = "pulsemusic-desktop@${VersionManager.getVersionName()}"
+                            options.setDiagnosticLevel(SentryLevel.ERROR)
+                        }
+                    }
+                }
+                runCatching { WindowsProtocolRegistrar.register() }
+                runCatching { WindowsShortcutManager.ensureShortcutsCreated() }
+                runCatching {
+                    if (initializedRuntime.sharedViewModel.shouldCheckForUpdate()) {
+                        initializedRuntime.sharedViewModel.checkForUpdate()
+                    }
+                }
+            }
+        }
+
         // The single-instance guard now runs before startKoin (top of
         // runDesktopApp). Here we only react to a restore request raised when a
         // second instance launches: bring the window back to the foreground and
@@ -323,69 +350,60 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                 DesktopDeepLinkHandler.consumePendingUri()
             }
         }
+
+        val currentRuntime = runtime
         val openAppString = stringResource(Res.string.open_app)
         val quitAppString = stringResource(Res.string.quit_app)
         val openMiniPlayer = stringResource(Res.string.open_miniplayer)
         val closeMiniPlayer = stringResource(Res.string.close_miniplayer)
         val appName = stringResource(Res.string.app_name)
-        val nowPlayingData by sharedViewModel.nowPlayingScreenData.collectAsState()
-        val nowPlayingTitle = nowPlayingData.nowPlayingTitle
-        val nowPlayingArtist = nowPlayingData.artistName
-        val hasTrack = nowPlayingTitle.isNotBlank()
-        // Tray menus are narrow, so long titles would stretch the popup.
-        val trayLabel: (String) -> String = { if (it.length > 40) it.take(39).trimEnd() + "…" else it }
-        Tray(
-            icon = painterResource(Res.drawable.circle_app_icon),
-            tooltip =
-                when {
-                    hasTrack && nowPlayingArtist.isNotBlank() -> "$nowPlayingTitle — $nowPlayingArtist"
-                    hasTrack -> nowPlayingTitle
-                    else -> appName
+
+        if (currentRuntime != null) {
+            val nowPlayingData by currentRuntime.sharedViewModel.nowPlayingScreenData.collectAsState()
+            val nowPlayingTitle = nowPlayingData.nowPlayingTitle
+            val nowPlayingArtist = nowPlayingData.artistName
+            val hasTrack = nowPlayingTitle.isNotBlank()
+            val trayLabel: (String) -> String = { if (it.length > 40) it.take(39).trimEnd() + "…" else it }
+            Tray(
+                icon = painterResource(Res.drawable.circle_app_icon),
+                tooltip =
+                    when {
+                        hasTrack && nowPlayingArtist.isNotBlank() -> "$nowPlayingTitle — $nowPlayingArtist"
+                        hasTrack -> nowPlayingTitle
+                        else -> appName
+                    },
+                primaryAction = {
+                    DesktopRestoreSignal.request()
                 },
-            primaryAction = {
-                DesktopRestoreSignal.request()
-            },
-        ) {
-            // Disabled entries: while the window is hidden the tray is the only place showing what
-            // is playing.
-            if (hasTrack) {
-                Item(trayLabel(nowPlayingTitle), isEnabled = false)
-                if (nowPlayingArtist.isNotBlank()) {
-                    Item(trayLabel(nowPlayingArtist), isEnabled = false)
+            ) {
+                if (hasTrack) {
+                    Item(trayLabel(nowPlayingTitle), isEnabled = false)
+                    if (nowPlayingArtist.isNotBlank()) {
+                        Item(trayLabel(nowPlayingArtist), isEnabled = false)
+                    }
+                    Divider()
+                }
+                if (!isVisible) {
+                    Item(openAppString) {
+                        DesktopRestoreSignal.request()
+                    }
+                }
+                if (MiniPlayerManager.isOpen) {
+                    Item(closeMiniPlayer) {
+                        MiniPlayerManager.isOpen = false
+                    }
+                } else {
+                    Item(openMiniPlayer) {
+                        MiniPlayerManager.isOpen = true
+                    }
                 }
                 Divider()
-            }
-            if (!isVisible) {
-                Item(openAppString) {
-                    DesktopRestoreSignal.request()
+                Item(quitAppString) {
+                    currentRuntime.mediaPlayerHandler.release()
+                    exitApplication()
                 }
-            }
-            if (MiniPlayerManager.isOpen) {
-                Item(closeMiniPlayer) {
-                    MiniPlayerManager.isOpen = false
-                }
-            } else {
-                Item(openMiniPlayer) {
-                    MiniPlayerManager.isOpen = true
-                }
-            }
-            Divider()
-            Item(quitAppString) {
-                mediaPlayerHandler.release()
-                exitApplication()
             }
         }
-        // Detect virtual machines (Parallels, VirtualBox, VMware, etc.).
-        // Transparent + undecorated Compose windows don't render on VM
-        // GPU drivers — the window stays invisible while the JVM keeps
-        // running, so we must detect the VM and fall back to a normal
-        // decorated window.
-        //
-        // We probe Manufacturer + Model because brand strings live in
-        // different fields per hypervisor (Parallels-on-ARM puts
-        // "Parallels Software International Inc." in Manufacturer and
-        // "Parallels ARM Virtual Machine" in Model; VirtualBox uses
-        // "innotek GmbH" + "VirtualBox"; etc).
         // Detect virtual machines (Parallels, VirtualBox, VMware, etc.).
         // Transparent + undecorated Compose windows don't render on VM
         // GPU drivers — the window stays invisible while the JVM keeps
@@ -440,6 +458,7 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         LaunchedEffect(isVM) {
             DesktopWindowChrome.customTitleBarVisible = !isVM
         }
+        val activeControllerState = currentRuntime?.sharedViewModel?.controllerState?.collectAsState()?.value
         Window(
             onCloseRequest = {
                 isVisible = false
@@ -451,6 +470,8 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
             state = windowState,
             visible = isVisible,
             onKeyEvent = { keyEvent ->
+                val activeVm = currentRuntime?.sharedViewModel ?: return@Window false
+                val controllerVolume = activeControllerState?.volume ?: 1f
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.F11 -> {
@@ -463,48 +484,46 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                             true
                         }
                         Key.Spacebar -> {
-                            sharedViewModel.onUIEvent(UIEvent.PlayPause)
+                            activeVm.onUIEvent(UIEvent.PlayPause)
                             true
                         }
                         Key.MediaPlayPause -> {
-                            sharedViewModel.onUIEvent(UIEvent.PlayPause)
+                            activeVm.onUIEvent(UIEvent.PlayPause)
                             true
                         }
                         Key.MediaNext -> {
-                            sharedViewModel.onUIEvent(UIEvent.Next)
+                            activeVm.onUIEvent(UIEvent.Next)
                             true
                         }
                         Key.MediaPrevious -> {
-                            sharedViewModel.onUIEvent(UIEvent.Previous)
+                            activeVm.onUIEvent(UIEvent.Previous)
                             true
                         }
                         Key.DirectionRight -> {
                             if (keyEvent.isCtrlPressed) {
-                                sharedViewModel.onUIEvent(UIEvent.Next)
+                                activeVm.onUIEvent(UIEvent.Next)
                             } else {
-                                sharedViewModel.onUIEvent(UIEvent.Forward)
+                                activeVm.onUIEvent(UIEvent.Forward)
                             }
                             true
                         }
                         Key.DirectionLeft -> {
                             if (keyEvent.isCtrlPressed) {
-                                sharedViewModel.onUIEvent(UIEvent.Previous)
+                                activeVm.onUIEvent(UIEvent.Previous)
                             } else {
-                                sharedViewModel.onUIEvent(UIEvent.Backward)
+                                activeVm.onUIEvent(UIEvent.Backward)
                             }
                             true
                         }
                         Key.DirectionUp -> {
-                            val currentVol = controllerState.volume
-                            sharedViewModel.onUIEvent(
-                                UIEvent.UpdateVolume((currentVol + 0.05f).coerceAtMost(1f))
+                            activeVm.onUIEvent(
+                                UIEvent.UpdateVolume((controllerVolume + 0.05f).coerceAtMost(1f))
                             )
                             true
                         }
                         Key.DirectionDown -> {
-                            val currentVol = controllerState.volume
-                            sharedViewModel.onUIEvent(
-                                UIEvent.UpdateVolume((currentVol - 0.05f).coerceAtLeast(0f))
+                            activeVm.onUIEvent(
+                                UIEvent.UpdateVolume((controllerVolume - 0.05f).coerceAtLeast(0f))
                             )
                             true
                         }
@@ -512,12 +531,11 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                             if (keyEvent.isCtrlPressed) {
                                 MiniPlayerManager.isOpen = !MiniPlayerManager.isOpen
                             } else {
-                                val currentVol = controllerState.volume
-                                if (currentVol > 0f) {
-                                    lastVolumeBeforeMute = currentVol
-                                    sharedViewModel.onUIEvent(UIEvent.UpdateVolume(0f))
+                                if (controllerVolume > 0f) {
+                                    lastVolumeBeforeMute = controllerVolume
+                                    activeVm.onUIEvent(UIEvent.UpdateVolume(0f))
                                 } else {
-                                    sharedViewModel.onUIEvent(
+                                    activeVm.onUIEvent(
                                         UIEvent.UpdateVolume(lastVolumeBeforeMute.coerceIn(0.1f, 1f))
                                     )
                                 }
@@ -543,11 +561,11 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
         ) {
             // Returning from macOS System Settings is the only reliable time to learn whether the
             // user enabled notifications after denying the one-shot system prompt.
-            DisposableEffect(window) {
+            DisposableEffect(window, currentRuntime) {
                 val listener =
                     object : WindowAdapter() {
                         override fun windowGainedFocus(event: WindowEvent) {
-                            desktopNotificationManager.refreshPermission()
+                            currentRuntime?.desktopNotificationManager?.refreshPermission()
                         }
                     }
                 window.addWindowFocusListener(listener)
@@ -563,10 +581,42 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                     window.toFront()
                 }
             }
+            val context = LocalPlatformContext.current
+            setSingletonImageLoaderFactory {
+                ImageLoader
+                    .Builder(context)
+                    .components {
+                        add(
+                            OkHttpNetworkFetcherFactory(
+                                callFactory = {
+                                    sharedDesktopOkHttpClient
+                                },
+                            ),
+                        )
+                    }
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .memoryCache {
+                        MemoryCache.Builder()
+                            .maxSizePercent(context, 0.25)
+                            .build()
+                    }
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .networkCachePolicy(CachePolicy.ENABLED)
+                    .diskCache(
+                        DiskCache
+                            .Builder()
+                            .directory(FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "image_cache")
+                            .maxSizeBytes(512L * 1024 * 1024)
+                            .build(),
+                    )
+                    .crossfade(false)
+                    .build()
+            }
             Column(
                 modifier =
                     Modifier
                         .fillMaxSize()
+                        .background(Color(0xFF0B0B0E))
                         .then(
                             if (!isVM) {
                                 Modifier.clip(RoundedCornerShape(12.dp))
@@ -575,14 +625,14 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                             },
                         ),
             ) {
+                val themeMode =
+                    currentRuntime?.sharedViewModel
+                        ?.getThemeMode()
+                        ?.collectAsState(DataStoreManager.THEME_MODE_LIGHT)
+                        ?.value
+                        ?: DataStoreManager.THEME_MODE_DARK
+                val isDark = isDarkTheme(themeMode)
                 if (!isVM) {
-                    // The bar sits outside AppTheme, so the colours are resolved here from the
-                    // same stored setting AppTheme uses and handed down. Pure black / pure white
-                    // to match the window colour the shell paints behind the panels.
-                    val themeMode by sharedViewModel
-                        .getThemeMode()
-                        .collectAsState(DataStoreManager.THEME_MODE_LIGHT)
-                    val isDark = isDarkTheme(themeMode)
                     CustomTitleBar(
                         title = stringResource(Res.string.app_name),
                         windowState = windowState,
@@ -592,55 +642,49 @@ fun runDesktopApp(args: Array<String> = emptyArray()) {
                         },
                         containerColor = if (isDark) Color.Black else Color.White,
                         titleColor = if (isDark) Color.White else Color.Black,
+                        isDark = isDark,
                     )
                 }
 
-                val context = LocalPlatformContext.current
-                setSingletonImageLoaderFactory {
-                    ImageLoader
-                        .Builder(context)
-                        .components {
-                            add(
-                                OkHttpNetworkFetcherFactory(
-                                    callFactory = {
-                                        sharedDesktopOkHttpClient
-                                    },
-                                ),
+                if (currentRuntime != null) {
+                    val showNotificationPermissionDialog by
+                        currentRuntime.desktopNotificationManager.shouldShowPermissionDialog.collectAsState()
+                    App(
+                        showDesktopNotificationPermissionDialog = showNotificationPermissionDialog,
+                        onDismissDesktopNotificationPermissionDialog =
+                            currentRuntime.desktopNotificationManager::dismissPermissionDialog,
+                        onOpenDesktopNotificationSettings =
+                            currentRuntime.desktopNotificationManager::openNotificationSettings,
+                    )
+                    ToastHost()
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Color(0xFF0B0B0E)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = Color(0xFFA788FA),
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(36.dp),
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                text = "Starting Pulse Music...",
+                                color = Color.White.copy(alpha = 0.72f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
                             )
                         }
-                        .memoryCachePolicy(CachePolicy.ENABLED)
-                        .memoryCache {
-                            MemoryCache.Builder()
-                                .maxSizePercent(context, 0.25)
-                                .build()
-                        }
-                        .diskCachePolicy(CachePolicy.ENABLED)
-                        .networkCachePolicy(CachePolicy.ENABLED)
-                        .diskCache(
-                            DiskCache
-                                .Builder()
-                                .directory(FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "image_cache")
-                                .maxSizeBytes(512L * 1024 * 1024)
-                                .build(),
-                        )
-                        .crossfade(false)
-                        .build()
+                    }
                 }
-                App(
-                    showDesktopNotificationPermissionDialog = showNotificationPermissionDialog,
-                    onDismissDesktopNotificationPermissionDialog =
-                        desktopNotificationManager::dismissPermissionDialog,
-                    onOpenDesktopNotificationSettings =
-                        desktopNotificationManager::openNotificationSettings,
-                )
-                ToastHost()
             }
         }
 
         // Mini Player Window (separate window)
-        if (MiniPlayerManager.isOpen) {
+        if (currentRuntime != null && MiniPlayerManager.isOpen) {
             MiniPlayerWindow(
-                sharedViewModel = sharedViewModel,
+                sharedViewModel = currentRuntime.sharedViewModel,
                 onCloseRequest = {
                     MiniPlayerManager.isOpen = false
                 },

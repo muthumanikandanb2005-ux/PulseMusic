@@ -234,6 +234,7 @@ internal class CrossfadeExoPlayerAdapter(
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
     private var duckRampJob: Job? = null
     private var transientFocusPauseJob: Job? = null
+    private var pauseFadeJob: Job? = null
 
     @Volatile
     private var pausedByTransientFocus = false
@@ -302,7 +303,7 @@ internal class CrossfadeExoPlayerAdapter(
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                     // Temporary loss (e.g. an incoming call or OEM notification chime):
                     // Remember playback intent even if mid-transition/buffering, softly duck first,
-                    // and only tear down into pause() if focus doesn't return within 180ms.
+                    // and hold slightly longer before pausing so brief app sounds never tear down AudioTrack.
                     val wasActivelyPlaying =
                         internalPlayWhenReady ||
                             isCrossfading ||
@@ -310,9 +311,9 @@ internal class CrossfadeExoPlayerAdapter(
                     resumeOnFocusGain = wasActivelyPlaying
                     pausedByTransientFocus = true
                     transientFocusPauseJob?.cancel()
-                    if (!isCrossfading) animatePlayerVolume(internalVolume * 0.08f, durationMs = 70L)
+                    if (!isCrossfading) animatePlayerVolume(internalVolume * 0.05f, durationMs = 110L)
                     transientFocusPauseJob = coroutineScope.launch {
-                        delay(180L)
+                        delay(320L)
                         if (isActive && pausedByTransientFocus) {
                             pause()
                             resumeOnFocusGain = wasActivelyPlaying
@@ -693,9 +694,9 @@ internal class CrossfadeExoPlayerAdapter(
                         .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                         .setAudioTrackBufferSizeProvider(
                             DefaultAudioTrackBufferSizeProvider.Builder()
-                                .setPcmBufferMultiplicationFactor(4)
-                                .setMinPcmBufferDurationUs(400_000)
-                                .setMaxPcmBufferDurationUs(1_000_000)
+                                .setPcmBufferMultiplicationFactor(6)
+                                .setMinPcmBufferDurationUs(600_000)
+                                .setMaxPcmBufferDurationUs(1_500_000)
                                 .build()
                         )
                         .setAudioProcessorChain(
@@ -800,8 +801,15 @@ internal class CrossfadeExoPlayerAdapter(
                             player.prepare()
                         }
                         lastPauseTimeMs = 0L
+                        pauseFadeJob?.cancel()
+                        pauseFadeJob = null
+                        val startVol = player.volume
+                        if (player.playWhenReady.not() || startVol < internalVolume * 0.5f) {
+                            player.volume = minOf(startVol, 0.02f)
+                        }
                         player.playWhenReady = true
                         player.play()
+                        if (!isCrossfading) animatePlayerVolume(internalVolume, durationMs = 90L)
                         transitionToState(InternalState.PLAYING)
                         internalPlayWhenReady = true
                         startPositionUpdates()
@@ -888,10 +896,12 @@ internal class CrossfadeExoPlayerAdapter(
         lastPauseTimeMs = System.currentTimeMillis()
         cancelResumeRecoveryWatchdog()
         cancelBufferingWatchdog()
-        currentPlayer?.playWhenReady = false
-        currentPlayer?.pause()
+        pauseFadeJob?.cancel()
+        pauseFadeJob = null
         stopPositionUpdates()
         castRemotePlayer?.let { remote ->
+            currentPlayer?.playWhenReady = false
+            currentPlayer?.pause()
             remote.pause()
             // The coroutine below never runs on this path, so the sleep attenuation has to be
             // cleared here too. Left set, it would outlive the cast session: the processor stays in
@@ -899,6 +909,27 @@ internal class CrossfadeExoPlayerAdapter(
             // with a full volume slider until the process restarts.
             internalSleepFadeFactor = 1f
             return
+        }
+        // Briefly ramp volume down over ~36ms before stopping AudioTrack so pause/focus-loss
+        // never produces an audible electrical click/pop when switching apps.
+        val activePlayer = currentPlayer
+        if (activePlayer != null && activePlayer.isPlaying && !isCrossfading && activePlayer.volume > 0.02f) {
+            pauseFadeJob = coroutineScope.launch {
+                val startVol = activePlayer.volume
+                for (step in 1..3) {
+                    if (!isActive || internalPlayWhenReady) return@launch
+                    activePlayer.volume = startVol * (1f - step / 3f)
+                    delay(12L)
+                }
+                if (!internalPlayWhenReady) {
+                    activePlayer.volume = 0f
+                    activePlayer.playWhenReady = false
+                    activePlayer.pause()
+                }
+            }
+        } else {
+            activePlayer?.playWhenReady = false
+            activePlayer?.pause()
         }
         coroutineScope.launch {
             try {
@@ -915,8 +946,11 @@ internal class CrossfadeExoPlayerAdapter(
                 lastPauseTimeMs = System.currentTimeMillis()
                 cancelBufferingWatchdog()
                 internalPlayWhenReady = false
-                currentPlayer?.playWhenReady = false
-                currentPlayer?.pause()
+                pauseFadeJob?.join()
+                if (!internalPlayWhenReady) {
+                    currentPlayer?.playWhenReady = false
+                    currentPlayer?.pause()
+                }
 
                 when (internalState) {
                     InternalState.PLAYING, InternalState.READY, InternalState.PREPARING -> {

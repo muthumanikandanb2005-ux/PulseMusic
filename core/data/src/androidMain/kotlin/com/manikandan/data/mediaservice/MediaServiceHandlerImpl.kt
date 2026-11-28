@@ -461,12 +461,13 @@ internal class MediaServiceHandlerImpl(
                 ) { enabled, speed, depth ->
                     if (enabled == TRUE) CinematicAudioEffect(speedSeconds = speed, depth = depth) else null
                 }
+            val dolbyAtmosSupported = isDolbyAtmosHardwareSupported(context)
             val dolbyAtmosEffects =
                 combine(
                     dataStoreManager.dolbyAtmosEnabled,
                     dataStoreManager.dolbyAtmosProfile,
                 ) { enabled, profileName ->
-                    if (enabled == TRUE) {
+                    if (enabled == TRUE && dolbyAtmosSupported) {
                         DolbyAtmosEffect(
                             profile = runCatching { DolbyAtmosProfile.valueOf(profileName) }.getOrDefault(DolbyAtmosProfile.DYNAMIC),
                         )

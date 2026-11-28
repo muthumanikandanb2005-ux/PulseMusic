@@ -840,6 +840,10 @@ private fun BitChordArtworkHero(
                 userScrollEnabled = state.playNextOnSwipe,
                 modifier = Modifier.fillMaxSize(),
                 beyondViewportPageCount = 1,
+                key = { idx ->
+                    val vid = state.artworkQueue.getOrNull(idx)?.videoId.orEmpty()
+                    "bitchordArtwork_${vid}_$idx"
+                },
             ) { page ->
                 val track: Track? = state.artworkQueue.getOrNull(page)
                 val isCurrentArtworkPage = page == state.currentOrderIndex || page == state.artworkPagerState.currentPage
@@ -895,10 +899,14 @@ private fun BitChordArtworkHero(
                         }
                     }
                 } else {
-                    val rawUrl = track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
-                        ?: track?.thumbnails?.lastOrNull()?.url
-                        ?: track?.thumbnails?.firstOrNull()?.url
-                        ?: (if (isCurrentArtworkPage) state.screenData.thumbnailURL else null)
+                    val rawUrl = if (isCurrentArtworkPage && !state.screenData.thumbnailURL.isNullOrBlank()) {
+                        state.screenData.thumbnailURL
+                    } else {
+                        track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                            ?: track?.thumbnails?.lastOrNull()?.url
+                            ?: track?.thumbnails?.firstOrNull()?.url
+                            ?: (if (isCurrentArtworkPage) state.screenData.thumbnailURL else null)
+                    }
                     var artworkUrl by remember(rawUrl) {
                         mutableStateOf(getHighResArtworkUrl(rawUrl))
                     }

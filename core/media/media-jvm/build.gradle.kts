@@ -24,5 +24,6 @@ kotlin {
 
         // mpv — libmpv is bound through JNA (see MpvLibrary).
         implementation(libs.jna)
+        testImplementation(libs.kotlin.test)
     }
 }

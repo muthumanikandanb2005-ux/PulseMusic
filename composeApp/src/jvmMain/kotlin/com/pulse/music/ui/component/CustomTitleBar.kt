@@ -34,6 +34,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
+import com.pulse.music.expect.ui.WindowsTitleBarTrustSeal
 import com.pulse.music.extension.DesktopWindowChrome
 import com.pulse.music.ui.icon.Close
 import com.pulse.music.ui.icon.Remove
@@ -66,6 +67,7 @@ fun CustomTitleBar(
     // MaterialTheme here would hand back the default light scheme no matter what the user picked.
     containerColor: Color = Color.Black,
     titleColor: Color = Color.White,
+    isDark: Boolean = true,
 ) {
     var isMaximized by remember { mutableStateOf(windowState.placement == WindowPlacement.Maximized) }
 
@@ -176,6 +178,10 @@ fun CustomTitleBar(
                 color = titleColor,
             )
             Spacer(modifier = Modifier.weight(1f))
+            WindowsTitleBarTrustSeal(
+                isDark = isDark,
+                tint = titleColor,
+            )
         }
     }
 }

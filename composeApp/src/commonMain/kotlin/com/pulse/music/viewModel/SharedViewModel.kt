@@ -401,12 +401,43 @@ class SharedViewModel(
             }
         }
         viewModelScope.launch {
+            var lastVideoId: String? = null
             mediaPlayerHandler.nowPlayingState
-                .distinctUntilChangedBy {
-                    it.mediaItem.mediaId.removePrefix(MERGING_DATA_TYPE.VIDEO)
-                }.collectLatest { state ->
+                .collectLatest { state ->
                     val videoId = state.mediaItem.mediaId.removePrefix(MERGING_DATA_TYPE.VIDEO)
                     if (videoId.isEmpty()) return@collectLatest
+
+                    val title = state.songEntity?.title
+                        ?: state.track?.title
+                        ?: state.mediaItem.metadata.title
+                        ?: ""
+                    val artist = state.songEntity?.artistName?.joinToString(", ")
+                        ?: state.track?.artists?.toListName()?.joinToString(", ")
+                        ?: state.mediaItem.metadata.artist
+                        ?: ""
+
+                    val resolvedThumb = upgradeArtworkUrl(
+                        state.track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
+                            ?: state.songEntity?.thumbnails?.takeIf { !it.contains("/vi/null/") }
+                            ?: state.mediaItem.metadata.artworkUri?.takeIf { !it.contains("/vi/null/") }
+                            ?: state.track?.thumbnails?.firstOrNull()?.url,
+                    )
+
+                    if (videoId == lastVideoId) {
+                        _nowPlayingState.value = state
+                        state.songEntity?.let { _liked.value = it.liked == true }
+                        _nowPlayingScreenData.update { current ->
+                            current.copy(
+                                nowPlayingTitle = title.ifBlank { current.nowPlayingTitle },
+                                artistName = artist.ifBlank { current.artistName },
+                                thumbnailURL = resolvedThumb?.takeIf { it.isNotBlank() } ?: current.thumbnailURL,
+                                isExplicit = state.songEntity?.isExplicit ?: current.isExplicit,
+                            )
+                        }
+                        return@collectLatest
+                    }
+
+                    lastVideoId = videoId
                     Logger.w(tag, "NowPlayingState track changed to $videoId")
                     lyricsJob?.cancel()
                     canvasJob?.cancel()
@@ -420,21 +451,6 @@ class SharedViewModel(
                             ?: -1L
                     _timeline.update { it.copy(total = seededTotal) }
 
-                    val title = state.songEntity?.title
-                        ?: state.track?.title
-                        ?: state.mediaItem.metadata.title
-                        ?: ""
-                    val artist = state.songEntity?.artistName?.joinToString(", ")
-                        ?: state.track?.artists?.toListName()?.joinToString(", ")
-                        ?: state.mediaItem.metadata.artist
-                        ?: ""
-
-                    val resolvedThumb = upgradeArtworkUrl(
-                        state.track?.thumbnails?.maxByOrNull { it.width.toLong() * it.height.toLong() }?.url
-                            ?: state.songEntity?.thumbnails
-                            ?: state.mediaItem.metadata.artworkUri
-                            ?: state.track?.thumbnails?.firstOrNull()?.url,
-                    )
                     _nowPlayingScreenData.value =
                         NowPlayingScreenData(
                             nowPlayingTitle = title,

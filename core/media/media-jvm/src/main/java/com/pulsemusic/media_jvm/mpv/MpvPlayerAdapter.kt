@@ -2720,8 +2720,7 @@ class MpvPlayerAdapter(
                 while (isActive && currentPlayer != null) {
                     try {
                         if (internalState == InternalState.PLAYING ||
-                            internalState == InternalState.READY ||
-                            internalState == InternalState.PAUSED
+                            internalState == InternalState.READY
                         ) {
                             // During crossfade, show the incoming track's timeline exclusively
                             if (isCrossfading) {
@@ -2732,7 +2731,7 @@ class MpvPlayerAdapter(
                                     if (pos > 0) cachedPosition = pos
                                     if (dur > 0) cachedDuration = dur
                                 }
-                            } else {
+                            } else if (crossfadeEnabled) {
                                 val player = currentPlayer
                                 if (player != null) {
                                     val pos = player.time
@@ -2786,7 +2785,7 @@ class MpvPlayerAdapter(
                         // Ignore query errors
                     }
 
-                    delay(50) // Update every 50ms
+                    delay(100) // Observed time-pos already pushes updates; 100ms is plenty for crossfade
                 }
             }
     }

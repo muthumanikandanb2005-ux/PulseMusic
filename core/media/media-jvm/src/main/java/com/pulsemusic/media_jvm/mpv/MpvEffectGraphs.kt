@@ -1,8 +1,11 @@
 ﻿package com.pulsemusic.media_jvm.mpv
 
+import com.manikandan.domain.data.player.CinematicAudioEffect
 import com.manikandan.domain.data.player.DelayTaps
+import com.manikandan.domain.data.player.DolbyAtmosEffect
+import com.manikandan.domain.data.player.DolbyAtmosProfile
 
-// The `lavfi` graph bodies behind the two audio effects, deliberately kept out of MpvPlayer.
+// The `lavfi` graph bodies behind the audio effects, deliberately kept out of MpvPlayer.
 //
 // These are pure functions over the same primitives Android's processors read, so the exact string
 // a given setting produces can be pasted straight into `ffmpeg -af "<graph>"` and checked — no
@@ -131,3 +134,90 @@ internal fun lavfiEscapePath(path: String): String =
             append(ch)
         }
     }
+
+/**
+ * The Cinematic & 8D spatial audio `lavfi` filter graph.
+ *
+ * Combines subtle stereo stage widening (`extrastereo`), micro-room ambience (`aecho`), and — when
+ * `speedSeconds > 0` — smooth 360-degree stereo orbital panning (`apulsator`) matching
+ * Android's `CinematicKernel`.
+ */
+internal fun cinematicAudioGraph(effect: CinematicAudioEffect): String? {
+    val rawDepth = effect.depth
+    val depth = if (rawDepth.isNaN()) CinematicAudioEffect.DEFAULT_DEPTH else rawDepth.coerceIn(0f, 1f)
+    if (depth <= 0.01f && effect.speedSeconds <= 0) return null
+
+    val widen = 1f + 0.55f * depth
+    val early1 = (0.12f * depth).coerceIn(0.01f, 0.25f)
+    val early2 = (0.06f * depth).coerceIn(0.005f, 0.15f)
+    val stages = mutableListOf(
+        "extrastereo=m=${mpvNumber(widen)}:c=1",
+        "aecho=0.88:0.86:14|24:${mpvNumber(early1)}|${mpvNumber(early2)}",
+    )
+    val speed = effect.speedSeconds.coerceIn(0, CinematicAudioEffect.MAX_SPEED_SECONDS)
+    if (speed > 0 && depth > 0.01f) {
+        val hz = (1f / speed.toFloat()).coerceIn(0.02f, 2.0f)
+        val amount = depth.coerceIn(0.05f, 1.0f)
+        stages += "apulsator=mode=sine:hz=${mpvNumber(hz)}:amount=${mpvNumber(amount)}:width=1:offset_l=0:offset_r=0.5"
+    }
+    return stages.joinToString(",")
+}
+
+/**
+ * Fallback 8D orbital graph using `apulsator` + `extrastereo` only, in case a slim libavfilter
+ * build omits one of the optional ambient stages.
+ */
+internal fun cinematicMinimalOrbitGraph(effect: CinematicAudioEffect): String? {
+    val rawDepth = effect.depth
+    val depth = if (rawDepth.isNaN()) CinematicAudioEffect.DEFAULT_DEPTH else rawDepth.coerceIn(0f, 1f)
+    val speed = effect.speedSeconds.coerceIn(0, CinematicAudioEffect.MAX_SPEED_SECONDS)
+    return if (speed > 0 && depth > 0.01f) {
+        val hz = (1f / speed.toFloat()).coerceIn(0.02f, 2.0f)
+        val amount = depth.coerceIn(0.05f, 1.0f)
+        "apulsator=mode=sine:hz=${mpvNumber(hz)}:amount=${mpvNumber(amount)}:width=1:offset_l=0:offset_r=0.5"
+    } else if (depth > 0.01f) {
+        "extrastereo=m=${mpvNumber(1f + 0.55f * depth)}:c=1"
+    } else {
+        null
+    }
+}
+
+/**
+ * Dolby Atmos spatial virtualization `lavfi` graph matching `DolbyAtmosKernel` profiles on Android.
+ * Applies profile-specific acoustic EQ sculpting (`lowshelf`/`equalizer`/`highshelf`), stereo
+ * soundstage expansion (`extrastereo`), and `-1.0 dB` headroom (`volume=0.8913`) to avoid clipping.
+ */
+internal fun dolbyAtmosGraph(effect: DolbyAtmosEffect): String {
+    val rawStrength = effect.surroundStrength
+    val strength = if (rawStrength.isNaN()) DolbyAtmosEffect.DEFAULT_SURROUND_STRENGTH else rawStrength.coerceIn(0f, 1f)
+    val stages = mutableListOf("volume=0.8913")
+    val widen =
+        when (effect.profile) {
+            DolbyAtmosProfile.DYNAMIC -> 1f + 0.42f * strength
+            DolbyAtmosProfile.MUSIC -> 1f + 0.35f * strength
+            DolbyAtmosProfile.CINEMA -> 1f + 0.55f * strength
+            DolbyAtmosProfile.VOICE -> 0.85f + 0.10f * strength
+        }
+    stages += "extrastereo=m=${mpvNumber(widen)}:c=1"
+    when (effect.profile) {
+        DolbyAtmosProfile.DYNAMIC -> {
+            stages += "lowshelf=f=55:g=1.8:t=s:w=0.71"
+            stages += "highshelf=f=12000:g=1.6:t=s:w=0.71"
+        }
+        DolbyAtmosProfile.MUSIC -> {
+            stages += "lowshelf=f=50:g=1.8:t=s:w=0.71"
+            stages += "highshelf=f=13500:g=1.5:t=s:w=0.71"
+        }
+        DolbyAtmosProfile.CINEMA -> {
+            stages += "lowshelf=f=45:g=3.0:t=s:w=0.71"
+            stages += "equalizer=f=2400:width_type=q:width=0.9:g=2.2"
+            stages += "highshelf=f=9000:g=1.2:t=s:w=0.71"
+        }
+        DolbyAtmosProfile.VOICE -> {
+            stages += "lowshelf=f=90:g=-3.5:t=s:w=0.71"
+            stages += "equalizer=f=2200:width_type=q:width=0.85:g=3.2"
+            stages += "highshelf=f=8000:g=-1.0:t=s:w=0.71"
+        }
+    }
+    return stages.joinToString(",")
+}

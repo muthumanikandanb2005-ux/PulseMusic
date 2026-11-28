@@ -30,7 +30,10 @@ import com.manikandan.domain.data.model.mediaService.SponsorSkipSegments
 import com.manikandan.domain.data.model.searchResult.songs.Artist
 import com.manikandan.domain.data.model.streams.YouTubeWatchEndpoint
 import com.manikandan.domain.data.player.AudioEffects
+import com.manikandan.domain.data.player.CinematicAudioEffect
 import com.manikandan.domain.data.player.DelayEffect
+import com.manikandan.domain.data.player.DolbyAtmosEffect
+import com.manikandan.domain.data.player.DolbyAtmosProfile
 import com.manikandan.domain.data.player.GenericCastState
 import com.manikandan.domain.data.player.GenericCommandButton
 import com.manikandan.domain.data.player.GenericMediaItem
@@ -45,6 +48,7 @@ import com.manikandan.domain.extension.isVideo
 import com.manikandan.domain.extension.now
 import com.manikandan.domain.extension.toGenericMediaItem
 import com.manikandan.domain.extension.toSongEntity
+import com.manikandan.domain.extension.upgradeArtworkUrl
 import com.manikandan.domain.manager.DataStoreManager
 import com.manikandan.domain.manager.DataStoreManager.Values.FALSE
 import com.manikandan.domain.manager.DataStoreManager.Values.TRUE
@@ -502,7 +506,31 @@ class JvmMediaPlayerHandlerImpl(
                         null
                     }
                 }
-            combine(delayEffects, reverbEffects) { echo, room -> AudioEffects(delay = echo, reverb = room) }
+            val dolbyAtmosSupported = isDesktopDolbyAtmosSupported()
+            val dolbyAtmosEffects =
+                combine(
+                    dataStoreManager.dolbyAtmosEnabled,
+                    dataStoreManager.dolbyAtmosProfile,
+                ) { enabled, profileName ->
+                    if (enabled == TRUE && dolbyAtmosSupported) {
+                        DolbyAtmosEffect(
+                            profile = runCatching { DolbyAtmosProfile.valueOf(profileName) }.getOrDefault(DolbyAtmosProfile.DYNAMIC),
+                        )
+                    } else {
+                        null
+                    }
+                }
+            val cinematicEffects =
+                combine(
+                    dataStoreManager.cinematicAudioEnabled,
+                    dataStoreManager.cinematicAudioSpeed,
+                    dataStoreManager.cinematicAudioDepth,
+                ) { enabled, speed, depth ->
+                    if (enabled == TRUE) CinematicAudioEffect(speedSeconds = speed, depth = depth) else null
+                }
+            combine(delayEffects, reverbEffects, cinematicEffects, dolbyAtmosEffects) { echo, room, cinematic, dolbyAtmos ->
+                AudioEffects(delay = echo, reverb = room, cinematic = cinematic, dolbyAtmos = dolbyAtmos)
+            }
                 .distinctUntilChanged()
                 .collect { effects -> player.setAudioEffects(effects) }
         }
@@ -769,16 +797,19 @@ class JvmMediaPlayerHandlerImpl(
                     // get the high-res URL immediately instead of waiting for the DB flow to
                     // re-emit. The regex matches any "=w<n>" / "-h<n>" size segment, not just
                     // w120, so 60/226/etc. are up-scaled too (parity with Android).
+                    val resolvedFallbackUrl = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+                    val mediaArtwork = mediaItem.metadata.artworkUri?.takeIf { it.isNotBlank() && !it.contains("/vi/null/") }
+                    val bestTrackThumb =
+                        track?.thumbnails
+                            ?.maxByOrNull { it.width.toLong() * it.height.toLong() }
+                            ?.url
+                            ?: track?.thumbnails?.lastOrNull()?.url
                     val song: SongEntity =
                         if (songEntity != null) {
                             _controlState.update { it.copy(isLiked = songEntity.liked) }
-                            val thumbUrl =
-                                Regex("=w\\d+-h\\d+").replace(
-                                    track?.thumbnails?.lastOrNull()?.url
-                                        ?: songEntity.thumbnails
-                                        ?: "http://i.ytimg.com/vi/${songEntity.videoId}/maxresdefault.jpg",
-                                    "=w544-h544",
-                                )
+                            val existingThumb = songEntity.thumbnails?.takeIf { it.isNotBlank() && !it.contains("/vi/null/") }
+                            val rawThumb = bestTrackThumb ?: mediaArtwork ?: existingThumb ?: resolvedFallbackUrl
+                            val thumbUrl = upgradeArtworkUrl(rawThumb) ?: rawThumb
                             if (songEntity.thumbnails != thumbUrl) {
                                 songRepository.updateThumbnailsSongEntity(thumbUrl, songEntity.videoId).firstOrNull()?.let {
                                     Logger.w(TAG, "getDataOfNowPlayingState: Updated thumbs $it")
@@ -802,12 +833,8 @@ class JvmMediaPlayerHandlerImpl(
                             songEntity.copy(thumbnails = thumbUrl)
                         } else {
                             _controlState.update { it.copy(isLiked = false) }
-                            val thumbUrl =
-                                Regex("=w\\d+-h\\d+").replace(
-                                    track?.thumbnails?.lastOrNull()?.url
-                                        ?: "http://i.ytimg.com/vi/${track?.videoId}/maxresdefault.jpg",
-                                    "=w544-h544",
-                                )
+                            val rawThumb = bestTrackThumb ?: mediaArtwork ?: resolvedFallbackUrl
+                            val thumbUrl = upgradeArtworkUrl(rawThumb) ?: rawThumb
                             val newSong =
                                 (track?.toSongEntity() ?: mediaItem.toSongEntity()).copy(
                                     thumbnails = thumbUrl,
@@ -1494,9 +1521,8 @@ class JvmMediaPlayerHandlerImpl(
             player.pause()
         }
         player.clearMediaItems()
-        player.setMediaItem(mediaItem)
-        player.seekTo(0, 0L)
         player.playWhenReady = playWhenReady
+        player.setMediaItem(mediaItem)
         if (!playWhenReady) {
             player.pause()
         }
@@ -1514,9 +1540,8 @@ class JvmMediaPlayerHandlerImpl(
 
     override fun playMediaItemInMediaSource(index: Int) {
         val i = if (player.shuffleModeEnabled) player.getUnshuffledIndex(index) else index
-        player.seekTo(i, 0)
-        player.prepare()
         player.playWhenReady = true
+        player.seekTo(i, 0)
     }
 
     override fun currentSongIndex(): Int = player.currentMediaItemIndex

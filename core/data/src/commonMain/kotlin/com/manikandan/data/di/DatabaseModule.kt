@@ -25,11 +25,11 @@ import org.pulsemusic.autoeq.AutoEq
 @OptIn(ExperimentalTime::class)
 val databaseModule =
     module {
-        single(createdAtStart = true) {
+        single {
             Converters()
         }
         // Database
-        single(createdAtStart = true) {
+        single {
             getDatabaseBuilder(
                 get<Converters>()
             )
@@ -38,40 +38,40 @@ val databaseModule =
                 .build()
         }
         // DatabaseDao
-        single(createdAtStart = true) {
+        single {
             get<MusicDatabase>().getDatabaseDao()
         }
         // LocalDataSource
-        single(createdAtStart = true) {
+        single {
             LocalDataSource(get<DatabaseDao>(), get<MusicDatabase>())
         }
         // AnalyticsDatasource
-        single(createdAtStart = true) {
+        single {
             AnalyticsDatasource(get<DatabaseDao>())
         }
         // Datastore
-        single(createdAtStart = true) {
+        single {
             createDataStoreInstance()
         }
         // DatastoreManager
-        single<DataStoreManager>(createdAtStart = true) {
+        single<DataStoreManager> {
             DataStoreManagerImpl(get<DataStore<Preferences>>())
         }
 
         // Move YouTube from Singleton to Koin DI
-        single(createdAtStart = true) {
+        single {
             YouTube()
         }
 
-        single(createdAtStart = true) {
+        single {
             Spotify()
         }
 
-        single(createdAtStart = true) {
+        single {
             AiClient()
         }
 
-        single(createdAtStart = true) {
+        single {
             PulseMusicLyricsClient()
         }
 

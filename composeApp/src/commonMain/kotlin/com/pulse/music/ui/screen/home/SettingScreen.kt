@@ -121,6 +121,7 @@ import com.pulse.music.expect.ui.isLyricsBlurSupported
 import com.pulse.music.expect.ui.isWallpaperDynamicColorSupported
 import com.pulse.music.expect.ui.openEqResult
 import com.pulse.music.expect.ui.rememberIsDolbyAtmosSupported
+import com.pulse.music.expect.ui.WindowsTrustSealSettingsRow
 import com.pulse.music.extension.bytesToMB
 import com.pulse.music.extension.displayString
 import com.pulse.music.extension.isTwoLetterCode
@@ -757,12 +758,25 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Dolby Atmos",
-                            subtitle = stringResource(Res.string.dolby_atmos_description),
+                            subtitle = if (isDolbyAtmosSupported) {
+                                stringResource(Res.string.dolby_atmos_description)
+                            } else {
+                                stringResource(Res.string.dolby_atmos_unsupported)
+                            },
+                            badgeText = if (!isDolbyAtmosSupported) "UNSUPPORTED" else null,
+                            badgeBg = if (!isDolbyAtmosSupported) Color(0x229CA3AF) else null,
+                            badgeTextColor = if (!isDolbyAtmosSupported) settingsColors.subtitleText else null,
                             leadingIcon = PulseIcons.GraphicEq,
-                            switchState = (dolbyAtmosEnabled to { viewModel.setDolbyAtmosEnabled(it) }),
-                            enabled = true,
+                            switchState = ((isDolbyAtmosSupported && dolbyAtmosEnabled) to {
+                                if (isDolbyAtmosSupported) {
+                                    viewModel.setDolbyAtmosEnabled(it)
+                                } else {
+                                    sharedViewModel.makeToast("Dolby Audio requires a device with native Dolby Atmos or Spatial Audio support")
+                                }
+                            }),
+                            enabled = isDolbyAtmosSupported,
                         )
-                        AnimatedVisibility(visible = dolbyAtmosEnabled) {
+                        AnimatedVisibility(visible = isDolbyAtmosSupported && dolbyAtmosEnabled) {
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
                                 PulseSettingDivider()
                                 DolbyAtmosSection(viewModel)
@@ -1658,6 +1672,13 @@ fun SettingScreen(
                                 }
                             },
                         )
+                        WindowsTrustSealSettingsRow(
+                            isDark = com.pulse.music.ui.theme.isDarkTheme(themeMode),
+                            titleColor = settingsColors.titleText,
+                            subtitleColor = settingsColors.subtitleText,
+                            cardBackground = settingsColors.cardBackground,
+                            divider = { PulseSettingDivider() },
+                        )
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "About Pulse Music",
@@ -2317,12 +2338,25 @@ fun SettingScreen(
                         PulseSettingDivider()
                         PulseSettingRow(
                             title = "Dolby Atmos",
-                            subtitle = stringResource(Res.string.dolby_atmos_description),
+                            subtitle = if (isDolbyAtmosSupported) {
+                                stringResource(Res.string.dolby_atmos_description)
+                            } else {
+                                stringResource(Res.string.dolby_atmos_unsupported)
+                            },
+                            badgeText = if (!isDolbyAtmosSupported) "UNSUPPORTED" else null,
+                            badgeBg = if (!isDolbyAtmosSupported) Color(0x229CA3AF) else null,
+                            badgeTextColor = if (!isDolbyAtmosSupported) settingsColors.subtitleText else null,
                             leadingIcon = PulseIcons.GraphicEq,
-                            switchState = (dolbyAtmosEnabled to { viewModel.setDolbyAtmosEnabled(it) }),
-                            enabled = true,
+                            switchState = ((isDolbyAtmosSupported && dolbyAtmosEnabled) to {
+                                if (isDolbyAtmosSupported) {
+                                    viewModel.setDolbyAtmosEnabled(it)
+                                } else {
+                                    sharedViewModel.makeToast("Dolby Audio requires a device with native Dolby Atmos or Spatial Audio support")
+                                }
+                            }),
+                            enabled = isDolbyAtmosSupported,
                         )
-                        AnimatedVisibility(visible = dolbyAtmosEnabled) {
+                        AnimatedVisibility(visible = isDolbyAtmosSupported && dolbyAtmosEnabled) {
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
                                 PulseSettingDivider()
                                 DolbyAtmosSection(viewModel)

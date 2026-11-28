@@ -1,13 +1,16 @@
 package com.pulse.music.ui.screen.other
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,8 +46,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.pulse.music.expect.openUrl
+import com.pulse.music.expect.ui.WindowsCreditTrustBadge
 import com.pulse.music.ui.component.RippleIconButton
 import com.pulse.music.ui.icon.ArrowBackIosNew
+import com.pulse.music.ui.icon.CheckCircle
 import com.pulse.music.ui.icon.PulseIcons
 import com.pulse.music.ui.theme.typo
 import com.pulse.music.utils.VersionManager
@@ -108,41 +114,38 @@ fun CreditScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Developer badge
+        // Developer attribution
         Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            modifier = Modifier.padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
         ) {
-            Text(
-                text = "✨ Owned and developed by Manikandan",
-                style = typo().bodyMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = PulseIcons.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "Owned and developed by Manikandan",
+                    style = typo().titleSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Secured by Manikandan badge
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = Color(0xFFA788FA).copy(alpha = 0.15f),
-            modifier = Modifier.padding(horizontal = 16.dp),
-        ) {
-            Text(
-                text = "🛡️ Secured by Manikandan • 100% Anti-Decompilation & Integrity Protected",
-                style = typo().bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                ),
-                fontSize = 13.sp,
-                color = Color(0xFFA788FA),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-        }
+        WindowsCreditTrustBadge()
 
         Spacer(modifier = Modifier.height(24.dp))
 

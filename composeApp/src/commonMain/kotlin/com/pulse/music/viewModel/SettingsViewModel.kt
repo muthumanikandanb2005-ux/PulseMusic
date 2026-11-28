@@ -2041,7 +2041,12 @@ class SettingsViewModel(
             launch { dataStoreManager.cinematicAudioEnabled.collect { _cinematicAudioEnabled.emit(it == DataStoreManager.TRUE) } }
             launch { dataStoreManager.cinematicAudioSpeed.collect { _cinematicAudioSpeed.emit(it) } }
             launch { dataStoreManager.cinematicAudioDepth.collect { _cinematicAudioDepth.emit(it) } }
-            launch { dataStoreManager.dolbyAtmosEnabled.collect { _dolbyAtmosEnabled.emit(it == DataStoreManager.TRUE) } }
+            launch {
+                val dolbySupported = com.pulse.music.expect.ui.isDolbyAtmosHardwareSupported()
+                dataStoreManager.dolbyAtmosEnabled.collect {
+                    _dolbyAtmosEnabled.emit(dolbySupported && it == DataStoreManager.TRUE)
+                }
+            }
             launch {
                 dataStoreManager.dolbyAtmosProfile.collect { stored ->
                     _dolbyAtmosProfile.emit(runCatching { DolbyAtmosProfile.valueOf(stored) }.getOrDefault(DolbyAtmosProfile.DYNAMIC))
@@ -2098,7 +2103,13 @@ class SettingsViewModel(
     }
 
     fun setDolbyAtmosEnabled(enabled: Boolean) {
-        viewModelScope.launch { dataStoreManager.setDolbyAtmosEnabled(enabled) }
+        viewModelScope.launch {
+            if (enabled && !com.pulse.music.expect.ui.isDolbyAtmosHardwareSupported()) {
+                dataStoreManager.setDolbyAtmosEnabled(false)
+                return@launch
+            }
+            dataStoreManager.setDolbyAtmosEnabled(enabled)
+        }
     }
 
     fun setDolbyAtmosProfile(profile: DolbyAtmosProfile) {

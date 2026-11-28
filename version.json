@@ -1,64 +1,64 @@
 {
-  "version": "4.2.7",
-  "versionCode": 127,
-  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-Universal.apk",
-  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-Universal.apk",
-  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.7/PulseMusic-Universal.apk",
-  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.7/PulseMusic-Universal.apk",
-  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.7",
-  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.7",
-  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.7",
-  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.7",
-  "tag_name": "v4.2.7",
-  "name": "Pulse Music v4.2.7 - Instant App Startup & Immediate Spotify / Playlist Loading",
+  "version": "4.2.8",
+  "versionCode": 128,
+  "downloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-Universal.apk",
+  "download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-Universal.apk",
+  "mirrorDownloadUrl": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.8/PulseMusic-Universal.apk",
+  "mirror_download_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/download/v4.2.8/PulseMusic-Universal.apk",
+  "url": "https://api.github.com/repos/muthumanikandanb2005-ux/PulseMusic/releases/tags/v4.2.8",
+  "mirror_url": "https://api.github.com/repos/muthumanikandanb2005-ux/Pulse-Music/releases/tags/v4.2.8",
+  "html_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/tag/v4.2.8",
+  "mirror_html_url": "https://github.com/muthumanikandanb2005-ux/Pulse-Music/releases/tag/v4.2.8",
+  "tag_name": "v4.2.8",
+  "name": "Pulse Music v4.2.8 - Instant Windows Startup, Glitch-Free Switching, Trust Seal & Device-Gated Dolby",
   "draft": false,
   "prerelease": false,
-  "published_at": "2026-11-27T13:54:10Z",
-  "body": "# Pulse Music v4.2.7 - Instant App Startup & Immediate Spotify / Playlist Loading\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### \u26a1 Instant App Startup & Immediate Spotify Playlist Display\n- **0ms Cache-First Startup Across All Playlists**: Persisted Spotify Playlists, Spotify Trending Playlists, Spotify Trending Songs, Spotify Recently Played, YouTube Library Playlists, and Mixed For You shelves locally and emits cached items immediately on app launch while refreshing cleanly in the background.\n- **No Shimmer Stalls Blocking Home**: Exits the Home loading shimmer immediately as soon as any cached or live Spotify list arrives, uses `SharingStarted.Eagerly` for Spotify session visibility, starts Spotify loading first in `HomeViewModel.init`, and decouples Home, Mood, Chart, and New Releases into independent parallel collectors so secondary feeds never stall initial Home rendering.\n\n### \ud83d\ude80 Faster Spotify Session & Parallel Playlist Fetching\n- **Shared Singleton Spotify Engine & Vault-First Hashes**: Shared Koin's single warm `Spotify` session inside `PlaylistRepositoryImpl` instead of recreating a separate cold instance, added instant DataStore token seeding (`seedSessionFromCache`), added fast HTML session warmup (`warmHtmlQuick`), and switched `SpotApiBundleSession.resolveQueryHash` to return Vault-known query hashes immediately without blocking on multi-megabyte bundle/chunk downloads.\n- **Parallelized Playlist & Chart Fetches**: Concurrently executes `/v1/me/playlists` + Pathfinder `libraryV3`, paginated playlist pages, editorial chart metadata queries, and trending track fetches.\n- **Instant Opening for Any Playlist & Library Tab**: `PlaylistViewModel` renders cached Room playlist tracks immediately before network refresh, removes the artificial `500ms` post-insert wait, and `LibraryViewModel` preserves visible playlists instead of flashing spinners when switching tabs.\n",
+  "published_at": "2026-11-28T10:49:44Z",
+  "body": "# Pulse Music v4.2.8 - Instant Windows Startup, Glitch-Free Switching, Trust Seal & Device-Gated Dolby\n\nOfficial multi-platform release and global OTA update for **Android**, **Windows**, **Orion Store**, **F-Droid**, **Obtainium**, and **Web**.\n\n---\n\n### Audio Switching & Playback Stability (Android & Windows)\n- **Glitch-Free Multitasking & Notifications**: Expanded Android `DefaultAudioTrackBufferSizeProvider` headroom, smoothed focus ducking and transient hold (`AUDIOFOCUS_LOSS_TRANSIENT`), and added clean gain fade-in/fade-out ramps around pause/resume so app switching never pops or crackles.\n- **Shared WASAPI Desktop Stability**: Configured Windows `libmpv` with shared WASAPI mode (`audio-exclusive=no`), larger audio buffer and stream-silence keepalive, demuxer readahead, and elevated pump-thread priority to eliminate buffer underruns when switching desktop windows.\n\n### Windows Desktop Upgrades\n- **Instant Window Startup**: Opens the main window on frame 0 while Koin, Room/DataStore, `libmpv`, protocol registration, and update checks initialize asynchronously off the UI thread.\n- **8D Cinematic Audio & Live Artwork**: Wired `CinematicAudioEffect` (`apulsator` orbital panning) into `libmpv` and desktop handler, repaired thumbnail resolution fallbacks and track transition sync across Now Playing and Mini Player.\n- **Spotify Cookie Login (`sp_dc`)**: Rebuilt desktop Spotify authentication with multi-format cookie/cURL extraction for instant web session handoff.\n\n### Windows Trust Seal & Clean Runtime Hygiene\n- **In-App Publisher & Binary Trust Seal**: Added live Authenticode signature, publisher certificate thumbprint, and SHA-256 inspection in the desktop title bar, Settings, and About screens, with one-click access to Windows' native Certificate viewer and GitHub checksums.\n- **Comprehensive Binary Signing & Zero Startup Shell Spawns**: Signed `Pulse.exe` and bundled unsigned DLLs (`libmpv-2.dll`, etc.), replaced runtime `powershell.exe` / `cmd.exe reg` subprocesses with in-process JNA Win32 Registry APIs and Inno Setup native shortcuts, and added an optional user-consented Trusted Publishers installer task.\n\n### Supported-Device Gating for Dolby Audio\n- **Hardware & Driver Enforcement**: Enforced authentic Dolby Atmos / Spatial Audio hardware detection on Android and Windows (APO/service/driver registry checks) across UI toggles, `SettingsViewModel`, and both audio engines (`MediaServiceHandlerImpl` and `JvmMediaPlayerHandlerImpl`), keeping 8D Cinematic Audio available on all devices.\n",
   "changelog": [
-    "Instant App Opening & Spotify Lists: Persisted Spotify Playlists, Trending, Recently Played, YouTube Library, and Mixed For You caches locally for immediate 0ms display on startup",
-    "Zero Shimmer Stalls: Unlocks Home immediately when cached or live Spotify shelves arrive, decouples Home/Mood/Chart/NewRelease into parallel collectors, and fixes Eager Spotify state collection",
-    "Faster SpotAPI Cold Start: Shares Koin's single Spotify session across repositories, seeds cached tokens immediately, uses fast HTML session extraction, and parallelizes user/chart playlist requests",
-    "Instant Playlist & Library Switching: Renders cached Room playlists immediately on open and removes tab-switch loading flashes in Library"
+    "Glitch-Free App Switching & Notifications: Larger Android/WASAPI audio buffers, smooth pause/resume/ducking gain ramps, and eliminated background playback pops",
+    "Instant Windows Startup & Desktop Fixes: Frame-0 desktop window open, restored 8D Cinematic Audio on libmpv, live album art transitions, and reliable desktop Spotify cookie login",
+    "Windows Trust Seal & Clean Signing: Live in-app Authenticode and SHA-256 verification seal, signed native binaries, zero runtime PowerShell/reg subprocesses, and optional installer certificate setup",
+    "Device-Gated Dolby Audio: Enforced Android and Windows hardware/APO support checks in UI and audio engines so Dolby Audio runs strictly on supported devices"
   ],
   "assets": [
     {
       "name": "PulseMusic-Universal.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-Universal.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-Universal.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 58179663
+      "size": 58172885
     },
     {
       "name": "PulseMusic-arm64-v8a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-arm64-v8a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-arm64-v8a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30310537
+      "size": 30303770
     },
     {
       "name": "PulseMusic-armeabi-v7a.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-armeabi-v7a.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-armeabi-v7a.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 30274682
+      "size": 30267906
     },
     {
       "name": "PulseMusic-x86_64.apk",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-x86_64.apk",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-x86_64.apk",
       "content_type": "application/vnd.android.package-archive",
-      "size": 31776027
+      "size": 31769250
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.exe",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-Windows-x64-Setup.exe",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-Windows-x64-Setup.exe",
       "content_type": "application/vnd.microsoft.portable-executable",
-      "size": 216119656
+      "size": 216263672
     },
     {
       "name": "PulseMusic-Windows-x64-Setup.zip",
-      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-Windows-x64-Setup.zip",
+      "browser_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-Windows-x64-Setup.zip",
       "content_type": "application/zip",
-      "size": 215667724
+      "size": 215811809
     }
   ],
-  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-Windows-x64-Setup.exe",
-  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.7/PulseMusic-Windows-x64-Setup.exe"
+  "windowsDownloadUrl": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-Windows-x64-Setup.exe",
+  "windows_download_url": "https://github.com/muthumanikandanb2005-ux/PulseMusic/releases/download/v4.2.8/PulseMusic-Windows-x64-Setup.exe"
 }

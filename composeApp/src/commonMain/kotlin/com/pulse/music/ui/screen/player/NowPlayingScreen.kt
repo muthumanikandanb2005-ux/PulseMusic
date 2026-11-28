@@ -248,7 +248,10 @@ fun NowPlayingScreenContent(
     }
     // ⚠️ Use track.videoId (already prefix-stripped at MediaServiceHandlerImpl.kt:386).
     // Do NOT use mediaItem.mediaId — it carries the "Video" prefix for video items.
-    val nowPlayingVideoId: String? = nowPlayingState?.track?.videoId
+    val nowPlayingVideoId: String? =
+        nowPlayingState?.track?.videoId
+            ?: nowPlayingState?.songEntity?.videoId
+            ?: nowPlayingState?.mediaItem?.mediaId?.removePrefix(com.manikandan.common.MERGING_DATA_TYPE.VIDEO)?.takeIf { it.isNotEmpty() }
     // currentOrderIndex() is a plain getter over the player, NOT Compose state, so it is read
     // inside this remember block — whose keys (the queue, and the track now playing) are exactly
     // the two things that can move the player's position. nowPlayingState is published FROM the

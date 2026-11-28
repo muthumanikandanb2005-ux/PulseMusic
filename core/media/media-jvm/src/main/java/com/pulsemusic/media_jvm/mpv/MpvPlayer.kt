@@ -130,6 +130,20 @@ class MpvPlayer private constructor(
          */
         private const val FX_REVERB_LABEL = "simpFxReverb"
 
+        /** `@label:` of the Cinematic / 8D spatial panning entry. */
+        private const val FX_CINEMATIC_LABEL = "simpFx8D"
+
+        /** `@label:` of the Dolby Atmos spatial virtualization entry. */
+        private const val FX_ATMOS_LABEL = "simpFxAtmos"
+
+        /** Set once libmpv proves it cannot build `apulsator` / 8D spatial filters. */
+        @Volatile
+        private var cinematicFiltersUnavailable = false
+
+        /** Set once libmpv proves it cannot build `lowshelf` / `highshelf` / `extrastereo`. */
+        @Volatile
+        private var atmosFiltersUnavailable = false
+
         /**
          * Set once this libmpv has proven it cannot build the convolution reverb graph.
          *
@@ -258,18 +272,26 @@ class MpvPlayer private constructor(
             // auto-probe as a fallback so a failure here means degraded audio, not silence.
             if (com.sun.jna.Platform.isMac()) {
                 option("ao", "avfoundation,")
+            } else if (com.sun.jna.Platform.isWindows()) {
+                // Shared WASAPI prevents exclusive device locks and popping when switching apps/notifications.
+                optionalOption("ao", "wasapi,sdl,")
+                optionalOption("audio-exclusive", "no")
             }
 
-            // High-fidelity bit-perfect audio output (native sample rate, gapless playback)
+            // High-fidelity bit-perfect audio output with resilient multitasking buffer
             option("audio-pitch-correction", "yes")
             option("gapless-audio", "yes")
             option("audio-samplerate", "0")
+            optionalOption("audio-buffer", "0.5")
+            optionalOption("audio-stream-silence", "yes")
+            optionalOption("audio-wait-open", "0.15")
+            optionalOption("audio-fallback-to-null", "yes")
 
             // VLC "--network-caching=10000" / ":network-caching=15000".
             option("cache", "yes")
             option("cache-secs", networkCacheSeconds.toString())
-            // Low readahead and hysteresis ensure audio starts immediately without buffering delay
-            option("demuxer-readahead-secs", if (audioOnly) "5" else "10")
+            // Generous demuxer readahead prevents transient network stalls while multitasking.
+            option("demuxer-readahead-secs", if (audioOnly) "15" else "20")
             option("demuxer-hysteresis-secs", "1")
 
             // Sized to allow uninterrupted high bitrate audio and video without buffer stalls
@@ -409,6 +431,7 @@ class MpvPlayer private constructor(
         pumpThread =
             Thread({ pumpLoop() }, "Mpv-Event-Pump").apply {
                 isDaemon = true
+                priority = (Thread.NORM_PRIORITY + 2).coerceAtMost(Thread.MAX_PRIORITY)
                 start()
             }
     }
@@ -913,23 +936,88 @@ class MpvPlayer private constructor(
                 else -> "@$FX_REVERB_LABEL:lavfi=[${convolutionReverbGraph(reverbIrPath, reverb.mix)}]"
             }
 
+        val cinematic = effects.cinematic
+        val cinematicEntry =
+            when {
+                cinematic == null || cinematicFiltersUnavailable -> null
+                else -> cinematicAudioGraph(cinematic)?.let { "@$FX_CINEMATIC_LABEL:lavfi=[$it]" }
+            }
+
+        val dolbyAtmos = effects.dolbyAtmos
+        val atmosEntry =
+            when {
+                dolbyAtmos == null || atmosFiltersUnavailable -> null
+                else -> "@$FX_ATMOS_LABEL:lavfi=[${dolbyAtmosGraph(dolbyAtmos)}]"
+            }
+
         // Asked for but not expressible. Tracked rather than inferred from the entry list, since
         // "no echo entry" means one thing when the user wants an echo and another when they do not.
-        val dropped = (delay != null && echoEntry == null) || (reverb != null && reverbEntry == null)
+        val dropped =
+            (delay != null && echoEntry == null) ||
+                (reverb != null && reverbEntry == null) ||
+                (cinematic != null && cinematicEntry == null) ||
+                (dolbyAtmos != null && atmosEntry == null)
 
-        if (applyFxEntries(listOfNotNull(echoEntry, reverbEntry))) return !dropped
+        val fullEntries = listOfNotNull(echoEntry, reverbEntry, cinematicEntry, atmosEntry)
+        if (applyFxEntries(fullEntries)) return !dropped
 
-        if (reverbEntry != null && applyFxEntries(listOfNotNull(echoEntry))) {
+        // Progressive fallback so an unsupported filter (e.g. apulsator/afir on stripped Linux builds)
+        // never wipes out EQ or the remaining supported effects.
+        var workingEcho = echoEntry
+        var workingReverb = reverbEntry
+        var workingCinematic = cinematicEntry
+        var workingAtmos = atmosEntry
+        var anyDropped = dropped
+
+        if (workingCinematic != null) {
+            val minimalCinematic = cinematic?.let { cinematicMinimalOrbitGraph(it) }?.let { "@$FX_CINEMATIC_LABEL:lavfi=[$it]" }
+            if (minimalCinematic != null && minimalCinematic != workingCinematic &&
+                applyFxEntries(listOfNotNull(workingEcho, workingReverb, minimalCinematic, workingAtmos))
+            ) {
+                return false
+            }
+            if (!applyFxEntries(listOfNotNull(workingEcho, workingReverb, workingCinematic, null))) {
+                // Keep trying without reverb or cinematic individually below
+            } else {
+                atmosFiltersUnavailable = true
+                Logger.w(TAG, "Dolby Atmos filters unavailable on this libmpv build; skipping Atmos")
+                return false
+            }
+        }
+
+        if (workingReverb != null && applyFxEntries(listOfNotNull(workingEcho, workingCinematic, workingAtmos))) {
             reverbFiltersUnavailable = true
             Logger.w(TAG, "reverb unavailable: this libmpv build lacks afir/amovie/asplit/amix")
             return false
         }
-        // aecho ships with every FFmpeg, so reaching here means something else is wrong with the
-        // chain. Blank the tier anyway: leaving a rejected entry behind would keep every later
-        // equalizer write failing along with it.
-        Logger.w(TAG, "mpv rejected the audio effect chain; continuing with neither echo nor reverb")
+
+        if (workingAtmos != null && !applyFxEntries(listOfNotNull(workingEcho, workingReverb, workingCinematic))) {
+            // Try dropping cinematic if Atmos itself was fine
+            if (workingCinematic != null && applyFxEntries(listOfNotNull(workingEcho, workingAtmos))) {
+                cinematicFiltersUnavailable = true
+                Logger.w(TAG, "8D/Cinematic filters unavailable on this libmpv build")
+                return false
+            }
+        } else if (workingAtmos != null) {
+            atmosFiltersUnavailable = true
+            Logger.w(TAG, "Dolby Atmos filters unavailable on this libmpv build")
+            return false
+        }
+
+        if (workingCinematic != null && applyFxEntries(listOfNotNull(workingEcho, workingReverb))) {
+            cinematicFiltersUnavailable = true
+            Logger.w(TAG, "8D/Cinematic filters (apulsator/extrastereo) unavailable on this libmpv build")
+            return false
+        }
+
+        if (workingEcho != null && applyFxEntries(listOf(workingEcho))) {
+            reverbFiltersUnavailable = reverb != null
+            return false
+        }
+
+        Logger.w(TAG, "mpv rejected the audio effect chain; continuing without audio effects")
         applyFxEntries(emptyList())
-        return false
+        return anyDropped && false
     }
 
     /** Swap in a new effects tier and rewrite `af` around the other two. */

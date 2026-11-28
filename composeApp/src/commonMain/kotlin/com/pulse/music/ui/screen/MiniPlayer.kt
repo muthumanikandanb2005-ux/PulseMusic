@@ -490,7 +490,11 @@ fun MiniPlayer(
                                         )
                                     },
                         ) {
-                            val miniThumb = upgradeArtworkUrl(songEntity?.thumbnails)
+                            val miniThumb =
+                                upgradeArtworkUrl(
+                                    nowPlayingScreenData.thumbnailURL?.takeIf { it.isNotBlank() }
+                                        ?: songEntity?.thumbnails,
+                                )
                             AsyncImage(
                                 model =
                                     ImageRequest
@@ -695,6 +699,13 @@ fun MiniPlayer(
         if (isIslandExpanded) {
             DynamicIslandOverlay(
                 songEntity = songEntity,
+                fallbackTitle = nowPlayingScreenData.nowPlayingTitle,
+                fallbackArtist = nowPlayingScreenData.artistName,
+                artworkUrl =
+                    upgradeArtworkUrl(
+                        nowPlayingScreenData.thumbnailURL?.takeIf { it.isNotBlank() }
+                            ?: songEntity?.thumbnails,
+                    ),
                 isPlaying = isPlaying,
                 liked = liked,
                 timelineState = timelineState,
@@ -816,7 +827,11 @@ fun MiniPlayer(
                                 .graphicsLayer { alpha = infoAlpha },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        val desktopThumb = upgradeArtworkUrl(songEntity?.thumbnails)
+                        val desktopThumb =
+                            upgradeArtworkUrl(
+                                nowPlayingScreenData.thumbnailURL?.takeIf { it.isNotBlank() }
+                                    ?: songEntity?.thumbnails,
+                            )
                         AsyncImage(
                             model =
                                 ImageRequest
@@ -851,7 +866,9 @@ fun MiniPlayer(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(
-                                    text = (songEntity?.title ?: "").toString(),
+                                    text =
+                                        (songEntity?.title?.takeIf { it.isNotBlank() }
+                                            ?: nowPlayingScreenData.nowPlayingTitle),
                                     style = typo().labelSmall.copy(fontSize = 12.sp),
                                     color = textColor,
                                     maxLines = 1,
@@ -901,7 +918,9 @@ fun MiniPlayer(
                                     )
                                 } else {
                                     Text(
-                                        text = (songEntity?.artistName?.connectArtists() ?: ""),
+                                        text =
+                                            (songEntity?.artistName?.connectArtists()?.takeIf { it.isNotBlank() }
+                                                ?: nowPlayingScreenData.artistName),
                                         style = typo().bodySmall,
                                         color = textColor.copy(alpha = 0.7f),
                                         maxLines = 1,
@@ -1458,6 +1477,9 @@ fun QualityBadge(
 @Composable
 private fun DynamicIslandOverlay(
     songEntity: SongEntity?,
+    fallbackTitle: String,
+    fallbackArtist: String,
+    artworkUrl: String?,
     isPlaying: Boolean,
     liked: Boolean,
     timelineState: TimeLine,
@@ -1551,7 +1573,7 @@ private fun DynamicIslandOverlay(
                 AsyncImage(
                     model =
                         ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(songEntity?.thumbnails)
+                            .data(artworkUrl ?: songEntity?.thumbnails)
                             .crossfade(400)
                             .build(),
                     placeholder = rememberHolderPainter(),
@@ -1566,7 +1588,7 @@ private fun DynamicIslandOverlay(
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = (songEntity?.title ?: "").toString(),
+                        text = (songEntity?.title?.takeIf { it.isNotBlank() } ?: fallbackTitle),
                         style = typo().titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = contentColor,
                         maxLines = 1,
@@ -1577,7 +1599,7 @@ private fun DynamicIslandOverlay(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = (songEntity?.artistName?.connectArtists() ?: ""),
+                        text = (songEntity?.artistName?.connectArtists()?.takeIf { it.isNotBlank() } ?: fallbackArtist),
                         style = typo().bodyMedium,
                         color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,

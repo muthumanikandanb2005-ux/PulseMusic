@@ -1,5 +1,5 @@
 #define MyAppName "Pulse Music"
-#define MyAppVersion "4.2.7"
+#define MyAppVersion "4.2.8"
 #define MyAppPublisher "Manikandan"
 #define MyAppURL "https://github.com/muthumanikandanb2005-ux/PulseMusic"
 #define MyAppExeName "Pulse.exe"
@@ -32,17 +32,18 @@ SignTool=signtool
 SignedUninstaller=yes
 VersionInfoCompany=Manikandan
 VersionInfoDescription=Pulse Music Desktop Setup
-VersionInfoVersion=4.2.7.0
-VersionInfoTextVersion=4.2.7
+VersionInfoVersion=4.2.8.0
+VersionInfoTextVersion=4.2.8
 VersionInfoCopyright=Copyright (C) 2026 Manikandan
 VersionInfoProductName=Pulse Music
-VersionInfoProductVersion=4.2.7.0
+VersionInfoProductVersion=4.2.8.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "trustcert"; Description: "Register Manikandan publisher certificate in Current User Trusted Publishers (optional)"; GroupDescription: "Security & Trust:"; Flags: unchecked
 
 [InstallDelete]
 Type: files; Name: "{app}\app\*.jar"
@@ -76,8 +77,8 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyApp
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"; Flags: uninsdeletekey
 
 [Run]
-Filename: "certutil.exe"; Parameters: "-user -addstore -f ""TrustedPublisher"" ""{app}\PulseMusic.cer"""; Flags: runhidden; StatusMsg: "Configuring publisher trust..."
-Filename: "certutil.exe"; Parameters: "-user -addstore -f ""TrustedPeople"" ""{app}\PulseMusic.cer"""; Flags: runhidden; StatusMsg: "Configuring publisher trust..."
+Filename: "certutil.exe"; Parameters: "-user -addstore -f ""TrustedPublisher"" ""{app}\PulseMusic.cer"""; Tasks: trustcert; Flags: runhidden; StatusMsg: "Registering publisher certificate..."
+Filename: "certutil.exe"; Parameters: "-user -addstore -f ""TrustedPeople"" ""{app}\PulseMusic.cer"""; Tasks: trustcert; Flags: runhidden; StatusMsg: "Registering publisher certificate..."
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
@@ -95,20 +96,6 @@ var
 begin
   ShellExec('open', 'taskkill.exe', '/F /IM Pulse.exe', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   Result := '';
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  ErrorCode: Integer;
-begin
-  if CurStep = ssPostInstall then
-  begin
-    if IsAdmin then
-    begin
-      ShellExec('open', 'certutil.exe', '-addstore -f "Root" "' + ExpandConstant('{app}\PulseMusic.cer') + '"', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
-      ShellExec('open', 'certutil.exe', '-addstore -f "TrustedPublisher" "' + ExpandConstant('{app}\PulseMusic.cer') + '"', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
-    end;
-  end;
 end;
 
 function InitializeUninstall(): Boolean;

@@ -156,6 +156,61 @@ fun hasYouTubeAuthTokens(cookie: String): Boolean {
         lower.contains("sid=")
 }
 
+/**
+ * Extracts a clean `"sp_dc=<token>"` cookie string from a raw `sp_dc` value, semicolon-delimited
+ * Cookie header, `cookie:` header line, DevTools cURL command, or Netscape `cookies.txt` export.
+ */
+fun sanitizeSpotifyCookie(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return ""
+
+    // Support cURL -b '...' / --cookie '...' in addition to -H 'cookie: ...'
+    val curlBMatch = Regex("""(?:-b|--cookie)\s+['"]([^'"]+)['"]""").find(trimmed)
+    val base = if (curlBMatch != null) curlBMatch.groupValues[1].trim() else sanitizeYouTubeCookie(trimmed)
+
+    // Check explicit sp_dc=<value> inside semicolon-separated pairs
+    base.split(";")
+        .map { it.trim() }
+        .firstOrNull { it.startsWith("sp_dc=", ignoreCase = true) }
+        ?.substringAfter("=")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { return "sp_dc=$it" }
+
+    // Check line-by-line Netscape or key=value pairs in original text
+    for (line in trimmed.lines()) {
+        val parts = line.trim().split("\t")
+        if (parts.size >= 7 && parts[5].trim().equals("sp_dc", ignoreCase = true)) {
+            val value = parts[6].trim()
+            if (value.isNotEmpty()) return "sp_dc=$value"
+        }
+    }
+
+    // If user pasted the bare sp_dc token directly (e.g. AQA... from DevTools Cookies value cell)
+    val bare = base.trim().trim('"', '\'')
+    if (bare.length >= 20 &&
+        !bare.contains(' ') &&
+        !bare.contains('=') &&
+        !bare.contains(';') &&
+        !bare.startsWith("http", ignoreCase = true)
+    ) {
+        return "sp_dc=$bare"
+    }
+
+    return base
+}
+
+fun hasSpotifyAuthTokens(cookie: String): Boolean {
+    val spdcValue =
+        cookie
+            .split(";")
+            .map { it.trim() }
+            .firstOrNull { it.startsWith("sp_dc=", ignoreCase = true) }
+            ?.substringAfter("=")
+            ?.trim()
+    return !spdcValue.isNullOrBlank() && spdcValue.length >= 16
+}
+
 @Composable
 actual fun PlatformWebView(
     state: MutableState<WebViewState>,
@@ -163,13 +218,28 @@ actual fun PlatformWebView(
     aboveContent: @Composable (BoxScope.() -> Unit),
     onPageFinished: (String) -> Unit,
 ) {
+    val isSpotify = remember(initUrl) { initUrl.contains("spotify", ignoreCase = true) }
     val clipboardManager = LocalClipboardManager.current
     var cookieInput by remember { mutableStateOf("") }
     var isConnecting by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
 
-    val sanitizedCookie = remember(cookieInput) { sanitizeYouTubeCookie(cookieInput) }
-    val isValid = remember(sanitizedCookie) { hasYouTubeAuthTokens(sanitizedCookie) }
+    val sanitizedCookie = remember(cookieInput, isSpotify) {
+        if (isSpotify) sanitizeSpotifyCookie(cookieInput) else sanitizeYouTubeCookie(cookieInput)
+    }
+    val isValid = remember(sanitizedCookie, isSpotify) {
+        if (isSpotify) hasSpotifyAuthTokens(sanitizedCookie) else hasYouTubeAuthTokens(sanitizedCookie)
+    }
+
+    val brandColor = if (isSpotify) Color(0xFF1DB954) else Color(0xFFFF0000)
+    val serviceName = if (isSpotify) "Spotify" else "YouTube Music"
+    val targetBrowserUrl =
+        if (isSpotify) {
+            "https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
+        } else {
+            "https://music.youtube.com"
+        }
+    val targetHostLabel = if (isSpotify) "open.spotify.com" else "music.youtube.com"
 
     Box(
         modifier = Modifier
@@ -195,12 +265,12 @@ actual fun PlatformWebView(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFF0000)),
+                        .background(brandColor),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = PulseIcons.PlayArrow,
-                        contentDescription = "YouTube",
+                        contentDescription = serviceName,
                         tint = Color.White,
                         modifier = Modifier.size(28.dp),
                     )
@@ -208,13 +278,18 @@ actual fun PlatformWebView(
                 Spacer(modifier = Modifier.width(14.dp))
                 Column {
                     Text(
-                        text = "Sign in to YouTube Music",
+                        text = "Sign in to $serviceName",
                         style = typo().titleLarge,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Connect your account to sync playlists, liked songs & subscriptions",
+                        text =
+                            if (isSpotify) {
+                                "Connect Spotify for your playlists, trending songs, listening history & Canvas"
+                            } else {
+                                "Connect your account to sync playlists, liked songs & subscriptions"
+                            },
                         style = typo().bodySmall,
                         color = Color.White.copy(alpha = 0.65f),
                     )
@@ -240,27 +315,32 @@ actual fun PlatformWebView(
 
                     InstructionStep(
                         step = "1",
-                        title = "Open YouTube Music in your browser",
-                        description = "Make sure you are logged into your Google account on music.youtube.com.",
+                        title = "Open $serviceName in your browser",
+                        description = "Make sure you are signed in to your account on $targetHostLabel.",
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     InstructionStep(
                         step = "2",
-                        title = "Copy your cookie or cURL command",
-                        description = "In your browser, press F12 (Developer Tools) -> Network tab -> click any request to music.youtube.com -> right-click -> Copy -> Copy as cURL (or copy the 'cookie' request header).",
+                        title = if (isSpotify) "Copy sp_dc cookie or cURL command" else "Copy your cookie or cURL command",
+                        description =
+                            if (isSpotify) {
+                                "Press F12 in your browser -> Application tab -> Cookies -> https://open.spotify.com -> copy the 'sp_dc' value (or in Network tab, right-click any request -> Copy -> Copy as cURL)."
+                            } else {
+                                "In your browser, press F12 (Developer Tools) -> Network tab -> click any request to music.youtube.com -> right-click -> Copy -> Copy as cURL (or copy the 'cookie' request header)."
+                            },
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     InstructionStep(
                         step = "3",
                         title = "Paste & connect",
-                        description = "Click 'Paste from Clipboard' below. Pulse will automatically parse and validate your credentials.",
+                        description = "Click 'Paste from Clipboard' below. Pulse will automatically extract and validate your credentials.",
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
                         onClick = {
-                            openUrl("https://music.youtube.com")
+                            openUrl(targetBrowserUrl)
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF2E2E2E),
@@ -276,7 +356,7 @@ actual fun PlatformWebView(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Open music.youtube.com in Browser",
+                            text = "Open $targetHostLabel in Browser",
                             style = typo().labelLarge,
                         )
                     }
@@ -298,7 +378,7 @@ actual fun PlatformWebView(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Paste Cookie or cURL",
+                            text = if (isSpotify) "Paste sp_dc Cookie or cURL" else "Paste Cookie or cURL",
                             style = typo().titleSmall,
                             color = Color.White,
                             fontWeight = FontWeight.Medium,
@@ -307,7 +387,12 @@ actual fun PlatformWebView(
                             onClick = {
                                 val clipText = clipboardManager.getText()?.text
                                 if (!clipText.isNullOrBlank()) {
-                                    val cleaned = sanitizeYouTubeCookie(clipText)
+                                    val cleaned =
+                                        if (isSpotify) {
+                                            sanitizeSpotifyCookie(clipText)
+                                        } else {
+                                            sanitizeYouTubeCookie(clipText)
+                                        }
                                     cookieInput = cleaned
                                     errorText = null
                                     showToast("Cookie pasted from clipboard", ToastGravity.Bottom)
@@ -338,7 +423,12 @@ actual fun PlatformWebView(
                         },
                         placeholder = {
                             Text(
-                                text = "Paste cookie string, request header, or cURL command here...",
+                                text =
+                                    if (isSpotify) {
+                                        "Paste sp_dc value, sp_dc=..., cookie header, or cURL command..."
+                                    } else {
+                                        "Paste cookie string, request header, or cURL command here..."
+                                    },
                                 color = Color.Gray,
                                 fontSize = 13.sp,
                             )
@@ -348,8 +438,8 @@ actual fun PlatformWebView(
                             .height(120.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = if (isValid) Color(0xFFA788FA) else Color(0xFFFF0000),
-                            unfocusedBorderColor = if (isValid) Color(0xFFA788FA).copy(alpha = 0.6f) else Color(0xFF444444),
+                            focusedBorderColor = if (isValid) brandColor else Color(0xFF666666),
+                            unfocusedBorderColor = if (isValid) brandColor.copy(alpha = 0.65f) else Color(0xFF444444),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             cursorColor = Color.White,
@@ -368,13 +458,18 @@ actual fun PlatformWebView(
                                 Icon(
                                     imageVector = PulseIcons.CheckCircle,
                                     contentDescription = "Valid",
-                                    tint = Color(0xFFA788FA),
+                                    tint = if (isSpotify) Color(0xFF1DB954) else Color(0xFFA788FA),
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Valid YouTube authentication tokens detected",
-                                    color = Color(0xFFA788FA),
+                                    text =
+                                        if (isSpotify) {
+                                            "Valid Spotify sp_dc session token detected"
+                                        } else {
+                                            "Valid YouTube authentication tokens detected"
+                                        },
+                                    color = if (isSpotify) Color(0xFF1DB954) else Color(0xFFA788FA),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
                                 )
@@ -392,7 +487,12 @@ actual fun PlatformWebView(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Need SAPISID, __Secure-3PAPISID, or LOGIN_INFO from music.youtube.com",
+                                    text =
+                                        if (isSpotify) {
+                                            "Need the 'sp_dc' cookie value from open.spotify.com"
+                                        } else {
+                                            "Need SAPISID, __Secure-3PAPISID, or LOGIN_INFO from music.youtube.com"
+                                        },
                                     color = Color(0xFFF59E0B),
                                     fontSize = 12.sp,
                                 )
@@ -413,13 +513,21 @@ actual fun PlatformWebView(
 
                     Button(
                         onClick = {
-                            val finalCookie = sanitizeYouTubeCookie(cookieInput)
+                            val finalCookie =
+                                if (isSpotify) sanitizeSpotifyCookie(cookieInput) else sanitizeYouTubeCookie(cookieInput)
                             if (finalCookie.isBlank()) {
                                 errorText = "Please enter or paste your cookie first."
                                 return@Button
                             }
-                            if (!hasYouTubeAuthTokens(finalCookie)) {
-                                errorText = "The pasted text does not contain required YouTube auth tokens (SAPISID, __Secure-3PAPISID, or LOGIN_INFO)."
+                            val validTokens =
+                                if (isSpotify) hasSpotifyAuthTokens(finalCookie) else hasYouTubeAuthTokens(finalCookie)
+                            if (!validTokens) {
+                                errorText =
+                                    if (isSpotify) {
+                                        "Could not find a valid Spotify 'sp_dc' session token in the pasted text."
+                                    } else {
+                                        "The pasted text does not contain required YouTube auth tokens (SAPISID, __Secure-3PAPISID, or LOGIN_INFO)."
+                                    }
                                 return@Button
                             }
 
@@ -428,13 +536,14 @@ actual fun PlatformWebView(
                             desktopCachedCookie = finalCookie
                             state.value = WebViewState.Finished
 
-                            // Trigger page finished to execute addAccount in LogInScreen
-                            onPageFinished(Config.YOUTUBE_MUSIC_MAIN_URL)
+                            onPageFinished(
+                                if (isSpotify) "https://open.spotify.com" else Config.YOUTUBE_MUSIC_MAIN_URL,
+                            )
                         },
                         enabled = !isConnecting && cookieInput.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF0000),
-                            contentColor = Color.White,
+                            containerColor = brandColor,
+                            contentColor = if (isSpotify) Color.Black else Color.White,
                             disabledContainerColor = Color(0xFF333333),
                             disabledContentColor = Color.Gray,
                         ),
@@ -446,13 +555,13 @@ actual fun PlatformWebView(
                         if (isConnecting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = Color.White,
+                                color = if (isSpotify) Color.Black else Color.White,
                                 strokeWidth = 2.dp,
                             )
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text(text = "Connecting to YouTube Music...", fontWeight = FontWeight.SemiBold)
+                            Text(text = "Connecting to $serviceName...", fontWeight = FontWeight.SemiBold)
                         } else {
-                            Text(text = "Connect YouTube Account", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(text = "Connect $serviceName Account", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                     }
                 }

@@ -469,9 +469,9 @@ private fun provideRendererFactory(context: Context): DefaultRenderersFactory =
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioTrackBufferSizeProvider(
                     DefaultAudioTrackBufferSizeProvider.Builder()
-                        .setPcmBufferMultiplicationFactor(4)
-                        .setMinPcmBufferDurationUs(400_000)
-                        .setMaxPcmBufferDurationUs(1_000_000)
+                        .setPcmBufferMultiplicationFactor(6)
+                        .setMinPcmBufferDurationUs(600_000)
+                        .setMaxPcmBufferDurationUs(1_500_000)
                         .build()
                 )
                 .setAudioProcessorChain(
